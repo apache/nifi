@@ -1861,10 +1861,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return newFile;
     }
 
-    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+    private void updateLastQueuedDate(final StandardRepositoryRecord record, final Long lastQueueDate) {
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent())
-            .lastQueued(System.currentTimeMillis(), enqueuedIndex.getAndIncrement()).build();
+                .lastQueued(lastQueueDate, enqueuedIndex.getAndIncrement()).build();
         record.setWorking(newFile);
+    }
+
+    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+        updateLastQueuedDate(record, System.currentTimeMillis());
     }
 
     @Override
@@ -1938,11 +1942,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final int multiplier = Math.max(1, numDestinations);
 
+        final long queuedTime = System.currentTimeMillis();
         long contentSize = 0L;
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = records.get(flowFile);
             record.setTransferRelationship(relationship);
-            updateLastQueuedDate(record);
+            updateLastQueuedDate(record, queuedTime);
 
             contentSize += flowFile.getSize();
         }
