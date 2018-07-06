@@ -64,6 +64,15 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         .required(true)
         .build();
 
+    static final PropertyDescriptor DROP_EMPTY_FILES = new PropertyDescriptor.Builder()
+        .name("drop-empty-files")
+        .displayName("Drop Files With No Records")
+        .description("If an incoming FlowFile has no records, should we drop the file or keep it?")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles that are successfully transformed will be routed to this relationship")
@@ -99,6 +108,8 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final boolean dropEmptyFiles = context.getProperty(DROP_EMPTY_FILES).isSet()?
+                context.getProperty(DROP_EMPTY_FILES).asBoolean():false;
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -142,7 +153,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         }
 
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.transfer(flowFile, REL_SUCCESS);
+        if(dropEmptyFiles && recordCount.get() == 0){
+            session.remove(flowFile);
+        } else {
+            session.transfer(flowFile, REL_SUCCESS);
+        }
 
         final int count = recordCount.get();
         session.adjustCounter("Records Processed", count, false);
