@@ -2282,9 +2282,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (component instanceof ControllerServiceNode) {
                 final ControllerServiceNode node = (ControllerServiceNode) component;
                 if (!visited.contains(node)) {
+                    visited.add(node);
                     findControllerServiceReferencingComponentIdentifiers(node.getReferences(), visited);
                 }
-                visited.add(node);
             }
         }
     }
