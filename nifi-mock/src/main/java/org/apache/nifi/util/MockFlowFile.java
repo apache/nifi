@@ -193,8 +193,8 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertAttributeNotExists(final String attributeName) {
-        Assert.assertFalse("Attribute " + attributeName + " not exists with value " + attributes.get(attributeName),
-            attributes.containsKey(attributeName));
+        Assert.assertFalse("Attribute " + attributeName + " should not exist on FlowFile, but exists with value "
+                        + attributes.get(attributeName), attributes.containsKey(attributeName));
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {
