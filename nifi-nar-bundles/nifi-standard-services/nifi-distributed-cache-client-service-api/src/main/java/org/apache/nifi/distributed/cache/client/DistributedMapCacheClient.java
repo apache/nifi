@@ -69,7 +69,8 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @param valueDeserializer value deserializer
      * @return If a value already exists in the cache for the given
      * key, the value associated with the key is returned, after being
-     * deserialized with the given valueDeserializer
+     * deserialized with the given {@code valueDeserializer}. If the key does not
+     * exist, the key and its value will be added to the cache.
      * @throws IOException ex
      */
     <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException;
