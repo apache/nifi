@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,6 +59,14 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
         + "the Message Attribute and value will become the value of the Message Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class PutSQS extends AbstractSQSProcessor {
 
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character Set that should be used to encode the textual content of the SQS message")
+            .required(true)
+            .defaultValue("UTF-8")
+            .allowableValues(Charset.availableCharsets().keySet().toArray(new String[0]))
+            .build();
+
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
             .name("Delay")
             .description("The amount of time to delay the message before it becomes available to consumers")
@@ -66,7 +76,7 @@ public class PutSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, DELAY, TIMEOUT, PROXY_HOST, PROXY_HOST_PORT));
+            Arrays.asList(QUEUE_URL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, DELAY, TIMEOUT, PROXY_HOST, PROXY_HOST_PORT, CHARSET));
 
     private volatile List<PropertyDescriptor> userDefinedProperties = Collections.emptyList();
 
@@ -115,7 +125,19 @@ public class PutSQS extends AbstractSQSProcessor {
         entry.setId(flowFile.getAttribute("uuid"));
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         session.exportTo(flowFile, baos);
-        final String flowFileContent = baos.toString();
+
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+
+        String flowFileContent;
+
+        // Get the content of the FlowFile with the given Charset. Fall back to the default charset
+        // if the given charset is not supported.
+        try {
+            flowFileContent = baos.toString(charset.name());
+        } catch (UnsupportedEncodingException e) {
+            flowFileContent = baos.toString();
+        }
+
         entry.setMessageBody(flowFileContent);
 
         final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
