@@ -293,14 +293,14 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         final int connectionPoolSize = properties.getClusterNodeMaxConcurrentRequests();
         okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
 
-        final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
-        if (tuple != null) {
-            okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
-        }
+        // final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
+        // if (tuple != null) {
+        //     okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
+        // }
 
-        if (hostnameVerifier != null) {
-            okHttpClientBuilder.hostnameVerifier(hostnameVerifier);
-        }
+        // if (hostnameVerifier != null) {
+        //     okHttpClientBuilder.hostnameVerifier(hostnameVerifier);
+        // }
 
         return okHttpClientBuilder.build();
     }

@@ -217,7 +217,9 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
                 Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
-                    nodeIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
+                    final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
+                    nodeIdentities.add(mappedNodeIdentity);
+                    logger.info("Added mapped node {} (raw node identity {})", new Object[]{mappedNodeIdentity, entry.getValue()});
                 }
             }
 
