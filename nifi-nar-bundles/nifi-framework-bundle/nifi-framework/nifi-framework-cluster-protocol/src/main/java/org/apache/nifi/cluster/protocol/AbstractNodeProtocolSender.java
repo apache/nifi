@@ -62,7 +62,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
                 response = unmarshaller.unmarshal(socket.getInputStream());
             } catch (final IOException ioe) {
                 throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
-                    + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+                        + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
             }
 
             if (MessageType.CONNECTION_RESPONSE == response.getType()) {
@@ -155,7 +155,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
                 response = unmarshaller.unmarshal(socket.getInputStream());
             } catch (final IOException ioe) {
                 throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
-                    + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+                        + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
             }
 
             return response;
