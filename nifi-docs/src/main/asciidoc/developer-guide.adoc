@@ -2296,6 +2296,32 @@ threads that should be used to run the Processor can
 be set via the `setThreadCount(int)` method.
 
 
+=== Experimental NiFi Flow test harness
+
+NiFi now has an experimental feature for full end-to-end testing of flows. This allows us
+to take a NiFi flow, install it to a test NiFi instance, run it and make Java unit test
+like asserts regarding its behaviour.
+
+The class `org.apache.nifi.test.TestNiFiInstance` is a thin wrapper that allows us
+to manipulate a NiFi installation and deploy a flow with some adjustments
+to its configuration, including changing processor properties and replacing processor
+classes with mocks.
+
+In order to add the necessary classes to your project,
+you can use the Maven dependency:
+
+[source]
+----
+<dependency>
+	<groupId>org.apache.nifi</groupId>
+	<artifactId>nifi-testharness</artifactId>
+	<version>${nifi version}</version>
+</dependency>
+----
+
+For further documentation, please consult the JavaDoc of
+`org.apache.nifi.test.TestNiFiInstance`. For samples, please take a look at
+link:https://github.com/apache/nifi/tree/master/nifi-testharness/src/test/java/org/apache/testharness/samples[samples on GitHub^].
 
 
 
