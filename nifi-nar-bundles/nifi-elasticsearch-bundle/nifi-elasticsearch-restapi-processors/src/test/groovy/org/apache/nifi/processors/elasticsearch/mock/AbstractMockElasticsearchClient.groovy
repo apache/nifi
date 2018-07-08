@@ -15,22 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.elasticsearch.integration
+package org.apache.nifi.processors.elasticsearch.mock
 
 import org.apache.nifi.controller.AbstractControllerService
-import org.apache.nifi.elasticsearch.DeleteOperationResponse
-import org.apache.nifi.elasticsearch.ElasticSearchClientService
-import org.apache.nifi.elasticsearch.IndexOperationRequest
-import org.apache.nifi.elasticsearch.IndexOperationResponse
-import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.elasticsearch.*
 
-class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
-    Map data = [
-        "username": "john.smith",
-        "password": "testing1234",
-        "email": "john.smith@test.com",
-        "position": "Software Engineer"
-    ]
+class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
+    boolean throwRetriableError
+    boolean throwFatalError
 
     @Override
     IndexOperationResponse add(IndexOperationRequest operation) {
@@ -64,19 +56,16 @@ class TestElasticSearchClientService extends AbstractControllerService implement
 
     @Override
     Map<String, Object> get(String index, String type, String id) {
-        return data
+        return null
     }
 
     @Override
     SearchResponse search(String query, String index, String type) {
-        List hits = [[
-            "_source": data
-        ]]
-        return new SearchResponse(hits, null, 1, 100, false)
+        return null
     }
 
     @Override
     String getTransitUrl(String index, String type) {
-        return ""
+        return null
     }
 }

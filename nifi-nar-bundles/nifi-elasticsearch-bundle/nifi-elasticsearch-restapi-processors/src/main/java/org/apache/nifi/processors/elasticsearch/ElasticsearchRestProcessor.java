@@ -25,12 +25,15 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.JsonValidator;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public interface ElasticSearchRestProcessor {
+public interface ElasticsearchRestProcessor {
+    String ATTR_RECORD_COUNT = "record.count";
+
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
             .displayName("Index")
@@ -43,7 +46,7 @@ public interface ElasticSearchRestProcessor {
     PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("el-rest-type")
             .displayName("Type")
-            .description("The type of this document (used by Elasticsearch for indexing and searching)")
+            .description("The type of this document (used by Elasticsearch for indexing and searching).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -70,10 +73,38 @@ public interface ElasticSearchRestProcessor {
     PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("el-rest-client-service")
             .displayName("Client Service")
-            .description("An ElasticSearch client service to use for running queries.")
+            .description("An Elasticsearch client service to use for running queries.")
             .identifiesControllerService(ElasticSearchClientService.class)
             .required(true)
             .build();
+
+    PropertyDescriptor LOG_ERROR_RESPONSES = new PropertyDescriptor.Builder()
+            .name("put-es-record-log-error-responses")
+            .displayName("Log Error Responses")
+            .description("If this is enabled, errors will be logged to the NiFi logs at the error log level. Otherwise, they will " +
+                    "only be logged if debug logging is enabled on NiFi as a whole. The purpose of this option is to give the user " +
+                    "the ability to debug failed operations without having to turn on debug logging.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("All flowfiles that fail for reasons unrelated to server availability go to this relationship.")
+            .build();
+    Relationship REL_RETRY = new Relationship.Builder()
+            .name("retry")
+            .description("All flowfiles that fail due to server/cluster availability go to this relationship.")
+            .build();
+    Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All flowfiles that succeed in being transferred into Elasticsearch go here.")
+            .build();
+    Relationship REL_FAILED_RECORDS = new Relationship.Builder()
+            .name("errors").description("If an output record write is set, any record that failed to process the way it was " +
+                    "configured will be sent to this relationship as part of a failed record record set.")
+            .autoTerminateDefault(true).build();
 
     default String getQuery(FlowFile input, ProcessContext context, ProcessSession session) throws IOException {
         String retVal = null;

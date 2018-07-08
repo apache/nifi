@@ -15,82 +15,79 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.elasticsearch;
+package org.apache.nifi.processors.elasticsearch
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.elasticsearch.DeleteOperationResponse;
-import org.apache.nifi.elasticsearch.ElasticSearchClientService;
-import org.apache.nifi.elasticsearch.IndexOperationRequest;
-import org.apache.nifi.elasticsearch.IndexOperationResponse;
-import org.apache.nifi.elasticsearch.SearchResponse;
+import groovy.json.JsonSlurper
+import org.apache.nifi.controller.AbstractControllerService
+import org.apache.nifi.elasticsearch.DeleteOperationResponse
+import org.apache.nifi.elasticsearch.ElasticSearchClientService
+import org.apache.nifi.elasticsearch.IndexOperationRequest
+import org.apache.nifi.elasticsearch.IndexOperationResponse
+import org.apache.nifi.elasticsearch.SearchResponse
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+class TestElasticsearchClientService extends AbstractControllerService implements ElasticSearchClientService {
+    private boolean returnAggs
+    private boolean throwErrorInSearch
+    private boolean throwErrorInDelete
 
-public class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
-    private boolean returnAggs;
-    private boolean throwErrorInSearch;
-    private boolean throwErrorInDelete;
-
-    public TestElasticSearchClientService(boolean returnAggs) {
-        this.returnAggs = returnAggs;
+    TestElasticsearchClientService(boolean returnAggs) {
+        this.returnAggs = returnAggs
     }
 
     @Override
-    public IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
-        return add(Arrays.asList(operation));
+    IndexOperationResponse add(IndexOperationRequest operation) {
+        return add(Arrays.asList(operation))
     }
 
     @Override
-    public IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
-        return new IndexOperationResponse(100L, 100L);
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
+        return new IndexOperationResponse(100L, 100L)
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
-        return deleteById(index, type, Arrays.asList(id));
+    Long count(String query, String index, String type) {
+        return null
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
+    DeleteOperationResponse deleteById(String index, String type, String id) {
+        return deleteById(index, type, Arrays.asList(id))
+    }
+
+    @Override
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
         if (throwErrorInDelete) {
-            throw new IOException("Simulated IOException");
+            throw new IOException("Simulated IOException")
         }
-        return new DeleteOperationResponse(100L);
+        return new DeleteOperationResponse(100L)
     }
 
     @Override
-    public DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
-        return deleteById(index, type, Arrays.asList("1"));
+    DeleteOperationResponse deleteByQuery(String query, String index, String type) {
+        return deleteById(index, type, Arrays.asList("1"))
     }
 
     @Override
-    public Map<String, Object> get(String index, String type, String id) throws IOException {
-        return new HashMap<String, Object>(){{
-            put("msg", "one");
-        }};
+    Map<String, Object> get(String index, String type, String id) {
+        return [ "msg": "one" ]
     }
 
     @Override
-    public SearchResponse search(String query, String index, String type) throws IOException {
+    SearchResponse search(String query, String index, String type) {
         if (throwErrorInSearch) {
-            throw new IOException("Simulated IOException");
+            throw new IOException("Simulated IOException")
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> hits = (List<Map<String, Object>>)mapper.readValue(HITS_RESULT, List.class);
-        Map<String, Object> aggs = returnAggs ? (Map<String, Object>)mapper.readValue(AGGS_RESULT, Map.class) :  null;
-        SearchResponse response = new SearchResponse(hits, aggs, 15, 5, false);
-        return response;
+        def mapper = new JsonSlurper()
+        def hits = mapper.parseText(HITS_RESULT)
+        def aggs = returnAggs ?  mapper.parseText(AGGS_RESULT) :  null
+        SearchResponse response = new SearchResponse(hits, aggs, 15, 5, false)
+        return response
     }
 
     @Override
-    public String getTransitUrl(String index, String type) {
-        return String.format("http://localhost:9400/%s/%s", index, type);
+    String getTransitUrl(String index, String type) {
+        "http://localhost:9400/${index}/${type}"
     }
 
     private static final String AGGS_RESULT = "{\n" +
@@ -146,7 +143,7 @@ public class TestElasticSearchClientService extends AbstractControllerService im
             "        }\n" +
             "      ]\n" +
             "    }\n" +
-            "  }";
+            "  }"
 
     private static final String HITS_RESULT = "[\n" +
             "      {\n" +
@@ -239,13 +236,13 @@ public class TestElasticSearchClientService extends AbstractControllerService im
             "          \"msg\": \"five\"\n" +
             "        }\n" +
             "      }\n" +
-            "    ]";
+            "    ]"
 
-    public void setThrowErrorInSearch(boolean throwErrorInSearch) {
-        this.throwErrorInSearch = throwErrorInSearch;
+    void setThrowErrorInSearch(boolean throwErrorInSearch) {
+        this.throwErrorInSearch = throwErrorInSearch
     }
 
-    public void setThrowErrorInDelete(boolean throwErrorInDelete) {
-        this.throwErrorInDelete = throwErrorInDelete;
+    void setThrowErrorInDelete(boolean throwErrorInDelete) {
+        this.throwErrorInDelete = throwErrorInDelete
     }
 }

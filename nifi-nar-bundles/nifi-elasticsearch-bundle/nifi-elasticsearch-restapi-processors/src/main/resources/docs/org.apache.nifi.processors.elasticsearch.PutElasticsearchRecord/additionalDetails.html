@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutElasticsearchRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+<p>
+    This processor is for accessing the Elasticsearch Bulk API. It provides the ability to configure bulk operations on
+    a per-record basis which is what separates it from PutElasticsearchHttpRecord. For example, it is possible to define
+    multiple commands to index documents, followed by deletes, creates and update operations against the same index or
+    other indices as desired.
+</p>
+<p>
+    As part of the Elasticsearch REST API bundle, it uses a controller service to manage connection information and
+    that controller service is built on top of the official Elasticsearch client APIs. That provides features such as
+    automatic master detection against the cluster which is missing in the other bundles.
+</p>
+<p>
+    This processor builds one Elasticsearch Bulk API body per record set. Care should be taken to split up record sets
+    into appropriately-sized chunks so that NiFi does not run out of memory and the requests sent to Elasticsearch are
+    not too large for it to handle. When failures do occur, this processor is capable of attempting to write the records
+    that failed to an output record writer so that only failed records can be processed downstream or replayed.
+</p>
+</body>
+</html>
