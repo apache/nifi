@@ -190,8 +190,6 @@
         <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>
         <nifi.cluster.load.balance.comms.timeout>30 sec</nifi.cluster.load.balance.comms.timeout>
 
-        <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
-
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string />
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
