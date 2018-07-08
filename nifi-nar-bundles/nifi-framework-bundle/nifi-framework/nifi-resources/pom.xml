@@ -185,8 +185,6 @@
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
         <nifi.cluster.flow.election.max.candidates />
 
-        <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
-
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string />
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
