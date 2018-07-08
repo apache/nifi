@@ -30,12 +30,12 @@ import java.util.List;
 import java.util.Map;
 
 @Tags({"elasticsearch", "client"})
-@CapabilityDescription("A controller service for accessing an ElasticSearch client.")
+@CapabilityDescription("A controller service for accessing an Elasticsearch client.")
 public interface ElasticSearchClientService extends ControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
-            .description("A comma-separated list of HTTP hosts that host ElasticSearch query nodes.")
+            .description("A comma-separated list of HTTP hosts that host Elasticsearch query nodes.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -93,7 +93,7 @@ public interface ElasticSearchClientService extends ControllerService {
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
             .displayName("Charset")
-            .description("The charset to use for interpreting the response from ElasticSearch.")
+            .description("The charset to use for interpreting the response from Elasticsearch.")
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -106,16 +106,26 @@ public interface ElasticSearchClientService extends ControllerService {
      * @return IndexOperationResponse if successful
      * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse add(IndexOperationRequest operation) throws IOException;
+    IndexOperationResponse add(IndexOperationRequest operation);
 
     /**
-     * Index multiple documents.
+     * Bulk process multiple documents.
      *
-     * @param operations A list of documents to index.
+     * @param operations A list of index operations.
      * @return IndexOperationResponse if successful.
      * @throws IOException thrown when there is an error.
      */
-    IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException;
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations);
+
+    /**
+     * Count the documents that match the criteria.
+     *
+     * @param query A query in the JSON DSL syntax
+     * @param index The index to target.
+     * @param type The type to target.
+     * @return
+     */
+    Long count(String query, String index, String type);
 
     /**
      * Delete a document by its ID from an index.
@@ -125,7 +135,7 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param id The document ID to remove from the selected index.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteById(String index, String type, String id) throws IOException;
+    DeleteOperationResponse deleteById(String index, String type, String id);
 
 
     /**
@@ -136,7 +146,7 @@ public interface ElasticSearchClientService extends ControllerService {
      * @return A DeleteOperationResponse object if successful.
      * @throws IOException thrown when there is an error.
      */
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException;
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids);
 
     /**
      * Delete documents by query.
@@ -146,7 +156,7 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param type The type to target within the index. Optional.
      * @return A DeleteOperationResponse object if successful.
      */
-    DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException;
+    DeleteOperationResponse deleteByQuery(String query, String index, String type);
 
     /**
      * Get a document by ID.
@@ -157,23 +167,23 @@ public interface ElasticSearchClientService extends ControllerService {
      * @return Map if successful, null if not found.
      * @throws IOException thrown when there is an error.
      */
-    Map<String, Object> get(String index, String type, String id) throws IOException;
+    Map<String, Object> get(String index, String type, String id);
 
     /**
      * Perform a search using the JSON DSL.
      *
      * @param query A JSON string reprensenting the query.
      * @param index The index to target. Optional.
-     * @param type The type to target. Optional. Will not be used in future versions of ElasticSearch.
+     * @param type The type to target. Optional. Will not be used in future versions of Elasticsearch.
      * @return A SearchResponse object if successful.
      */
-    SearchResponse search(String query, String index, String type) throws IOException;
+    SearchResponse search(String query, String index, String type);
 
     /**
      * Build a transit URL to use with the provenance reporter.
      * @param index Index targeted. Optional.
      * @param type Type targeted. Optional
-     * @return a URL describing the ElasticSearch cluster.
+     * @return a URL describing the Elasticsearch cluster.
      */
     String getTransitUrl(String index, String type);
 }

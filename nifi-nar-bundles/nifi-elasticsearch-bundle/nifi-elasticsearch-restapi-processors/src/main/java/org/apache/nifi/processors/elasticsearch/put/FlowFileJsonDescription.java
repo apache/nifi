@@ -15,27 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.elasticsearch;
+package org.apache.nifi.processors.elasticsearch.put;
 
-import java.util.Map;
+import com.jayway.jsonpath.JsonPath;
 
-/**
- * A POJO that represents an "operation on an index." It should not be confused with just indexing documents, as it
- * covers all CRUD-related operations that can be executed against an Elasticsearch index with documents.
- */
-public class IndexOperationRequest {
+public class FlowFileJsonDescription {
     private String index;
     private String type;
     private String id;
-    private Map<String, Object> fields;
-    private Operation operation;
+    private String content;
 
-    public IndexOperationRequest(String index, String type, String id, Map<String, Object> fields, Operation operation) {
+    private JsonPath idJsonPath;
+    private JsonPath typeJsonPath;
+    private JsonPath indexJsonPath;
+
+    public FlowFileJsonDescription(String index, String type, String id, String content, JsonPath idJsonPath, JsonPath typeJsonPath, JsonPath indexJsonPath) {
         this.index = index;
         this.type = type;
         this.id = id;
-        this.fields = fields;
-        this.operation = operation;
+        this.content = content;
+        this.idJsonPath = idJsonPath;
+        this.typeJsonPath = typeJsonPath;
+        this.indexJsonPath = indexJsonPath;
     }
 
     public String getIndex() {
@@ -50,28 +51,19 @@ public class IndexOperationRequest {
         return id;
     }
 
-    public Map<String, Object> getFields() {
-        return fields;
+    public String getContent() {
+        return content;
     }
 
-    public Operation getOperation() {
-        return operation;
+    public JsonPath getIdJsonPath() {
+        return idJsonPath;
     }
 
-    public enum Operation {
-        Create("create"),
-        Delete("delete"),
-        Index("index"),
-        Update("update"),
-        Upsert("upsert");
-        String value;
+    public JsonPath getTypeJsonPath() {
+        return typeJsonPath;
+    }
 
-        Operation(String value) {
-            this.value = value;
-        }
-
-        public String getValue() {
-            return value;
-        }
+    public JsonPath getIndexJsonPath() {
+        return indexJsonPath;
     }
 }

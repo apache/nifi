@@ -25,6 +25,12 @@
     <artifactId>nifi-elasticsearch-client-service</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <es.int.version>5.6.15</es.int.version>
+        <script.name>setup-5.script</script.name>
+        <type.name>faketype</type.name>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -159,26 +165,57 @@
             <artifactId>groovy-json</artifactId>
             <version>${nifi.groovy.version}</version>
             <scope>test</scope>
+	</dependency>
+	<dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>5.6.16</version>
         </dependency>
     </dependencies>
 
     <profiles>
         <profile>
+            <id>integration-6</id>
+            <properties>
+                <es.int.version>6.7.1</es.int.version>
+                <type.name>_doc</type.name>
+                <script.name>setup-6.script</script.name>
+            </properties>
+        </profile>
+        <profile>
+            <id>integration-7</id>
+            <properties>
+                <es.int.version>7.0.0</es.int.version>
+                <script.name>setup-7.script</script.name>
+                <type.name>_doc</type.name>
+            </properties>
+        </profile>
+        <profile>
             <id>integration-tests</id>
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.0.0-M3</version>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <type_name>${type.name}</type_name>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
                         <groupId>com.github.alexcojocaru</groupId>
                         <artifactId>elasticsearch-maven-plugin</artifactId>
-                        <version>6.0</version>
+                        <version>6.13</version>
                         <configuration>
                             <clusterName>testCluster</clusterName>
                             <transportPort>9500</transportPort>
                             <httpPort>9400</httpPort>
-                            <version>5.6.2</version>
+                            <version>${es.int.version}</version>
                             <timeout>90</timeout>
                             <logLevel>ERROR</logLevel>
-                            <pathInitScript>${project.basedir}/src/test/resources/setup.script</pathInitScript>
+                            <pathInitScript>${project.basedir}/src/test/resources/${script.name}</pathInitScript>
                         </configuration>
                         <executions>
                             <execution>
