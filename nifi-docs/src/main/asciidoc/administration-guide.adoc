@@ -3130,14 +3130,7 @@ is allowed, the node from which the request originated must decide whether or no
 all vote 'YES' then the request is completed. In this sort of distributed environment, it is possible that the node that
 made the original request will fail after the voting has occurred and before the request was completed. This would leave
 the component locked indefinitely so that no more changes can be made to the component. In order to avoid this, the Claim
-will time out after some period of time. These properties determines how these locks are managed.
-
-|====
-|*Property*|*Description*
-|`nifi.cluster.request.replication.claim.timeout`|Specifies how long to wait before considering a lock 'expired' and automatically
-unlocking.
-|====
-
+will time out after some period of time.
 
 === ZooKeeper Properties
 
