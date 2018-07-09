@@ -55,7 +55,7 @@ public class ConvertRecord extends AbstractRecordProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(DROP_EMPTY_FILES);
+        properties.add(INCLUDE_ZERO_RECORD_FLOWFILES);
         return properties;
     }
 

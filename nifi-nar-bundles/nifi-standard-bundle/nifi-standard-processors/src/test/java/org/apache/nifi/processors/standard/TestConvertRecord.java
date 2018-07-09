@@ -73,7 +73,7 @@ public class TestConvertRecord {
         runner.addControllerService("writer", writerService);
         runner.enableControllerService(writerService);
 
-        runner.setProperty(ConvertRecord.DROP_EMPTY_FILES, "true");
+        runner.setProperty(ConvertRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "false");
         runner.setProperty(ConvertRecord.RECORD_READER, "reader");
         runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
 
