@@ -17,14 +17,12 @@
 
 package org.apache.nifi.cluster.spring;
 
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.okhttp.OkHttpReplicationClient;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.util.NiFiHostnameVerifier;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -47,7 +45,7 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
             final int maxPoolSize = nifiProperties.getClusterNodeProtocolMaxPoolSize();
             final int maxConcurrentRequests = nifiProperties.getClusterNodeMaxConcurrentRequests();
 
-            final OkHttpReplicationClient replicationClient = new OkHttpReplicationClient(nifiProperties, new DefaultHostnameVerifier());
+            final OkHttpReplicationClient replicationClient = new OkHttpReplicationClient(nifiProperties);
 
             replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, maxConcurrentRequests, replicationClient, clusterCoordinator,
                 requestCompletionCallback, eventReporter, nifiProperties);
