@@ -20,6 +20,7 @@ import org.apache.atlas.typesystem.Referenceable;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.slf4j.Logger;
@@ -53,14 +54,13 @@ public class NiFiRemotePort extends NiFiS2S {
         final boolean isRemoteInputPort = event.getComponentType().equals("Remote Input Port");
         final String type = isRemoteInputPort ? TYPE_NIFI_INPUT_PORT : TYPE_NIFI_OUTPUT_PORT;
 
-        final String remotePortId = event.getComponentId();
-
-        final S2STransitUrl s2sUrl = parseTransitURL(event.getTransitUri(), context.getClusterResolver());
+        final S2SPort s2SPort = analyzeS2SPort(event, context.getClusterResolver());
 
         // Find connections that connects to/from the remote port.
+        final String componentId = event.getComponentId();
         final List<ConnectionStatus> connections = isRemoteInputPort
-                ? context.findConnectionTo(remotePortId)
-                : context.findConnectionFrom(remotePortId);
+                ? context.findConnectionTo(componentId)
+                : context.findConnectionFrom(componentId);
         if (connections == null || connections.isEmpty()) {
             logger.warn("Connection was not found: {}", new Object[]{event});
             return null;
@@ -70,7 +70,7 @@ public class NiFiRemotePort extends NiFiS2S {
         final ConnectionStatus connection = connections.get(0);
         final Referenceable ref = new Referenceable(type);
         ref.set(ATTR_NAME, isRemoteInputPort ? connection.getDestinationName() : connection.getSourceName());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2sUrl.clusterName, s2sUrl.targetPortId));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2SPort.clusterName, s2SPort.targetPortId));
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
     }
@@ -78,5 +78,10 @@ public class NiFiRemotePort extends NiFiS2S {
     @Override
     public String targetComponentTypePattern() {
         return "^Remote (In|Out)put Port$";
+    }
+
+    @Override
+    protected String getRawProtocolPortId(ProvenanceEventRecord event) {
+        return event.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key());
     }
 }
