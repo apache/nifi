@@ -347,6 +347,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 logger.debug("{} Sent {} to {}", this, flowFile, transaction.getCommunicant().getUrl());
 
                 final String transitUri = transaction.getCommunicant().createTransitUri(flowFile.getAttribute(CoreAttributes.UUID.key()));
+                flowFile = session.putAttribute(flowFile, SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());
                 session.getProvenanceReporter().send(flowFile, transitUri, "Remote DN=" + userDn, transferMillis, false);
                 session.remove(flowFile);
 
@@ -413,6 +414,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final Map<String,String> attributes = new HashMap<>(2);
             attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
             attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
+            attributes.put(SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 
