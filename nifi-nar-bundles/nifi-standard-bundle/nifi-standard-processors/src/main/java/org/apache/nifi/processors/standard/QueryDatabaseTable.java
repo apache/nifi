@@ -38,6 +38,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -115,6 +116,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
+
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -355,8 +359,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                         fileToProcess = session.putAttribute(fileToProcess, RESULT_TABLENAME, tableName);
                         fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
                         if(maxRowsPerFlowFile > 0) {
-                            fileToProcess = session.putAttribute(fileToProcess, "fragment.identifier", fragmentIdentifier);
-                            fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
+                            fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_ID, fragmentIdentifier);
+                            fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                         }
 
                         logger.info("{} contains {} Avro records; transferring to 'success'",
@@ -373,7 +377,10 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     } else {
                         // If there were no rows returned, don't send the flowfile
                         session.remove(fileToProcess);
-                        context.yield();
+                        // If no rows and this was first FlowFile, yield
+                        if(fragmentIndex == 0){
+                            context.yield();
+                        }
                         break;
                     }
 

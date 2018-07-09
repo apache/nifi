@@ -176,7 +176,6 @@ public class JdbcCommon {
             .required(true)
             .build();
 
-
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
     }
