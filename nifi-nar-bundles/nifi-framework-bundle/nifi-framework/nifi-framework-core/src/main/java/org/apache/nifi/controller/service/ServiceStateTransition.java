@@ -21,6 +21,7 @@ import org.apache.nifi.controller.ComponentNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class ServiceStateTransition {
@@ -58,12 +59,9 @@ public class ServiceStateTransition {
     }
 
     private void validateReferences(final ControllerServiceNode service) {
-        for (final ComponentNode component : service.getReferences().getReferencingComponents()) {
+        final List<ComponentNode> referencingComponents = service.getReferences().findRecursiveReferences(ComponentNode.class);
+        for (final ComponentNode component : referencingComponents) {
             component.performValidation();
-
-            if (component instanceof ControllerServiceNode) {
-                validateReferences((ControllerServiceNode) component);
-            }
         }
     }
 
