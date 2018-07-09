@@ -336,7 +336,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         final Collection<ValidationResult> validationErrors = getValidationErrors(ignoredReferences);
         if (ignoredReferences != null && !validationErrors.isEmpty()) {
-            throw new IllegalStateException("Controller Service with ID " + getIdentifier() + " cannot be enabled because it is not currently valid");
+            throw new IllegalStateException("Controller Service with ID " + getIdentifier() + " cannot be enabled because it is not currently valid: " + validationErrors);
         }
     }
 
