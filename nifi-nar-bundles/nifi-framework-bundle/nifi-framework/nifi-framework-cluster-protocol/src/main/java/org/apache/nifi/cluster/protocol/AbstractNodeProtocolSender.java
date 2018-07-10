@@ -46,25 +46,23 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         try {
             socket = createSocket();
 
-            ProtocolMessage response = sendProtocolMessage(msg, socket);
+            try {
+                // marshal message to output stream
+                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
+                marshaller.marshal(msg, socket.getOutputStream());
+            } catch (final IOException ioe) {
+                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
+            }
 
-            // try {
-            //     // marshal message to output stream
-            //     final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
-            //     marshaller.marshal(msg, socket.getOutputStream());
-            // } catch (final IOException ioe) {
-            //     throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
-            // }
-            //
-            // final ProtocolMessage response;
-            // try {
-            //     // unmarshall response and return
-            //     final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
-            //     response = unmarshaller.unmarshal(socket.getInputStream());
-            // } catch (final IOException ioe) {
-            //     throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
-            //         + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
-            // }
+            final ProtocolMessage response;
+            try {
+                // unmarshall response and return
+                final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
+                response = unmarshaller.unmarshal(socket.getInputStream());
+            } catch (final IOException ioe) {
+                throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
+                        + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+            }
 
             if (MessageType.CONNECTION_RESPONSE == response.getType()) {
                 final ConnectionResponseMessage connectionResponse = (ConnectionResponseMessage) response;
@@ -88,13 +86,8 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         } catch (final Exception e) {
             throw new IllegalArgumentException("Cannot send heartbeat to address [" + address + "]. Address must be in <hostname>:<port> format");
         }
-        Socket socket;
-        try {
-            socket = SocketUtils.createSocket(new InetSocketAddress(hostname, port), socketConfiguration);
-        } catch (IOException e) {
-            throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
-        }
-        final ProtocolMessage responseMessage = sendProtocolMessage(msg, socket);
+
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, hostname, port);
         if (MessageType.HEARTBEAT_RESPONSE == responseMessage.getType()) {
             return (HeartbeatResponseMessage) responseMessage;
         }
@@ -110,13 +103,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         } catch (IOException e) {
             throw new ProtocolException("Failed to getServiceAddress due to " + e, e);
         }
-        Socket socket;
-        try {
-            socket = SocketUtils.createSocket(new InetSocketAddress(serviceAddress.getHostName(), serviceAddress.getPort()), socketConfiguration);
-        } catch (IOException e) {
-            throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
-        }
-        final ProtocolMessage responseMessage = sendProtocolMessage(msg, socket);
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, serviceAddress.getHostName(), serviceAddress.getPort());
         if (MessageType.CLUSTER_WORKLOAD_RESPONSE == responseMessage.getType()) {
             return (ClusterWorkloadResponseMessage) responseMessage;
         }
@@ -143,13 +130,14 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         return socketConfiguration;
     }
 
-    private ProtocolMessage sendProtocolMessage(final ProtocolMessage msg, final Socket socket) {
+    private ProtocolMessage sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port) {
+        Socket socket = null;
         try {
-            // try {
-            //     socket = SocketUtils.createSocket(new InetSocketAddress(hostname, port), socketConfiguration);
-            // } catch (IOException e) {
-            //     throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
-            // }
+            try {
+                socket = SocketUtils.createSocket(new InetSocketAddress(hostname, port), socketConfiguration);
+            } catch (IOException e) {
+                throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
+            }
 
             try {
                 // marshal message to output stream
@@ -166,7 +154,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
                 response = unmarshaller.unmarshal(socket.getInputStream());
             } catch (final IOException ioe) {
                 throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
-                    + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+                        + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
             }
 
             return response;
