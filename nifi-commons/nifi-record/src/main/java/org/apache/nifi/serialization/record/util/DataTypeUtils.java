@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record.util;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -167,6 +168,9 @@ public class DataTypeUtils {
 
                 return convertType(value, chosenDataType, fieldName, charset);
             }
+            case DECIMAL: {
+                return toBigDecimal(value, fieldName);
+            }
         }
 
         return null;
@@ -187,6 +191,8 @@ public class DataTypeUtils {
                 return isCharacterTypeCompatible(value);
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
+            case DECIMAL:
+                return isDecimalTypeCompatible(value, dataType.getFormat());
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
             case FLOAT:
@@ -652,6 +658,29 @@ public class DataTypeUtils {
             } catch (final ParseException e) {
                 return false;
             }
+        }
+
+        return false;
+    }
+
+    public static boolean isDecimalTypeCompatible(final Object value, final String format) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof BigDecimal) {
+            return true;
+        }
+        if (value instanceof Long) {
+            return true;
+        }
+        if (value instanceof Double) {
+            return true;
+        }
+        if (value instanceof String) {
+            return true;
+        }
+        if (value instanceof Integer) {
+            return true;
         }
 
         return false;
@@ -1218,5 +1247,27 @@ public class DataTypeUtils {
         } else {
             return Charset.forName(charsetName);
         }
+    }
+
+    public static BigDecimal toBigDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Long) {
+            return BigDecimal.valueOf((Long) value);
+        }
+        if (value instanceof Double) {
+             return BigDecimal.valueOf((Double) value);
+        }
+        if (value instanceof String) {
+            return new BigDecimal((String) value);
+        }
+        if (value instanceof Integer) {
+            return new BigDecimal((Integer) value);
+        }
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName);
     }
 }
