@@ -177,7 +177,11 @@ public class DeepLearning4JMultiLayerPredictor extends AbstractDeepLearning4JPro
            double [][] partitionedResults = new double[inputRecords.length][];
            for (int row = 0; row < inputRecords.length; row++) {
                 INDArray result = results.getRow(row);
-                partitionedResults[row] = Nd4j.toFlattened(result).toDoubleVector();
+                if (result.isScalar()) {
+                    partitionedResults[row] = new double[]{result.getDouble(0)};
+                } else {
+                    partitionedResults[row] = Nd4j.toFlattened(result).toDoubleVector();
+                }
            }
 
            String jsonResult = gson.toJson(partitionedResults);

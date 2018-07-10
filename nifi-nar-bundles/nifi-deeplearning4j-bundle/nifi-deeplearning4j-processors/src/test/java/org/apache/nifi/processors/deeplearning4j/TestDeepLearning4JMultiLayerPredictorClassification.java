@@ -64,16 +64,26 @@ import org.junit.Test;
  */
 public class TestDeepLearning4JMultiLayerPredictorClassification {
 
-    private static File classificationModelFile;
-    private static int classficationInputNumber;
-    private static int classificationOutputNumber;
+    private static final File classificationModelFile = new File("src/test/resources/classification-model.zip");
+    private static final int classficationInputNumber = 4;
+    private static final int classificationOutputNumber = 4;
     private TestRunner runner;
-    protected MultiLayerNetwork model = null;
-    protected Gson gson = new Gson();
-    protected static final String CORRELATION_ATTRIBUTE = "ids";
+    private Gson gson = new Gson();
+    private static final String CORRELATION_ATTRIBUTE = "ids";
 
     @BeforeClass
-    public static void setUpModel() throws FileNotFoundException, IOException, InterruptedException {
+    public static void setUpModel() throws IOException, InterruptedException {
+
+        if (classificationModelFile.isFile()) {
+            // An existing model was found, use it.
+            // Delete the existing zip file to recreate a model.
+            return;
+        }
+
+        if (!classificationModelFile.createNewFile()) {
+            throw new RuntimeException("Failed to create new model file.");
+        }
+
         int numLinesToSkip = 0;
         char delimiter = ',';
         RecordReader recordReader = new CSVRecordReader(numLinesToSkip,delimiter);
@@ -93,8 +103,6 @@ public class TestDeepLearning4JMultiLayerPredictorClassification {
         normalizer.fit(trainingData);
         normalizer.transform(trainingData);
         normalizer.transform(testData);
-        classficationInputNumber = 4;
-        classificationOutputNumber = 4;
         long seed = 42;
 
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
@@ -118,15 +126,8 @@ public class TestDeepLearning4JMultiLayerPredictorClassification {
         for(int i=0; i< 1000; i++ ) {
             classificationModel.fit(trainingData);
         }
-        classificationModelFile = File.createTempFile("classification-model", ".zip", new File("./"));
-        classificationModelFile.deleteOnExit();
         // save the model
         ModelSerializer.writeModel(classificationModel, classificationModelFile ,false);
-    }
-
-    @AfterClass
-    public static void deleteModel() throws FileNotFoundException, IOException, InterruptedException {
-        classificationModelFile.delete();
     }
 
     @Before
