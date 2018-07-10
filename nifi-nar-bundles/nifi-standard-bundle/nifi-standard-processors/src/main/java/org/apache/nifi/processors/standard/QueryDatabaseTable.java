@@ -333,14 +333,15 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             }
             try (final ResultSet resultSet = st.executeQuery(selectQuery)) {
                 int fragmentIndex=0;
+                // Max values will be updated in the state property map by the callback
+                final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
+
                 while(true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
 
                     FlowFile fileToProcess = session.create();
                     try {
                         fileToProcess = session.write(fileToProcess, out -> {
-                            // Max values will be updated in the state property map by the callback
-                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
                             try {
                                 nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, maxValCollector));
                             } catch (SQLException | RuntimeException e) {
@@ -399,6 +400,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                         break;
                     }
                 }
+
+                // Apply state changes from the Max Value tracker
+                maxValCollector.applyStateChanges();
 
                 // Even though the maximum value and total count are known at this point, to maintain consistent behavior if Output Batch Size is set, do not store the attributes
                 if (outputBatchSize == 0) {
@@ -499,12 +503,17 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
         DatabaseAdapter dbAdapter;
-        Map<String, String> newColMap;
+        final Map<String, String> newColMap;
+        final Map<String, String> originalState;
         String tableName;
 
         public MaxValueResultSetRowCollector(String tableName, Map<String, String> stateMap, DatabaseAdapter dbAdapter) {
             this.dbAdapter = dbAdapter;
-            newColMap = stateMap;
+            this.originalState = stateMap;
+
+            this.newColMap = new HashMap<>();
+            this.newColMap.putAll(stateMap);
+
             this.tableName = tableName;
         }
 
@@ -542,6 +551,11 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             } catch (ParseException | SQLException e) {
                 throw new IOException(e);
             }
+        }
+
+        @Override
+        public void applyStateChanges() {
+            this.originalState.putAll(this.newColMap);
         }
     }
 }

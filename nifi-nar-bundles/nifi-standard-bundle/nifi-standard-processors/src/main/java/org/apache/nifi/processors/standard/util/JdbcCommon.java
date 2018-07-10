@@ -882,6 +882,7 @@ public class JdbcCommon {
      */
     public interface ResultSetRowCallback {
         void processRow(ResultSet resultSet) throws IOException;
+        void applyStateChanges();
     }
 
 }
