@@ -111,6 +111,7 @@ org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.ValidateCsv
 org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.Wait
+org.apache.nifi.processors.standard.WatchFile
 org.apache.nifi.processors.standard.ExecuteSQL
 org.apache.nifi.processors.standard.FetchDistributedMapCache
 org.apache.nifi.processors.standard.ListFTP

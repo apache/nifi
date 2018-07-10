@@ -31,7 +31,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -40,32 +39,24 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileInfoFilter;
+import org.apache.nifi.processors.standard.util.ListFileUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileOwnerAttributeView;
-import java.nio.file.attribute.PosixFileAttributeView;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import static org.apache.nifi.processors.standard.util.ListFileUtil.scanDirectory;
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -202,14 +193,15 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     private volatile boolean includeFileAttributes;
 
-    public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
-    public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
-    public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
-    public static final String FILE_SIZE_ATTRIBUTE = "file.size";
-    public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
-    public static final String FILE_GROUP_ATTRIBUTE = "file.group";
-    public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
-    public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    // Use ListFileUtil constants indirectly for backward compatibility.
+    public static final String FILE_CREATION_TIME_ATTRIBUTE = ListFileUtil.FILE_CREATION_TIME_ATTRIBUTE;
+    public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = ListFileUtil.FILE_LAST_MODIFY_TIME_ATTRIBUTE;
+    public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = ListFileUtil.FILE_LAST_ACCESS_TIME_ATTRIBUTE;
+    public static final String FILE_SIZE_ATTRIBUTE = ListFileUtil.FILE_SIZE_ATTRIBUTE;
+    public static final String FILE_OWNER_ATTRIBUTE = ListFileUtil.FILE_OWNER_ATTRIBUTE;
+    public static final String FILE_GROUP_ATTRIBUTE = ListFileUtil.FILE_GROUP_ATTRIBUTE;
+    public static final String FILE_PERMISSIONS_ATTRIBUTE = ListFileUtil.FILE_PERMISSIONS_ATTRIBUTE;
+    public static final String FILE_MODIFY_DATE_ATTR_FORMAT = ListFileUtil.FILE_MODIFY_DATE_ATTR_FORMAT;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -251,64 +243,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
-        final Map<String, String> attributes = new HashMap<>();
-
-        final String fullPath = fileInfo.getFullPathFileName();
-        final File file = new File(fullPath);
-        final Path filePath = file.toPath();
-        final Path directoryPath = new File(getPath(context)).toPath();
-
-        final Path relativePath = directoryPath.toAbsolutePath().relativize(filePath.getParent());
-        String relativePathString = relativePath.toString();
-        relativePathString = relativePathString.isEmpty() ? "." + File.separator : relativePathString + File.separator;
-
-        final Path absPath = filePath.toAbsolutePath();
-        final String absPathString = absPath.getParent().toString() + File.separator;
-
-        final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-
-        attributes.put(CoreAttributes.PATH.key(), relativePathString);
-        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
-        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
-        attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
-        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
-
-        if (includeFileAttributes) {
-            try {
-                FileStore store = Files.getFileStore(filePath);
-                if (store.supportsFileAttributeView("basic")) {
-                    try {
-                        BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
-                        BasicFileAttributes attrs = view.readAttributes();
-                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
-                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
-                    } catch (Exception ignore) {
-                    } // allow other attributes if these fail
-                }
-
-                if (store.supportsFileAttributeView("owner")) {
-                    try {
-                        FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
-                        attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                    } catch (Exception ignore) {
-                    } // allow other attributes if these fail
-                }
-
-                if (store.supportsFileAttributeView("posix")) {
-                    try {
-                        PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
-                        attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
-                        attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                    } catch (Exception ignore) {
-                    } // allow other attributes if these fail
-                }
-            } catch (IOException ioe) {
-                // well then this FlowFile gets none of these attributes
-                getLogger().warn("Error collecting attributes for file {}, message is {}", new Object[] {absPathString, ioe.getMessage()});
-            }
-        }
-
-        return attributes;
+        return ListFileUtil.createAttributes(getPath(context), fileInfo, includeFileAttributes, getLogger());
     }
 
     @Override
@@ -344,35 +279,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 || MIN_SIZE.equals(property)
                 || MAX_SIZE.equals(property)
                 || IGNORE_HIDDEN_FILES.equals(property);
-    }
-
-    private List<FileInfo> scanDirectory(final File path, final FileInfoFilter filter, final Boolean recurse,
-                                         final Long minTimestamp) throws IOException {
-        final List<FileInfo> listing = new ArrayList<>();
-        File[] files = path.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    if (recurse) {
-                        listing.addAll(scanDirectory(file, filter, true, minTimestamp));
-                    }
-                } else {
-                    FileInfo fileInfo = new FileInfo.Builder()
-                        .directory(false)
-                        .filename(file.getName())
-                        .fullPathFileName(file.getAbsolutePath())
-                        .size(file.length())
-                        .lastModifiedTime(file.lastModified())
-                        .build();
-                    if ((minTimestamp == null || fileInfo.getLastModifiedTime() >= minTimestamp)
-                        && filter.accept(file, fileInfo)) {
-                        listing.add(fileInfo);
-                    }
-                }
-            }
-        }
-
-        return listing;
     }
 
     private FileInfoFilter createFileFilter(final ProcessContext context) {
