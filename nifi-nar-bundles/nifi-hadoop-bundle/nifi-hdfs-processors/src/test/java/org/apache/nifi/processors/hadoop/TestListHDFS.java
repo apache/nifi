@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -496,7 +497,7 @@ public class TestListHDFS {
         }
 
         @Override
-        public FileStatus[] listStatus(final Path f) throws IOException {
+        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
             final Set<FileStatus> statuses = fileStatuses.get(f);
             if (statuses == null) {
                 return new FileStatus[0];

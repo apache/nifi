@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Optional;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -30,6 +24,7 @@ import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
+import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.AbstractFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
@@ -38,8 +33,15 @@ import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
-import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.StringUtils;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Optional;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol implements HttpFlowFileServerProtocol {
 
@@ -66,7 +68,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected HandshakeProperties doHandshake(Peer peer) throws IOException {
+    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
 
         HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         final String transactionId = commsSession.getTransactionId();

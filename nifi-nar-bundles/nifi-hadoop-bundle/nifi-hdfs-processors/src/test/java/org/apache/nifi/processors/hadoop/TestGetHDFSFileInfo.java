@@ -656,7 +656,7 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
-        public FileStatus[] listStatus(final Path f) throws IOException {
+        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
             if (!fileStatuses.containsKey(f)) {
                 throw new FileNotFoundException();
             }
