@@ -19,7 +19,6 @@ package org.apache.nifi.controller.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.nifi.controller.ComponentNode;
