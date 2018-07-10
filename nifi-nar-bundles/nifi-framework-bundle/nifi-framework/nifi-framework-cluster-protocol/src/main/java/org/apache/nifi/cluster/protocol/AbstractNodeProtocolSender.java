@@ -20,6 +20,7 @@ package org.apache.nifi.cluster.protocol;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
