@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.http.HttpClient;
+import org.apache.nifi.remote.client.socket.SocketClient;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.PortNotRunningException;
+import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.UnknownPortException;
+import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.security.util.KeyStoreUtils;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,18 +45,6 @@ import java.security.SecureRandom;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.http.HttpClient;
-import org.apache.nifi.remote.client.socket.SocketClient;
-import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.security.util.KeyStoreUtils;
 
 /**
  * <p>
@@ -102,9 +107,12 @@ public interface SiteToSiteClient extends Closeable {
      *
      * @return a Transaction to use for sending or receiving data, or
      * <code>null</code> if all nodes are penalized.
-     * @throws IOException if unable to determine the identifier of the port
+     * @throws org.apache.nifi.remote.exception.HandshakeException he
+     * @throws org.apache.nifi.remote.exception.PortNotRunningException pnre
+     * @throws IOException ioe
+     * @throws org.apache.nifi.remote.exception.UnknownPortException upe
      */
-    Transaction createTransaction(TransferDirection direction) throws IOException;
+    Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException;
 
     /**
      * <p>
@@ -138,7 +146,7 @@ public interface SiteToSiteClient extends Closeable {
      * new client created.
      * </p>
      */
-    class Builder implements Serializable {
+    public static class Builder implements Serializable {
 
         private static final long serialVersionUID = -4954962284343090219L;
 
@@ -720,7 +728,6 @@ public interface SiteToSiteClient extends Closeable {
     }
 
 
-    @SuppressWarnings("deprecation")
     class StandardSiteToSiteClientConfig implements SiteToSiteClientConfig, Serializable {
 
         private static final long serialVersionUID = 1L;
