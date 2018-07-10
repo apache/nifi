@@ -164,6 +164,16 @@ accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protoco
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
+Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.apache.org` being assigned the same certificate with a CN or SAN entry of +*.nifi.apache.org+) are *not officially supported* and *not recommended*. There are numerous disadvantages to using wildcard certificates, and a cluster working with wildcard certificates has occurred in previous versions out of lucky accidents, not intentional support. Wildcard SAN entries are acceptable *if* each cert maintains an additional unique SAN entry and CN entry. 
+
+Potential issues with wildcard certificates:
+
+* In many places throughout the codebase, cluster communications use certificate identities many times to identify a node, and if the certificate simply presents a wildcard DN, that doesn’t resolve to a specific node
+* Admins may need to provide a custom node identity in `authorizers.xml` for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see <<user_authentication>>)
+* Admins have no traceability into which node performed an action because they all resolve to the same DN
+* Admins running multiple instances on the same machine using different ports to identify them can accidentally put `node1` hostname with `node2` port, and the address will resolve fine because it’s using the same certificate, but the host header handler will block it because the `node1` hostname is (correctly) not listed as an acceptable host for `node2` instance
+* If the wildcard certificate is compromised, all nodes are compromised
+
 NOTE: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
 
 The `tls-toolkit` command line tool has two primary modes of operation:
