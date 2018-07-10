@@ -26,10 +26,14 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @EventDriven
 @SupportsBatching
@@ -47,6 +51,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
     + "the field will be left out of the output. If any field is specified in the output schema but is not present in the input data/schema, then the field will not be "
     + "present in the output or will have a null value, depending on the writer.")
 public class ConvertRecord extends AbstractRecordProcessor {
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(INCLUDE_ZERO_RECORD_FLOWFILES);
+        return properties;
+    }
 
     @Override
     protected Record process(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context) {
