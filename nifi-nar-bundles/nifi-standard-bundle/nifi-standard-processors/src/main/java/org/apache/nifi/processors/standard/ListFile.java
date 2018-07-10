@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -38,6 +39,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FileInfo;
 
 import java.io.File;
@@ -217,6 +219,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(LISTING_STRATEGY);
         properties.add(DIRECTORY);
         properties.add(RECURSE);
         properties.add(DIRECTORY_LOCATION);
@@ -229,6 +232,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         properties.add(MAX_SIZE);
         properties.add(IGNORE_HIDDEN_FILES);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
+        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
+        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(ListedEntityTracker.NODE_IDENTIFIER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -320,7 +327,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected Scope getStateScope(final ProcessContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         final String location = context.getProperty(DIRECTORY_LOCATION).getValue();
         if (LOCATION_REMOTE.getValue().equalsIgnoreCase(location)) {
             return Scope.CLUSTER;
