@@ -907,14 +907,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             for (int i = 1; i < md.getColumnCount() + 1; i++) {
                 columns.add(md.getColumnName(i));
             }
-
+            // COLUMN_DEF must be read first to work around Oracle bug
+            final String defaultValue = resultSet.getString("COLUMN_DEF");
             final String columnName = resultSet.getString("COLUMN_NAME");
             final int dataType = resultSet.getInt("DATA_TYPE");
             final int colSize = resultSet.getInt("COLUMN_SIZE");
 
             final String nullableValue = resultSet.getString("IS_NULLABLE");
             final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
-            final String defaultValue = resultSet.getString("COLUMN_DEF");
+
             String autoIncrementValue = "NO";
 
             if(columns.contains("IS_AUTOINCREMENT")){
