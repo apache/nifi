@@ -33,6 +33,7 @@ language governing permissions and limitations under the License. -->
         <module>nifi-elasticsearch-5-processors</module>
         <module>nifi-elasticsearch-restapi-nar</module>
         <module>nifi-elasticsearch-restapi-processors</module>
+        <module>nifi-elasticsearch-reporting-task</module>
     </modules>
 
     <dependencyManagement>
@@ -50,6 +51,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
+                <version>1.8.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-elasticsearch-reporting-task</artifactId>
                 <version>1.8.0-SNAPSHOT</version>
             </dependency>
         </dependencies>

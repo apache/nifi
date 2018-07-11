@@ -37,6 +37,10 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-processors</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-reporting-task</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
