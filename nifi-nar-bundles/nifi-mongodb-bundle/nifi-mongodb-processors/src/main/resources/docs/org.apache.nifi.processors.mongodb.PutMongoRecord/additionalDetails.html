@@ -16,7 +16,7 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>RunMongoAggregation</title>
+    <title>PutMongoRecord</title>
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 
@@ -24,21 +24,14 @@
 <!-- Processor Documentation ================================================== -->
 <h2>Description:</h2>
 <p>
-    This processor runs a MongoDB aggregation query based on user-defined settings. The
-    following is an example of such a query (and what the expected input looks like):
+    This processor is a record-aware processor for inserting data into MongoDB. It uses a configured record reader and
+    schema to read an incoming record set from the body of a flowfile and then inserts batches of those records into
+    a configured MongoDB collection.
 </p>
-<pre>
-[{
-   "$project": {
-        "domain": 1
-    },
-    "$group": {
-         "_id": { "domain": "$domain" },
-         "total": {
-             "$sum": 1
-         }
-     }
-}]
-</pre>
+<p>
+    This processor does not support updates, deletes or upserts. The number of documents to insert at a time is controlled
+    by the <em>Insert Batch Size</em> configuration property. This value should be set to a reasonable size to ensure
+    that MongoDB is not overloaded with too many inserts at once.
+</p>
 </body>
 </html>
