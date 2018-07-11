@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutMongo</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Description:</h2>
+<p>
+    This processor is a general purpose processor for inserting, upserting and updating MongoDB collections.
+</p>
+<h2>Inserting Documents</h2>
+<p>
+    Each flowfile is assumed to contain only a single MongoDB document to be inserted. The contents must be valid JSON.
+    The input the Mongo shell accepts should not be confused with valid JSON. It does not support batch writes at this time.
+</p>
+<h2>Updating and Upserting</h2>
+
+<h3>Update Modes</h3>
+<p>
+    There are two methods for choosing what gets written to a document when updating:
+</p>
+<ul>
+    <li>Whole document - the entire document is replaced with the contents of the flowfile.</li>
+    <li>With Operators Enabled - the document in the flowfile content will be assumed to have update operators such as
+    <em>$set</em> and will be used to update particular fields. The whole document will not be replaced.</li>
+</ul>
+
+<p>
+    There are two ways to update:
+</p>
+<ul>
+    <li>Update Key - use one or more keys from the document.</li>
+    <li>Update Query - use a totally separate query that is not derived from the document.</li>
+</ul>
+
+<h3>Update Key</h3>
+<p>
+    The update key method takes keys from the document and builds a query from them. It will attempt to parse the <em>_id</em>
+    field as an <em>ObjectID</em> type if that is one of the keys that is specified in the configuration field. Multiple keys
+    can be specified by separating them with commas. This configuration field supports Expression Language, so it can
+    derived in part or entirely from flowfile attributes.
+</p>
+
+<h3>Update Query</h3>
+<p>
+    The update query method takes a valid JSON document as its value and uses it to find one or more documents to update.
+    This field supports Expression Language, so it can be derived in part or entirely from flowfile attributes. It is possible,
+    for instance, to put an attribute named <em>update_query</em> on a flowfile and specify <em>${update_query}</em> in the
+    configuration field so it will load the value from the flowfile.
+</p>
+
+<h3>Upserts</h3>
+<p>
+    If the upsert mode is enabled, PutMongo will insert a new document that matches the search criteria (be it a user-supplied
+    query or one built from update keys) and give it the properties that are specified in the JSON document provided in the
+    flowfile content. This feature should be used carefully, as it can result in incomplete data being added to MongoDB.
+</p>
+</body>
+</html>
