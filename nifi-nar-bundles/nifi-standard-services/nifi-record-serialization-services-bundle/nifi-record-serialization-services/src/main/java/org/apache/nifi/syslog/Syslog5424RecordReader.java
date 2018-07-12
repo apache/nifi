@@ -53,9 +53,16 @@ public class Syslog5424RecordReader implements RecordReader {
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
         String line = reader.readLine();
 
-        if ( line == null || StringUtils.isBlank(line)) {
+        if ( line == null ) {
+            // a null return from readLine() signals the end of the stream
             return null;
         }
+
+        if (StringUtils.isBlank(line)) {
+            // while an empty string is an error
+            throw new MalformedRecordException("Encountered a blank message!");
+        }
+
 
         final MalformedRecordException malformedRecordException;
         Syslog5424Event event = parser.parseEvent(ByteBuffer.wrap(line.getBytes(parser.getCharsetName())));
