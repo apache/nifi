@@ -209,7 +209,9 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
-            final ProvenanceEventRecord enriched = eventEnricher == null ? record : eventEnricher.enrich(record, flowFile);
+            // If the transmissionMillis field has been populated, use zero as the value of commitNanos (the call to System.nanoTime() is expensive but the value will be ignored).
+            final long commitNanos = transmissionMillis < 0 ? System.nanoTime() : 0L;
+            final ProvenanceEventRecord enriched = eventEnricher == null ? record : eventEnricher.enrich(record, flowFile, commitNanos);
 
             if (force) {
                 repository.registerEvent(enriched);
@@ -226,7 +228,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void send(final FlowFile flowFile, final String transitUri, final boolean force) {
-        send(flowFile, transitUri, -1L, true);
+        send(flowFile, transitUri, -1L, force);
     }
 
     @Override
