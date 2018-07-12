@@ -737,6 +737,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             flowFileRecordMap.put(flowFile.getAttribute(CoreAttributes.UUID.key()), flowFile);
         }
 
+        final long commitNanos = System.nanoTime();
         final List<ProvenanceEventRecord> autoTermEvents = checkpoint.autoTerminatedEvents;
         final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
             final Iterator<ProvenanceEventRecord> recordsToSubmitIterator = recordsToSubmit.iterator();
@@ -761,9 +762,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                             // the representation of the FlowFile as it is committed, as this is the only way in which it really
                             // exists in our system -- all other representations are volatile representations that have not been
                             // exposed.
-                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, rawEvent.getEventType() != ProvenanceEventType.SEND);
+                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, rawEvent.getEventType() != ProvenanceEventType.SEND, commitNanos);
                         } else if (autoTermIterator != null && autoTermIterator.hasNext()) {
-                            return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true);
+                            return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true, commitNanos);
                         }
 
                         throw new NoSuchElementException();
@@ -796,7 +797,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public StandardProvenanceEventRecord enrich(final ProvenanceEventRecord rawEvent, final FlowFile flowFile) {
+    public StandardProvenanceEventRecord enrich(final ProvenanceEventRecord rawEvent, final FlowFile flowFile, final long commitNanos) {
         verifyTaskActive();
 
         final StandardRepositoryRecord repoRecord = records.get(flowFile);
@@ -829,11 +830,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         recordBuilder.setAttributes(repoRecord.getOriginalAttributes(), repoRecord.getUpdatedAttributes());
+        if (rawEvent.getEventDuration() < 0) {
+            recordBuilder.setEventDuration(TimeUnit.NANOSECONDS.toMillis(commitNanos - repoRecord.getStartNanos()));
+        }
         return recordBuilder.build();
     }
 
     private StandardProvenanceEventRecord enrich(
-        final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
+        final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records,
+        final boolean updateAttributes, final long commitNanos) {
         final StandardProvenanceEventRecord.Builder recordBuilder = new StandardProvenanceEventRecord.Builder().fromEvent(rawEvent);
         final FlowFileRecord eventFlowFile = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
         if (eventFlowFile != null) {
@@ -861,18 +866,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (originalQueue != null) {
                 recordBuilder.setSourceQueueIdentifier(originalQueue.getIdentifier());
             }
-        }
 
-        if (updateAttributes) {
-            final FlowFileRecord flowFileRecord = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
-            if (flowFileRecord != null) {
-                final StandardRepositoryRecord record = records.get(flowFileRecord);
-                if (record != null) {
-                    recordBuilder.setAttributes(record.getOriginalAttributes(), record.getUpdatedAttributes());
-                }
+            if (updateAttributes) {
+                recordBuilder.setAttributes(repoRecord.getOriginalAttributes(), repoRecord.getUpdatedAttributes());
+            }
+
+            if (rawEvent.getEventDuration() < 0) {
+                recordBuilder.setEventDuration(TimeUnit.NANOSECONDS.toMillis(commitNanos - repoRecord.getStartNanos()));
             }
         }
-
         return recordBuilder.build();
     }
 
