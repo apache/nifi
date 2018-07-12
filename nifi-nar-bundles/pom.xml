@@ -32,6 +32,7 @@
         <module>nifi-standard-bundle</module>
         <module>nifi-standard-services</module>
         <module>nifi-update-attribute-bundle</module>
+        <module>nifi-pulsar-bundle</module>
         <module>nifi-kafka-bundle</module>
         <module>nifi-kite-bundle</module>
         <module>nifi-kudu-bundle</module>
