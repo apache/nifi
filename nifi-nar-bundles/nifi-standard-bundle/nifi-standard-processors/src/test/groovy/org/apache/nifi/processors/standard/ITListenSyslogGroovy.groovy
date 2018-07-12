@@ -33,8 +33,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 @RunWith(JUnit4.class)
-class ListenSyslogGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ListenSyslogGroovyTest.class)
+class ITListenSyslogGroovy extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(ITListenSyslogGroovy.class)
 
     static final String ZERO_LENGTH_MESSAGE = "     \n"
 
