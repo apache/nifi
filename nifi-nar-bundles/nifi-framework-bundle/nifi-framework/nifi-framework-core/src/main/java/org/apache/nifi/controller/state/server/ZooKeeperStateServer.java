@@ -112,7 +112,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             connectionFactory = ServerCnxnFactory.createFactory();
             connectionFactory.configure(quorumPeerConfig.getClientPortAddress(), quorumPeerConfig.getMaxClientCnxns());
 
-            quorumPeer = new QuorumPeer();
+            quorumPeer = QuorumPeer.testingQuorumPeer();
             quorumPeer.setClientPortAddress(quorumPeerConfig.getClientPortAddress());
             quorumPeer.setTxnFactory(new FileTxnSnapLog(new File(quorumPeerConfig.getDataLogDir()), new File(quorumPeerConfig.getDataDir())));
             quorumPeer.setQuorumPeers(quorumPeerConfig.getServers());
