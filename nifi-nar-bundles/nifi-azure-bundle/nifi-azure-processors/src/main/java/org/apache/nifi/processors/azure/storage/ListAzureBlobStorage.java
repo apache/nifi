@@ -44,6 +44,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
@@ -92,12 +93,16 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            LISTING_STRATEGY,
             AzureStorageUtils.CONTAINER,
             AzureStorageUtils.PROP_SAS_TOKEN,
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
             PROP_PREFIX,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
+            DISTRIBUTED_CACHE_SERVICE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW
+            ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

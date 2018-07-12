@@ -257,6 +257,11 @@ public class TestAbstractListProcessor {
                 public long getTimestamp() {
                     return timestamp;
                 }
+
+                @Override
+                public long getSize() {
+                    return 0;
+                }
             };
 
             entities.add(entity);

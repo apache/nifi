@@ -36,6 +36,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
@@ -71,6 +72,7 @@ public class ListSFTP extends ListFileTransfer {
         final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(LISTING_STRATEGY);
         properties.add(HOSTNAME);
         properties.add(port);
         properties.add(USERNAME);
@@ -95,6 +97,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
         return properties;
     }
 

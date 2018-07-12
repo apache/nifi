@@ -58,6 +58,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -169,6 +170,21 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .description("All FlowFiles that are received are routed to success")
         .build();
 
+    // TODO: doc
+    public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps", "");
+    // TODO: doc
+    public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities", "");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .name("listing-strategy")
+        .displayName("Listing Strategy")
+        // TODO: doc
+        .description("")
+        .required(true)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .defaultValue(BY_TIMESTAMPS.getValue())
+        .build();
+
     /**
      * Represents the timestamp of an entity which was the latest one within those listed at the previous cycle.
      * It does not necessary mean it has been processed as well.
@@ -184,6 +200,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetState = false;
     private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
+
+    private volatile ListedEntityTracker<T> listedEntityTracker;
 
     /*
      * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
@@ -207,14 +225,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
-        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        return properties;
-    }
-
-    @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
             resetTimeStates(); // clear lastListingTime so that we have to fetch new time
@@ -229,6 +239,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         relationships.add(REL_SUCCESS);
         return relationships;
     }
+
+    // TODO: add custom validate based on selected strategy. Making it final so that sub-classes can't override it. Add another abstract method to implement sub-class specific validations.
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
@@ -355,6 +367,20 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        if (BY_TIMESTAMPS.equals(listingStrategy)) {
+            listByTrackingTimestamps(context, session);
+
+        } else if (BY_ENTITIES.equals(listingStrategy)) {
+            listByTrackingEntities(context, session);
+
+        } else {
+            throw new ProcessException("Unknown listing strategy: " + listingStrategy);
+        }
+    }
+
+    public void listByTrackingTimestamps(final ProcessContext context, final ProcessSession session) throws ProcessException {
         Long minTimestampToListMillis = lastListedLatestEntryTimestampMillis;
 
         if (this.lastListedLatestEntryTimestampMillis == null || this.lastProcessedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
@@ -642,4 +668,25 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             out.write(value.getBytes(StandardCharsets.UTF_8));
         }
     }
+
+    @OnScheduled
+    public void initListedEntityTracker(ProcessContext context) {
+        // TODO: check strategy, nullify if not.
+        if (listedEntityTracker == null) {
+            listedEntityTracker = new ListedEntityTracker(getIdentifier(), getLogger());
+        }
+    }
+
+    private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {
+        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, minTimestampToList -> {
+            try {
+                final List<T> entities = performListing(context, minTimestampToList);
+                return entities.stream().collect(Collectors.toMap(ListableEntity::getIdentifier, Function.identity()));
+            } catch (final IOException e) {
+                getLogger().error("Failed to perform listing on remote host due to {}", e);
+                return Collections.emptyMap();
+            }
+        }, entity -> createAttributes(entity, context));
+    }
+
 }
