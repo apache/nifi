@@ -179,16 +179,23 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .description("All FlowFiles that are received are routed to success")
         .build();
 
-    // TODO: doc
-    public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps", "");
-    // TODO: doc, about cache key and how it is updated, deleted.
-    public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities", "");
+    public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
+            "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +
+                    " Since it only tracks few timestamps, it can manage listing state efficiently." +
+                    " However, any newly added, or updated entity having timestamp older than the tracked latest timestamp can not be picked by this strategy." +
+                    " For example, such situation can happen in a file system if a file with old timestamp" +
+                    " is copied or moved into the target directory without its last modified timestamp being updated.");
+
+    public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
+            "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
+                    " See 'Entity Tracking Time Window' description for detail on how it works." +
+                    " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+                    " However additional DistributedMapCache controller service is required and more JVM heap memory is used.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
-        // TODO: doc
-        .description("")
+        .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
         .defaultValue(BY_TIMESTAMPS.getValue())

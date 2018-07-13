@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import static java.lang.String.format;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 
 public class ListedEntityTracker<T extends ListableEntity> {
@@ -40,38 +41,61 @@ public class ListedEntityTracker<T extends ListableEntity> {
     private ObjectMapper objectMapper = new ObjectMapper();
     private volatile Map<String, ListedEntity> alreadyListedEntities;
 
+    private static final String NOTE = "Used by 'Tracking Entities' strategy.";
     public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
-            .name("tracking-state-cache")
-            .displayName("Tracking State Cache")
-            // TODO: doc
+            .name("et-state-cache")
+            .displayName("Entity Tracking State Cache")
+            .description(format("Listed entities are stored in the specified cache storage" +
+                    " so that this processor can resume listing across NiFi restart or in case of primary node change." +
+                    " 'Tracking Entities' strategy require tracking information of all listed entities within the last 'Tracking Time Window'." +
+                    " To support large number of entities, the strategy uses DistributedMapCache instead of managed state." +
+                    " Cache key format is 'ListedEntityTracker::{processorId}(::{nodeId})'." +
+                    " If it tracks per node listed entities, then the optional '::{nodeId}' part is added to manage state separately." +
+                    " E.g. cluster wide cache key = 'ListedEntityTracker::8dda2321-0164-1000-50fa-3042fe7d6a7b'," +
+                    " per node cache key = 'ListedEntityTracker::8dda2321-0164-1000-50fa-3042fe7d6a7b::nifi-node3'" +
+                    " The stored cache content is Gzipped JSON string." +
+                    " The cache key will be deleted when target listing configuration is changed." +
+                    " %s", NOTE))
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
     public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
-            .name("tracking-time-window")
-            .displayName("Tracking Time Window")
-            // TODO: doc, at least two times longer than scheduled
+            .name("et-time-window")
+            .displayName("Entity Tracking Time Window")
+            .description(format("Specify how long this processor should track already-listed entities." +
+                    " 'Tracking Entities' strategy can pick any entity whose timestamp is inside the specified time window." +
+                    " For example, if set to '30 minutes', any entity having timestamp in recent 30 minutes will be the listing target when this processor runs." +
+                    " A listed entity is considered 'new/updated' and a FlowFile is emitted if one of following condition meets:" +
+                    " 1. does not exist in the already-listed entities," +
+                    " 2. has newer timestamp than the cached entity," +
+                    " 3. has different size than the cached entity." +
+                    " If a cached entity's timestamp becomes older than specified time window, that entity will be removed from the cached already-listed entities." +
+                    " %s", NOTE))
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("3 hours")
             .build();
 
-    // TODO: doc
-    private static final AllowableValue INITIAL_LISTING_TARGET_ALL = new AllowableValue("all", "All Available");
-    private static final AllowableValue INITIAL_LISTING_TARGET_WINDOW = new AllowableValue("window", "Tracking Time Window");
+    private static final AllowableValue INITIAL_LISTING_TARGET_ALL = new AllowableValue("all", "All Available",
+            "Regardless of entities timestamp, all existing entities will be listed at the initial listing activity.");
+    private static final AllowableValue INITIAL_LISTING_TARGET_WINDOW = new AllowableValue("window", "Tracking Time Window",
+            "Ignore entities having timestamp older than the specified 'Tracking Time Window' at the initial listing activity.");
 
     public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
-            .name("initial-listing-target")
-            .displayName("Initial Listing Target")
-            // TODO: doc
+            .name("et-initial-listing-target")
+            .displayName("Entity Tracking Initial Listing Target")
+            .description(format("Specify how initial listing should be handled." +
+                    " %s", NOTE))
             .allowableValues(INITIAL_LISTING_TARGET_WINDOW, INITIAL_LISTING_TARGET_ALL)
             .defaultValue(INITIAL_LISTING_TARGET_WINDOW.getValue())
             .build();
 
     public static final PropertyDescriptor NODE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("node-identifier")
-            .displayName("Node Identifier")
-            // TODO: doc
+            .name("et-node-identifier")
+            .displayName("Entity Tracking Node Identifier")
+            .description(format("The configured value will be appended to the cache key" +
+                    " so that listing state can be tracked per NiFi node rather than cluster wide" +
+                    " when tracking state is scoped to LOCAL. %s", NOTE))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("${hostname()}")
@@ -107,7 +131,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 final String displayName = property.getDisplayName();
                 results.add(new ValidationResult.Builder()
                         .subject(displayName)
-                        .explanation(String.format("'%s' is required to use '%s' listing strategy", displayName, AbstractListProcessor.BY_ENTITIES.getDisplayName()))
+                        .explanation(format("'%s' is required to use '%s' listing strategy", displayName, AbstractListProcessor.BY_ENTITIES.getDisplayName()))
                         .valid(false)
                         .build());
             }
@@ -119,7 +143,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             if (StringUtils.isEmpty(context.getProperty(NODE_IDENTIFIER).evaluateAttributeExpressions().getValue())) {
                 results.add(new ValidationResult.Builder()
                         .subject(NODE_IDENTIFIER.getDisplayName())
-                        .explanation(String.format("'%s' is required to use local scope with '%s' listing strategy",
+                        .explanation(format("'%s' is required to use local scope with '%s' listing strategy",
                                 NODE_IDENTIFIER.getDisplayName(), AbstractListProcessor.BY_ENTITIES.getDisplayName()))
                         .build());
             }
@@ -129,9 +153,9 @@ public class ListedEntityTracker<T extends ListableEntity> {
     private String getCacheKey() {
         switch (scope) {
             case LOCAL:
-                return String.format("%s::%s::%s", getClass().getSimpleName(), componentId, nodeId);
+                return format("%s::%s::%s", getClass().getSimpleName(), componentId, nodeId);
             case CLUSTER:
-                return String.format("%s::%s", getClass().getSimpleName(), componentId);
+                return format("%s::%s", getClass().getSimpleName(), componentId);
         }
         throw new IllegalArgumentException("Unknown scope: " + scope);
     }
