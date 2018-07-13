@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -228,8 +229,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         properties.add(MAX_SIZE);
         properties.add(IGNORE_HIDDEN_FILES);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
+        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
         properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(ListedEntityTracker.NODE_IDENTIFIER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -321,7 +324,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected Scope getStateScope(final ProcessContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         final String location = context.getProperty(DIRECTORY_LOCATION).getValue();
         if (LOCATION_REMOTE.getValue().equalsIgnoreCase(location)) {
             return Scope.CLUSTER;

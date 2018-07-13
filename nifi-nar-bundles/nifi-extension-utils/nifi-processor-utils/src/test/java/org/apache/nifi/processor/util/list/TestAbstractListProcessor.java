@@ -19,6 +19,7 @@ package org.apache.nifi.processor.util.list;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -290,7 +291,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected Scope getStateScope(final ProcessContext context) {
+        protected Scope getStateScope(final PropertyContext context) {
             return Scope.CLUSTER;
         }
     }

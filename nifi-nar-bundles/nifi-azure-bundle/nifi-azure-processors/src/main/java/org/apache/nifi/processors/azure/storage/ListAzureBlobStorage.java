@@ -40,6 +40,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -100,8 +101,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_KEY,
             PROP_PREFIX,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
-            DISTRIBUTED_CACHE_SERVICE,
-            ListedEntityTracker.TRACKING_TIME_WINDOW
+            ListedEntityTracker.TRACKING_STATE_CACHE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW,
+            ListedEntityTracker.INITIAL_LISTING_TARGET
             ));
 
     @Override
@@ -110,10 +112,8 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final Collection<ValidationResult> results = AzureStorageUtils.validateCredentialProperties(validationContext);
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         AzureStorageUtils.validateProxySpec(validationContext, results);
-        return results;
     }
 
     @Override
@@ -149,7 +149,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
-    protected Scope getStateScope(final ProcessContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         return Scope.CLUSTER;
     }
 
