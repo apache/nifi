@@ -52,10 +52,6 @@
             <artifactId>nifi-lookup-service-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
             <version>2.4.0</version>
