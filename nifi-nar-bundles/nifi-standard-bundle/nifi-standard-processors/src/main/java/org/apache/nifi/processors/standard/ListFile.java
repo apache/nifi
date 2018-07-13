@@ -42,7 +42,11 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileStore;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
@@ -334,8 +338,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final BiPredicate<Path, BasicFileAttributes> fileFilter = fileFilterRef.get();
         int maxDepth = recurse ? Integer.MAX_VALUE : 1;
         BiPredicate<Path, BasicFileAttributes> matcher = (p, attributes) -> {
-            if (!attributes.isDirectory() &&
-                    (minTimestamp == null || attributes.lastModifiedTime().toMillis() >= minTimestamp)
+            if (!attributes.isDirectory()
+                    && (minTimestamp == null || attributes.lastModifiedTime().toMillis() >= minTimestamp)
                     && fileFilter.test(p, attributes)) {
                 // We store the attributes for each Path we are returning in order to avoid to
                 // retrieve them again later when creating the FileInfo
