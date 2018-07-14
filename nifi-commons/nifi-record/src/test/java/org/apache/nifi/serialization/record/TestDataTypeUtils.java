@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -197,6 +198,30 @@ public class TestDataTypeUtils {
         assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
     }
 
+    @Test
+    public void testIntToDecimal() {
+        Integer i = Integer.parseInt("123");
+        Object b = DataTypeUtils.convertType(i, RecordFieldType.DECIMAL.getDataType(),null, StandardCharsets.UTF_16);
+        assertNotNull(b);
+        assertTrue(b instanceof BigDecimal);
+        assertEquals((BigDecimal) b, BigDecimal.valueOf(i));
+    }
+    @Test
+    public void testDoubleToDecimal() {
+        Double d = Double.parseDouble("123.12");
+        Object b = DataTypeUtils.convertType(d, RecordFieldType.DECIMAL.getDataType(),null, StandardCharsets.UTF_16);
+        assertNotNull(b);
+        assertTrue(b instanceof BigDecimal);
+        assertEquals((BigDecimal) b, BigDecimal.valueOf(d));
+    }
+    @Test
+    public void testBytesToDecimal() {
+        Long l = Long.parseLong("0123456789");
+        Object b = DataTypeUtils.convertType(l, RecordFieldType.DECIMAL.getDataType(),null, StandardCharsets.UTF_16);
+        assertNotNull(b);
+        assertTrue(b instanceof BigDecimal);
+        assertEquals((BigDecimal) b, BigDecimal.valueOf(l));
+    }
     @Test
     public void testFloatingPointCompatibility() {
         final String[] prefixes = new String[] {"", "-", "+"};

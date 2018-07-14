@@ -201,8 +201,9 @@ public enum RecordFieldType {
      * </pre>
      * </code>
      */
-    MAP("map", null, new MapDataType(null));
+    MAP("map", null, new MapDataType(null)),
 
+    DECIMAL("decimal");
 
     private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<String, RecordFieldType>();
 

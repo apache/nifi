@@ -277,9 +277,7 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
-                    // We convert Decimal to Double.
-                    // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
-                    return RecordFieldType.DOUBLE.getDataType();
+                    return RecordFieldType.DECIMAL.getDataType();
             }
         }
 
@@ -394,7 +392,7 @@ public class AvroTypeUtil {
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
-            final Schema fieldSchema = field.schema();
+            final Schema fieldSchema = convertDataTypePerProps(field);
             final DataType dataType = AvroTypeUtil.determineDataType(fieldSchema, knownRecords);
             final boolean nullable = isNullable(fieldSchema);
             addFieldToList(recordFields, field, fieldName, fieldSchema, dataType, nullable);
@@ -481,7 +479,8 @@ public class AvroTypeUtil {
                 continue;
             }
 
-            final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName, charset);
+            final Schema fieldSchema = convertDataTypePerProps(field);
+            final Object converted = convertToAvroObject(rawValue, fieldSchema, fieldName, charset);
             rec.put(fieldName, converted);
         }
 
@@ -729,7 +728,7 @@ public class AvroTypeUtil {
                 continue;
             }
 
-            final Schema fieldSchema = avroField.schema();
+            final Schema fieldSchema = convertDataTypePerProps(avroField);
             final Object rawValue = normalizeValue(value, fieldSchema, fieldName);
 
             final DataType desiredType = recordField.getDataType();
@@ -743,6 +742,23 @@ public class AvroTypeUtil {
         }
 
         return values;
+    }
+
+    private static Schema convertDataTypePerProps(Field avroField) {
+        Schema fieldSchema = avroField.schema();
+        final Map<String, Object> props = avroField.getObjectProps();
+        if(!props.isEmpty()){
+            if(props.containsKey("logicalType")){
+                final String logicalType = (String) props.get("logicalType");
+                switch(logicalType) {
+                    case LOGICAL_TYPE_DECIMAL:
+                        final Integer precision = (Integer) props.get("precision");
+                        final Integer scale = (Integer) props.get("scale");
+                        fieldSchema = LogicalTypes.decimal(precision, scale).addToSchema(Schema.create(Type.BYTES));
+                }
+            }
+        }
+        return fieldSchema;
     }
 
     /**
@@ -881,7 +897,9 @@ public class AvroTypeUtil {
                 final ByteBuffer bb = (ByteBuffer) value;
                 final LogicalType logicalType = avroSchema.getLogicalType();
                 if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
-                    return new Conversions.DecimalConversion().fromBytes(bb, avroSchema, logicalType);
+                    final BigDecimal bd = new Conversions.DecimalConversion().fromBytes(bb, avroSchema, logicalType);
+                    bb.clear();
+                    return bd;
                 }
                 return AvroTypeUtil.convertByteArray(bb.array());
             case FIXED:

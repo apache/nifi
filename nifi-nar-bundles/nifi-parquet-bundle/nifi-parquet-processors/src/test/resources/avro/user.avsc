@@ -4,6 +4,10 @@
  "fields": [
      {"name": "name", "type": "string"},
      {"name": "favorite_number",  "type": ["int", "null"]},
-     {"name": "favorite_color", "type": ["string", "null"]}
+     {"name": "favorite_color", "type": ["string", "null"]},
+     {"name": "account_balance",   "type": "bytes",
+                                   "logicalType": "decimal",
+                                   "precision": 38,
+                                   "scale": 10}
  ]
 }

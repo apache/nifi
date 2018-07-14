@@ -23,11 +23,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Conversion;
+import org.apache.avro.Conversions;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
@@ -60,6 +66,8 @@ public class FetchParquetTest {
     static final String DIRECTORY = "target";
     static final String TEST_CONF_PATH = "src/test/resources/core-site.xml";
     static final String RECORD_HEADER = "name,favorite_number,favorite_color";
+    static final LogicalType DECIMAL_38_10 = LogicalTypes.decimal(38, 10);
+    static final BigDecimal D1 = new BigDecimal("34.3400000000");
 
     private Schema schema;
     private Schema schemaWithArray;
@@ -293,7 +301,7 @@ public class FetchParquetTest {
 
         for (int i=0; i < numUsers; i++) {
             final String line = splits[i];
-            Assert.assertEquals("Bob" + i + "," + i + ",blue" + i, line);
+            Assert.assertEquals("Bob" + i + "," + i + ",blue" + i + ",34.3400000000", line);
         }
     }
 
@@ -303,11 +311,12 @@ public class FetchParquetTest {
         }
 
         final Path parquetPath = new Path(parquetFile.getPath());
-
         final AvroParquetWriter.Builder<GenericRecord> writerBuilder = AvroParquetWriter
                 .<GenericRecord>builder(parquetPath)
                 .withSchema(schema)
                 .withConf(testConf);
+
+        final Conversion<BigDecimal> conversion = new Conversions.DecimalConversion();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
             for (int i=0; i < numUsers; i++) {
@@ -315,7 +324,8 @@ public class FetchParquetTest {
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
                 user.put("favorite_color", "blue" + i);
-
+                ByteBuffer b = conversion.toBytes(D1, schema, DECIMAL_38_10);
+                user.put("account_balance", b);
                 writer.write(user);
             }
         }
