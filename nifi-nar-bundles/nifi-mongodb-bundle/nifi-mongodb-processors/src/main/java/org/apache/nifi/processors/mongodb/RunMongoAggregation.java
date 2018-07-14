@@ -156,10 +156,10 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             attrs.put(queryAttr, query);
         }
 
-        MongoCollection<Document> collection = getCollection(context, flowFile);
         MongoCursor<Document> iter = null;
 
         try {
+            MongoCollection<Document> collection = getCollection(context, flowFile);
             List<Bson> aggQuery = buildAggregationQuery(query);
             AggregateIterable<Document> it = collection.aggregate(aggQuery);
             it.batchSize(batchSize != null ? batchSize : 1);

@@ -23,9 +23,11 @@ import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -468,4 +470,63 @@ public class GetMongoIT {
     /*
      * End query read behavior tests
      */
+
+    /*
+     * Verify that behavior described in NIFI-5305 actually works. This test is to ensure that
+     * if a user configures the processor to use EL for the database details (name and collection) that
+     * it can work against a flowfile.
+     */
+    @Test
+    public void testDatabaseEL() {
+        runner.removeVariable("collection");
+        runner.removeVariable("db");
+        runner.setIncomingConnection(true);
+
+        String[] collections = new String[] { "a", "b", "c" };
+        String[] dbs = new String[] { "el_db_1", "el_db_2", "el_db_3" };
+        String query = "{}";
+
+        for (int x = 0; x < collections.length; x++) {
+            MongoDatabase db = mongoClient.getDatabase(dbs[x]);
+            db.getCollection(collections[x])
+                .insertOne(new Document().append("msg", "Hello, World"));
+
+            Map<String, String> attrs = new HashMap<>();
+            attrs.put("db", dbs[x]);
+            attrs.put("collection", collections[x]);
+            runner.enqueue(query, attrs);
+            runner.run();
+
+            db.drop();
+
+            runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+            runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+            runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+            runner.clearTransferState();
+        }
+
+        Map<String, Map<String, String>> vals = new HashMap<String, Map<String, String>>(){{
+            put("Database", new HashMap<String, String>(){{
+                put("db", "");
+                put("collection", "test");
+            }});
+            put("Collection", new HashMap<String, String>(){{
+                put("db", "getmongotest");
+                put("collection", "");
+            }});
+        }};
+
+        for (Map.Entry<String, Map<String, String>> entry : vals.entrySet()) {
+            runner.enqueue("{}", entry.getValue());
+            try {
+                runner.run();
+            } catch (Throwable ex) {
+                Throwable cause = ex.getCause();
+                Assert.assertTrue(cause instanceof ProcessException);
+                Assert.assertTrue(entry.getKey(), cause.getMessage().contains(entry.getKey()));
+            }
+            runner.clearTransferState();
+
+        }
+    }
 }
