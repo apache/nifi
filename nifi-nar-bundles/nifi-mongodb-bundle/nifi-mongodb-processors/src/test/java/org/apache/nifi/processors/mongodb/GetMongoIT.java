@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -468,4 +469,37 @@ public class GetMongoIT {
     /*
      * End query read behavior tests
      */
+
+    /*
+     * Verify that behavior described in NIFI-5305 actually works.
+     */
+    @Test
+    public void testDatabaseEL() {
+        runner.removeVariable("collection");
+        runner.removeVariable("db");
+        runner.setIncomingConnection(true);
+
+        String[] collections = new String[] { "a", "b", "c" };
+        String[] dbs = new String[] { "el_db_1", "el_db_2", "el_db_3" };
+        String query = "{}";
+
+        for (int x = 0; x < collections.length; x++) {
+            MongoDatabase db = mongoClient.getDatabase(dbs[x]);
+            db.getCollection(collections[x])
+                .insertOne(new Document().append("msg", "Hello, World"));
+
+            Map<String, String> attrs = new HashMap<>();
+            attrs.put("db", dbs[x]);
+            attrs.put("collection", collections[x]);
+            runner.enqueue(query, attrs);
+            runner.run();
+
+            db.drop();
+
+            runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+            runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+            runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+            runner.clearTransferState();
+        }
+    }
 }
