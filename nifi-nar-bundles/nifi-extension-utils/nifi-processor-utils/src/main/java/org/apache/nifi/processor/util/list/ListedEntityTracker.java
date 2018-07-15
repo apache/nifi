@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processor.util.list;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -29,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -101,6 +118,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .defaultValue("${hostname()}")
             .build();
 
+    private static Supplier<Long> CURRENT_TIMESTAMP = System::currentTimeMillis;
+
     private Serializer<String> stringSerializer = (v, o) -> o.write(v.getBytes(StandardCharsets.UTF_8));
     private Serializer<Map<String, ListedEntity>> listedEntitiesSerializer
             = (v, o) -> objectMapper.writeValue(new GZIPOutputStream(o), v);
@@ -150,6 +169,10 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }
     }
 
+    static void setCurrentTimestampSupplier(Supplier<Long> supplier) {
+        CURRENT_TIMESTAMP = supplier;
+    }
+
     private String getCacheKey() {
         switch (scope) {
             case LOCAL:
@@ -189,7 +212,9 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
         boolean initialListing = false;
         mapCacheClient = context.getProperty(TRACKING_STATE_CACHE).asControllerService(DistributedMapCacheClient.class);
-        nodeId = context.getProperty(ListedEntityTracker.NODE_IDENTIFIER).evaluateAttributeExpressions().getValue();
+        if (Scope.LOCAL.equals(scope)) {
+            nodeId = context.getProperty(ListedEntityTracker.NODE_IDENTIFIER).evaluateAttributeExpressions().getValue();
+        }
 
         if (alreadyListedEntities == null || justElectedPrimaryNode) {
             logger.info(justElectedPrimaryNode
@@ -206,7 +231,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             }
         }
 
-        final long currentTimeMillis = System.currentTimeMillis();
+        final long currentTimeMillis = CURRENT_TIMESTAMP.get();
         final long watchWindowMillis = context.getProperty(TRACKING_TIME_WINDOW).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         final String initialListingTarget = context.getProperty(INITIAL_LISTING_TARGET).getValue();
@@ -221,7 +246,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             return;
         }
 
-        final Map<String, T> updatedEntities = listedEntities.stream().filter(entity -> {
+        final List<T> updatedEntities = listedEntities.stream().filter(entity -> {
             final String identifier = entity.getIdentifier();
 
             if (entity.getTimestamp() < minTimestampToList) {
@@ -249,13 +274,12 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
             logger.trace("Skipped {}, not changed.", new Object[]{identifier, entity.getTimestamp(), minTimestampToList});
             return false;
-        }).collect(Collectors.toMap(T::getIdentifier, Function.identity()));
+        }).collect(Collectors.toList());
 
-        // Remove old enough entries.
+        // Find old enough entries.
         final List<String> oldEntityIds = alreadyListedEntities.entrySet().stream()
                 .filter(entry -> entry.getValue().getTimestamp() < minTimestampToList).map(Map.Entry::getKey)
                 .collect(Collectors.toList());
-        oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
 
         if (updatedEntities.isEmpty() && oldEntityIds.isEmpty()) {
             logger.debug("None of updated or old entity was found. Yielding.");
@@ -263,8 +287,11 @@ public class ListedEntityTracker<T extends ListableEntity> {
             return;
         }
 
+        // Remove old entries.
+        oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
+
         // Emit updated entities.
-        updatedEntities.forEach((identifier, updatedEntity) -> {
+        updatedEntities.forEach(updatedEntity -> {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
             session.transfer(flowFile, REL_SUCCESS);
@@ -272,14 +299,19 @@ public class ListedEntityTracker<T extends ListableEntity> {
             final ListedEntity listedEntity = new ListedEntity();
             listedEntity.setTimestamp(updatedEntity.getTimestamp());
             listedEntity.setSize(updatedEntity.getSize());
-            alreadyListedEntities.put(identifier, listedEntity);
+            alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
         });
 
         // Commit ProcessSession before persisting listed entities.
         // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
         session.commit();
         try {
-            logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
+            logger.debug("Removed old entities count: {}, Updated entities count: {}",
+                    new Object[]{oldEntityIds.size(), updatedEntities.size()});
+            if (logger.isTraceEnabled()) {
+                logger.trace("\"Removed old entities: {}, Updated entities: {}",
+                        new Object[]{oldEntityIds, updatedEntities});
+            }
             persistListedEntities(alreadyListedEntities);
         } catch (IOException e) {
             throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
