@@ -17,6 +17,8 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -24,9 +26,11 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.JsonValidator;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -63,6 +67,9 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
     "then the entire MongoDB result document minus the _id field will be returned as a record."
 )
 public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
+    private volatile String databaseName;
+    private volatile String collection;
+
     public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
         .name("mongo-lookup-client-service")
         .displayName("Client Service")
@@ -70,7 +77,22 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         .required(true)
         .identifiesControllerService(MongoDBClientService.class)
         .build();
-
+    public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
+        .name("mongo-db-name")
+        .displayName("Mongo Database Name")
+        .description("The name of the database to use")
+        .required(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
+        .name("mongo-collection-name")
+        .displayName("Mongo Collection Name")
+        .description("The name of the collection to use")
+        .required(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
         .name("mongo-lookup-value-field")
         .displayName("Lookup Value Field")
@@ -113,7 +135,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         }
 
         try {
-            Document result = projection != null ? controllerService.findOne(query, projection) : controllerService.findOne(query);
+            Document result = findOne(query, projection);
 
             if(result == null) {
                 return Optional.empty();
@@ -148,6 +170,9 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBClientService.class);
 
         this.schemaNameProperty = context.getProperty(SchemaAccessUtils.SCHEMA_NAME).getValue();
+
+        this.databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions().getValue();
+        this.collection   = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions().getValue();
 
         String configuredProjection = context.getProperty(PROJECTION).isSet()
             ? context.getProperty(PROJECTION).getValue()
@@ -187,9 +212,20 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         _temp.add(SCHEMA_BRANCH_NAME);
         _temp.add(SCHEMA_TEXT);
         _temp.add(CONTROLLER_SERVICE);
+        _temp.add(DATABASE_NAME);
+        _temp.add(COLLECTION_NAME);
         _temp.add(LOOKUP_VALUE_FIELD);
         _temp.add(PROJECTION);
 
         return Collections.unmodifiableList(_temp);
+    }
+
+    private Document findOne(Document query, Document projection) {
+        MongoCollection col = controllerService.getDatabase(databaseName).getCollection(collection);
+        MongoCursor<Document> it = (projection != null ? col.find(query).projection(projection) : col.find(query)).iterator();
+        Document retVal = it.hasNext() ? it.next() : null;
+        it.close();
+
+        return retVal;
     }
 }
