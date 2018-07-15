@@ -26,6 +26,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
@@ -107,9 +109,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(3, results.size());
+        Assert.assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo URI is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
@@ -577,6 +578,20 @@ public class GetMongoIT {
         Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
 
         Assert.assertTrue(result.containsKey("date_field"));
-        Assert.assertTrue(format.matcher((String)result.get("date_field")).matches());
+        Assert.assertTrue(format.matcher((String) result.get("date_field")).matches());
+    }
+
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(GetMongo.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
     }
 }

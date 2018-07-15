@@ -150,7 +150,10 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).evaluateAttributeExpressions().getValue(), String.format("Added %d documents to MongoDB.", added));
+                String url = clientService != null
+                        ? clientService.getURI()
+                        : context.getProperty(URI).evaluateAttributeExpressions().getValue();
+                session.getProvenanceReporter().send(flowFile, url, String.format("Added %d documents to MongoDB.", added));
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }
