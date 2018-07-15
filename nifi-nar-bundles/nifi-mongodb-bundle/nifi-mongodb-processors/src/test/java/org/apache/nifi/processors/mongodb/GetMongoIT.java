@@ -25,6 +25,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -104,9 +106,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(3, results.size());
+        Assert.assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo URI is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
@@ -468,4 +469,19 @@ public class GetMongoIT {
     /*
      * End query read behavior tests
      */
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(GetMongo.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+    }
 }

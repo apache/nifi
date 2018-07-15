@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -211,5 +213,27 @@ public class RunMongoAggregationIT {
             Assert.assertTrue("Missing $project", queryAttr.contains("$project"));
             Assert.assertTrue("Missing $group", queryAttr.contains("$group"));
         }
+    }
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(RunMongoAggregation.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(RunMongoAggregation.CLIENT_SERVICE, "clientService");
+        runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
+                        "    {\n" +
+                        "        \"$project\": {\n" +
+                        "            \"_id\": 0,\n" +
+                        "            \"val\": 1\n" +
+                        "        }\n" +
+                        "    }]");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
     }
 }

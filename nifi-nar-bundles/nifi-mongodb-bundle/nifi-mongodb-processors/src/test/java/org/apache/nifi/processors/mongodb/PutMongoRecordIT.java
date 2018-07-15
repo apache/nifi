@@ -21,6 +21,8 @@ import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -94,9 +96,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(4, results.size());
+        Assert.assertEquals(3, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo URI is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
@@ -144,12 +145,30 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongoRecord.REL_SUCCESS).get(0);
-
 
         // verify 1 doc inserted into the collection
         assertEquals(5, collection.count());
         //assertEquals(doc, collection.find().first());
+
+
+        runner.clearTransferState();
+
+        /*
+         * Test it with the client service.
+         */
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(PutMongoRecord.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(PutMongoRecord.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        collection.deleteMany(new Document());
+        runner.enqueue("");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, 1);
+        assertEquals(5, collection.count());
     }
 
     @Test
