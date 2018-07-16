@@ -16,15 +16,19 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import static java.lang.Double.NEGATIVE_INFINITY;
-import static java.lang.Double.NaN;
-import static java.lang.Double.POSITIVE_INFINITY;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.antlr.runtime.tree.Tree;
+import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.VariableRegistry;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -40,19 +44,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.attribute.expression.language.Query.Range;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
-import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static java.lang.Double.NEGATIVE_INFINITY;
+import static java.lang.Double.NaN;
+import static java.lang.Double.POSITIVE_INFINITY;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestQuery {
 
@@ -167,14 +167,25 @@ public class TestQuery {
     @Test
     public void testEscape() {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("attr", "My Value");
+        attributes.put("abc", "xyz");
         attributes.put("${xx}", "hello");
 
-        assertEquals("My Value", evaluateQueryForEscape("${attr}", attributes));
-        assertEquals("${attr}", evaluateQueryForEscape("$${attr}", attributes));
-        assertEquals("$My Value", evaluateQueryForEscape("$$${attr}", attributes));
-        assertEquals("$${attr}", evaluateQueryForEscape("$$$${attr}", attributes));
-        assertEquals("$$My Value", evaluateQueryForEscape("$$$$${attr}", attributes));
+        assertEquals("xyz", evaluateQueryForEscape("${abc}", attributes));
+        assertEquals("${abc}", evaluateQueryForEscape("$${abc}", attributes));
+        assertEquals("$xyz", evaluateQueryForEscape("$$${abc}", attributes));
+        assertEquals("$${abc}", evaluateQueryForEscape("$$$${abc}", attributes));
+        assertEquals("$$xyz", evaluateQueryForEscape("$$$$${abc}", attributes));
+
+        assertEquals( "Unescaped $$${5 because no closing brace", evaluateQueryForEscape("Unescaped $$${5 because no closing brace", attributes));
+        assertEquals( "Unescaped $ because no closing brace", evaluateQueryForEscape("Unescaped $$${'5'} because no closing brace", attributes));
+
+        assertEquals("I owe you $5", evaluateQueryForEscape("I owe you $5", attributes));
+        assertEquals("You owe me $$5 too", evaluateQueryForEscape("You owe me $$5 too", attributes));
+        assertEquals("Unescaped $$${5 because no closing brace", evaluateQueryForEscape("Unescaped $$${5 because no closing brace", attributes));
+        assertEquals("xyz owes me $5", evaluateQueryForEscape("${abc} owes me $5", attributes));
+        assertEquals("xyz owes me ${5", evaluateQueryForEscape("${abc} owes me ${5", attributes));
+        assertEquals("xyz owes me ", evaluateQueryForEscape("${abc} owes me ${'5'}", attributes));
+        assertEquals("xyz owes me $", evaluateQueryForEscape("${abc} owes me $$${'5'}", attributes));
     }
 
     @Test
