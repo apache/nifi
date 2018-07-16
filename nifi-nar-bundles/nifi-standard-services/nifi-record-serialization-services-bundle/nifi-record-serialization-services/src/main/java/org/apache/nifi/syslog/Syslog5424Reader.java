@@ -37,6 +37,8 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.syslog.attributes.Syslog5424Attributes;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.keyproviders.SimpleKeyProvider;
@@ -57,7 +59,8 @@ import java.util.Set;
 @CapabilityDescription("Provides a mechanism for reading RFC 5424 compliant Syslog data, such as log files, and structuring the data" +
         " so that it can be processed.")
 public class Syslog5424Reader extends SchemaRegistryService implements RecordReaderFactory {
-    static final AllowableValue RFC_5424_SCHEMA = new AllowableValue("default-5424-schema", "Use RFC 5424 Schema",
+    public static final String RFC_5424_SCHEMA_NAME = "default-5424-schema";
+    static final AllowableValue RFC_5424_SCHEMA = new AllowableValue(RFC_5424_SCHEMA_NAME, "Use RFC 5424 Schema",
             "The schema will be the default schema per RFC 5424.");
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
@@ -122,7 +125,8 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         fields.add(new RecordField(Syslog5424Attributes.STRUCTURED_BASE.key(),
                 RecordFieldType.MAP.getMapDataType(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()))));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
+        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(RFC_5424_SCHEMA_NAME).build();
+        final RecordSchema schema = new SimpleRecordSchema(fields,schemaIdentifier);
         return schema;
     }
 
