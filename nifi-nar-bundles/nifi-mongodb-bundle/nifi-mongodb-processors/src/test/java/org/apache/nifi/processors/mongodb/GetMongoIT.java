@@ -471,7 +471,9 @@ public class GetMongoIT {
      */
 
     /*
-     * Verify that behavior described in NIFI-5305 actually works.
+     * Verify that behavior described in NIFI-5305 actually works. This test is to ensure that
+     * if a user configures the processor to use EL for the database details (name and collection) that
+     * it can work against a flowfile.
      */
     @Test
     public void testDatabaseEL() {
