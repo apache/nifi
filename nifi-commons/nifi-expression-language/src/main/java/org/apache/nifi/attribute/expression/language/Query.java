@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -29,6 +24,11 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Class used for creating and evaluating NiFi Expression Language. Once a Query
@@ -248,7 +248,11 @@ public class Query {
         final List<Range> ranges = extractExpressionRanges(query);
 
         if (ranges.isEmpty()) {
-            return new EmptyPreparedQuery(query.replace("$$", "$"));
+            // While in the other cases below, we are simply replacing "$$" with "$", we have to do this
+            // a bit differently. We want to treat $$ as an escaped $ only if it immediately precedes the
+            // start of an Expression, which is the case below. Here, we did not detect the start of an Expression
+            // and as such as must use the #unescape method instead of a simple replace() function.
+            return new EmptyPreparedQuery(unescape(query));
         }
 
         final ExpressionCompiler compiler = new ExpressionCompiler();
