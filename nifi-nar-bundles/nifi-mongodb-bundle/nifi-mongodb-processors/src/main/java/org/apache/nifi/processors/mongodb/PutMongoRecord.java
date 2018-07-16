@@ -113,8 +113,6 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-
         List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
         int added   = 0;
@@ -122,6 +120,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         try (final InputStream inStream = session.read(flowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
             RecordSchema schema = reader.getSchema();
             Record record;
             while ((record = reader.nextRecord()) != null) {

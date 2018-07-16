@@ -27,6 +27,7 @@ import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -502,6 +503,30 @@ public class GetMongoIT {
             runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
             runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
             runner.clearTransferState();
+        }
+
+        Map<String, Map<String, String>> vals = new HashMap<String, Map<String, String>>(){{
+            put("Database", new HashMap<String, String>(){{
+                put("db", "");
+                put("collection", "test");
+            }});
+            put("Collection", new HashMap<String, String>(){{
+                put("db", "getmongotest");
+                put("collection", "");
+            }});
+        }};
+
+        for (Map.Entry<String, Map<String, String>> entry : vals.entrySet()) {
+            runner.enqueue("{}", entry.getValue());
+            try {
+                runner.run();
+            } catch (Throwable ex) {
+                Throwable cause = ex.getCause();
+                Assert.assertTrue(cause instanceof ProcessException);
+                Assert.assertTrue(entry.getKey(), cause.getMessage().contains(entry.getKey()));
+            }
+            runner.clearTransferState();
+
         }
     }
 }

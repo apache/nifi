@@ -251,9 +251,8 @@ public class GetMongo extends AbstractMongoProcessor {
         configureMapper(jsonTypeSetting);
 
 
-        final MongoCollection<Document> collection = getCollection(context, input);
-
         try {
+            final MongoCollection<Document> collection = getCollection(context, input);
             final FindIterable<Document> it = query != null ? collection.find(query) : collection.find();
             if (projection != null) {
                 it.projection(projection);
