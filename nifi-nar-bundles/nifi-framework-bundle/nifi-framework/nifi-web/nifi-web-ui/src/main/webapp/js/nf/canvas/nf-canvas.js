@@ -172,7 +172,9 @@
                 rootBreadcrumb = rootBreadcrumb.parentBreadcrumb
             }
 
-            document.title = rootBreadcrumb.breadcrumb.name;
+            if(rootBreadcrumb.permissions.canRead){
+                document.title = rootBreadcrumb.breadcrumb.name;
+            }
 
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
