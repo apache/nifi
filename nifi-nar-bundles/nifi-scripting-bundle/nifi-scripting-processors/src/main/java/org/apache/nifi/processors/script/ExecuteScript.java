@@ -19,9 +19,11 @@ package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -77,6 +79,7 @@ import java.util.Set;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso({InvokeScriptedProcessor.class})
@@ -236,11 +239,20 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
                 // class with InvokeScriptedProcessor
                 session.commit();
             } catch (ScriptException e) {
+                // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
+                // restored back to their initial session state and back to their original queues after being penalized).
+                // However if the incoming relationship is full of flow files, this processor will keep failing and could
+                // cause resource exhaustion. In case a user does not want to yield, it can be set to 0s in the processor
+                // configuration.
+                context.yield();
                 throw new ProcessException(e);
             }
         } catch (final Throwable t) {
             // Mimic AbstractProcessor behavior here
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+
+            // the rollback might not penalize the incoming flow file if the exception is thrown before the user gets
+            // the flow file from the session binding (ff = session.get()).
             session.rollback(true);
             throw t;
         } finally {
