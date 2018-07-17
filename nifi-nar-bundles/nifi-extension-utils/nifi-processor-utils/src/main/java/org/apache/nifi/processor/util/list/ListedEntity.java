@@ -14,32 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processor.util.list;
 
-public interface ListableEntity {
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+public class ListedEntity {
     /**
-     * @return The name of the remote entity
+     * Milliseconds.
      */
-    String getName();
-
+    private final long timestamp;
     /**
-     * @return the identifier of the remote entity. This may or may not be the same as the name of the
-     *         entity but should be unique across all entities.
+     * Bytes.
      */
-    String getIdentifier();
+    private final long size;
 
+    @JsonCreator
+    public ListedEntity(@JsonProperty("timestamp") long timestamp, @JsonProperty("size") long size) {
+        this.timestamp = timestamp;
+        this.size = size;
+    }
 
-    /**
-     * @return the timestamp for this entity in milliseconds so that we can be efficient about not performing listings of the same
-     *         entities multiple times
-     */
-    long getTimestamp();
+    public long getTimestamp() {
+        return timestamp;
+    }
 
-    /**
-     * @return the size of the entity content.
-     */
-    long getSize();
-
+    public long getSize() {
+        return size;
+    }
 }
