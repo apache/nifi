@@ -16,21 +16,22 @@
  */
 package org.apache.nifi.processor.util.list;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ListedEntity {
     /**
      * Milliseconds.
      */
-    private long timestamp;
+    private final long timestamp;
     /**
      * Bytes.
      */
-    private long size;
+    private final long size;
 
-    public void setTimestamp(long timestamp) {
+    @JsonCreator
+    public ListedEntity(@JsonProperty("timestamp") long timestamp, @JsonProperty("size") long size) {
         this.timestamp = timestamp;
-    }
-
-    public void setSize(long size) {
         this.size = size;
     }
 

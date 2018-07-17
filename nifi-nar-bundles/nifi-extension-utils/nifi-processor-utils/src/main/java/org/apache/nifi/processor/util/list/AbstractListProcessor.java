@@ -188,9 +188,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
             "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
-                    " See 'Entity Tracking Time Window' description for detail on how it works." +
                     " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
-                    " However additional DistributedMapCache controller service is required and more JVM heap memory is used.");
+                    " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
+                    " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .name("listing-strategy")
@@ -722,15 +722,19 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         if (isTrackingEntityStrategy) {
             if (listedEntityTracker == null) {
-                listedEntityTracker = new ListedEntityTracker<>(getIdentifier(), getLogger(), getStateScope(context));
+                listedEntityTracker = createListedEntityTracker();
             }
         } else {
             listedEntityTracker = null;
         }
     }
 
+    protected ListedEntityTracker<T> createListedEntityTracker() {
+        return new ListedEntityTracker<>(getIdentifier(), getLogger());
+    }
+
     private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {
-        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, minTimestampToList -> {
+        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, getStateScope(context), minTimestampToList -> {
             try {
                 return performListing(context, minTimestampToList);
             } catch (final IOException e) {
@@ -738,6 +742,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 return Collections.emptyList();
             }
         }, entity -> createAttributes(entity, context));
+        justElectedPrimaryNode = false;
     }
 
 }

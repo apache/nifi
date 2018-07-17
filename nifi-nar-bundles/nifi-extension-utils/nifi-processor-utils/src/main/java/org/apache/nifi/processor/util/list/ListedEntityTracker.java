@@ -33,29 +33,28 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 
 public class ListedEntityTracker<T extends ListableEntity> {
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private volatile Map<String, ListedEntity> alreadyListedEntities;
 
     private static final String NOTE = "Used by 'Tracking Entities' strategy.";
@@ -66,10 +65,10 @@ public class ListedEntityTracker<T extends ListableEntity> {
                     " so that this processor can resume listing across NiFi restart or in case of primary node change." +
                     " 'Tracking Entities' strategy require tracking information of all listed entities within the last 'Tracking Time Window'." +
                     " To support large number of entities, the strategy uses DistributedMapCache instead of managed state." +
-                    " Cache key format is 'ListedEntityTracker::{processorId}(::{nodeId})'." +
+                    " Cache key format is 'ListedEntities::{processorId}(::{nodeId})'." +
                     " If it tracks per node listed entities, then the optional '::{nodeId}' part is added to manage state separately." +
-                    " E.g. cluster wide cache key = 'ListedEntityTracker::8dda2321-0164-1000-50fa-3042fe7d6a7b'," +
-                    " per node cache key = 'ListedEntityTracker::8dda2321-0164-1000-50fa-3042fe7d6a7b::nifi-node3'" +
+                    " E.g. cluster wide cache key = 'ListedEntities::8dda2321-0164-1000-50fa-3042fe7d6a7b'," +
+                    " per node cache key = 'ListedEntities::8dda2321-0164-1000-50fa-3042fe7d6a7b::nifi-node3'" +
                     " The stored cache content is Gzipped JSON string." +
                     " The cache key will be deleted when target listing configuration is changed." +
                     " %s", NOTE))
@@ -104,7 +103,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .description(format("Specify how initial listing should be handled." +
                     " %s", NOTE))
             .allowableValues(INITIAL_LISTING_TARGET_WINDOW, INITIAL_LISTING_TARGET_ALL)
-            .defaultValue(INITIAL_LISTING_TARGET_WINDOW.getValue())
+            .defaultValue(INITIAL_LISTING_TARGET_ALL.getValue())
             .build();
 
     public static final PropertyDescriptor NODE_IDENTIFIER = new PropertyDescriptor.Builder()
@@ -118,67 +117,84 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .defaultValue("${hostname()}")
             .build();
 
-    private static Supplier<Long> CURRENT_TIMESTAMP = System::currentTimeMillis;
+    static final Supplier<Long> DEFAULT_CURRENT_TIMESTAMP_SUPPLIER = System::currentTimeMillis;
+    private final Supplier<Long> currentTimestampSupplier;
 
-    private Serializer<String> stringSerializer = (v, o) -> o.write(v.getBytes(StandardCharsets.UTF_8));
-    private Serializer<Map<String, ListedEntity>> listedEntitiesSerializer
-            = (v, o) -> objectMapper.writeValue(new GZIPOutputStream(o), v);
-    private Deserializer<Map<String, ListedEntity>> listedEntitiesDeserializer
-            = v -> (v == null || v.length == 0) ? null
-            : objectMapper.readValue(new GZIPInputStream(new ByteArrayInputStream(v)), new TypeReference<Map<String, ListedEntity>>() {});
+    private final Serializer<String> stringSerializer = (v, o) -> o.write(v.getBytes(StandardCharsets.UTF_8));
+
+    private final Serializer<Map<String, ListedEntity>> listedEntitiesSerializer = (v, o) -> {
+        final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(o);
+        objectMapper.writeValue(gzipOutputStream, v);
+        // Finish writing gzip data without closing the underlying stream.
+        gzipOutputStream.finish();
+    };
+
+    private final Deserializer<Map<String, ListedEntity>> listedEntitiesDeserializer = v -> {
+        if (v == null || v.length == 0) {
+            return null;
+        }
+        try (final GZIPInputStream in = new GZIPInputStream(new ByteArrayInputStream(v))) {
+            return objectMapper.readValue(in, new TypeReference<Map<String, ListedEntity>>() {});
+        }
+    };
 
     private final String componentId;
     private final ComponentLog logger;
-    private final Scope scope;
 
     /*
-     * The nodeId and mapCacheClient being used at the previous trackEntities method execution is captured,
+     * The scope, nodeId and mapCacheClient being used at the previous trackEntities method execution is captured,
      * so that it can be used when resetListedEntities is called.
      */
+    private Scope scope;
     private String nodeId;
     private DistributedMapCacheClient mapCacheClient;
 
-    ListedEntityTracker(String componentId, ComponentLog logger, Scope scope) {
+    ListedEntityTracker(String componentId, ComponentLog logger) {
+        this(componentId, logger, DEFAULT_CURRENT_TIMESTAMP_SUPPLIER);
+    }
+
+    /**
+     * This constructor is used by unit test code so that it can produce the consistent result by controlling current timestamp.
+     * @param currentTimestampSupplier a function to return current timestamp.
+     */
+    ListedEntityTracker(String componentId, ComponentLog logger, Supplier<Long> currentTimestampSupplier) {
         this.componentId = componentId;
         this.logger = logger;
-        this.scope = scope;
+        this.currentTimestampSupplier = currentTimestampSupplier;
     }
 
     static void validateProperties(ValidationContext context, Collection<ValidationResult> results, Scope scope) {
-        final Consumer<PropertyDescriptor> validateRequiredProperty = property -> {
-            if (!context.getProperty(property).isSet()) {
-                final String displayName = property.getDisplayName();
-                results.add(new ValidationResult.Builder()
-                        .subject(displayName)
-                        .explanation(format("'%s' is required to use '%s' listing strategy", displayName, AbstractListProcessor.BY_ENTITIES.getDisplayName()))
-                        .valid(false)
-                        .build());
-            }
-        };
-        validateRequiredProperty.accept(ListedEntityTracker.TRACKING_STATE_CACHE);
-        validateRequiredProperty.accept(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        validateRequiredProperty(context, results, ListedEntityTracker.TRACKING_STATE_CACHE);
+        validateRequiredProperty(context, results, ListedEntityTracker.TRACKING_TIME_WINDOW);
 
-        if (Scope.LOCAL.equals(scope)) {
-            if (StringUtils.isEmpty(context.getProperty(NODE_IDENTIFIER).evaluateAttributeExpressions().getValue())) {
-                results.add(new ValidationResult.Builder()
-                        .subject(NODE_IDENTIFIER.getDisplayName())
-                        .explanation(format("'%s' is required to use local scope with '%s' listing strategy",
-                                NODE_IDENTIFIER.getDisplayName(), AbstractListProcessor.BY_ENTITIES.getDisplayName()))
-                        .build());
-            }
+        if (Scope.LOCAL.equals(scope)
+            && StringUtils.isEmpty(context.getProperty(NODE_IDENTIFIER).evaluateAttributeExpressions().getValue())) {
+            results.add(new ValidationResult.Builder()
+                    .subject(NODE_IDENTIFIER.getDisplayName())
+                    .explanation(format("'%s' is required to use local scope with '%s' listing strategy",
+                            NODE_IDENTIFIER.getDisplayName(), AbstractListProcessor.BY_ENTITIES.getDisplayName()))
+                    .build());
         }
     }
 
-    static void setCurrentTimestampSupplier(Supplier<Long> supplier) {
-        CURRENT_TIMESTAMP = supplier;
+    private static void validateRequiredProperty(ValidationContext context, Collection<ValidationResult> results, PropertyDescriptor property) {
+        if (!context.getProperty(property).isSet()) {
+            final String displayName = property.getDisplayName();
+            results.add(new ValidationResult.Builder()
+                    .subject(displayName)
+                    .explanation(format("'%s' is required to use '%s' listing strategy", displayName, AbstractListProcessor.BY_ENTITIES.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
     }
 
+    private static final String CACHE_KEY_PREFIX = "ListedEntities";
     private String getCacheKey() {
         switch (scope) {
             case LOCAL:
-                return format("%s::%s::%s", getClass().getSimpleName(), componentId, nodeId);
+                return format("%s::%s::%s", CACHE_KEY_PREFIX, componentId, nodeId);
             case CLUSTER:
-                return format("%s::%s", getClass().getSimpleName(), componentId);
+                return format("%s::%s", CACHE_KEY_PREFIX, componentId);
         }
         throw new IllegalArgumentException("Unknown scope: " + scope);
     }
@@ -207,13 +223,17 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
     public void trackEntities(ProcessContext context, ProcessSession session,
                               boolean justElectedPrimaryNode,
+                              Scope scope,
                               Function<Long, Collection<T>> listEntities,
                               Function<T, Map<String, String>> createAttributes) throws ProcessException {
 
         boolean initialListing = false;
         mapCacheClient = context.getProperty(TRACKING_STATE_CACHE).asControllerService(DistributedMapCacheClient.class);
+        this.scope = scope;
         if (Scope.LOCAL.equals(scope)) {
             nodeId = context.getProperty(ListedEntityTracker.NODE_IDENTIFIER).evaluateAttributeExpressions().getValue();
+        } else {
+            nodeId = null;
         }
 
         if (alreadyListedEntities == null || justElectedPrimaryNode) {
@@ -221,17 +241,19 @@ public class ListedEntityTracker<T extends ListableEntity> {
                     ? "Just elected as Primary node, restoring already-listed entities."
                     : "At the first onTrigger, restoring already-listed entities.");
             try {
-                alreadyListedEntities = fetchListedEntities();
-                if (alreadyListedEntities == null) {
-                    alreadyListedEntities = new HashMap<>();
+                final Map<String, ListedEntity> fetchedListedEntities = fetchListedEntities();
+                if (fetchedListedEntities == null) {
+                    this.alreadyListedEntities = new ConcurrentHashMap<>();
                     initialListing = true;
+                } else {
+                    this.alreadyListedEntities = new ConcurrentHashMap<>(fetchedListedEntities);
                 }
             } catch (IOException e) {
                 throw new ProcessException("Failed to restore already-listed entities due to " + e, e);
             }
         }
 
-        final long currentTimeMillis = CURRENT_TIMESTAMP.get();
+        final long currentTimeMillis = currentTimestampSupplier.get();
         final long watchWindowMillis = context.getProperty(TRACKING_TIME_WINDOW).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         final String initialListingTarget = context.getProperty(INITIAL_LISTING_TARGET).getValue();
@@ -291,16 +313,14 @@ public class ListedEntityTracker<T extends ListableEntity> {
         oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
 
         // Emit updated entities.
-        updatedEntities.forEach(updatedEntity -> {
+        for (T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
             session.transfer(flowFile, REL_SUCCESS);
             // In order to reduce object size, discard meta data captured at the sub-classes.
-            final ListedEntity listedEntity = new ListedEntity();
-            listedEntity.setTimestamp(updatedEntity.getTimestamp());
-            listedEntity.setSize(updatedEntity.getSize());
+            final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize());
             alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
-        });
+        }
 
         // Commit ProcessSession before persisting listed entities.
         // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
@@ -309,7 +329,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
             logger.debug("Removed old entities count: {}, Updated entities count: {}",
                     new Object[]{oldEntityIds.size(), updatedEntities.size()});
             if (logger.isTraceEnabled()) {
-                logger.trace("\"Removed old entities: {}, Updated entities: {}",
+                logger.trace("Removed old entities: {}, Updated entities: {}",
                         new Object[]{oldEntityIds, updatedEntities});
             }
             persistListedEntities(alreadyListedEntities);

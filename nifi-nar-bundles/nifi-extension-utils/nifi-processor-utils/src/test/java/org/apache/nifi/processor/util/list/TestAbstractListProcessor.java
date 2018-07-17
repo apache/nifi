@@ -189,16 +189,13 @@ public class TestAbstractListProcessor {
 
         runner.assertValid();
 
-        final AtomicReference<Long> currentTimestamp = new AtomicReference<>();
-        ListedEntityTracker.setCurrentTimestampSupplier(currentTimestamp::get);
-
-        currentTimestamp.set(0L);
+        proc.currentTimestamp.set(0L);
         runner.run();
         assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
 
         // Should list one entity.
         proc.addEntity("one", "one", 1, 1);
-        currentTimestamp.set(1L);
+        proc.currentTimestamp.set(1L);
         runner.clearTransferState();
         runner.run();
         assertEquals(1, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
@@ -206,13 +203,13 @@ public class TestAbstractListProcessor {
             .assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
 
         // Should not list any entity.
-        currentTimestamp.set(2L);
+        proc.currentTimestamp.set(2L);
         runner.clearTransferState();
         runner.run();
         assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
 
         // Should list added entities.
-        currentTimestamp.set(10L);
+        proc.currentTimestamp.set(10L);
         proc.addEntity("five", "five", 5, 5);
         proc.addEntity("six", "six", 6, 6);
         runner.clearTransferState();
@@ -226,7 +223,7 @@ public class TestAbstractListProcessor {
         // Should be able to list entities having older timestamp than the previously listed entity.
         // But if its timestamp is out of tracking window, then it won't be picked.
         // Current timestamp = 13, and window = 10ms, meaning it can pick entities having timestamp 3 to 13.
-        currentTimestamp.set(13L);
+        proc.currentTimestamp.set(13L);
         proc.addEntity("two", "two", 2, 2);
         proc.addEntity("three", "three", 3, 3);
         proc.addEntity("four", "four", 4, 4);
@@ -240,7 +237,7 @@ public class TestAbstractListProcessor {
 
         // Can pick entity that has newer timestamp.
         // Can pick entity that has different size.
-        currentTimestamp.set(14L);
+        proc.currentTimestamp.set(14L);
         proc.addEntity("five", "five", 7, 5);
         proc.addEntity("six", "six", 6, 16);
         runner.clearTransferState();
@@ -253,10 +250,11 @@ public class TestAbstractListProcessor {
 
         // Reset state.
         // Current timestamp = 15, and window = 11ms, meaning it can pick entities having timestamp 4 to 15.
-        currentTimestamp.set(15L);
+        proc.currentTimestamp.set(15L);
         // ConcreteListProcessor can reset state with any property.
         runner.setProperty(ListedEntityTracker.TRACKING_TIME_WINDOW, "11ms");
         runner.setProperty(ConcreteListProcessor.RESET_STATE, "1");
+        runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "window");
         runner.clearTransferState();
         runner.run();
         assertEquals(3, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
@@ -269,7 +267,7 @@ public class TestAbstractListProcessor {
 
 
         // Reset state again.
-        currentTimestamp.set(20L);
+        proc.currentTimestamp.set(20L);
         // ConcreteListProcessor can reset state with any property.
         runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "all");
         runner.setProperty(ConcreteListProcessor.RESET_STATE, "2");
@@ -348,6 +346,13 @@ public class TestAbstractListProcessor {
                 .name("reset-state")
                 .addValidator(Validator.VALID)
                 .build();
+
+        final AtomicReference<Long> currentTimestamp = new AtomicReference<>();
+
+        @Override
+        protected ListedEntityTracker<ListableEntity> createListedEntityTracker() {
+            return new ListedEntityTracker<>(getIdentifier(), getLogger(), () -> currentTimestamp.get());
+        }
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
