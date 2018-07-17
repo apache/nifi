@@ -208,6 +208,13 @@ public class TestStandardProcessorTestRunner {
     }
 
     @Test
+    public void testProcessorNameShouldBeSet() {
+        final AddAttributeProcessor proc = new AddAttributeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc, "TestName");
+        assertEquals("TestName",runner.getProcessContext().getName());
+    }
+
+    @Test
     public void testProcessorInvalidWhenControllerServiceDisabled() {
         final ControllerService testService = new RequiredPropertyTestService();
         final AddAttributeProcessor proc = new AddAttributeProcessor();

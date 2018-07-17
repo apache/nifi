@@ -95,6 +95,10 @@ public class StandardProcessorTestRunner implements TestRunner {
     private boolean enforceReadStreamsClosed = true;
 
     StandardProcessorTestRunner(final Processor processor) {
+        this(processor, null);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -102,7 +106,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
-        this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);

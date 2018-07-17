@@ -2144,9 +2144,10 @@ you can use the Maven dependency:
 </dependency>
 ----
 
-We create a new `TestRunner` by calling the static `newTestRunner` method of the `TestRunners` class
-(located in the `org.apache.nifi.util` package). This method takes a single argument. That argument can
-either be the class of the Processor to test or can be an instance of a Processor.
+We create a new `TestRunner` by calling one of the static `newTestRunner` methods of the `TestRunners` class
+(located in the `org.apache.nifi.util` package). These methods take an argument for the Processor under test (can
+either be the class of the Processor to test or can be an instance of a Processor), and allow the setting of
+the processor name as well.
 
 === Add ControllerServices
 
