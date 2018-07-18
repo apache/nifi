@@ -151,10 +151,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         }
 
         if(context.getProperty(PATTERN_CONTROLLER).isSet()) {
-            Map<String, String> patterns = context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
-            for(String name : patterns.keySet()) {
-                grokCompiler.register(name, patterns.get(name));
-            }
+            grokCompiler.register(context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll());
         }
 
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue());

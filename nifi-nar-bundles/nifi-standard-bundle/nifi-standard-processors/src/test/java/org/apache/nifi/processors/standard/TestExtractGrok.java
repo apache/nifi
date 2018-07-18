@@ -141,10 +141,13 @@ public class TestExtractGrok {
         matched.assertAttributeNotExists("grok.COMMONAPACHELOG");
     }
 
+    @Test
     public void testExtractGrokWithPatternController() throws IOException, InitializationException {
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         testRunner.addControllerService("grok-patterns-controller", service);
-        testRunner.setProperty(service, "GREEDYDATA", ".*");
+        testRunner.setProperty(service, "GREEDYDATA", "%{SIMPLE} not an %{APACHE}");
+        testRunner.setProperty(service, "SIMPLE", "simple text");
+        testRunner.setProperty(service, "APACHE", "apache log");
         testRunner.enableControllerService(service);
         testRunner.assertValid(service);
 

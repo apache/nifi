@@ -244,10 +244,7 @@ public class ExtractGrok extends AbstractProcessor {
             }
 
             if(validationContext.getProperty(PATTERN_CONTROLLER).isSet()) {
-                Map<String, String> patterns = validationContext.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
-                for(String name : patterns.keySet()) {
-                    grokCompiler.register(name, patterns.get(name));
-                }
+                grokCompiler.register(validationContext.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll());
             }
 
             grok = grokCompiler.compile(input, namedCaptures);
@@ -292,10 +289,7 @@ public class ExtractGrok extends AbstractProcessor {
         }
 
         if(context.getProperty(PATTERN_CONTROLLER).isSet()) {
-            Map<String, String> patterns = context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll();
-            for(String name : patterns.keySet()) {
-                grokCompiler.register(name, patterns.get(name));
-            }
+            grokCompiler.register(context.getProperty(PATTERN_CONTROLLER).asControllerService(KeyValueLookupService.class).getAll());
         }
 
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue(), context.getProperty(NAMED_CAPTURES_ONLY).asBoolean());
