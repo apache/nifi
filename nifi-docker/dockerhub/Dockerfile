@@ -36,12 +36,13 @@ ADD sh/ ${NIFI_BASE_DIR}/scripts/
 # Setup NiFi user and create necessary directories
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
-    && mkdir -p ${NIFI_HOME}/conf/templates \
-    && mkdir -p $NIFI_BASE_DIR/data \
-    && mkdir -p $NIFI_BASE_DIR/flowfile_repository \
-    && mkdir -p $NIFI_BASE_DIR/content_repository \
-    && mkdir -p $NIFI_BASE_DIR/provenance_repository \
-    && mkdir -p $NIFI_LOG_DIR \
+    && mkdir -p ${NIFI_HOME}/conf \
+    && mkdir -p ${NIFI_HOME}/database_repository \
+    && mkdir -p ${NIFI_HOME}/flowfile_repository \
+    && mkdir -p ${NIFI_HOME}/content_repository \
+    && mkdir -p ${NIFI_HOME}/provenance_repository \
+    && mkdir -p ${NIFI_HOME}/state \
+    && mkdir -p ${NIFI_LOG_DIR} \
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
     && apt-get install -y jq xmlstarlet procps
@@ -53,6 +54,14 @@ RUN curl -fSL ${MIRROR}/${NIFI_BINARY_URL} -o ${NIFI_BASE_DIR}/nifi-${NIFI_VERSI
     && echo "$(curl https://archive.apache.org/dist/${NIFI_BINARY_URL}.sha256) *${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.tar.gz" | sha256sum -c - \
     && tar -xvzf ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.tar.gz -C ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.tar.gz
+
+VOLUME ${NIFI_LOG_DIR} \
+       ${NIFI_HOME}/conf \
+       ${NIFI_HOME}/database_repository \
+       ${NIFI_HOME}/flowfile_repository \
+       ${NIFI_HOME}/content_repository \
+       ${NIFI_HOME}/provenance_repository \
+       ${NIFI_HOME}/state
 
 # Clear nifi-env.sh in favour of configuring all environment variables in the Dockerfile
 RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
