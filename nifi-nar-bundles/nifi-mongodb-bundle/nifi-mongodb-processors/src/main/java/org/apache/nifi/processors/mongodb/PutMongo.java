@@ -195,9 +195,8 @@ public class PutMongo extends AbstractMongoProcessor {
         final String updateMode = context.getProperty(UPDATE_MODE).getValue();
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-
         try {
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
             // Read the contents of the FlowFile into a byte array
             final byte[] content = new byte[(int) flowFile.getSize()];
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
