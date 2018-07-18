@@ -155,8 +155,11 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             worker = buildTargetResource(context);
         }
 
-        rendezvousWithJms(context, session, worker);
-        workerPool.offer(worker);
+        try {
+            rendezvousWithJms(context, session, worker);
+        } finally {
+            workerPool.offer(worker);
+        }
     }
 
     @OnScheduled
