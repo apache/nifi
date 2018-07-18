@@ -21,13 +21,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import javax.net.ssl.SSLContext;
+import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.UriBuilderException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
@@ -172,6 +171,28 @@ public final class WebUtils {
 
             return determinedContextPath;
         } else {
+            return "";
+        }
+    }
+
+    /**
+     * Returns a "safe" context path value from the request headers to use in a proxy environment.
+     * This is used on the JSP to build the resource paths for the external resources (CSS, JS, etc.).
+     * If no headers are present specifying this value, it is an empty string.
+     *
+     * @param request the HTTP request
+     * @return the context path safe to be printed to the page
+     */
+    public static String sanitizeContextPath(ServletRequest request, String whitelistedContextPaths, String jspDisplayName) {
+        if (StringUtils.isBlank(jspDisplayName)) {
+            jspDisplayName = "JSP page";
+        }
+        String contextPath = normalizeContextPath(determineContextPath((HttpServletRequest) request));
+        try {
+            verifyContextPath(whitelistedContextPaths, contextPath);
+            return contextPath;
+        } catch (UriBuilderException e) {
+            logger.error("Error determining context path on " + jspDisplayName + ": " + e.getMessage());
             return "";
         }
     }

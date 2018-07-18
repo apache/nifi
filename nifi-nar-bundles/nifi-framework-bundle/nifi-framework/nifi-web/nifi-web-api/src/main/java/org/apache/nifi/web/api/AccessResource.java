@@ -340,8 +340,8 @@ public class AccessResource extends ApplicationResource {
             httpServletResponse.sendRedirect(postLogoutRedirectUri);
         } else {
             URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
-                .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
-                .build();
+                    .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
+                    .build();
             httpServletResponse.sendRedirect(logoutUri.toString());
         }
     }
@@ -765,7 +765,7 @@ public class AccessResource extends ApplicationResource {
      * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
      *
      * @param cookies the cookies
-     * @param name the name of the cookie
+     * @param name    the name of the cookie
      * @return the value of the corresponding cookie, or null if the cookie does not exist
      */
     private String getCookieValue(final Cookie[] cookies, final String name) {
@@ -786,7 +786,7 @@ public class AccessResource extends ApplicationResource {
 
     private String getNiFiUri() {
         final String nifiApiUrl = generateResourceUri();
-        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl,"/nifi-api");
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
         return baseUrl + "/nifi";
     }
 
