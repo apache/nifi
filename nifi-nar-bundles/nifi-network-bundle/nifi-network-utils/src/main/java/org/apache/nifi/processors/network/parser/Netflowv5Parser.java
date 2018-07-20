@@ -18,6 +18,10 @@ import java.util.OptionalInt;
 
 import org.apache.nifi.processors.network.parser.util.ConversionUtil;
 
+/**
+ * Networkv5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
+ * <a href="https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html">Netflowv5</a>
+ */
 public final class Netflowv5Parser {
     private static final int HEADER_SIZE = 24;
     private static final int RECORD_SIZE = 48;
@@ -32,21 +36,21 @@ public final class Netflowv5Parser {
 
     private final int portNumber;
 
-    private String headerData[];
-    private String recordData[][];
+    private Object headerData[];
+    private Object recordData[][];
 
     public Netflowv5Parser(final OptionalInt portNumber) {
         this.portNumber = (portNumber.isPresent()) ? portNumber.getAsInt() : 0;
     }
 
     public final int parse(final byte[] buffer) throws Throwable {
-        final int version = ConversionUtil.to_int(buffer, 0, 2);
+        final int version = ConversionUtil.toInt(buffer, 0, 2);
         assert version == 5 : "Version mismatch";
-        final int count = ConversionUtil.to_int(buffer, 2, 2);
+        final int count = ConversionUtil.toInt(buffer, 2, 2);
 
-        headerData = new String[headerField.length];
-        headerData[0] = String.valueOf(version);
-        headerData[1] = String.valueOf(count);
+        headerData = new Object[headerField.length];
+        headerData[0] = version;
+        headerData[1] = count;
         headerData[2] = parseField(buffer, 4, 4, LONG_TYPE);
         headerData[3] = parseField(buffer, 8, 4, LONG_TYPE);
         headerData[4] = parseField(buffer, 12, 4, LONG_TYPE);
@@ -56,7 +60,7 @@ public final class Netflowv5Parser {
         headerData[8] = parseField(buffer, 22, 2, INTEGER_TYPE);
 
         int offset = 0;
-        recordData = new String[count][recordField.length];
+        recordData = new Object[count][recordField.length];
         for (int counter = 0; counter < count; counter++) {
             offset = HEADER_SIZE + (counter * RECORD_SIZE);
             recordData[counter][0] = parseField(buffer, offset, 4, LONG_TYPE);
@@ -83,17 +87,17 @@ public final class Netflowv5Parser {
         return count;
     }
 
-    private final String parseField(final byte[] buffer, final int startOffset, final int length, final int type) {
-        String value = null;
+    private final Object parseField(final byte[] buffer, final int startOffset, final int length, final int type) {
+        Object value = null;
         switch (type) {
         case SHORT_TYPE:
-            value = String.valueOf(ConversionUtil.to_short(buffer, startOffset, length));
+            value = ConversionUtil.toShort(buffer, startOffset, length);
             break;
         case INTEGER_TYPE:
-            value = String.valueOf(ConversionUtil.to_int(buffer, startOffset, length));
+            value = ConversionUtil.toInt(buffer, startOffset, length);
             break;
         case LONG_TYPE:
-            value = String.valueOf(ConversionUtil.to_long(buffer, startOffset, length));
+            value = ConversionUtil.toLong(buffer, startOffset, length);
             break;
         default:
             break;
@@ -113,11 +117,11 @@ public final class Netflowv5Parser {
         return recordField;
     }
 
-    public String[] getHeaderData() {
+    public Object[] getHeaderData() {
         return headerData;
     }
 
-    public String[][] getRecordData() {
+    public Object[][] getRecordData() {
         return recordData;
     }
 }
