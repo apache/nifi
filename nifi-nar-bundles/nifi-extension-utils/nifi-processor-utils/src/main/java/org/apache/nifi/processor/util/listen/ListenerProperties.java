@@ -25,6 +25,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.InetAddress;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
@@ -34,28 +35,33 @@ import java.util.Set;
  */
 public class ListenerProperties {
 
-    private static final Set<String> interfaceSet = new HashSet<>();
+    private static final Set<String> ipSet = new HashSet<>();
 
     static {
         try {
             final Enumeration<NetworkInterface> interfaceEnum = NetworkInterface.getNetworkInterfaces();
             while (interfaceEnum.hasMoreElements()) {
                 final NetworkInterface ifc = interfaceEnum.nextElement();
-                interfaceSet.add(ifc.getName());
+
+                final Enumeration<InetAddress> ipEnum = ifc.getInetAddresses();
+                while (ipEnum.hasMoreElements()) {
+                    final InetAddress ip = ipEnum.nextElement();
+                    ipSet.add(ip.getHostAddress());
+                }
             }
         } catch (SocketException e) {
         }
     }
 
-    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder()
-            .name("Local Network Interface")
-            .description("The name of a local network interface to be used to restrict listening to a specific LAN.")
+    public static final PropertyDescriptor LOCAL_IP_ADDRESS = new PropertyDescriptor.Builder()
+            .name("Local IP Address")
+            .description("The IP address of a local network interface to be used to restrict listening to a specific LAN.")
             .addValidator(new Validator() {
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
-                            .subject("Local Network Interface").valid(true).input(input).build();
-                    if (interfaceSet.contains(input.toLowerCase())) {
+                            .subject("Local IP Address").valid(true).input(input).build();
+                    if (ipSet.contains(input.toLowerCase())) {
                         return result;
                     }
 
@@ -67,16 +73,16 @@ public class ListenerProperties {
                             realValue = ae.evaluate();
                         }
 
-                        if (interfaceSet.contains(realValue.toLowerCase())) {
+                        if (ipSet.contains(realValue.toLowerCase())) {
                             return result;
                         }
 
-                        message = realValue + " is not a valid network name. Valid names are " + interfaceSet.toString();
+                        message = realValue + " is not a valid IP address. Valid addresses are " + ipSet.toString();
 
                     } catch (IllegalArgumentException e) {
                         message = "Not a valid AttributeExpression: " + e.getMessage();
                     }
-                    result = new ValidationResult.Builder().subject("Local Network Interface")
+                    result = new ValidationResult.Builder().subject("Local IP Address")
                             .valid(false).input(input).explanation(message).build();
 
                     return result;

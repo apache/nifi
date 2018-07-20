@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+import static org.apache.nifi.processor.util.listen.ListenerProperties.LOCAL_IP_ADDRESS;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -74,7 +74,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(LOCAL_IP_ADDRESS);
         descriptors.add(PORT);
         descriptors.add(RECV_BUFFER_SIZE);
         descriptors.add(MAX_MESSAGE_QUEUE_SIZE);

@@ -76,7 +76,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+import static org.apache.nifi.processor.util.listen.ListenerProperties.LOCAL_IP_ADDRESS;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -213,7 +213,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROTOCOL);
         descriptors.add(PORT);
-        descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(LOCAL_IP_ADDRESS);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(RECV_BUFFER_SIZE);
@@ -292,7 +292,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final String nicIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
         final String charSet = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+import static org.apache.nifi.processor.util.listen.ListenerProperties.LOCAL_IP_ADDRESS;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -36,6 +36,7 @@ import org.apache.nifi.processor.util.listen.event.Event;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(NETWORK_INTF_NAME);
+        descriptors.add(LOCAL_IP_ADDRESS);
         descriptors.add(PORT);
         descriptors.add(RECV_BUFFER_SIZE);
         descriptors.add(MAX_MESSAGE_QUEUE_SIZE);
@@ -180,13 +181,15 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
 
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final String nicIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
         InetAddress nicIPAddress = null;
         if (!StringUtils.isEmpty(nicIPAddressStr)) {
-            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
-            nicIPAddress = netIF.getInetAddresses().nextElement();
+            try {
+                nicIPAddress = InetAddress.getByName(nicIPAddressStr);
+            } catch (UnknownHostException e) {
+            }
         }
 
         // create the dispatcher and call open() to bind to the given port
