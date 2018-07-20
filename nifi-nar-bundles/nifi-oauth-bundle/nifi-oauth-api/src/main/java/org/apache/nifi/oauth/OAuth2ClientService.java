@@ -1,7 +1,3 @@
-package org.apache.nifi.oauth;
-
-import org.apache.nifi.controller.ControllerService;
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,6 +17,9 @@ import org.apache.nifi.controller.ControllerService;
  * Created on 7/25/17.
  */
 
+package org.apache.nifi.oauth;
+
+import org.apache.nifi.controller.ControllerService;
 
 public interface OAuth2ClientService
     extends ControllerService {
