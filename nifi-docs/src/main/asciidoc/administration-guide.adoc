@@ -139,7 +139,7 @@ NiFi provides several different configuration options for security purposes. The
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi.  A secured instance with no Truststore will refuse all incoming connections.
 |`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
-|`nifi.security.needClientAuth` | Set to `true` to specify that connecting clients must authenticate themselves. This property is used by the NiFi cluster protocol to indicate that nodes in the cluster will be authenticated and must have certificates that are trusted by the Truststores.
+|`nifi.security.needClientAuth` | Set to `true` to specify that connecting clients must authenticate themselves. This property is used by the NiFi cluster protocol to indicate that nodes in the cluster will be authenticated and must have certificates that are trusted by the Truststores. If not set, the default value is `true`.
 |==================================================================================================================================================
 
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
