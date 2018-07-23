@@ -29,44 +29,42 @@
 		the netflowv5 record. More information:&nbsp;<a title="RFC-netflowv5"
 			href="https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html">RFC-netflowv5</a>
 	</p>
-	<h2>Netflowv5 Template Schema</h2>
+	<h2>Netflowv5 JSON Output Schema</h2>
 	<pre>{
-  "Template": {
-    "fields": {
-      "header": [
-        {"name": "version","type": "int", "desc": "NetFlow export format version number"},
-        {"name": "count","type": "int","desc": "Number of flows exported in this packet (1-30)"},
-        {"name": "sys_uptime","type": "long","desc": "Current time in milliseconds since the export device booted"},
-        {"name": "unix_secs","type": "long","desc": "Current count of seconds since 0000 UTC 1970"},
-        {"name": "unix_nsecs","type": "long","desc": "Residual nanoseconds since 0000 UTC 1970"},
-        {"name": "flow_sequence","type": "long","desc": "Sequence counter of total flows seen"},
-        {"name": "engine_type","type": "short","desc": "Type of flow-switching engine"},
-        {"name": "engine_id","type": "short","desc": "Slot number of the flow-switching engine"},
-        {"name": "sampling_interval","type": "int","desc": "First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval"}
-      ],
-      "record": [
-        {"name": "srcaddr","type": "long","desc": "Source IP address"},
-        {"name": "dstaddr","type": "long","desc": "Destination IP address"},
-        {"name": "nexthop","type": "long","desc": "IP address of next hop router"},
-        {"name": "input","type": "int","desc": "SNMP index of input interface"},
-        {"name": "output","type": "int","desc": "SNMP index of output interface"},
-        {"name": "dPkts","type": "long","desc": "Packets in the flow"},
-        {"name": "dOctets","type": "long","desc": "Total number of Layer 3 bytes in the packets of the flow"},
-        {"name": "first","type": "long","desc": "SysUptime at start of flow"},
-        {"name": "last","type": "long","desc": "SysUptime at the time the last packet of the flow was received"},
-        {"name": "srcport","type": "int","desc": "TCP/UDP source port number or equivalent"},
-        {"name": "dstport","type": "int","desc": "TCP/UDP destination port number or equivalent"},
-        {"name": "pad1","type": "short","desc": "Unused (zero) bytes"},
-        {"name": "tcp_flags","type": "short","desc": "Cumulative OR of TCP flags"},
-        {"name": "prot","type": "short","desc": "IP protocol type (for example, TCP = 6; UDP = 17)"},
-        {"name": "tos","type": "short","desc": "IP type of service (ToS)"},
-        {"name": "src_as","type": "int","desc": "Autonomous system number of the source, either origin or peer"},
-        {"name": "dst_as","type": "int","desc": "Autonomous system number of the destination, either origin or peer"},
-        {"name": "src_mask","type": "short","desc": "Source address prefix mask bits"},
-        {"name": "dst_mask","type": "short","desc": "Destination address prefix mask bits"},
-        {"name": "pad2","type": "int","desc": "Unused (zero) bytes"}
-      ]
-    }
+  "port": int,
+  "format": string,
+  "header": {
+    "version": int,
+    "count": int,
+    "sys_uptime": long,
+    "unix_secs": long,
+    "unix_nsecs": long,
+    "flow_sequence": long,
+    "engine_type": short,
+    "engine_id": short,
+    "sampling_interval": int
+  },
+  "record": {
+    "srcaddr": long,
+    "dstaddr": long,
+    "nexthop": long,
+    "input": int,
+    "output": int,
+    "dPkts": long,
+    "dOctets": long,
+    "first": long,
+    "last": long,
+    "srcport": int,
+    "dstport": int,
+    "pad1": short,
+    "tcp_flags": short,
+    "prot": short,
+    "tos": short,
+    "src_as": int,
+    "dst_as": int,
+    "src_mask": short,
+    "dst_mask": short,
+    "pad2": int
   }
 }
 </pre>
