@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public class RecordField {
-    private static final boolean DEFAULT_NULLABLE = true;
+    public static final boolean DEFAULT_NULLABLE = true;
 
     private final String fieldName;
     private final DataType dataType;
@@ -68,7 +68,15 @@ public class RecordField {
 
         this.fieldName = Objects.requireNonNull(fieldName);
         this.dataType = Objects.requireNonNull(dataType);
-        this.aliases = Collections.unmodifiableSet(Objects.requireNonNull(aliases));
+
+        // If aliases is the empty set, don't bother with the expense of wrapping in an unmodifiableSet.
+        Objects.requireNonNull(aliases);
+        if ((Set<?>) aliases == Collections.EMPTY_SET) {
+            this.aliases = aliases;
+        } else {
+            this.aliases = Collections.unmodifiableSet(aliases);
+        }
+
         this.defaultValue = defaultValue;
         this.nullable = nullable;
     }

@@ -18,8 +18,6 @@ package org.apache.nifi.controller.reporting;
 
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,7 +26,8 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.AbstractConfiguredComponent;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.LoggableComponent;
@@ -36,21 +35,22 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
 
-public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
+public abstract class AbstractReportingTaskNode extends AbstractComponentNode implements ReportingTaskNode {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReportingTaskNode.class);
 
@@ -67,20 +67,20 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
                                      final ValidationContextFactory validationContextFactory, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent) {
+                                     final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
                 reportingTask.getComponent().getClass().getSimpleName(), reportingTask.getComponent().getClass().getCanonicalName(),
-                variableRegistry, reloadComponent, false);
+                variableRegistry, reloadComponent, validationTrigger, false);
     }
 
 
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
+                                     final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, isExtensionMissing);
+        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
         this.reportingTaskRef = new AtomicReference<>(new ReportingTaskDetails(reportingTask));
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
@@ -114,7 +114,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
 
     @Override
-    public ComponentLog getLogger() {
+    public TerminationAwareLogger getLogger() {
         return reportingTaskRef.get().getComponentLog();
     }
 
@@ -161,13 +161,19 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         if (isRunning()) {
             throw new IllegalStateException("Cannot reload Reporting Task while Reporting Task is running");
         }
-
+        String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 
     @Override
     public boolean isRunning() {
         return processScheduler.isScheduled(this) || processScheduler.getActiveThreadCount(this) > 0;
+    }
+
+    @Override
+    public boolean isValidationNecessary() {
+        return !processScheduler.isScheduled(this);
     }
 
     @Override
@@ -281,16 +287,9 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
             throw new IllegalStateException(this.getIdentifier() + " cannot be started because it has " + activeThreadCount + " active threads already");
         }
 
-        final Set<String> ids = new HashSet<>();
-        for (final ControllerServiceNode node : ignoredReferences) {
-            ids.add(node.getIdentifier());
-        }
-
-        final Collection<ValidationResult> validationResults = getValidationErrors(ids);
-        for (final ValidationResult result : validationResults) {
-            if (!result.isValid()) {
-                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not valid: " + result);
-            }
+        final Collection<ValidationResult> validationResults = getValidationErrors(ignoredReferences);
+        if (!validationResults.isEmpty()) {
+            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not currently valid");
         }
     }
 
@@ -303,14 +302,4 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public String getProcessGroupIdentifier() {
         return null;
     }
-
-    @Override
-    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
-        Collection<ValidationResult> results = null;
-        if (getScheduledState() == ScheduledState.STOPPED) {
-            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
-        }
-        return results != null ? results : Collections.emptySet();
-    }
-
 }

@@ -16,6 +16,27 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.util.JmsFactory;
@@ -29,28 +50,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
-
+@SuppressWarnings("deprecation")
 public class TestPutJMS {
 
     private final String TEST_PROVIDER = JmsProperties.ACTIVEMQ_PROVIDER;
@@ -88,7 +88,7 @@ public class TestPutJMS {
         runnerPut.setProperty(JmsProperties.DESTINATION_TYPE, TEST_DEST_TYPE);
         runnerPut.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
 
-        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = spy(new LinkedBlockingQueue<>());
         injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
 
         final WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runnerPut.getProcessContext(), true);
@@ -471,7 +471,7 @@ public class TestPutJMS {
 
         final ProcessContext context = runnerPut.getProcessContext();
 
-        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = spy(new LinkedBlockingQueue<>());
         injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
 
         final WrappedMessageProducer wrappedMessageProducer = spy(JmsFactory.createMessageProducer(context, true));
@@ -519,7 +519,7 @@ public class TestPutJMS {
         runnerPut.setProperty(JmsProperties.DESTINATION_NAME, TEST_DEST_NAME + testQueueSuffix());
 
         final ProcessContext context = runnerPut.getProcessContext();
-        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = (Queue) spy(new LinkedBlockingQueue<>());
+        final Queue<WrappedMessageProducer> wrappedMessageProducerQueue = spy(new LinkedBlockingQueue<>());
         injectFieldValue(PutJMS.class, putJMS, "producerQueue", wrappedMessageProducerQueue);
 
         final WrappedMessageProducer wrappedMessageProducer = spy(JmsFactory.createMessageProducer(context, true));

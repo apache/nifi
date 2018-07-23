@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -72,11 +73,14 @@ public abstract class NiFiProperties {
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";
     public static final String SITE_TO_SITE_HTTP_ENABLED = "nifi.remote.input.http.enabled";
     public static final String SITE_TO_SITE_HTTP_TRANSACTION_TTL = "nifi.remote.input.http.transaction.ttl";
+    public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
+    public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
+    public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -127,11 +131,6 @@ public abstract class NiFiProperties {
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
     public static final String COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "nifi.components.status.snapshot.frequency";
 
-    // encryptor properties
-    public static final String NF_SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
-    public static final String NF_SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
-    public static final String NF_SENSITIVE_PROPS_PROVIDER = "nifi.sensitive.props.provider";
-
     // security properties
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";
     public static final String SECURITY_KEYSTORE_TYPE = "nifi.security.keystoreType";
@@ -147,6 +146,10 @@ public abstract class NiFiProperties {
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
     public static final String SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX = "nifi.security.identity.mapping.pattern.";
     public static final String SECURITY_IDENTITY_MAPPING_VALUE_PREFIX = "nifi.security.identity.mapping.value.";
+    public static final String SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX = "nifi.security.identity.mapping.transform.";
+    public static final String SECURITY_GROUP_MAPPING_PATTERN_PREFIX = "nifi.security.group.mapping.pattern.";
+    public static final String SECURITY_GROUP_MAPPING_VALUE_PREFIX = "nifi.security.group.mapping.value.";
+    public static final String SECURITY_GROUP_MAPPING_TRANSFORM_PREFIX = "nifi.security.group.mapping.transform.";
 
     // oidc
     public static final String SECURITY_USER_OIDC_DISCOVERY_URL = "nifi.security.user.oidc.discovery.url";
@@ -155,6 +158,12 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_CLIENT_ID = "nifi.security.user.oidc.client.id";
     public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
+
+    // apache knox
+    public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
+    public static final String SECURITY_USER_KNOX_PUBLIC_KEY = "nifi.security.user.knox.publicKey";
+    public static final String SECURITY_USER_KNOX_COOKIE_NAME = "nifi.security.user.knox.cookieName";
+    public static final String SECURITY_USER_KNOX_AUDIENCES = "nifi.security.user.knox.audiences";
 
     // web properties
     public static final String WEB_WAR_DIR = "nifi.web.war.directory";
@@ -168,6 +177,9 @@ public abstract class NiFiProperties {
     public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.web.https.network.interface.";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
+    public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
+    public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
+    public static final String WEB_PROXY_HOST = "nifi.web.proxy.host";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -224,6 +236,7 @@ public abstract class NiFiProperties {
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
     public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
     public static final int DEFAULT_WEB_THREADS = 200;
+    public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
@@ -238,6 +251,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_SWAP_OUT_PERIOD = "5 sec";
     public static final int DEFAULT_SWAP_IN_THREADS = 4;
     public static final int DEFAULT_SWAP_OUT_THREADS = 4;
+    public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
+    public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
@@ -246,8 +261,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
     public static final String DEFAULT_ZOOKEEPER_AUTH_TYPE = "default";
-    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL  = "true";
-    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL  = "true";
+    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "true";
+    public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "true";
     public static final String DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL = "30 secs";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_ENABLED = "true";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "30 days";
@@ -275,6 +290,7 @@ public abstract class NiFiProperties {
 
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
+
 
     /**
      * Retrieves the property value for the given property key.
@@ -574,6 +590,29 @@ public abstract class NiFiProperties {
         } catch (NumberFormatException nfe) {
         }
         return sslPort;
+    }
+
+    public boolean isHTTPSConfigured() {
+        return getSslPort() != null;
+    }
+
+    /**
+     * Determines the HTTP/HTTPS port NiFi is configured to bind to. Prefers the HTTPS port. Throws an exception if neither is configured.
+     *
+     * @return the configured port number
+     */
+    public Integer getConfiguredHttpOrHttpsPort() throws RuntimeException {
+        if (getSslPort() != null) {
+            return getSslPort();
+        } else if (getPort() != null) {
+            return getPort();
+        } else {
+            throw new RuntimeException("The HTTP or HTTPS port must be configured");
+        }
+    }
+
+    public String getWebMaxHeaderSize() {
+        return getProperty(WEB_MAX_HEADER_SIZE, DEFAULT_WEB_MAX_HEADER_SIZE);
     }
 
     public int getWebThreads() {
@@ -886,18 +925,70 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns whether Knox SSO is enabled.
+     *
+     * @return whether Knox SSO is enabled
+     */
+    public boolean isKnoxSsoEnabled() {
+        return !StringUtils.isBlank(getKnoxUrl());
+    }
+
+    /**
+     * Returns the Knox URL.
+     *
+     * @return Knox URL
+     */
+    public String getKnoxUrl() {
+        return getProperty(SECURITY_USER_KNOX_URL);
+    }
+
+    /**
+     * Gets the configured Knox Audiences.
+     *
+     * @return Knox audiences
+     */
+    public Set<String> getKnoxAudiences() {
+        final String rawAudiences = getProperty(SECURITY_USER_KNOX_AUDIENCES);
+        if (StringUtils.isBlank(rawAudiences)) {
+            return null;
+        } else {
+            final String[] audienceTokens = rawAudiences.split(",");
+            return Stream.of(audienceTokens).map(String::trim).filter(aud -> !StringUtils.isEmpty(aud)).collect(Collectors.toSet());
+        }
+    }
+
+    /**
+     * Returns the path to the Knox public key.
+     *
+     * @return path to the Knox public key
+     */
+    public Path getKnoxPublicKeyPath() {
+        return Paths.get(getProperty(SECURITY_USER_KNOX_PUBLIC_KEY));
+    }
+
+    /**
+     * Returns the name of the Knox cookie.
+     *
+     * @return name of the Knox cookie
+     */
+    public String getKnoxCookieName() {
+        return getProperty(SECURITY_USER_KNOX_COOKIE_NAME);
+    }
+
+    /**
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      * <p>
      * - login identity provider is not populated
      * - Kerberos service support is not enabled
      * - openid connect is not enabled
+     * - knox sso is not enabled
+     * </p>
      *
-     * @return true if client certificates are required for access to the REST
-     * API
+     * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {
@@ -1018,7 +1109,7 @@ public abstract class NiFiProperties {
      * Returns the number of claims to keep open for writing. Ideally, this will be at
      * least as large as the number of threads that will be updating the repository simultaneously but we don't want
      * to get too large because it will hold open up to this many FileOutputStreams.
-     *
+     * <p>
      * Default is {@link #DEFAULT_MAX_FLOWFILES_PER_CLAIM}
      *
      * @return the maximum number of flow files per claim
@@ -1034,7 +1125,7 @@ public abstract class NiFiProperties {
     /**
      * Returns the maximum size, in bytes, that claims should grow before writing a new file. This means that we won't continually write to one
      * file that keeps growing but gives us a chance to bunch together many small files.
-     *
+     * <p>
      * Default is {@link #DEFAULT_MAX_APPENDABLE_CLAIM_SIZE}
      *
      * @return the maximum appendable claim size
@@ -1219,11 +1310,98 @@ public abstract class NiFiProperties {
         return keys;
     }
 
+    /**
+     * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
+     * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
+     * <p>
+     * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_HOST)} will not normalize the hosts.
+     *
+     * @return the hostname(s)
+     */
+    public String getWhitelistedHosts() {
+        return StringUtils.join(getWhitelistedHostsAsList(), ",");
+    }
+
+    /**
+     * Returns the whitelisted proxy hostnames (and IP addresses) as a List. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
+     *
+     * @return the hostname(s)
+     */
+    public List<String> getWhitelistedHostsAsList() {
+        String rawProperty = getProperty(WEB_PROXY_HOST, "");
+        List<String> hosts = Arrays.asList(rawProperty.split(","));
+        return hosts.stream()
+                .map(this::normalizeHost).filter(host -> !StringUtils.isBlank(host)).collect(Collectors.toList());
+    }
+
+    String normalizeHost(String host) {
+        if (host == null || host.equalsIgnoreCase("")) {
+            return "";
+        } else {
+            return host.trim();
+        }
+    }
+
+    /**
+     * Returns the whitelisted proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
+     * <p>
+     * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_CONTEXT_PATH)} will not normalize the paths.
+     *
+     * @return the path(s)
+     */
+    public String getWhitelistedContextPaths() {
+        return StringUtils.join(getWhitelistedContextPathsAsList(), ",");
+    }
+
+    /**
+     * Returns the whitelisted proxy context paths as a list of paths. The paths have been normalized to the form {@code /some/context/path}.
+     *
+     * @return the path(s)
+     */
+    public List<String> getWhitelistedContextPathsAsList() {
+        String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
+        List<String> contextPaths = Arrays.asList(rawProperty.split(","));
+        return contextPaths.stream()
+                .map(this::normalizeContextPath).collect(Collectors.toList());
+    }
+
+    private String normalizeContextPath(String cp) {
+        if (cp == null || cp.equalsIgnoreCase("")) {
+            return "";
+        } else {
+            String trimmedCP = cp.trim();
+            // Ensure it starts with a leading slash and does not end in a trailing slash
+            // There's a potential for the path to be something like bad/path/// but this is semi-trusted data from an admin-accessible file and there are way worse possibilities here
+            trimmedCP = trimmedCP.startsWith("/") ? trimmedCP : "/" + trimmedCP;
+            trimmedCP = trimmedCP.endsWith("/") ? trimmedCP.substring(0, trimmedCP.length() - 1) : trimmedCP;
+            return trimmedCP;
+        }
+    }
+
     private List<String> getProvenanceRepositoryEncryptionKeyProperties() {
         // Filter all the property keys that define a key
         return getPropertyKeys().stream().filter(k ->
                 k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
         ).collect(Collectors.toList());
+    }
+
+    public Long getDefaultBackPressureObjectThreshold() {
+        long backPressureCount;
+        try {
+            String backPressureCountStr = getProperty(BACKPRESSURE_COUNT);
+            if (backPressureCountStr == null || backPressureCountStr.trim().isEmpty()) {
+                backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
+            } else {
+                backPressureCount = Long.parseLong(backPressureCountStr);
+            }
+        } catch (NumberFormatException nfe) {
+            backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
+        }
+        return backPressureCount;
+    }
+
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
     }
 
     /**

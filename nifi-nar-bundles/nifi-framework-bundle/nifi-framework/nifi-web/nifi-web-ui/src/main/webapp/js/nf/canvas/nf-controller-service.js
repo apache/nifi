@@ -24,15 +24,15 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.CanvasUtils',
-                'nf.ReportingTask',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -41,12 +41,12 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.CanvasUtils'),
-                require('nf.ReportingTask'),
                 require('nf.Processor')));
     } else {
         nf.ControllerService = factory(root.$,
@@ -54,18 +54,18 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.CanvasUtils,
-            root.nf.ReportingTask,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices;
+    var nfControllerServices, nfReportingTask;
 
     var config = {
         edit: 'edit',
@@ -144,6 +144,7 @@
 
         // create the controller service entity
         var controllerServiceEntity = {};
+        controllerServiceEntity['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
         controllerServiceEntity['component'] = controllerServiceDto;
 
         // return the marshaled details
@@ -415,7 +416,7 @@
             })
             .map(bulletins, d3.map);
 
-        bulletinsBySource.forEach(function (sourceId, sourceBulletins) {
+        bulletinsBySource.each(function (sourceBulletins, sourceId) {
             $('div.' + sourceId + '-bulletins').each(function () {
                 updateBulletins(sourceBulletins, $(this));
             });
@@ -586,7 +587,7 @@
         });
 
         // query for the bulletins
-        queryBulletins(referencingComponentIds).done(function (response) {
+        nfCanvasUtils.queryBulletins(referencingComponentIds).done(function (response) {
             var bulletins = response.bulletinBoard.bulletins;
             updateReferencingComponentBulletins(bulletins);
         });
@@ -623,25 +624,6 @@
     };
 
     /**
-     * Queries for bulletins for the specified components.
-     *
-     * @param {array} componentIds
-     * @returns {deferred}
-     */
-    var queryBulletins = function (componentIds) {
-        var ids = componentIds.join('|');
-
-        return $.ajax({
-            type: 'GET',
-            url: '../nifi-api/flow/bulletin-board',
-            data: {
-                sourceId: ids
-            },
-            dataType: 'json'
-        }).fail(nfErrorHandler.handleAjaxError);
-    };
-
-    /**
      * Sets whether the specified controller service is enabled.
      *
      * @param {jQuery} serviceTable
@@ -653,6 +635,7 @@
         // build the request entity
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': controllerServiceEntity.id,
                 'state': enabled ? 'ENABLED' : 'DISABLED'
@@ -688,7 +671,7 @@
                         return service.state === 'DISABLED';
                     }
                 }, function (service) {
-                    return queryBulletins([service.id]);
+                    return nfCanvasUtils.queryBulletins([service.id]);
                 }, pollCondition);
 
                 // once the service has updated, resolve and render the updated service
@@ -775,7 +758,8 @@
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
-            'referencingComponentRevisions': referencingRevisions
+            'referencingComponentRevisions': referencingRevisions,
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
         };
 
         // issue the request to update the referencing components
@@ -808,7 +792,7 @@
 
                     // start polling for each controller service
                     var polling = [];
-                    services.forEach(function (controllerServiceId) {
+                    services.each(function (controllerServiceId) {
                         getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                             polling.push(stopReferencingSchedulableComponents(controllerServiceEntity, pollCondition));
                         });
@@ -883,8 +867,7 @@
                     dataType: 'json'
                 });
 
-                $.when(bulletins, service).done(function (bulletinResult, serviceResult) {
-                    var bulletinResponse = bulletinResult[0];
+                $.when(bulletins, service).done(function (bulletinResponse, serviceResult) {
                     var serviceResponse = serviceResult[0];
                     conditionMet(serviceResponse.component, bulletinResponse.bulletinBoard.bulletins);
                 }).fail(function (xhr, status, error) {
@@ -961,7 +944,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1006,7 +989,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1051,7 +1034,7 @@
                 }
             });
 
-            return queryBulletins(referencingSchedulableComponents);
+            return nfCanvasUtils.queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
 
@@ -1071,7 +1054,8 @@
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
-            'referencingComponentRevisions': referencingRevisions
+            'referencingComponentRevisions': referencingRevisions,
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
         };
 
         // issue the request to update the referencing components
@@ -1100,7 +1084,7 @@
 
                 // start polling for each controller service
                 var polling = [];
-                services.forEach(function (controllerServiceId) {
+                services.each(function (controllerServiceId) {
                     getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                         if (enabled) {
                             polling.push(enableReferencingServices(controllerServiceEntity, pollCondition));
@@ -1164,7 +1148,7 @@
         $('#disable-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
 
         // load the bulletins
-        queryBulletins([controllerService.id]).done(function (response) {
+        nfCanvasUtils.queryBulletins([controllerService.id]).done(function (response) {
             updateBulletins(response.bulletinBoard.bulletins, $('#disable-controller-service-bulletins'));
         });
 
@@ -1216,7 +1200,7 @@
         $('#enable-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
 
         // load the bulletins
-        queryBulletins([controllerService.id]).done(function (response) {
+        nfCanvasUtils.queryBulletins([controllerService.id]).done(function (response) {
             updateBulletins(response.bulletinBoard.bulletins, $('#enable-controller-service-bulletins'));
         });
 
@@ -1654,8 +1638,9 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef) {
             nfControllerServices = nfControllerServicesRef;
+            nfReportingTask = nfReportingTaskRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
@@ -2203,8 +2188,9 @@
             $.ajax({
                 type: 'DELETE',
                 url: controllerServiceEntity.uri + '?' + $.param({
-                    version: revision.version,
-                    clientId: revision.clientId
+                    'version': revision.version,
+                    'clientId': revision.clientId,
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                 }),
                 dataType: 'json'
             }).done(function (response) {

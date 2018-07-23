@@ -17,9 +17,9 @@
 
 package org.apache.nifi.hbase;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
+import org.apache.nifi.hbase.util.Bytes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -64,6 +64,8 @@ public class TestPutHBaseRecord {
         }
         runner.enableControllerService(parser);
         runner.setProperty(PutHBaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutHBaseRecord.DEFAULT_VISIBILITY_STRING, "");
+        runner.setProperty(PutHBaseRecord.VISIBILITY_RECORD_PATH, "");
 
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.STRING);

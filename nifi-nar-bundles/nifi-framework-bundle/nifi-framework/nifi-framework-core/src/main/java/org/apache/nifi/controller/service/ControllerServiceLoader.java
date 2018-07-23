@@ -146,17 +146,26 @@ public class ControllerServiceLoader {
                 final ControllerServiceState state = ControllerServiceState.valueOf(dto.getState());
                 if (state == ControllerServiceState.ENABLED) {
                     nodesToEnable.add(node);
+                    logger.debug("Will enable Controller Service {}", node);
+                } else {
+                    logger.debug("Will not enable Controller Service {} because its state is set to {}", node, state);
                 }
             }
 
             enableControllerServices(nodesToEnable, controller, autoResumeState);
+        } else {
+            logger.debug("Will not enable the following Controller Services because 'auto-resume state' flag is false: {}", nodeMap.keySet());
         }
     }
 
     public static void enableControllerServices(final Collection<ControllerServiceNode> nodesToEnable, final FlowController controller, final boolean autoResumeState) {
         // Start services
         if (autoResumeState) {
+            logger.debug("Enabling Controller Services {}", nodesToEnable);
+            nodesToEnable.stream().forEach(ControllerServiceNode::performValidation); // validate services before attempting to enable them
             controller.enableControllerServices(nodesToEnable);
+        } else {
+            logger.debug("Will not enable the following Controller Services because 'auto-resume state' flag is false: {}", nodesToEnable);
         }
     }
 
@@ -198,13 +207,19 @@ public class ControllerServiceLoader {
         final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
+        node.setVersionedComponentId(dto.getVersionedComponentId());
         return node;
     }
 
     private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
-        node.setAnnotationData(dto.getAnnotationData());
-        node.setProperties(dto.getProperties());
+        node.pauseValidationTrigger();
+        try {
+            node.setAnnotationData(dto.getAnnotationData());
+            node.setProperties(dto.getProperties());
+        } finally {
+            node.resumeValidationTrigger();
+        }
     }
 
 }

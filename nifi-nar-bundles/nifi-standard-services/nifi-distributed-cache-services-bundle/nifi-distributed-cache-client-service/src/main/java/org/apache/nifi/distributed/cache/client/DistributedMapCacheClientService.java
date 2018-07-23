@@ -21,7 +21,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -205,6 +209,36 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(session -> {
+            Map<K, V> response = new HashMap<>(keys.size());
+            try {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("subMap");
+                serialize(keys, keySerializer, dos);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+
+                for (K key : keys) {
+                    final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                    response.put(key, valueDeserializer.deserialize(responseBuffer));
+                }
+            } catch (UnsupportedOperationException uoe) {
+                // If the server doesn't support subMap, just emulate it with multiple calls to get()
+                for (K key : keys) {
+                    response.put(key, get(key, keySerializer, valueDeserializer));
+                }
+            }
+
+            return response;
+        });
+    }
+
+    @Override
     public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
         return withCommsSession(new CommsAction<Boolean>() {
             @Override
@@ -223,6 +257,27 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     @Override
+    public <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(new CommsAction<V>() {
+            @Override
+            public V execute(final CommsSession session) throws IOException {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("removeAndGet");
+
+                serialize(key, keySerializer, dos);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                return valueDeserializer.deserialize(responseBuffer);
+            }
+        });
+    }
+
+    @Override
     public long removeByPattern(String regex) throws IOException {
         return withCommsSession(session -> {
             final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
@@ -233,6 +288,34 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             // read response
             final DataInputStream dis = new DataInputStream(session.getInputStream());
             return dis.readLong();
+        });
+    }
+
+    @Override
+    public <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(new CommsAction<Map<K, V>>() {
+            @Override
+            public Map<K, V> execute(CommsSession session) throws IOException {
+                validateProtocolVersion(session, 3);
+
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("removeByPatternAndGet");
+                dos.writeUTF(regex);
+                dos.flush();
+
+                // read response
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                final int mapSize = dis.readInt();
+                HashMap<K, V> resultMap = new HashMap<>(mapSize);
+                for (int i=0; i<mapSize; i++) {
+                    final byte[] keyBuffer = readLengthDelimitedResponse(dis);
+                    K key = keyDeserializer.deserialize(keyBuffer);
+                    final byte[] valueBuffer = readLengthDelimitedResponse(dis);
+                    V value = valueDeserializer.deserialize(valueBuffer);
+                    resultMap.put(key, value);
+                }
+                return resultMap;
+            }
         });
     }
 
@@ -288,6 +371,27 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         });
     }
 
+    @Override
+    public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+        return withCommsSession(session -> {
+            validateProtocolVersion(session, 3);
+
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("keySet");
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            final int setSize = dis.readInt();
+            HashSet<K> resultSet = new HashSet<>(setSize);
+            for (int i=0; i<setSize; i++) {
+                final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+                resultSet.add(keyDeserializer.deserialize(responseBuffer));
+            }
+            return resultSet;
+        });
+    }
+
     private byte[] readLengthDelimitedResponse(final DataInputStream dis) throws IOException {
         final int responseLength = dis.readInt();
         final byte[] responseBuffer = new byte[responseLength];
@@ -319,7 +423,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         }
 
         session = createCommsSession(configContext);
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(2, 1);
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(3, 2, 1);
         try {
             ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
             session.setProtocolVersion(versionNegotiator.getVersion());
@@ -366,6 +470,17 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         serializer.serialize(value, baos);
         dos.writeInt(baos.size());
         baos.writeTo(dos);
+    }
+
+    private <T> void serialize(final Set<T> values, final Serializer<T> serializer, final DataOutputStream dos) throws IOException {
+        // Write the number of elements to follow, then each element and its size
+        dos.writeInt(values.size());
+        for(T value : values) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            serializer.serialize(value, baos);
+            dos.writeInt(baos.size());
+            baos.writeTo(dos);
+        }
     }
 
     private <T> T withCommsSession(final CommsAction<T> action) throws IOException {

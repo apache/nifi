@@ -17,15 +17,12 @@
 
 package org.apache.nifi.cluster.spring;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
+import org.apache.nifi.cluster.coordination.http.replication.okhttp.OkHttpReplicationClient;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.util.WebUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -47,12 +44,11 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
             final int corePoolSize = nifiProperties.getClusterNodeProtocolCorePoolSize();
             final int maxPoolSize = nifiProperties.getClusterNodeProtocolMaxPoolSize();
             final int maxConcurrentRequests = nifiProperties.getClusterNodeMaxConcurrentRequests();
-            final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(nifiProperties));
-            final String connectionTimeout = nifiProperties.getClusterNodeConnectionTimeout();
-            final String readTimeout = nifiProperties.getClusterNodeReadTimeout();
 
-            replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, maxConcurrentRequests, jerseyClient, clusterCoordinator,
-                connectionTimeout, readTimeout, requestCompletionCallback, eventReporter, nifiProperties);
+            final OkHttpReplicationClient replicationClient = new OkHttpReplicationClient(nifiProperties);
+
+            replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, maxConcurrentRequests, replicationClient, clusterCoordinator,
+                requestCompletionCallback, eventReporter, nifiProperties);
         }
 
         return replicator;

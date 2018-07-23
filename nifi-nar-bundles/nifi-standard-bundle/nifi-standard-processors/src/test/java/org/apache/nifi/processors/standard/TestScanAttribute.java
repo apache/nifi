@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestScanAttribute {
@@ -29,7 +28,8 @@ public class TestScanAttribute {
     @Test
     public void testSingleMatch() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
+        runner.setVariable("dictionary", "src/test/resources/ScanAttribute/dictionary1");
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "${dictionary}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "world");

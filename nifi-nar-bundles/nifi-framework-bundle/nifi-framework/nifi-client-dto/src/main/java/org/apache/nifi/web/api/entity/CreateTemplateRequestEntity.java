@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
  */
-@XmlRootElement(name = "copySnippetRequestEntity")
+@XmlRootElement(name = "createTemplateRequestEntity")
 public class CreateTemplateRequestEntity extends Entity {
 
     private String name;
     private String description;
     private String snippetId;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty(
         value = "The name of the template."
@@ -61,5 +62,16 @@ public class CreateTemplateRequestEntity extends Entity {
 
     public void setSnippetId(String snippetId) {
         this.snippetId = snippetId;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

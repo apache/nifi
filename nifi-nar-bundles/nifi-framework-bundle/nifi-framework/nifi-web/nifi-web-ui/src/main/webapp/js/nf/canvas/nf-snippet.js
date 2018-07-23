@@ -21,24 +21,27 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
+                'nf.Storage',
                 'nf.CanvasUtils',
                 'nf.Client'],
-            function ($, d3, nfCanvasUtils, nfClient) {
-                return (nf.Snippet = factory($, d3, nfCanvasUtils, nfClient));
+            function ($, d3, nfStorage, nfCanvasUtils, nfClient) {
+                return (nf.Snippet = factory($, d3, nfStorage, nfCanvasUtils, nfClient));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Snippet =
             factory(require('jquery'),
                 require('d3'),
+                require('nf.Storage'),
                 require('nf.CanvasUtils'),
                 require('nf.Client')));
     } else {
         nf.Snippet = factory(root.$,
             root.d3,
+            root.nf.Storage,
             root.nf.CanvasUtils,
             root.nf.Client);
     }
-}(this, function ($, d3, nfCanvasUtils, nfClient) {
+}(this, function ($, d3, nfStorage, nfCanvasUtils, nfClient) {
     'use strict';
 
     var config = {
@@ -102,6 +105,7 @@
          */
         create: function (snippet) {
             var snippetEntity = {
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'snippet': snippet
             };
 
@@ -125,7 +129,8 @@
             var copySnippetRequestEntity = {
                 'snippetId': snippetId,
                 'originX': origin.x,
-                'originY': origin.y
+                'originY': origin.y,
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
             };
 
             return $.ajax({
@@ -145,7 +150,9 @@
         remove: function (snippetId) {
             return $.ajax({
                 type: 'DELETE',
-                url: config.urls.snippets + '/' + encodeURIComponent(snippetId)
+                url: config.urls.snippets + '/' + encodeURIComponent(snippetId) + '?' + $.param({
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                })
             });
         },
 
@@ -157,6 +164,7 @@
          */
         move: function (snippetId, newGroupId) {
             var moveSnippetEntity = {
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'snippet': {
                     'id': snippetId,
                     'parentGroupId': newGroupId

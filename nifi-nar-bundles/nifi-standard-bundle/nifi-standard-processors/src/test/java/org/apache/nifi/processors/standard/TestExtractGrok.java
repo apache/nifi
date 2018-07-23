@@ -40,6 +40,13 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokWithMissingPattern() throws Exception {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{FOOLOG}");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testExtractGrokWithMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
@@ -59,8 +66,32 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokKeepEmptyCaptures() throws Exception {
+        String expression = "%{NUMBER}|%{NUMBER}";
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
+        testRunner.enqueue("-42");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+        matched.assertAttributeEquals("grok.NUMBER","[-42, null]");
+    }
+
+    @Test
+    public void testExtractGrokDoNotKeepEmptyCaptures() throws Exception {
+        String expression = "%{NUMBER}|%{NUMBER}";
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
+        testRunner.setProperty(ExtractGrok.KEEP_EMPTY_CAPTURES,"false");
+        testRunner.enqueue("-42");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+        matched.assertAttributeEquals("grok.NUMBER","-42");
+    }
+
+
+    @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
-        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{ADDRESS}");
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{URI}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_TEXT_INPUT);
         testRunner.run();
@@ -77,7 +108,6 @@ public class TestExtractGrok {
         testRunner.assertNotValid();
     }
 
-
     @Test
     public void testExtractGrokWithBadGrokExpression() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{TOTO");
@@ -86,4 +116,27 @@ public class TestExtractGrok {
         testRunner.assertNotValid();
     }
 
+    @Test
+    public void testExtractGrokWithNamedCapturesOnly() throws IOException {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
+        testRunner.setProperty(ExtractGrok.NAMED_CAPTURES_ONLY, "true");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+
+        matched.assertAttributeEquals("grok.verb","GET");
+        matched.assertAttributeEquals("grok.response","401");
+        matched.assertAttributeEquals("grok.bytes","12846");
+        matched.assertAttributeEquals("grok.clientip","64.242.88.10");
+        matched.assertAttributeEquals("grok.auth","-");
+        matched.assertAttributeEquals("grok.timestamp","07/Mar/2004:16:05:49 -0800");
+        matched.assertAttributeEquals("grok.request","/twiki/bin/edit/Main/Double_bounce_sender?topicparent=Main.ConfigurationVariables");
+        matched.assertAttributeEquals("grok.httpversion","1.1");
+
+        matched.assertAttributeNotExists("grok.INT");
+        matched.assertAttributeNotExists("grok.BASE10NUM");
+        matched.assertAttributeNotExists("grok.COMMONAPACHELOG");
+    }
 }

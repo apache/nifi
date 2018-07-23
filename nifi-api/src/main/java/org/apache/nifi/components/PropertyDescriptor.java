@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 /**
  * An immutable object for holding information about a type of component
@@ -78,7 +79,13 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      * indicates whether or not this property supports the Attribute Expression
      * Language
      */
+    @Deprecated
     private final boolean expressionLanguageSupported;
+    /**
+     * indicates whether or nor this property will evaluate expression language
+     * against the flow file attributes
+     */
+    private final ExpressionLanguageScope expressionLanguageScope;
     /**
      * indicates whether or not this property represents resources that should be added
      * to the classpath for this instance of the component
@@ -109,6 +116,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.dynamic = builder.dynamic;
         this.dynamicallyModifiesClasspath = builder.dynamicallyModifiesClasspath;
         this.expressionLanguageSupported = builder.expressionLanguageSupported;
+        this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
         this.validators = new ArrayList<>(builder.validators);
     }
@@ -132,67 +140,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      */
     public ValidationResult validate(final String input, final ValidationContext context) {
         ValidationResult lastResult = Validator.INVALID.validate(this.name, input, context);
+
         if (allowableValues != null && !allowableValues.isEmpty()) {
             final ConstrainedSetValidator csValidator = new ConstrainedSetValidator(allowableValues);
             final ValidationResult csResult = csValidator.validate(this.name, input, context);
+
             if (csResult.isValid()) {
                 lastResult = csResult;
             } else {
                 return csResult;
-            }
-        }
-
-        // if the property descriptor identifies a Controller Service, validate that the ControllerService exists, is of the correct type, and is valid
-        if (controllerServiceDefinition != null) {
-            final Set<String> validIdentifiers = context.getControllerServiceLookup().getControllerServiceIdentifiers(controllerServiceDefinition);
-            if (validIdentifiers != null && validIdentifiers.contains(input)) {
-                final ControllerService controllerService = context.getControllerServiceLookup().getControllerService(input);
-                if (!context.isValidationRequired(controllerService)) {
-                    return new ValidationResult.Builder()
-                            .input(input)
-                            .subject(getName())
-                            .valid(true)
-                            .build();
-                }
-
-                final String serviceId = controllerService.getIdentifier();
-                if (!isDependentServiceEnableable(context, serviceId)) {
-                    return new ValidationResult.Builder()
-                            .input(context.getControllerServiceLookup().getControllerServiceName(serviceId))
-                            .subject(getName())
-                            .valid(false)
-                            .explanation("Controller Service " + controllerService + " is disabled")
-                            .build();
-                }
-
-                final Collection<ValidationResult> validationResults = controllerService.validate(context.getControllerServiceValidationContext(controllerService));
-                final List<ValidationResult> invalidResults = new ArrayList<>();
-                for (final ValidationResult result : validationResults) {
-                    if (!result.isValid()) {
-                        invalidResults.add(result);
-                    }
-                }
-                if (!invalidResults.isEmpty()) {
-                    return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(getName())
-                        .valid(false)
-                        .explanation("Controller Service is not valid: " + (invalidResults.size() > 1 ? invalidResults : invalidResults.get(0)))
-                        .build();
-                }
-
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(getName())
-                        .valid(true)
-                        .build();
-            } else {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(getName())
-                        .valid(false)
-                        .explanation("Invalid Controller Service: " + input + " is not a valid Controller Service Identifier or does not reference the correct type of Controller Service")
-                        .build();
             }
         }
 
@@ -202,30 +158,26 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 break;
             }
         }
+
+        if (getControllerServiceDefinition() != null) {
+            final ControllerService service = context.getControllerServiceLookup().getControllerService(input);
+            if (service == null) {
+                return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(getDisplayName())
+                    .valid(false)
+                    .explanation("Property references a Controller Service that does not exist")
+                    .build();
+            } else {
+                return new ValidationResult.Builder()
+                    .valid(true)
+                    .build();
+            }
+        }
+
         return lastResult;
     }
 
-    /**
-     * Will validate if the dependent service (service identified with the
-     * 'serviceId') is 'enableable' which means that the dependent service is
-     * either in ENABLING or ENABLED state. The important issue here is to
-     * understand the order in which states are assigned:
-     *
-     * - Upon the initialization of the service its state is set to ENABLING.
-     *
-     * - Transition to ENABLED will happen asynchronously.
-     *
-     * So we check first for ENABLING state and if it succeeds we skip the check
-     * for ENABLED state even though by the time this method returns the
-     * dependent service's state could be fully ENABLED.
-     */
-    private boolean isDependentServiceEnableable(final ValidationContext context, final String serviceId) {
-        boolean enableable = context.getControllerServiceLookup().isControllerServiceEnabling(serviceId);
-        if (!enableable) {
-            enableable = context.getControllerServiceLookup().isControllerServiceEnabled(serviceId);
-        }
-        return enableable;
-    }
 
     public static final class Builder {
 
@@ -236,7 +188,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         private List<AllowableValue> allowableValues = null;
         private boolean required = false;
         private boolean sensitive = false;
+
+        @Deprecated
         private boolean expressionLanguageSupported = false;
+
+        private ExpressionLanguageScope expressionLanguageScope = ExpressionLanguageScope.NONE;
         private boolean dynamic = false;
         private boolean dynamicallyModifiesClasspath = false;
         private Class<? extends ControllerService> controllerServiceDefinition;
@@ -253,6 +209,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.dynamic = specDescriptor.dynamic;
             this.dynamicallyModifiesClasspath = specDescriptor.dynamicallyModifiesClasspath;
             this.expressionLanguageSupported = specDescriptor.expressionLanguageSupported;
+            this.expressionLanguageScope = specDescriptor.expressionLanguageScope;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
             return this;
@@ -297,8 +254,20 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * @param supported true if yes; false otherwise
          * @return the builder
          */
+        @Deprecated
         public Builder expressionLanguageSupported(final boolean supported) {
             this.expressionLanguageSupported = supported;
+            return this;
+        }
+
+        /**
+         * Sets the scope of the expression language evaluation
+         *
+         * @param expressionLanguageScope scope of the expression language evaluation
+         * @return the builder
+         */
+        public Builder expressionLanguageSupported(final ExpressionLanguageScope expressionLanguageScope) {
+            this.expressionLanguageScope = expressionLanguageScope;
             return this;
         }
 
@@ -513,7 +482,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     }
 
     public boolean isExpressionLanguageSupported() {
-        return expressionLanguageSupported;
+        return expressionLanguageSupported || !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
+    }
+
+    public ExpressionLanguageScope getExpressionLanguageScope() {
+        return expressionLanguageScope;
     }
 
     public boolean isDynamicClasspathModifier() {

@@ -21,9 +21,12 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupProvider implements ConfigurableUserGroupProvider {
 
@@ -59,6 +62,17 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
 
         if (!(userGroupProvider instanceof ConfigurableUserGroupProvider)) {
             throw new AuthorizerCreationException(String.format("The Configurable User Group Provider is not configurable: %s", configurableUserGroupProviderKey));
+        }
+
+        // Ensure that the ConfigurableUserGroupProvider is not also listed as one of the providers for the CompositeUserGroupProvider
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
+            if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
+                final String userGroupProviderKey = entry.getValue();
+                if (userGroupProviderKey.equals(configurableUserGroupProviderKey.getValue())) {
+                    throw new AuthorizerCreationException(String.format("Duplicate provider in Composite Configurable User Group Provider configuration: %s", userGroupProviderKey));
+                }
+            }
         }
 
         configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
@@ -171,17 +185,49 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
 
     @Override
     public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
-        UserAndGroups userAndGroups = configurableUserGroupProvider.getUserAndGroups(identity);
+        final CompositeUserAndGroups combinedResult;
 
-        if (userAndGroups.getUser() == null) {
-            userAndGroups = super.getUserAndGroups(identity);
+        // First, lookup user and groups by identity and combine data from all providers
+        UserAndGroups configurableProviderResult = configurableUserGroupProvider.getUserAndGroups(identity);
+        UserAndGroups compositeProvidersResult = super.getUserAndGroups(identity);
+
+        if (configurableProviderResult.getUser() != null && compositeProvidersResult.getUser() != null) {
+            throw new IllegalStateException("Multiple UserGroupProviders claim to provide user " + identity);
+
+        } else if (configurableProviderResult.getUser() != null) {
+            combinedResult = new CompositeUserAndGroups(configurableProviderResult.getUser(), configurableProviderResult.getGroups());
+            combinedResult.addAllGroups(compositeProvidersResult.getGroups());
+
+        } else if (compositeProvidersResult.getUser() != null) {
+            combinedResult = new CompositeUserAndGroups(compositeProvidersResult.getUser(), compositeProvidersResult.getGroups());
+            combinedResult.addAllGroups(configurableProviderResult.getGroups());
+
+        } else {
+            return UserAndGroups.EMPTY;
         }
 
-        return userAndGroups;
+        // Second, lookup groups containing the user identifier
+        String userIdentifier = combinedResult.getUser().getIdentifier();
+        for (final Group group : configurableUserGroupProvider.getGroups()) {
+            if (group.getUsers() != null && group.getUsers().contains(userIdentifier)) {
+                combinedResult.addGroup(group);
+            }
+        }
+        for (final Group group : super.getGroups()) {
+            if (group.getUsers() != null && group.getUsers().contains(userIdentifier)) {
+                combinedResult.addGroup(group);
+            }
+        }
+
+        return combinedResult;
     }
 
     @Override
     public void preDestruction() throws AuthorizerDestructionException {
-        super.preDestruction();
+        try {
+            configurableUserGroupProvider.preDestruction();
+        } finally {
+            super.preDestruction();
+        }
     }
 }

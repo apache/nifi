@@ -84,19 +84,6 @@
     // --------------------------
 
     /**
-     * Gets the process group comments.
-     *
-     * @param {object} d
-     */
-    var getProcessGroupComments = function (d) {
-        if (nfCommon.isBlank(d.component.comments)) {
-            return 'No comments specified';
-        } else {
-            return d.component.comments;
-        }
-    };
-
-    /**
      * Selects the remote process group elements against the current remote process group map.
      */
     var select = function () {
@@ -110,14 +97,15 @@
      *
      * @param {selection} entered           The selection of remote process groups to be rendered
      * @param {boolean} selected            Whether the remote process group is selected
+     * @return the entered selection
      */
     var renderRemoteProcessGroups = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var remoteProcessGroup = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -132,7 +120,7 @@
 
         // remote process group border
         remoteProcessGroup.append('rect')
-            .attr({
+            .attrs({
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -146,7 +134,7 @@
 
         // remote process group body
         remoteProcessGroup.append('rect')
-            .attr({
+            .attrs({
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -160,7 +148,7 @@
 
         // remote process group name background
         remoteProcessGroup.append('rect')
-            .attr({
+            .attrs({
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -170,7 +158,7 @@
 
         // remote process group name
         remoteProcessGroup.append('text')
-            .attr({
+            .attrs({
                 'x': 30,
                 'y': 20,
                 'width': 305,
@@ -180,10 +168,9 @@
 
         // always support selection
         remoteProcessGroup.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
-    };
 
-    // attempt of space between component count and icon for process group contents
-    var CONTENTS_SPACER = 5;
+        return remoteProcessGroup;
+    };
 
     /**
      * Updates the process groups in the specified selection.
@@ -221,7 +208,7 @@
 
                     // remote process group transmission status
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'remote-process-group-transmission-status',
                             'x': 10,
                             'y': 20
@@ -232,7 +219,7 @@
                     // ------------------
 
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'x': 0,
                             'y': 32,
                             'width': function () {
@@ -248,7 +235,7 @@
 
                     // remote process group secure transfer
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'remote-process-group-transmission-secure',
                             'x': 10,
                             'y': 48
@@ -256,7 +243,7 @@
 
                     // remote process group uri
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'x': 30,
                             'y': 48,
                             'width': 305,
@@ -270,7 +257,7 @@
 
                     // sent
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -282,7 +269,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -294,7 +281,7 @@
 
                     // received
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -304,31 +291,19 @@
                             'fill': '#ffffff'
                         });
 
-                    // border
-                    details.append('rect')
-                        .attr({
-                            'width': function () {
-                                return remoteProcessGroupData.dimensions.width;
-                            },
-                            'height': 1,
-                            'x': 0,
-                            'y': 103,
-                            'fill': '#c7d2d7'
-                        });
-
                     // -----
                     // stats
                     // -----
 
                     // stats label container
                     var remoteProcessGroupStatsLabel = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(6, 75)'
                         });
 
                     // sent label
                     remoteProcessGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -339,7 +314,7 @@
 
                     // received label
                     remoteProcessGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -350,13 +325,13 @@
 
                     // stats value container
                     var remoteProcessGroupStatsValue = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(95, 75)'
                         });
 
                     // sent value
                     var sentText = remoteProcessGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -366,25 +341,25 @@
 
                     // sent count
                     sentText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // sent size
                     sentText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // sent ports
                     sentText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'ports'
                         });
 
                     // received value
                     var receivedText = remoteProcessGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -394,31 +369,31 @@
 
                     // received ports
                     receivedText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'ports'
                         });
 
                     // received count
                     receivedText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // received size
                     receivedText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // stats value container
                     var processGroupStatsInfo = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(335, 75)'
                         });
 
                     // sent info
                     processGroupStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -429,7 +404,7 @@
 
                     // received info
                     processGroupStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -438,26 +413,12 @@
                         })
                         .text('5 min');
 
-                    // --------
-                    // comments
-                    // --------
-
-                    // process group comments
-                    details.append('text')
-                        .attr({
-                            'x': 10,
-                            'y': 121,
-                            'width': 342,
-                            'height': 22,
-                            'class': 'remote-process-group-comments'
-                        });
-
                     // -------------------
                     // last refreshed time
                     // -------------------
 
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'x': 0,
                             'y': function () {
                                 return remoteProcessGroupData.dimensions.height - 24;
@@ -470,10 +431,21 @@
                         });
 
                     details.append('text')
-                        .attr({
-                            'x': 370,
+                        .attrs({
+                            'x': 10,
                             'y': 150,
                             'class': 'remote-process-group-last-refresh'
+                        });
+
+                    // --------
+                    // comments
+                    // --------
+
+                    details.append('path')
+                        .attrs({
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (remoteProcessGroupData.dimensions.width - 2) + ', ' + (remoteProcessGroupData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
                         });
 
                     // -------------------
@@ -482,7 +454,7 @@
 
                     // active thread count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count-icon',
                             'y': 20
                         })
@@ -490,7 +462,7 @@
 
                     // active thread icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count',
                             'y': 20
                         });
@@ -501,7 +473,7 @@
 
                     // bulletin background
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-background',
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 24;
@@ -513,12 +485,12 @@
 
                     // bulletin icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-icon',
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 17;
                             },
-                            'y': 50
+                            'y': 49
                         })
                         .text('\uf24a');
                 }
@@ -579,21 +551,36 @@
                     // update comments
                     // ---------------
 
-                    // update the process group comments
-                    details.select('text.remote-process-group-comments')
-                        .each(function (d) {
-                            var remoteProcessGroupComments = d3.select(this);
+                    // update the remote process group comments
+                    details.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + remoteProcessGroupData.id);
 
-                            // reset the processor name to handle any previous state
-                            remoteProcessGroupComments.text(null).selectAll('tspan, title').remove();
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(remoteProcessGroupData.component.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#remote-process-group-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + remoteProcessGroupData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
 
-                            // apply ellipsis to the port name as necessary
-                            nfCanvasUtils.ellipsis(remoteProcessGroupComments, getProcessGroupComments(d));
-                        }).classed('unset', function (d) {
-                        return nfCommon.isBlank(d.component.comments);
-                    }).append('title').text(function (d) {
-                        return getProcessGroupComments(d);
-                    });
+                                // update the tip
+                                tip.text(remoteProcessGroupData.component.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
 
                     // --------------
                     // last refreshed
@@ -628,14 +615,17 @@
                     // clear the transmission secure icon
                     details.select('text.remote-process-group-transmission-secure').text(null);
 
-                    // clear the process group comments
-                    details.select('text.remote-process-group-comments').text(null);
+                    // clear the comments
+                    details.select('path.component-comments').style('visibility', 'hidden');
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);
 
                     // clear the name
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
+
+                    // clear tooltips
+                    remoteProcessGroup.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -853,6 +843,7 @@
             $('#bulletin-tip-' + d.id).remove();
             $('#authorization-issues-' + d.id).remove();
             $('#transmission-secure-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 
@@ -879,7 +870,7 @@
 
             // create the process group container
             remoteProcessGroupContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'remote-process-groups'
                 });
@@ -919,10 +910,14 @@
                 add(remoteProcessGroupEntities);
             }
 
-            // apply the selection and handle new remote process groups
+            // select
             var selection = select();
-            selection.enter().call(renderRemoteProcessGroups, selectAll);
-            selection.call(updateRemoteProcessGroups);
+
+            // enter
+            var entered = renderRemoteProcessGroups(selection.enter(), selectAll);
+
+            // update
+            updateRemoteProcessGroups(selection.merge(entered));
         },
 
         /**
@@ -973,10 +968,17 @@
                 set(remoteProcessGroupEntities);
             }
 
-            // apply the selection and handle all new remote process groups
+            // select
             var selection = select();
-            selection.enter().call(renderRemoteProcessGroups, selectAll);
-            selection.call(updateRemoteProcessGroups).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderRemoteProcessGroups(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateRemoteProcessGroups).call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removeRemoteProcessGroups);
         },
 
@@ -1087,7 +1089,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }

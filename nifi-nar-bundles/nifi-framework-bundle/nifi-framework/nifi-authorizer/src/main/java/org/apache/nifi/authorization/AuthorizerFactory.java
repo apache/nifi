@@ -47,11 +47,12 @@ public final class AuthorizerFactory {
     }
 
     /**
-     * Checks if another user exists with the same identity.
+     * Checks if another tenant (user or group) exists with the same identity.
      *
-     * @param identifier identity of the user
-     * @param identity identity of the user
-     * @return true if another user exists with the same identity, false otherwise
+     * @param userGroupProvider the userGroupProvider to use to lookup the tenant
+     * @param identifier identity of the tenant
+     * @param identity identity of the tenant
+     * @return true if another tenant exists with the same identity, false otherwise
      */
     private static boolean tenantExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
         for (User user : userGroupProvider.getUsers()) {
@@ -71,6 +72,24 @@ public final class AuthorizerFactory {
         return false;
     }
 
+    /**
+     * Check that all users in the group exist.
+     *
+     * @param userGroupProvider the userGroupProvider to use to lookup the users
+     * @param group the group whose users will be checked for existence.
+     * @return true if another user exists with the same identity, false otherwise
+     */
+    private static boolean allGroupUsersExist(final UserGroupProvider userGroupProvider, final Group group) {
+        for (String userIdentifier : group.getUsers()) {
+            User user = userGroupProvider.getUser(userIdentifier);
+            if (user == null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static void audit(final Authorizer authorizer, final AuthorizationRequest request, final AuthorizationResult result) {
         // audit when...
         // 1 - the authorizer supports auditing
@@ -82,9 +101,11 @@ public final class AuthorizerFactory {
     }
 
     public static Authorizer installIntegrityChecks(final Authorizer baseAuthorizer) {
+        Authorizer authorizer;
+
         if (baseAuthorizer instanceof ManagedAuthorizer) {
             final ManagedAuthorizer baseManagedAuthorizer = (ManagedAuthorizer) baseAuthorizer;
-            return new ManagedAuthorizer() {
+            authorizer = new ManagedAuthorizer() {
                 @Override
                 public String getFingerprint() throws AuthorizationAccessException {
                     return baseManagedAuthorizer.getFingerprint();
@@ -223,6 +244,9 @@ public final class AuthorizerFactory {
                                             if (tenantExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
                                             }
+                                            if (!allGroupUsersExist(baseConfigurableUserGroupProvider, group)) {
+                                                throw new IllegalStateException(String.format("Cannot create group '%s' with users that don't exist.", group.getName()));
+                                            }
                                             return baseConfigurableUserGroupProvider.addGroup(group);
                                         }
 
@@ -235,6 +259,9 @@ public final class AuthorizerFactory {
                                         public Group updateGroup(Group group) throws AuthorizationAccessException {
                                             if (tenantExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
+                                            }
+                                            if (!allGroupUsersExist(baseConfigurableUserGroupProvider, group)) {
+                                                throw new IllegalStateException(String.format("Cannot update group '%s' to add users that don't exist.", group.getName()));
                                             }
                                             if (!baseConfigurableUserGroupProvider.isConfigurable(group)) {
                                                 throw new IllegalArgumentException("The specified group does not support modification.");
@@ -370,7 +397,7 @@ public final class AuthorizerFactory {
                 }
             };
         } else {
-            return new Authorizer() {
+            authorizer = new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
                     final AuthorizationResult result = baseAuthorizer.authorize(request);
@@ -397,6 +424,19 @@ public final class AuthorizerFactory {
                 }
             };
         }
+
+        // conditionally add support for the audit methods
+        if (baseAuthorizer instanceof AuthorizationAuditor) {
+            final AuthorizationAuditorInvocationHandler invocationHandler = new AuthorizationAuditorInvocationHandler(authorizer, (AuthorizationAuditor) baseAuthorizer);
+
+            final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(authorizer.getClass());
+            interfaceList.add(AuthorizationAuditor.class);
+            final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
+
+            authorizer = (Authorizer) Proxy.newProxyInstance(authorizer.getClass().getClassLoader(), interfaces, invocationHandler);
+        }
+
+        return authorizer;
     }
 
     /**
@@ -408,7 +448,6 @@ public final class AuthorizerFactory {
     public static Authorizer withNarLoader(final Authorizer baseAuthorizer, final ClassLoader classLoader) {
         final AuthorizerInvocationHandler invocationHandler = new AuthorizerInvocationHandler(baseAuthorizer, classLoader);
 
-        // extract all interfaces... baseAuthorizer is non null so getAllInterfaces is non null
         final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(baseAuthorizer.getClass());
         final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
 

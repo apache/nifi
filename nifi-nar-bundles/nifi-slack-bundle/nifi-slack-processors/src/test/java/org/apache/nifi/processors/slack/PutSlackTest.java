@@ -21,6 +21,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,12 +48,13 @@ public class PutSlackTest {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(CaptureServlet.class, "/*");
-        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
 
         // create the service
         server = new TestServer();
         server.addHandler(handler);
         server.startServer();
+
+        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
     }
 
     @Test(expected = AssertionError.class)

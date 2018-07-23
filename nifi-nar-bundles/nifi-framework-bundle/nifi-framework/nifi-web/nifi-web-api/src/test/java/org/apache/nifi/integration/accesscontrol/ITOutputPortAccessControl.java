@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -28,6 +27,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -125,7 +125,7 @@ public class ITOutputPortAccessControl {
         entity.getComponent().setName("Updated Name" + count++);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadUser(), entity);
+        final Response response = updateOutputPort(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -151,13 +151,13 @@ public class ITOutputPortAccessControl {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadWriteUser(), entity);
+        final Response response = updateOutputPort(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final PortEntity responseEntity = response.readEntity(PortEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -182,13 +182,13 @@ public class ITOutputPortAccessControl {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadWriteUser(), entity);
+        final Response response = updateOutputPort(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final PortEntity responseEntity = response.readEntity(PortEntity.class);
 
         // verify
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -226,13 +226,13 @@ public class ITOutputPortAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getWriteUser(), requestEntity);
+        final Response response = updateOutputPort(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final PortEntity responseEntity = response.readEntity(PortEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -269,7 +269,7 @@ public class ITOutputPortAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getNoneUser(), requestEntity);
+        final Response response = updateOutputPort(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -319,13 +319,13 @@ public class ITOutputPortAccessControl {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
         // get the output ports
-        final ClientResponse response = user.testGet(url);
+        final Response response = user.testGet(url);
 
         // ensure the response was successful
         assertEquals(200, response.getStatus());
 
         // unmarshal
-        final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
+        final ProcessGroupFlowEntity flowEntity = response.readEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
         final Set<PortEntity> outputPorts = flowDto.getOutputPorts();
 
@@ -338,7 +338,7 @@ public class ITOutputPortAccessControl {
         return outputPortIter.next();
     }
 
-    private ClientResponse updateOutputPort(final NiFiTestUser user, final PortEntity entity) throws Exception {
+    private Response updateOutputPort(final NiFiTestUser user, final PortEntity entity) throws Exception {
         final String url = helper.getBaseUrl() + "/output-ports/" + entity.getId();
 
         // perform the request
@@ -365,13 +365,13 @@ public class ITOutputPortAccessControl {
         entity.setComponent(outputPort);
 
         // perform the request
-        ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
+        Response response = helper.getReadWriteUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(PortEntity.class);
+        entity = response.readEntity(PortEntity.class);
 
         // verify creation
         outputPort = entity.getComponent();
@@ -390,7 +390,7 @@ public class ITOutputPortAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        ClientResponse response = user.testDelete(entity.getUri(), queryParams);
+        Response response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());

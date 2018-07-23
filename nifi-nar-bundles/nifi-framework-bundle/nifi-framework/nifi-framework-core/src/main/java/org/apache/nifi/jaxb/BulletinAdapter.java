@@ -34,7 +34,8 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         if (b.getSourceId() == null) {
             return BulletinFactory.createBulletin(b.getCategory(), b.getLevel(), b.getMessage());
         } else {
-            return BulletinFactory.createBulletin(b.getGroupId(), b.getSourceId(), b.getSourceType(), b.getSourceName(), b.getCategory(), b.getLevel(), b.getMessage());
+            return BulletinFactory.createBulletin(b.getGroupId(), b.getGroupName(), b.getSourceId(), b.getSourceType(),
+                    b.getSourceName(), b.getCategory(), b.getLevel(), b.getMessage());
         }
     }
 
@@ -47,6 +48,7 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         aBulletin.setId(b.getId());
         aBulletin.setTimestamp(b.getTimestamp());
         aBulletin.setGroupId(b.getGroupId());
+        aBulletin.setGroupName(b.getGroupName());
         aBulletin.setSourceId(b.getSourceId());
         aBulletin.setSourceType(b.getSourceType());
         aBulletin.setSourceName(b.getSourceName());

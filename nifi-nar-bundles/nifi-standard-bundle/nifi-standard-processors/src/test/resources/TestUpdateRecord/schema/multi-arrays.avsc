@@ -1,0 +1,59 @@
+{
+  "name": "simpleArray",
+  "namespace": "nifi",
+  "type": "record",
+  "fields": [
+    {
+      "name": "numbers",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": "int"
+        }
+      ]
+    },
+    {
+      "name": "peoples",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "Person",
+            "fields": [
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "addresses",
+                "type": [
+                  "null",
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "record",
+                      "name": "Address",
+                      "fields": [
+                        {
+                          "name": "street",
+                          "type": "string"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

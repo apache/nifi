@@ -192,7 +192,7 @@ class ScriptedReportingTaskGroovyTest {
         task.onTrigger context
         def se = task.scriptEngine
         // This script should store a variable called x with a map of stats to values
-        assertTrue se.x?.uptime > 0
+        assertTrue se.x?.uptime >= 0
         task.offerScriptEngine(se)
 
     }

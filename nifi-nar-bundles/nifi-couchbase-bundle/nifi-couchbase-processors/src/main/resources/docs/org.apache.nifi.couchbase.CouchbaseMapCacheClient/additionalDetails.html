@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>CouchbaseMapCacheClient</title>
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>CouchbaseMapCacheClient</h2>
+
+<h3>Requirements</h3>
+
+<h4>Couchbase Server 4.0 or higher is required for some operation using N1QL</h4>
+
+Following cache operations require N1QL query, thus you need to deploy Couchbase Server 4.0 or higher for those operations. However, as of this writing (May 2017) there are only few processors using these operations. Most cache APIs are implemented using document id lookup and should work with older version of Couchbase Server.
+
+<ul>
+    <li>removeByPattern(String regex): This cache API removes entries by regex. Execute query like:
+        <pre>delete from `cache-bucket-name` where REGEX_CONTAINS(meta().id, "^key.*")</pre>
+    </li>
+</ul>
+
+In order to make N1QL work correctly you need to create a <a href="https://developer.couchbase.com/documentation/server/current/n1ql/n1ql-language-reference/createprimaryindex.html">Primary index</a> or an index covering N1QL queries performed by CouchbaseMapCacheClient. Please refer Couchbase Server documentations for how to create those.
+
+</body>
+</html>

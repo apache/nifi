@@ -46,8 +46,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
@@ -86,8 +85,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -126,8 +124,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -168,8 +165,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
@@ -202,8 +198,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -236,9 +231,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
-
+            final int port = server.start(0);
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
@@ -279,8 +272,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -312,8 +304,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -356,8 +347,7 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
         try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+            final int port = server.start(0);
 
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
@@ -411,13 +401,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
 
         try {
-            final int port = TestGRPCServer.randomPort();
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
+            useSSLContextService(runner, sslProperties);
+            final int port = server.start(0);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
-            useSSLContextService(runner, sslProperties);
-            server.start(port);
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);
@@ -455,13 +444,12 @@ public class TestInvokeGRPC {
         final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class, sslProperties);
 
         try {
-            final int port = TestGRPCServer.randomPort();
             final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
+            useSSLContextService(runner, getTruststoreProperties());
+            final int port = server.start(0);
             runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, String.valueOf(port));
             runner.setProperty(InvokeGRPC.PROP_USE_SECURE, "true");
-            useSSLContextService(runner, getTruststoreProperties());
-            server.start(port);
 
             final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
             runner.enqueue(mockFlowFile);

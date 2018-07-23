@@ -22,7 +22,8 @@ public enum SchemaField {
     SCHEMA_TEXT_FORMAT("Schema Text Format"),
     SCHEMA_NAME("Schema Name"),
     SCHEMA_IDENTIFIER("Schema Identifier"),
-    SCHEMA_VERSION("Schema Version");
+    SCHEMA_VERSION("Schema Version"),
+    SCHEMA_BRANCH_NAME("Schema Branch Name");
 
     private final String description;
 

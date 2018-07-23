@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,8 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.remote.io.InterruptableInputStream;
 import org.apache.nifi.remote.io.InterruptableOutputStream;
 import org.apache.nifi.remote.io.socket.SocketChannelInputStream;

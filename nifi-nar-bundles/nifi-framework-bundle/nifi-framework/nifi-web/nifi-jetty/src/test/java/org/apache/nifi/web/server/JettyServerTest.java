@@ -17,20 +17,32 @@
 
 package org.apache.nifi.web.server;
 
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.util.NiFiProperties;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.mock.web.MockHttpServletResponse;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.security.util.KeystoreType;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.Test;
-
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class JettyServerTest {
     @Test
@@ -141,5 +153,30 @@ public class JettyServerTest {
 
         verify(contextFactory).setTrustStoreType(trustStoreType);
         verify(contextFactory).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+    }
+
+    @Test
+    public void testNoDuplicateXFrameOptions() throws NoSuchFieldException, IllegalAccessException, ServletException, IOException {
+        Field xOptionsFilter = JettyServer.class.getDeclaredField("FRAME_OPTIONS_FILTER");
+        xOptionsFilter.setAccessible(true);
+        Filter filter = (Filter) xOptionsFilter.get(xOptionsFilter);
+
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(mockRequest.getRequestURI()).thenReturn("/");
+
+        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
+        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
+        ServletContext mockContext = Mockito.mock(ServletContext.class);
+        FilterConfig mockFilterConfig = Mockito.mock(FilterConfig.class);
+
+        when(mockFilterConfig.getServletContext()).thenReturn(mockContext);
+
+        filter.init(mockFilterConfig);
+
+        // Call doFilter twice, then check the header only appears once.
+        filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+        filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+        assertEquals(1, mockResponse.getHeaders("X-Frame-Options").size());
     }
 }

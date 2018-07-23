@@ -65,6 +65,8 @@ import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
 import org.apache.nifi.record.path.functions.Concat;
+import org.apache.nifi.record.path.functions.Format;
+import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.Replace;
 import org.apache.nifi.record.path.functions.ReplaceNull;
 import org.apache.nifi.record.path.functions.ReplaceRegex;
@@ -73,6 +75,9 @@ import org.apache.nifi.record.path.functions.SubstringAfter;
 import org.apache.nifi.record.path.functions.SubstringAfterLast;
 import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
+import org.apache.nifi.record.path.functions.ToBytes;
+import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToString;
 
 public class RecordPathCompiler {
 
@@ -163,6 +168,8 @@ public class RecordPathCompiler {
                 if (childTreeType == FIELD_NAME) {
                     final String descendantName = childTree.getChild(0).getText();
                     return new DescendantFieldPath(descendantName, parent, absolute);
+                } else if (childTreeType == WILDCARD) {
+                    return new WildcardDescendantPath(parent, absolute);
                 } else {
                     throw new RecordPathException("Expected field name following '//' Token but found " + childTree);
                 }
@@ -236,6 +243,26 @@ public class RecordPathCompiler {
                         }
 
                         return new Concat(argPaths, absolute);
+                    }
+                    case "fieldName": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new FieldName(args[0], absolute);
+                    }
+                    case "toDate": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new ToDate(args[0], args[1], absolute);
+                    }
+                    case "toString": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new ToString(args[0], args[1], absolute);
+                    }
+                    case "toBytes": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new ToBytes(args[0], args[1], absolute);
+                    }
+                    case "format": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Format(args[0], args[1], absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
@@ -338,5 +365,20 @@ public class RecordPathCompiler {
         }
 
         return argPaths;
+    }
+
+    private static RecordPathSegment[] getArgPaths(final Tree argumentListTree, final int minCount, final int maxCount, final String functionName, final boolean absolute) {
+        final int numArgs = argumentListTree.getChildCount();
+        if (numArgs < minCount || numArgs > maxCount) {
+            throw new RecordPathException("Invalid number of arguments: " + functionName + " function takes at least" + minCount
+                    + " arguments, and at most " + maxCount + "arguments, but got " + numArgs);
+        }
+
+        final List<RecordPathSegment> argPaths = new ArrayList<>();
+        for (int i=0; i < argumentListTree.getChildCount(); i++) {
+            argPaths.add(buildPath(argumentListTree.getChild(i), null, absolute));
+        }
+
+        return argPaths.toArray(new RecordPathSegment[argPaths.size()]);
     }
 }

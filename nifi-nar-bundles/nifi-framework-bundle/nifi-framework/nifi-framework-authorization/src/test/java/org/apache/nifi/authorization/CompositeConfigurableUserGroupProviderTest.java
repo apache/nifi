@@ -20,11 +20,14 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider.PROP_CONFIGURABLE_USER_GROUP_PROVIDER;
+import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER_GROUP_PROVIDER_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -33,7 +36,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGroupProviderTest {
+public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGroupProviderTestBase {
 
     public static final String USER_5_IDENTIFIER = "user-identifier-5";
     public static final String USER_5_IDENTITY = "user-identity-5";
@@ -62,6 +65,32 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         }, configurationContext -> {
             when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(NOT_CONFIGURABLE_USER_GROUP_PROVIDER, null));
         });
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testDuplicateProviders() throws Exception {
+
+        // Mock UserGroupProviderLookup
+        UserGroupProvider configurableUserGroupProvider = getConfigurableUserGroupProvider();
+        final UserGroupProviderLookup ugpLookup = mock(UserGroupProviderLookup.class);
+        when(ugpLookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(configurableUserGroupProvider);
+
+        // Mock AuthorizerInitializationContext
+        final AuthorizerInitializationContext initializationContext = mock(AuthorizerInitializationContext.class);
+        when(initializationContext.getUserGroupProviderLookup()).thenReturn(ugpLookup);
+
+        // Mock AuthorizerConfigurationContext to introduce the duplicate provider ids
+        final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
+        when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+        Map<String, String> configurationContextProperties = new HashMap<>();
+        configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "1", CONFIGURABLE_USER_GROUP_PROVIDER);
+        configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "2", NOT_CONFIGURABLE_USER_GROUP_PROVIDER);
+        when(configurationContext.getProperties()).thenReturn(configurationContextProperties);
+
+        // configure (should throw exception)
+        CompositeConfigurableUserGroupProvider provider = new CompositeConfigurableUserGroupProvider();
+        provider.initialize(initializationContext);
+        provider.onConfigured(configurationContext);
     }
 
     @Test
@@ -99,7 +128,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
 
         // users and groups
         assertEquals(3, userGroupProvider.getUsers().size());
-        assertEquals(1, userGroupProvider.getGroups().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
 
         // unknown
         assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
@@ -111,8 +140,49 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         assertNull(unknownUserAndGroups.getGroups());
 
         // providers
-        testConfigurableUserGroupProvider(userGroupProvider);
-        testConflictingUserGroupProvider(userGroupProvider);
+        try {
+            testConfigurableUserGroupProvider(userGroupProvider);
+            assertTrue("Should never get here as we expect the line above to throw an exception", false);
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalStateException);
+            assertTrue(e.getMessage().contains(USER_1_IDENTITY));
+        }
+
+        try {
+            testConflictingUserGroupProvider(userGroupProvider);
+            assertTrue("Should never get here as we expect the line above to throw an exception", false);
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalStateException);
+            assertTrue(e.getMessage().contains(USER_1_IDENTITY));
+        }
+    }
+
+    @Test
+    public void testConfigurableUserGroupProviderWithCollaboratingUserGroupProvider() throws Exception {
+        final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), lookup -> {
+            when(lookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(getConfigurableUserGroupProvider());
+        }, configurationContext -> {
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+        }, getCollaboratingUserGroupProvider());
+
+        // users and groups
+        assertEquals(3, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
+
+        // unknown
+        assertNull(userGroupProvider.getUser(NOT_A_REAL_USER_IDENTIFIER));
+        assertNull(userGroupProvider.getUserByIdentity(NOT_A_REAL_USER_IDENTITY));
+
+        final UserAndGroups unknownUserAndGroups = userGroupProvider.getUserAndGroups(NOT_A_REAL_USER_IDENTITY);
+        assertNotNull(unknownUserAndGroups);
+        assertNull(unknownUserAndGroups.getUser());
+        assertNull(unknownUserAndGroups.getGroups());
+
+        // providers
+        final UserAndGroups user1AndGroups = userGroupProvider.getUserAndGroups(USER_1_IDENTITY);
+        assertNotNull(user1AndGroups);
+        assertNotNull(user1AndGroups.getUser());
+        assertEquals(2, user1AndGroups.getGroups().size()); // from CollaboratingUGP
     }
 
     private UserGroupProvider getConfigurableUserGroupProvider() {
@@ -122,7 +192,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         ).collect(Collectors.toSet());
 
         final Set<Group> groups = Stream.of(
-                new Group.Builder().identifier(GROUP_2_IDENTIFIER).name(GROUP_2_NAME).addUser(USER_1_IDENTIFIER).build()
+                new Group.Builder().identifier(GROUP_1_IDENTIFIER).name(GROUP_1_NAME).addUser(USER_1_IDENTIFIER).build()
         ).collect(Collectors.toSet());
 
         return new SimpleConfigurableUserGroupProvider(users, groups);
@@ -145,7 +215,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         assertNotNull(user5AndGroups.getUser());
         assertTrue(user5AndGroups.getGroups().isEmpty());
 
-        assertNotNull(userGroupProvider.getGroup(GROUP_2_IDENTIFIER));
-        assertEquals(1, userGroupProvider.getGroup(GROUP_2_IDENTIFIER).getUsers().size());
+        assertNotNull(userGroupProvider.getGroup(GROUP_1_IDENTIFIER));
+        assertEquals(1, userGroupProvider.getGroup(GROUP_1_IDENTIFIER).getUsers().size());
     }
 }

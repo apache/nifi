@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.util.FileUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -49,6 +41,13 @@ import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -264,7 +263,7 @@ public final class NarUnpacker {
                 String name = jarEntry.getName();
                 File f = new File(workingDirectory, name);
                 if (jarEntry.isDirectory()) {
-                    FileUtils.ensureDirectoryExistAndCanAccess(f);
+                    FileUtils.ensureDirectoryExistAndCanReadAndWrite(f);
                 } else {
                     makeFile(jarFile.getInputStream(jarEntry), f);
                 }

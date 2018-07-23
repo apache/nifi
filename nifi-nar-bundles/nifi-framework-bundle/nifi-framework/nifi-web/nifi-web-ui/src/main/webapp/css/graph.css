@@ -66,7 +66,6 @@ g.component rect.body.unauthorized {
     fill: #f4f6f7;
 }
 
-
 g.component rect.border {
     stroke: rgba(0,0,0,0.25);
     stroke-width: 1;
@@ -137,6 +136,53 @@ text.active-thread-count {
     font-weight: bold;
 }
 
+path.component-comments {
+    fill: #000;
+    stroke: #000;
+}
+
+text.spin {
+    -webkit-animation-name: rotate;
+    -webkit-animation-duration: 2s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
+    -moz-animation-name: rotate;
+    -moz-animation-duration: 2s;
+    -moz-animation-iteration-count: infinite;
+    -moz-animation-timing-function: linear;
+    animation-name: rotate;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@-webkit-keyframes rotate {
+    from {
+        -webkit-transform: rotate(0deg);
+    }
+    to {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@-moz-keyframes rotate {
+    from {
+        -moz-transform: rotate(0deg);
+    }
+    to {
+        -moz-transform: rotate(360deg);
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /*
     Selection
 */
@@ -146,7 +192,7 @@ g.component.connectable-destination rect.border {
     stroke-width: 3;
 }
 
-rect.selection, rect.drag-selection, rect.label-drag {
+rect.component-selection, rect.drag-selection, rect.label-drag {
     stroke: #444444;
     stroke-opacity: 0.5;
     fill: transparent;
@@ -187,7 +233,7 @@ text.processor-icon {
     font-size: 30px;
 }
 
-circle.restricted-background {
+circle.restricted-background, circle.is-primary-background {
     visibility: hidden;
     fill: rgba(255, 255, 255, 0.90);
 }
@@ -199,8 +245,15 @@ text.restricted {
     fill: #ba554a;
 }
 
+text.is-primary {
+    visibility: hidden;
+    font-size: 12px;
+    font-weight: bold;
+}
+
 text.run-status-icon {
-    font-size: 13px;
+    font-size: 14px;
+    transform-origin: 62px 18px 0;
 }
 
 /*
@@ -417,6 +470,13 @@ text.process-group-name {
     font-size: 14px;
 }
 
+text.version-control {
+    font-family: FontAwesome;
+    font-size: 18px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+    visibility: hidden;
+}
+
 text.process-group-contents-count {
     fill: #775351;
     font-size: 15px;
@@ -459,5 +519,4 @@ text.remote-process-group-transmission-secure {
 
 text.remote-process-group-last-refresh {
     fill: #728e9b;
-    text-anchor: end;
 }

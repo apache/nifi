@@ -45,7 +45,7 @@ public class SingularMapKeyPath extends RecordPathSegment {
             .filter(Filters.fieldTypeFilter(RecordFieldType.MAP))
             .map(fieldValue -> {
                 final DataType valueType = ((MapDataType) fieldValue.getField().getDataType()).getValueType();
-                final RecordField elementField = new RecordField(fieldValue.getField().getFieldName() + "['" + mapKey + "']", valueType);
+                final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), valueType);
                 return new MapEntryFieldValue(getMapValue(fieldValue), elementField, fieldValue, mapKey);
             });
     }

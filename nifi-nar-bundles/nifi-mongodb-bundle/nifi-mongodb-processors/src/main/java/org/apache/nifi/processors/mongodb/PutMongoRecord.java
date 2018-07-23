@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -35,20 +34,24 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.bson.Document;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Bulk ingest documents into MonogDB using a configured record reader.")
+@CapabilityDescription("Bulk ingest documents into MongoDB using a configured record reader.")
 public class PutMongoRecord extends AbstractMongoProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
@@ -110,22 +113,24 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
-
         List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
         int added   = 0;
         boolean error = false;
 
-        try (RecordReader reader = recordParserFactory.createRecordReader(flowFile, session.read(flowFile), getLogger())) {
+        try (final InputStream inStream = session.read(flowFile);
+             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
             RecordSchema schema = reader.getSchema();
             Record record;
             while ((record = reader.nextRecord()) != null) {
+                // Convert each Record to HashMap and put into the Mongo document
+                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
                 Document document = new Document();
                 for (String name : schema.getFieldNames()) {
-                    document.put(name, record.getValue(name));
+                    document.put(name, contentMap.get(name));
                 }
-                inserts.add(document);
+                inserts.add(convertArrays(document));
                 if (inserts.size() == ceiling) {
                     collection.insertMany(inserts);
                     added += inserts.size();
@@ -141,26 +146,41 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue(), String.format("Added %d documents to MongoDB.", added));
+                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).evaluateAttributeExpressions().getValue(), String.format("Added %d documents to MongoDB.", added));
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }
         }
         session.commit();
-/*        final ComponentLog logger = getLogger();
+    }
 
-        if (inserts.size() > 0) {
-            try {
-                collection.insertMany(inserts);
-
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue());
-                session.transfer(flowFile, REL_SUCCESS);
-
-            } catch (Exception e) {
-                logger.error("Failed to insert {} into MongoDB due to {}", new Object[]{flowFile, e}, e);
-                session.transfer(flowFile, REL_FAILURE);
-                context.yield();
+    private Document convertArrays(Document doc) {
+        Document retVal = new Document();
+        for (Map.Entry<String, Object> entry : doc.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
+                retVal.put(entry.getKey(), convertArrays((Object[])entry.getValue()));
+            } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
+                retVal.put(entry.getKey(), convertArrays(new Document((Map)entry.getValue())));
+            } else {
+                retVal.put(entry.getKey(), entry.getValue());
             }
-        }*/
+        }
+
+        return retVal;
+    }
+
+    private List convertArrays(Object[] input) {
+        List retVal = new ArrayList();
+        for (Object o : input) {
+            if (o != null && o.getClass().isArray()) {
+                retVal.add(convertArrays((Object[])o));
+            } else if (o instanceof Map) {
+                retVal.add(convertArrays(new Document((Map)o)));
+            } else {
+                retVal.add(o);
+            }
+        }
+
+        return retVal;
     }
 }

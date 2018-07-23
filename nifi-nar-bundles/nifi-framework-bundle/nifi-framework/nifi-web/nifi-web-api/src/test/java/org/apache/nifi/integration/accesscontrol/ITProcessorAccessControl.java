@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
+import org.apache.nifi.integration.util.ExecuteCodeRestrictedProcessor;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.integration.util.RestrictedProcessor;
@@ -39,6 +39,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -135,7 +136,7 @@ public class ITProcessorAccessControl {
         entity.getComponent().setName("Updated Name");
 
         // perform the request
-        final ClientResponse response = updateProcessor(helper.getReadUser(), entity);
+        final Response response = updateProcessor(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -161,13 +162,13 @@ public class ITProcessorAccessControl {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateProcessor(helper.getReadWriteUser(), entity);
+        final Response response = updateProcessor(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ProcessorEntity responseEntity = response.getEntity(ProcessorEntity.class);
+        final ProcessorEntity responseEntity = response.readEntity(ProcessorEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -192,13 +193,13 @@ public class ITProcessorAccessControl {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateProcessor(helper.getReadWriteUser(), entity);
+        final Response response = updateProcessor(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ProcessorEntity responseEntity = response.getEntity(ProcessorEntity.class);
+        final ProcessorEntity responseEntity = response.readEntity(ProcessorEntity.class);
 
         // verify
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -236,13 +237,13 @@ public class ITProcessorAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateProcessor(helper.getWriteUser(), requestEntity);
+        final Response response = updateProcessor(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ProcessorEntity responseEntity = response.getEntity(ProcessorEntity.class);
+        final ProcessorEntity responseEntity = response.readEntity(ProcessorEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -279,7 +280,7 @@ public class ITProcessorAccessControl {
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateProcessor(helper.getNoneUser(), requestEntity);
+        final Response response = updateProcessor(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -300,7 +301,7 @@ public class ITProcessorAccessControl {
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
 
         // perform the request
-        final ClientResponse response = helper.getReadUser().testPost(url);
+        final Response response = helper.getReadUser().testPost(url);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -321,7 +322,7 @@ public class ITProcessorAccessControl {
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
 
         // perform the request
-        final ClientResponse response = helper.getNoneUser().testPost(url);
+        final Response response = helper.getNoneUser().testPost(url);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
@@ -342,7 +343,7 @@ public class ITProcessorAccessControl {
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
 
         // perform the request
-        final ClientResponse response = helper.getReadWriteUser().testPost(url);
+        final Response response = helper.getReadWriteUser().testPost(url);
 
         // ensure ok response
         assertEquals(200, response.getStatus());
@@ -363,7 +364,7 @@ public class ITProcessorAccessControl {
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
 
         // perform the request
-        final ClientResponse response = helper.getWriteUser().testPost(url);
+        final Response response = helper.getWriteUser().testPost(url);
 
         // ensure ok response
         assertEquals(200, response.getStatus());
@@ -434,7 +435,13 @@ public class ITProcessorAccessControl {
         entity.setComponent(processor);
 
         // perform the request as a user with read/write but no restricted access
-        ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
+        Response response = helper.getReadWriteUser().testPost(url, entity);
+
+        // ensure the request is successful
+        assertEquals(403, response.getStatus());
+
+        // perform the request as a user with read/write and only execute code restricted access
+        response = helper.getExecuteCodeUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(403, response.getStatus());
@@ -445,10 +452,57 @@ public class ITProcessorAccessControl {
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
-        final ProcessorEntity responseEntity = response.getEntity(ProcessorEntity.class);
+        final ProcessorEntity responseEntity = response.readEntity(ProcessorEntity.class);
 
         // remove the restricted component
-        deleteRestrictedComponent(responseEntity);
+        deleteRestrictedComponent(responseEntity, helper.getPrivilegedUser());
+    }
+
+    /**
+     * Tests attempt to create a restricted processor requiring execute code permissions.
+     *
+     * @throws Exception if there is an error creating this processor
+     */
+    @Test
+    public void testCreateExecuteCodeRestrictedProcessor() throws Exception {
+        createExecuteCodeRestrictedProcessor(helper.getPrivilegedUser());
+        createExecuteCodeRestrictedProcessor(helper.getExecuteCodeUser());
+    }
+
+    private void createExecuteCodeRestrictedProcessor(final NiFiTestUser user) throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/processors";
+
+        // create the processor
+        ProcessorDTO processor = new ProcessorDTO();
+        processor.setName("execute code restricted");
+        processor.setType(ExecuteCodeRestrictedProcessor.class.getName());
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(READ_WRITE_CLIENT_ID);
+        revision.setVersion(0L);
+
+        // create the entity body
+        ProcessorEntity entity = new ProcessorEntity();
+        entity.setRevision(revision);
+        entity.setComponent(processor);
+
+        // perform the request as a user with read/write but no restricted access
+        Response response = helper.getReadWriteUser().testPost(url, entity);
+
+        // ensure the request is successful
+        assertEquals(403, response.getStatus());
+
+        // perform the request as a user with read/write and restricted access
+        response = user.testPost(url, entity);
+
+        // ensure the request is successful
+        assertEquals(201, response.getStatus());
+
+        final ProcessorEntity responseEntity = response.readEntity(ProcessorEntity.class);
+
+        // remove the restricted component
+        deleteRestrictedComponent(responseEntity, user);
     }
 
     /**
@@ -459,7 +513,7 @@ public class ITProcessorAccessControl {
     @Test
     public void testCopyPasteRestrictedProcessor() throws Exception {
         final String copyUrl = helper.getBaseUrl() + "/process-groups/root/snippet-instance";
-        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent();
+        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(RestrictedProcessor.class.getName(), helper.getPrivilegedUser());
         final SnippetEntity snippetEntity = tuple.getValue();
 
         // build the copy/paste request
@@ -469,9 +523,15 @@ public class ITProcessorAccessControl {
         copyRequest.setOriginY(0.0);
 
         // create the snippet
-        ClientResponse response = helper.getReadWriteUser().testPost(copyUrl, copyRequest);
+        Response response = helper.getReadWriteUser().testPost(copyUrl, copyRequest);
 
         // ensure the request failed... need privileged users since snippet comprised of the restricted components
+        assertEquals(403, response.getStatus());
+
+        // perform the request as a user with read/write and only execute code restricted access
+        response = helper.getExecuteCodeUser().testPost(copyUrl, copyRequest);
+
+        // ensure the request is successful
         assertEquals(403, response.getStatus());
 
         // create the snippet
@@ -480,11 +540,52 @@ public class ITProcessorAccessControl {
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
-        final FlowEntity flowEntity = response.getEntity(FlowEntity.class);
+        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
 
         // remove the restricted processors
-        deleteRestrictedComponent(tuple.getKey());
-        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null));
+        deleteRestrictedComponent(tuple.getKey(), helper.getPrivilegedUser());
+        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), helper.getPrivilegedUser());
+    }
+
+    /**
+     * Tests attempting to copy/paste a restricted processor requiring execute code permissions.
+     *
+     * @throws Exception ex
+     */
+    @Test
+    public void testCopyPasteExecuteCodeRestrictedProcessor() throws Exception {
+        copyPasteExecuteCodeRestrictedProcessor(helper.getPrivilegedUser());
+        copyPasteExecuteCodeRestrictedProcessor(helper.getExecuteCodeUser());
+    }
+
+    private void copyPasteExecuteCodeRestrictedProcessor(final NiFiTestUser user) throws Exception {
+        final String copyUrl = helper.getBaseUrl() + "/process-groups/root/snippet-instance";
+        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(ExecuteCodeRestrictedProcessor.class.getName(), user);
+        final SnippetEntity snippetEntity = tuple.getValue();
+
+        // build the copy/paste request
+        final CopySnippetRequestEntity copyRequest = new CopySnippetRequestEntity();
+        copyRequest.setSnippetId(snippetEntity.getSnippet().getId());
+        copyRequest.setOriginX(0.0);
+        copyRequest.setOriginY(0.0);
+
+        // create the snippet
+        Response response = helper.getReadWriteUser().testPost(copyUrl, copyRequest);
+
+        // ensure the request failed... need privileged users since snippet comprised of the restricted components
+        assertEquals(403, response.getStatus());
+
+        // perform the request as a user with read/write and only execute code restricted access
+        response = user.testPost(copyUrl, copyRequest);
+
+        // ensure the request is successful
+        assertEquals(201, response.getStatus());
+
+        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
+
+        // remove the restricted processors
+        deleteRestrictedComponent(tuple.getKey(), user);
+        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), user);
     }
 
     /**
@@ -496,7 +597,7 @@ public class ITProcessorAccessControl {
     public void testTemplateWithRestrictedProcessor() throws Exception {
         final String createTemplateUrl = helper.getBaseUrl() + "/process-groups/root/templates";
         final String instantiateTemplateUrl = helper.getBaseUrl() + "/process-groups/root/template-instance";
-        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent();
+        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(RestrictedProcessor.class.getName(), helper.getPrivilegedUser());
         final SnippetEntity snippetEntity = tuple.getValue();
 
         // create the template
@@ -505,17 +606,17 @@ public class ITProcessorAccessControl {
         createTemplateRequest.setName("test");
 
         // create the snippet
-        ClientResponse response = helper.getWriteUser().testPost(createTemplateUrl, createTemplateRequest);
+        Response response = helper.getWriteUser().testPost(createTemplateUrl, createTemplateRequest);
 
         // ensure the request failed... need read perms to the components in the snippet
         assertEquals(403, response.getStatus());
 
         response = helper.getReadWriteUser().testPost(createTemplateUrl, createTemplateRequest);
 
-        // ensure the request is successfull
+        // ensure the request is successful
         assertEquals(201, response.getStatus());
 
-        final TemplateEntity templateEntity = response.getEntity(TemplateEntity.class);
+        final TemplateEntity templateEntity = response.readEntity(TemplateEntity.class);
 
         // build the template request
         final InstantiateTemplateRequestEntity instantiateTemplateRequest = new InstantiateTemplateRequestEntity();
@@ -530,27 +631,94 @@ public class ITProcessorAccessControl {
         assertEquals(403, response.getStatus());
 
         // create the snippet
+        response = helper.getExecuteCodeUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
+
+        // ensure the request failed... need privileged user since the template is comprised of restricted components
+        assertEquals(403, response.getStatus());
+
+        // create the snippet
         response = helper.getPrivilegedUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
-        final FlowEntity flowEntity = response.getEntity(FlowEntity.class);
+        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
 
         // clean up the resources created during this test
         deleteTemplate(templateEntity);
-        deleteRestrictedComponent(tuple.getKey());
-        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null));
+        deleteRestrictedComponent(tuple.getKey(), helper.getPrivilegedUser());
+        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), helper.getPrivilegedUser());
     }
 
-    private Tuple<ProcessorEntity, SnippetEntity> createSnippetWithRestrictedComponent() throws Exception {
+    /**
+     * Tests attempting to use a template with a restricted processor requiring execute code permissions.
+     *
+     * @throws Exception ex
+     */
+    @Test
+    public void testTemplateWithExecuteCodeRestrictedProcessor() throws Exception {
+        templateWithExecuteCodeRestrictedProcessor(helper.getPrivilegedUser());
+        templateWithExecuteCodeRestrictedProcessor(helper.getExecuteCodeUser());
+    }
+
+    private void templateWithExecuteCodeRestrictedProcessor(final NiFiTestUser user) throws Exception {
+        final String createTemplateUrl = helper.getBaseUrl() + "/process-groups/root/templates";
+        final String instantiateTemplateUrl = helper.getBaseUrl() + "/process-groups/root/template-instance";
+        final Tuple<ProcessorEntity, SnippetEntity> tuple = createSnippetWithRestrictedComponent(ExecuteCodeRestrictedProcessor.class.getName(), helper.getPrivilegedUser());
+        final SnippetEntity snippetEntity = tuple.getValue();
+
+        // create the template
+        final CreateTemplateRequestEntity createTemplateRequest = new CreateTemplateRequestEntity();
+        createTemplateRequest.setSnippetId(snippetEntity.getSnippet().getId());
+        createTemplateRequest.setName("test");
+
+        // create the snippet
+        Response response = helper.getWriteUser().testPost(createTemplateUrl, createTemplateRequest);
+
+        // ensure the request failed... need read perms to the components in the snippet
+        assertEquals(403, response.getStatus());
+
+        response = helper.getReadWriteUser().testPost(createTemplateUrl, createTemplateRequest);
+
+        // ensure the request is successful
+        assertEquals(201, response.getStatus());
+
+        final TemplateEntity templateEntity = response.readEntity(TemplateEntity.class);
+
+        // build the template request
+        final InstantiateTemplateRequestEntity instantiateTemplateRequest = new InstantiateTemplateRequestEntity();
+        instantiateTemplateRequest.setTemplateId(templateEntity.getTemplate().getId());
+        instantiateTemplateRequest.setOriginX(0.0);
+        instantiateTemplateRequest.setOriginY(0.0);
+
+        // create the snippet
+        response = helper.getReadWriteUser().testPost(instantiateTemplateUrl, instantiateTemplateRequest);
+
+        // ensure the request failed... need privileged user since the template is comprised of restricted components
+        assertEquals(403, response.getStatus());
+
+        // create the snippet
+        response = user.testPost(instantiateTemplateUrl, instantiateTemplateRequest);
+
+        // ensure the request is successful
+        assertEquals(201, response.getStatus());
+
+        final FlowEntity flowEntity = response.readEntity(FlowEntity.class);
+
+        // clean up the resources created during this test
+        deleteTemplate(templateEntity);
+        deleteRestrictedComponent(tuple.getKey(), user);
+        deleteRestrictedComponent(flowEntity.getFlow().getProcessors().stream().findFirst().orElse(null), user);
+    }
+
+    private Tuple<ProcessorEntity, SnippetEntity> createSnippetWithRestrictedComponent(final String restrictedClassName, final NiFiTestUser user) throws Exception {
         final String processorUrl = helper.getBaseUrl() + "/process-groups/root/processors";
         final String snippetUrl = helper.getBaseUrl() + "/snippets";
 
         // create the processor
         ProcessorDTO processor = new ProcessorDTO();
         processor.setName("restricted");
-        processor.setType(RestrictedProcessor.class.getName());
+        processor.setType(restrictedClassName);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -563,13 +731,13 @@ public class ITProcessorAccessControl {
         entity.setComponent(processor);
 
         // perform the request as a user with read/write and restricted access
-        ClientResponse response = helper.getPrivilegedUser().testPost(processorUrl, entity);
+        Response response = user.testPost(processorUrl, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
         // get the response
-        final ProcessorEntity responseProcessorEntity = response.getEntity(ProcessorEntity.class);
+        final ProcessorEntity responseProcessorEntity = response.readEntity(ProcessorEntity.class);
 
         // build the snippet for the copy/paste
         final SnippetDTO snippet = new SnippetDTO();
@@ -593,18 +761,18 @@ public class ITProcessorAccessControl {
         assertEquals(201, response.getStatus());
 
         // get the response
-        return new Tuple<>(responseProcessorEntity, response.getEntity(SnippetEntity.class));
+        return new Tuple<>(responseProcessorEntity, response.readEntity(SnippetEntity.class));
     }
 
     private void deleteTemplate(final TemplateEntity entity) throws Exception {
         // perform the request
-        ClientResponse response = helper.getReadWriteUser().testDelete(entity.getTemplate().getUri());
+        Response response = helper.getReadWriteUser().testDelete(entity.getTemplate().getUri());
 
         // ensure the request is successful
         assertEquals(200, response.getStatus());
     }
 
-    private void deleteRestrictedComponent(final ProcessorEntity entity) throws Exception {
+    private void deleteRestrictedComponent(final ProcessorEntity entity, final NiFiTestUser user) throws Exception {
         if (entity == null) {
             Assert.fail("Failed to get Processor from template or snippet request.");
             return;
@@ -616,12 +784,12 @@ public class ITProcessorAccessControl {
         queryParams.put("clientId", READ_WRITE_CLIENT_ID);
 
         // perform the request
-        ClientResponse response = helper.getReadWriteUser().testDelete(entity.getUri(), queryParams);
+        Response response = helper.getReadWriteUser().testDelete(entity.getUri(), queryParams);
 
         // ensure the request fails... needs access to restricted components
         assertEquals(403, response.getStatus());
 
-        response = helper.getPrivilegedUser().testDelete(entity.getUri(), queryParams);
+        response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is successful
         assertEquals(200, response.getStatus());
@@ -631,13 +799,13 @@ public class ITProcessorAccessControl {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
         // get the processors
-        final ClientResponse response = user.testGet(url);
+        final Response response = user.testGet(url);
 
         // ensure the response was successful
         assertEquals(200, response.getStatus());
 
         // unmarshal
-        final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
+        final ProcessGroupFlowEntity flowEntity = response.readEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
         final Set<ProcessorEntity> processors = flowDto.getProcessors();
 
@@ -650,7 +818,7 @@ public class ITProcessorAccessControl {
         return processorIter.next();
     }
 
-    private ClientResponse updateProcessor(final NiFiTestUser user, final ProcessorEntity entity) throws Exception {
+    private Response updateProcessor(final NiFiTestUser user, final ProcessorEntity entity) throws Exception {
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId();
 
         // perform the request
@@ -676,13 +844,13 @@ public class ITProcessorAccessControl {
         entity.setComponent(processor);
 
         // perform the request
-        ClientResponse response = ach.getReadWriteUser().testPost(url, entity);
+        Response response = ach.getReadWriteUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(ProcessorEntity.class);
+        entity = response.readEntity(ProcessorEntity.class);
 
         // verify creation
         processor = entity.getComponent();
@@ -702,7 +870,7 @@ public class ITProcessorAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        ClientResponse response = user.testDelete(entity.getUri(), queryParams);
+        Response response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());

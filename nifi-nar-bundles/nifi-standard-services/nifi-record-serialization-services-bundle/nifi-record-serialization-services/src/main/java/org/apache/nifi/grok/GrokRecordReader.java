@@ -37,8 +37,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import io.thekraken.grok.api.Grok;
-import io.thekraken.grok.api.Match;
+import io.krakens.grok.api.Grok;
+import io.krakens.grok.api.Match;
 
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
@@ -48,6 +48,7 @@ public class GrokRecordReader implements RecordReader {
     private RecordSchema schema;
 
     private String nextLine;
+    Map<String, Object> nextMap = null;
 
     static final String STACK_TRACE_COLUMN_NAME = "stackTrace";
     static final String RAW_MESSAGE_NAME = "_raw";
@@ -74,10 +75,13 @@ public class GrokRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        Map<String, Object> valueMap = null;
+        Map<String, Object> valueMap = nextMap;
+        nextMap = null;
         StringBuilder raw = new StringBuilder();
 
+        int iterations = 0;
         while (valueMap == null || valueMap.isEmpty()) {
+            iterations++;
             final String line = nextLine == null ? reader.readLine() : nextLine;
             raw.append(line);
             nextLine = null; // ensure that we don't process nextLine again
@@ -86,8 +90,11 @@ public class GrokRecordReader implements RecordReader {
             }
 
             final Match match = grok.match(line);
-            match.captures();
-            valueMap = match.toMap();
+            valueMap = match.capture();
+        }
+
+        if (iterations == 0 && nextLine != null) {
+            raw.append(nextLine);
         }
 
         // Read the next line to see if it matches the pattern (in which case we will simply leave it for
@@ -96,8 +103,7 @@ public class GrokRecordReader implements RecordReader {
         final StringBuilder trailingText = new StringBuilder();
         while ((nextLine = reader.readLine()) != null) {
             final Match nextLineMatch = grok.match(nextLine);
-            nextLineMatch.captures();
-            final Map<String, Object> nextValueMap = nextLineMatch.toMap();
+            final Map<String, Object> nextValueMap = nextLineMatch.capture();
             if (nextValueMap.isEmpty()) {
                 // next line did not match. Check if it indicates a Stack Trace. If so, read until
                 // the stack trace ends. Otherwise, append the next line to the last field in the record.
@@ -111,6 +117,7 @@ public class GrokRecordReader implements RecordReader {
                 }
             } else {
                 // The next line matched our pattern.
+                nextMap = nextValueMap;
                 break;
             }
         }

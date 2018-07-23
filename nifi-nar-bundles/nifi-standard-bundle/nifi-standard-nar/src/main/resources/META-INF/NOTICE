@@ -1,5 +1,5 @@
 nifi-standard-nar
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -87,7 +87,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache ActiveMQ
     The following NOTICE information applies:
       ActiveMQ :: Client
-      Copyright 2005-2015 The Apache Software Foundation
+      Copyright 2005-2017 The Apache Software Foundation
 
   (ASLv2) Apache Geronimo
     The following NOTICE information applies:
@@ -218,6 +218,14 @@ The following binary components are provided under the Apache Software License v
         Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
         Copyright 2000-2005, 2014-2016 Julian Hyde
 
+  (ASLv2) simple-syslog-5424
+    The following NOTICE information applies:
+
+        simple-syslog-5424
+        https://github.com/palindromicity/simple-syslog-5424
+
+        Copyright 2018 simple-syslog-5424 authors.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -230,6 +238,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
     (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
     (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
 
 *****************
 Common Development and Distribution License v1.0:
@@ -238,7 +247,6 @@ Common Development and Distribution License v1.0:
 The following binary components are provided under the Common Development and Distribution License v1.0.  See project link for details.
 
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
-    (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
 *****************
 Mozilla Public License v2.0

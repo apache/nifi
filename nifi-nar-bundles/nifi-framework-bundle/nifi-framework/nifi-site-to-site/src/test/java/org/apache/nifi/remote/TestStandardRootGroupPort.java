@@ -47,6 +47,8 @@ public class TestStandardRootGroupPort {
             final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
             if ("node1@nifi.test".equals(request.getIdentity())) {
                 return AuthorizationResult.approved();
+            } else if ("NODE1@NIFI.TEST".equals(request.getIdentity())) {
+                return AuthorizationResult.approved();
             }
             return AuthorizationResult.denied();
         }).when(authorizer).authorize(any(AuthorizationRequest.class));
@@ -87,6 +89,33 @@ public class TestStandardRootGroupPort {
         final String mapValue = "$1@$2";
         doReturn(mapPattern).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey));
         doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
+
+        final RootGroupPort port = createRootGroupPort(nifiProperties);
+
+        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
+        Assert.assertFalse(authResult.isAuthorized());
+
+        authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
+        Assert.assertTrue(authResult.isAuthorized());
+    }
+
+    @Test
+    public void testCheckUserAuthorizationByMappedDnWithTransformation() {
+
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
+        final String mapKey = ".dn";
+        Set<String> propertyKeys = new LinkedHashSet<>();
+        propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey);
+        propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey);
+        propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey);
+        doReturn(propertyKeys).when(nifiProperties).getPropertyKeys();
+
+        final String mapPattern = "^CN=(.*?), OU=(.*?)$";
+        final String mapValue = "$1@$2";
+        final String mapTransform = "UPPER";
+        doReturn(mapPattern).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey));
+        doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
+        doReturn(mapTransform).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey));
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 

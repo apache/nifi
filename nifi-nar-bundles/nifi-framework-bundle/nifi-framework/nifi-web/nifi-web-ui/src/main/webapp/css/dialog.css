@@ -213,6 +213,132 @@ div.progress-label {
 }
 
 /*
+    Save Flow Version
+ */
+
+#save-flow-version-registry-container {
+    display: flex;
+}
+
+#save-flow-version-description-field, #save-flow-version-change-comments {
+    height: 85px;
+}
+
+#save-flow-version-name-field, #save-flow-version-name {
+    width: 100%;
+    margin-right: 10px;
+}
+
+#save-flow-version-label {
+    flex: 0 0 30px;
+    background-color: #728E9B;
+    color: #fff;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    padding: 0 1px;
+}
+
+/*
+    Import Flow Version
+ */
+
+#import-flow-version-table {
+    overflow: hidden;
+    position: absolute;
+    top: 190px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 225px;
+}
+
+#change-version-percent-complete {
+    margin-top: 10px;
+    border-radius: 0;
+}
+
+#change-version-percent-complete .ui-progressbar-value {
+    border-radius: 0;
+}
+
+/*
+    Local changes
+ */
+
+#revert-local-changes-table, #show-local-changes-table {
+    position: absolute;
+    top: 78px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 350px;
+}
+
+#revert-local-changes-filter, #show-local-changes-filter {
+    width: 173px;
+}
+
+div.local-changes-message {
+    font-size: 13px;
+}
+
+/*
+    Variable Registry
+ */
+
+#variable-registry-dialog {
+    width: 850px;
+    height: 575px;
+}
+
+#variable-registry-dialog div.settings-left {
+    float: left;
+    width: 65%;
+}
+
+#variable-registry-dialog div.settings-right {
+    float: left;
+    width: 33%;
+}
+
+#variable-registry-table {
+    height: 400px;
+}
+
+#add-variable {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+li.affected-component-container {
+    margin-bottom: 3px;
+    height: 16px;
+}
+
+div.slick-cell div.overridden {
+    text-decoration: line-through;
+}
+
+#variable-message {
+    position: absolute;
+    top: 550px;
+    left: 20px;
+    font-size: 13px;
+}
+
+/*
+    Registry configuration dialog
+ */
+
+#registry-description {
+    height: 85px;
+}
+
+/*
     General dialog styles.
 */
 
@@ -238,4 +364,16 @@ ul.result li {
 .dialog-content div.spacer {
     float: left;
     width: 2%;
+}
+
+div.variable-step {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}
+
+#variable-update-steps li {
+    width: 300px;
+    margin-bottom: 2px;
 }

@@ -30,6 +30,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,12 +39,13 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FileInfo;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.file.FileStore;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,7 +67,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -114,7 +120,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .description("The input directory from which files to pull files")
             .required(true)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder()
@@ -148,6 +154,14 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor INCLUDE_FILE_ATTRIBUTES = new PropertyDescriptor.Builder()
+        .name("Include File Attributes")
+        .description("Whether or not to include information such as the file's Last Modified Time and Owner as FlowFile Attributes. "
+            + "Depending on the File System being used, gathering this information can be expensive and as a result should be disabled. This is especially true of remote file shares.")
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
             .name("Minimum File Age")
@@ -189,7 +203,9 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
-    private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
+
+    private volatile boolean includeFileAttributes;
+    private final AtomicReference<BiPredicate<Path, BasicFileAttributes>> fileFilterRef = new AtomicReference<BiPredicate<Path, BasicFileAttributes>>();
 
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
@@ -203,17 +219,23 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(LISTING_STRATEGY);
         properties.add(DIRECTORY);
         properties.add(RECURSE);
         properties.add(DIRECTORY_LOCATION);
         properties.add(FILE_FILTER);
         properties.add(PATH_FILTER);
+        properties.add(INCLUDE_FILE_ATTRIBUTES);
         properties.add(MIN_AGE);
         properties.add(MAX_AGE);
         properties.add(MIN_SIZE);
         properties.add(MAX_SIZE);
         properties.add(IGNORE_HIDDEN_FILES);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
+        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
+        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(ListedEntityTracker.NODE_IDENTIFIER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -234,6 +256,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         fileFilterRef.set(createFileFilter(context));
+        includeFileAttributes = context.getProperty(INCLUDE_FILE_ATTRIBUTES).asBoolean();
     }
 
     @Override
@@ -252,43 +275,47 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final Path absPath = filePath.toAbsolutePath();
         final String absPathString = absPath.getParent().toString() + File.separator;
 
+        final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+
         attributes.put(CoreAttributes.PATH.key(), relativePathString);
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+        attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
+        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
 
-        try {
-            FileStore store = Files.getFileStore(filePath);
-            if (store.supportsFileAttributeView("basic")) {
-                try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                    BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
-                    BasicFileAttributes attrs = view.readAttributes();
-                    attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(attrs.size()));
-                    attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastModifiedTime().toMillis())));
-                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
-                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
+        if (includeFileAttributes) {
+            try {
+                FileStore store = Files.getFileStore(filePath);
+                if (store.supportsFileAttributeView("basic")) {
+                    try {
+                        BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
+                        BasicFileAttributes attrs = view.readAttributes();
+                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
+                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+
+                if (store.supportsFileAttributeView("owner")) {
+                    try {
+                        FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
+                        attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+
+                if (store.supportsFileAttributeView("posix")) {
+                    try {
+                        PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
+                        attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
+                        attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+            } catch (IOException ioe) {
+                // well then this FlowFile gets none of these attributes
+                getLogger().warn("Error collecting attributes for file {}, message is {}", new Object[] {absPathString, ioe.getMessage()});
             }
-            if (store.supportsFileAttributeView("owner")) {
-                try {
-                    FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
-                    attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
-            }
-            if (store.supportsFileAttributeView("posix")) {
-                try {
-                    PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
-                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
-                    attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
-            }
-        } catch (IOException ioe) {
-            // well then this FlowFile gets none of these attributes
-            getLogger().warn("Error collecting attributes for file {}, message is {}",
-                    new Object[]{absPathString, ioe.getMessage()});
         }
 
         return attributes;
@@ -300,7 +327,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected Scope getStateScope(final ProcessContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         final String location = context.getProperty(DIRECTORY_LOCATION).getValue();
         if (LOCATION_REMOTE.getValue().equalsIgnoreCase(location)) {
             return Scope.CLUSTER;
@@ -311,9 +338,36 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        final File path = new File(getPath(context));
+        final Path path = new File(getPath(context)).toPath();
         final Boolean recurse = context.getProperty(RECURSE).asBoolean();
-        return scanDirectory(path, fileFilterRef.get(), recurse, minTimestamp);
+        final Map<Path, BasicFileAttributes> lastModifiedMap = new HashMap<>();
+
+        final BiPredicate<Path, BasicFileAttributes> fileFilter = fileFilterRef.get();
+        int maxDepth = recurse ? Integer.MAX_VALUE : 1;
+        BiPredicate<Path, BasicFileAttributes> matcher = (p, attributes) -> {
+            if (!attributes.isDirectory()
+                    && (minTimestamp == null || attributes.lastModifiedTime().toMillis() >= minTimestamp)
+                    && fileFilter.test(p, attributes)) {
+                // We store the attributes for each Path we are returning in order to avoid to
+                // retrieve them again later when creating the FileInfo
+                lastModifiedMap.put(p, attributes);
+                return true;
+            }
+            return false;
+        };
+        Stream<Path> inputStream = Files.find(path, maxDepth, matcher, FileVisitOption.FOLLOW_LINKS);
+        Stream<FileInfo> listing = inputStream.map(p -> {
+            File file = p.toFile();
+            BasicFileAttributes attributes = lastModifiedMap.get(p);
+            return new FileInfo.Builder()
+                .directory(false)
+                .filename(file.getName())
+                .fullPathFileName(file.getAbsolutePath())
+                .lastModifiedTime(attributes.lastModifiedTime().toMillis())
+                .size(attributes.size())
+                .build();
+        });
+        return listing.collect(Collectors.toList());
     }
 
     @Override
@@ -329,33 +383,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 || IGNORE_HIDDEN_FILES.equals(property);
     }
 
-    private List<FileInfo> scanDirectory(final File path, final FileFilter filter, final Boolean recurse,
-                                         final Long minTimestamp) throws IOException {
-        final List<FileInfo> listing = new ArrayList<>();
-        File[] files = path.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    if (recurse) {
-                        listing.addAll(scanDirectory(file, filter, true, minTimestamp));
-                    }
-                } else {
-                    if ((minTimestamp == null || file.lastModified() >= minTimestamp) && filter.accept(file)) {
-                        listing.add(new FileInfo.Builder()
-                                .directory(file.isDirectory())
-                                .filename(file.getName())
-                                .fullPathFileName(file.getAbsolutePath())
-                                .lastModifiedTime(file.lastModified())
-                                .build());
-                    }
-                }
-            }
-        }
-
-        return listing;
-    }
-
-    private FileFilter createFileFilter(final ProcessContext context) {
+    private BiPredicate<Path, BasicFileAttributes> createFileFilter(final ProcessContext context) {
         final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
         final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -366,41 +394,36 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final boolean recurseDirs = context.getProperty(RECURSE).asBoolean();
         final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
         final Pattern pathPattern = (!recurseDirs || pathPatternStr == null) ? null : Pattern.compile(pathPatternStr);
-
-        return new FileFilter() {
-            @Override
-            public boolean accept(final File file) {
-                if (minSize > file.length()) {
-                    return false;
-                }
-                if (maxSize != null && maxSize < file.length()) {
-                    return false;
-                }
-                final long fileAge = System.currentTimeMillis() - file.lastModified();
-                if (minAge > fileAge) {
-                    return false;
-                }
-                if (maxAge != null && maxAge < fileAge) {
-                    return false;
-                }
-                if (ignoreHidden && file.isHidden()) {
-                    return false;
-                }
-                if (pathPattern != null) {
-                    Path reldir = Paths.get(indir).relativize(file.toPath()).getParent();
-                    if (reldir != null && !reldir.toString().isEmpty()) {
-                        if (!pathPattern.matcher(reldir.toString()).matches()) {
-                            return false;
-                        }
+        return (path, attributes) -> {
+            if (minSize > attributes.size()) {
+                return false;
+            }
+            if (maxSize != null && maxSize < attributes.size()) {
+                return false;
+            }
+            final long fileAge = System.currentTimeMillis() - attributes.lastModifiedTime().toMillis();
+            if (minAge > fileAge) {
+                return false;
+            }
+            if (maxAge != null && maxAge < fileAge) {
+                return false;
+            }
+            if (ignoreHidden && path.toFile().isHidden()) {
+                return false;
+            }
+            if (pathPattern != null) {
+                Path reldir = Paths.get(indir).relativize(path).getParent();
+                if (reldir != null && !reldir.toString().isEmpty()) {
+                    if (!pathPattern.matcher(reldir.toString()).matches()) {
+                        return false;
                     }
                 }
-                //Verify that we have at least read permissions on the file we're considering grabbing
-                if (!Files.isReadable(file.toPath())) {
-                    return false;
-                }
-                return filePattern.matcher(file.getName()).matches();
             }
+            // Verify that we have at least read permissions on the file we're considering grabbing
+            if (!Files.isReadable(path)) {
+                return false;
+            }
+            return filePattern.matcher(path.getFileName().toString()).matches();
         };
     }
-
 }

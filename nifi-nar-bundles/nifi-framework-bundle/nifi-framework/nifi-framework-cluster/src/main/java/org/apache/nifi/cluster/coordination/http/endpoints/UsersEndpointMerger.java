@@ -45,12 +45,12 @@ public class UsersEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final UsersEntity responseEntity = clientResponse.getClientResponse().getEntity(UsersEntity.class);
+        final UsersEntity responseEntity = clientResponse.getClientResponse().readEntity(UsersEntity.class);
         final Collection<UserEntity> userEntities = responseEntity.getUsers();
 
         final Map<String, Map<NodeIdentifier, UserEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final UsersEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(UsersEntity.class);
+            final UsersEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(UsersEntity.class);
             final Collection<UserEntity> nodeUserEntities = nodeResponseEntity.getUsers();
 
             // only retain users that all nodes agree on

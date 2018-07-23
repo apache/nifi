@@ -322,4 +322,245 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert key == KEY_HEX
         assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
     }
+
+
+    @Test
+    void testShouldNormalizeContextPathProperty() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": noLeadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == "/" + noLeadingSlash
+    }
+
+    @Test
+    void testShouldHandleNormalizedContextPathProperty() {
+        // Arrange
+        String leadingSlash = "/some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == leadingSlash
+    }
+
+    @Test
+    void testShouldNormalizeMultipleContextPathsInProperty() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        String leadingSlash = "some/other/path"
+        String leadingAndTrailingSlash = "/a/third/path/"
+        List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
+        String combinedPaths = paths.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        def splitPaths = normalizedContextPath.split(",")
+        splitPaths.every {
+            assert it.startsWith("/")
+            assert !it.endsWith("/")
+        }
+    }
+
+    @Test
+    void testShouldHandleNormalizedContextPathPropertyAsList() {
+        // Arrange
+        String leadingSlash = "/some/context/path"
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
+
+        // Act
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
+
+        // Assert
+        assert normalizedContextPaths.size() == 1
+        assert normalizedContextPaths.contains(leadingSlash)
+    }
+
+    @Test
+    void testShouldNormalizeMultipleContextPathsInPropertyAsList() {
+        // Arrange
+        String noLeadingSlash = "some/context/path"
+        String leadingSlash = "/some/other/path"
+        String leadingAndTrailingSlash = "/a/third/path/"
+        List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
+        String combinedPaths = paths.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
+
+        // Act
+        def normalizedContextPaths = props.getWhitelistedContextPathsAsList()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPaths}")
+
+        // Assert
+        assert normalizedContextPaths.size() == 3
+        assert normalizedContextPaths.containsAll([leadingSlash, "/" + noLeadingSlash, leadingAndTrailingSlash[0..-2]])
+    }
+
+    @Test
+    void testShouldHandleNormalizingEmptyContextPathProperty() {
+        // Arrange
+        String empty = ""
+        Properties rawProps = new Properties(["nifi.web.proxy.context.path": empty])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw context path property [${empty}]")
+
+        // Act
+        String normalizedContextPath = props.getWhitelistedContextPaths()
+        logger.info("Read from NiFiProperties instance: ${normalizedContextPath}")
+
+        // Assert
+        assert normalizedContextPath == empty
+    }
+
+    @Test
+    void testShouldNormalizeProxyHostProperty() {
+        // Arrange
+        String extraSpaceHostname = "somehost.com  "
+        Properties rawProps = new Properties(["nifi.web.proxy.host": extraSpaceHostname])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${extraSpaceHostname}]")
+
+        // Act
+        String normalizedHostname = props.getWhitelistedHosts()
+        logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
+
+        // Assert
+        assert extraSpaceHostname.startsWith(normalizedHostname)
+        assert extraSpaceHostname.length() == normalizedHostname.length() + 2
+    }
+
+    @Test
+    void testShouldHandleNormalizedProxyHostProperty() {
+        // Arrange
+        String hostname = "somehost.com"
+        Properties rawProps = new Properties(["nifi.web.proxy.host": hostname])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${hostname}]")
+
+        // Act
+        String normalizedHostname = props.getWhitelistedHosts()
+        logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
+
+        // Assert
+        assert hostname == normalizedHostname
+    }
+
+    @Test
+    void testShouldNormalizeMultipleProxyHostsInProperty() {
+        // Arrange
+        String extraSpaceHostname = "somehost.com  "
+        String normalHostname = "someotherhost.com"
+        String hostnameWithPort = "otherhost.com:1234"
+        String extraSpaceHostnameWithPort = "  anotherhost.com:9999"
+        List<String> hosts = [extraSpaceHostname, normalHostname, hostnameWithPort, extraSpaceHostnameWithPort]
+        String combinedHosts = hosts.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.host": combinedHosts])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
+
+        // Act
+        String normalizedHostname = props.getWhitelistedHosts()
+        logger.info("Read from NiFiProperties instance: ${normalizedHostname}")
+
+        // Assert
+        def splitHosts = normalizedHostname.split(",")
+        def expectedValues = hosts*.trim()
+        splitHosts.every {
+            assert it.trim() == it
+            assert expectedValues.contains(it)
+        }
+    }
+
+    @Test
+    void testShouldHandleNormalizedProxyHostPropertyAsList() {
+        // Arrange
+        String normalHostname = "someotherhost.com"
+        Properties rawProps = new Properties(["nifi.web.proxy.host": normalHostname])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${normalHostname}]")
+
+        // Act
+        def listOfHosts = props.getWhitelistedHostsAsList()
+        logger.info("Read from NiFiProperties instance: ${listOfHosts}")
+
+        // Assert
+        assert listOfHosts.size() == 1
+        assert listOfHosts.contains(normalHostname)
+    }
+
+    @Test
+    void testShouldNormalizeMultipleProxyHostsInPropertyAsList() {
+        // Arrange
+        String extraSpaceHostname = "somehost.com  "
+        String normalHostname = "someotherhost.com"
+        String hostnameWithPort = "otherhost.com:1234"
+        String extraSpaceHostnameWithPort = "  anotherhost.com:9999"
+        List<String> hosts = [extraSpaceHostname, normalHostname, hostnameWithPort, extraSpaceHostnameWithPort]
+        String combinedHosts = hosts.join(",")
+        Properties rawProps = new Properties(["nifi.web.proxy.host": combinedHosts])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
+
+        // Act
+        def listOfHosts = props.getWhitelistedHostsAsList()
+        logger.info("Read from NiFiProperties instance: ${listOfHosts}")
+
+        // Assert
+        assert listOfHosts.size() == 4
+        assert listOfHosts.containsAll([extraSpaceHostname[0..-3], normalHostname, hostnameWithPort, extraSpaceHostnameWithPort[2..-1]])
+    }
+
+    @Test
+    void testShouldHandleNormalizingEmptyProxyHostProperty() {
+        // Arrange
+        String empty = ""
+        Properties rawProps = new Properties(["nifi.web.proxy.host": empty])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
+
+        // Act
+        String normalizedHost = props.getWhitelistedHosts()
+        logger.info("Read from NiFiProperties instance: ${normalizedHost}")
+
+        // Assert
+        assert normalizedHost == empty
+    }
+
+    @Test
+    void testShouldReturnEmptyProxyHostPropertyAsList() {
+        // Arrange
+        String empty = ""
+        Properties rawProps = new Properties(["nifi.web.proxy.host": empty])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
+
+        // Act
+        def hosts = props.getWhitelistedHostsAsList()
+        logger.info("Read from NiFiProperties instance: ${hosts}")
+
+        // Assert
+        assert hosts.size() == 0
+    }
 }

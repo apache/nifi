@@ -20,13 +20,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -55,6 +48,8 @@ import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,8 +57,14 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyStore;
@@ -79,7 +80,6 @@ public class OcspCertificateValidator {
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidator.class);
 
     private static final String HTTPS = "https";
-    private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
 
     private static final int CONNECT_TIMEOUT = 10000;
@@ -101,16 +101,15 @@ public class OcspCertificateValidator {
                 // attempt to parse the specified va url
                 validationAuthorityURI = URI.create(rawValidationAuthorityUrl);
 
-                // connection details
-                final ClientConfig config = new DefaultClientConfig();
-                config.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, READ_TIMEOUT);
-                config.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+                final ClientConfig clientConfig = new ClientConfig();
+                clientConfig.property(ClientProperties.READ_TIMEOUT, READ_TIMEOUT);
+                clientConfig.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
                 // initialize the client
                 if (HTTPS.equalsIgnoreCase(validationAuthorityURI.getScheme())) {
-                    client = WebUtils.createClient(config, SslContextFactory.createSslContext(properties));
+                    client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(properties));
                 } else {
-                    client = WebUtils.createClient(config);
+                    client = WebUtils.createClient(clientConfig);
                 }
 
                 // get the trusted CAs
@@ -311,16 +310,16 @@ public class OcspCertificateValidator {
             final OCSPReq ocspRequest = requestGenerator.build();
 
             // perform the request
-            final ClientResponse response = getClientResponse(ocspRequest);
+            final Response response = getClientResponse(ocspRequest);
 
             // ensure the request was completed successfully
-            if (ClientResponse.Status.OK.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+            if (Response.Status.OK.getStatusCode() != response.getStatusInfo().getStatusCode()) {
                 logger.warn(String.format("OCSP request was unsuccessful (%s).", response.getStatus()));
                 return ocspStatus;
             }
 
             // interpret the response
-            OCSPResp ocspResponse = new OCSPResp(response.getEntityInputStream());
+            OCSPResp ocspResponse = new OCSPResp(response.readEntity(InputStream.class));
 
             // verify the response status
             switch (ocspResponse.getStatus()) {
@@ -402,7 +401,7 @@ public class OcspCertificateValidator {
                     }
                 }
             }
-        } catch (final OCSPException | IOException | UniformInterfaceException | ClientHandlerException | OperatorCreationException e) {
+        } catch (final OCSPException | IOException | ProcessingException | OperatorCreationException e) {
             logger.error(e.getMessage(), e);
         } catch (CertificateException e) {
             e.printStackTrace();
@@ -411,9 +410,9 @@ public class OcspCertificateValidator {
         return ocspStatus;
     }
 
-    private ClientResponse getClientResponse(OCSPReq ocspRequest) throws IOException {
-        final WebResource resource = client.resource(validationAuthorityURI);
-        return resource.header(CONTENT_TYPE_HEADER, OCSP_REQUEST_CONTENT_TYPE).post(ClientResponse.class, ocspRequest.getEncoded());
+    private Response getClientResponse(OCSPReq ocspRequest) throws IOException {
+        final WebTarget webTarget = client.target(validationAuthorityURI);
+        return webTarget.request().post(Entity.entity(ocspRequest.getEncoded(), OCSP_REQUEST_CONTENT_TYPE));
     }
 
     /**

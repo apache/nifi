@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -62,6 +63,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             .Builder().name("Port")
             .description("The port to listen on for communication.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -175,7 +177,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
-        port = context.getProperty(PORT).asInteger();
+        port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
 
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
@@ -261,17 +263,19 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             event = errorEvents.poll();
         }
 
-        if (event == null) {
-            try {
-                if (longPoll) {
-                    event = events.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                } else {
-                    event = events.poll();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
+        if (event != null) {
+            return event;
+        }
+
+        try {
+            if (longPoll) {
+                event = events.poll(getLongPollTimeout(), TimeUnit.MILLISECONDS);
+            } else {
+                event = events.poll();
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
 
         if (event != null) {
@@ -281,4 +285,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return event;
     }
 
+    protected long getLongPollTimeout() {
+        return POLL_TIMEOUT_MS;
+    }
 }

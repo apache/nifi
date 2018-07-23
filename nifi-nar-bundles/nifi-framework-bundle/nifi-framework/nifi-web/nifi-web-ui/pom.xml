@@ -18,13 +18,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <node.version>v5.7.0</node.version>
-        <npm.version>1.3.8</npm.version>
+        <node.version>v8.10.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
@@ -151,8 +150,11 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <!-- D3 -->
-                                        <include>d3/d3.min.js*</include>
+                                        <include>d3/build/d3.min.js*</include>
                                         <include>d3/LICENSE</include>
+                                        <!-- D3 selection multi -->
+                                        <include>d3-selection-multi/build/d3-selection-multi.min.js*</include>
+                                        <include>d3-selection-multi/LICENSE</include>
                                         <!-- angular -->
                                         <include>angular/angular.min.js*</include>
                                         <include>angular/LICENSE.md</include>
@@ -191,6 +193,7 @@
                                         <!-- jquery ui -->
                                         <include>jquery-ui-dist/jquery-ui.min.js</include>
                                         <include>jquery-ui-dist/jquery-ui.min.css</include>
+                                        <include>jquery-ui-dist/images/**/*</include>
                                         <include>jquery-ui-dist/LICENSE.txt</include>
                                         <!-- jquery minicolors -->
                                         <include>jquery-minicolors/jquery.minicolors.min.js</include>
@@ -356,7 +359,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.1</version>
+                <version>1.4</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -369,7 +372,6 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <nodeVersion>${node.version}</nodeVersion>
-                            <npmVersion>${npm.version}</npmVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -461,6 +463,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-variable-registry.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-version.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
@@ -474,6 +477,8 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-draggable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-graph.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-flow-version.js</include>
+                                                <include>${staging.dir}/js/nf/nf-filtered-dialog-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-policy-management.js</include>
@@ -891,8 +896,8 @@
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
+                                <exclude>src/main/frontend/package-lock.json</exclude>
                                 <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
-                                <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
                             </excludes>

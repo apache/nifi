@@ -44,12 +44,12 @@ public class ProcessGroupsEndpointMerger implements EndpointResponseMerger {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessGroupsEntity.class);
+        final ProcessGroupsEntity responseEntity = clientResponse.getClientResponse().readEntity(ProcessGroupsEntity.class);
         final Set<ProcessGroupEntity> processGroupEntities = responseEntity.getProcessGroups();
 
         final Map<String, Map<NodeIdentifier, ProcessGroupEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessGroupsEntity.class);
+            final ProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(ProcessGroupsEntity.class);
             final Set<ProcessGroupEntity> nodeProcessGroupEntities = nodeResponseEntity.getProcessGroups();
 
             for (final ProcessGroupEntity nodeProcessGroupEntity : nodeProcessGroupEntities) {

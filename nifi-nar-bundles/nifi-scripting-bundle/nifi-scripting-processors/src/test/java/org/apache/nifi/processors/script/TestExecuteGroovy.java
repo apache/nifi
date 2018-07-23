@@ -18,6 +18,7 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 
 public class TestExecuteGroovy extends BaseScriptTest {
@@ -274,19 +277,26 @@ public class TestExecuteGroovy extends BaseScriptTest {
     }
 
     /**
-     * Tests a script that throws an Exception within. The expected result is that the FlowFile will be routed to
-     * failure
+     * Tests a script that throws an Exception within. The expected result is that the flow file is rolled back
+     * and penalized. Besides we check that we yielded the processor.
      *
      * @throws Exception Any error encountered while testing
      */
-    @Test(expected = AssertionError.class)
+    @Test
     public void testScriptException() throws Exception {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
-        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "throw new Exception()");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/testScriptException.groovy"));
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
+        try {
+            runner.run();
+            fail();
+        } catch (AssertionError e) {
+            runner.assertPenalizeCount(1); // penalized
+            runner.assertQueueNotEmpty(); // flow file back in the input queue
+            assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled()); // processor yielded
+        }
     }
 }

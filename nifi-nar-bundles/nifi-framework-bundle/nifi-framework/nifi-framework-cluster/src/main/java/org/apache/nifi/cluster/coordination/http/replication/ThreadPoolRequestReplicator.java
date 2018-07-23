@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -42,12 +43,13 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -67,32 +69,22 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     private static final Logger logger = LoggerFactory.getLogger(ThreadPoolRequestReplicator.class);
 
-    private final Client client; // the client to use for issuing requests
-    private final int connectionTimeoutMs; // connection timeout per node request
-    private final int readTimeoutMs; // read timeout per node request
     private final int maxConcurrentRequests; // maximum number of concurrent requests
     private final HttpResponseMapper responseMapper;
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
     private final ClusterCoordinator clusterCoordinator;
+    private final NiFiProperties nifiProperties;
 
     private ThreadPoolExecutor executorService;
     private ScheduledExecutorService maintenanceExecutor;
@@ -104,22 +96,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    /**
-     * Creates an instance using a connection timeout and read timeout of 3 seconds
-     *
-     * @param corePoolSize core size of the thread pool
-     * @param maxPoolSize the max number of threads in the thread pool
-     * @param maxConcurrentRequests maximum number of concurrent requests
-     * @param client a client for making requests
-     * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
-     * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
-     * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
-     * @param nifiProperties properties
-     */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final Client client, final ClusterCoordinator clusterCoordinator,
-                                       final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        this(corePoolSize, maxPoolSize, maxConcurrentRequests, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
-    }
+    private HttpReplicationClient httpClient;
+
 
     /**
      * Creates an instance.
@@ -129,15 +107,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
-     * @param connectionTimeout the connection timeout specified in milliseconds
-     * @param readTimeout the read timeout specified in milliseconds
      * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final Client client, final ClusterCoordinator clusterCoordinator,
-                                       final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback,
-                                       final EventReporter eventReporter, final NiFiProperties nifiProperties) {
+    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
+        final ClusterCoordinator clusterCoordinator, final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
         if (corePoolSize <= 0) {
             throw new IllegalArgumentException("The Core Pool Size must be greater than zero.");
         } else if (maxPoolSize < corePoolSize) {
@@ -146,18 +121,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             throw new IllegalArgumentException("Client may not be null.");
         }
 
-        this.client = client;
         this.clusterCoordinator = clusterCoordinator;
-        this.connectionTimeoutMs = (int) FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
-        this.readTimeoutMs = (int) FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
         this.maxConcurrentRequests = maxConcurrentRequests;
         this.responseMapper = new StandardHttpResponseMapper(nifiProperties);
         this.eventReporter = eventReporter;
         this.callback = callback;
-
-        client.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, connectionTimeoutMs);
-        client.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, readTimeoutMs);
-        client.getProperties().put(ClientConfig.PROPERTY_FOLLOW_REDIRECTS, Boolean.TRUE);
+        this.nifiProperties = nifiProperties;
+        this.httpClient = client;
 
         final AtomicInteger threadId = new AtomicInteger(0);
         final ThreadFactory threadFactory = r -> {
@@ -188,8 +158,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         maintenanceExecutor.shutdown();
     }
 
+
     @Override
     public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
+        return replicate(NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
+    }
+
+    @Override
+    public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method, uri.getPath());
 
@@ -230,11 +206,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, method, uri, entity, headers, true, true);
+        return replicate(nodeIdSet, user, method, uri, entity, headers, true, true);
     }
 
-    void updateRequestHeaders(final Map<String, String> headers) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+    void updateRequestHeaders(final Map<String, String> headers, final NiFiUser user) {
         if (user == null) {
             throw new AccessDeniedException("Unknown user");
         }
@@ -248,12 +223,37 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // will happen when the request is replicated using the proxy chain above
         headers.remove(JwtAuthenticationFilter.AUTHORIZATION);
 
+        // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
+        // and will be included in the proxied entities chain above... authorization will happen when the
+        // request is replicated
+        final String knoxCookieName = nifiProperties.getKnoxCookieName();
+        if (headers.containsKey("Cookie") && StringUtils.isNotBlank(knoxCookieName)) {
+            final String rawCookies = headers.get("Cookie");
+            final String[] rawCookieParts = rawCookies.split(";");
+            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(knoxCookieName + "=")).collect(Collectors.toSet());
+
+            // if that was the only cookie, remove it
+            if (filteredCookieParts.isEmpty()) {
+                headers.remove("Cookie");
+            } else {
+                // otherwise rebuild the cookies without the knox token
+                headers.put("Cookie", StringUtils.join(filteredCookieParts, "; "));
+            }
+        }
+
         // remove the host header
         headers.remove("Host");
     }
 
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
+                final boolean indicateReplicated, final boolean performVerification) {
+
+        return replicate(nodeIds, NiFiUserUtils.getNiFiUser(), method, uri, entity, headers, indicateReplicated, performVerification);
+    }
+
+    @Override
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
@@ -263,7 +263,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         // include the proxied entities header
-        updateRequestHeaders(updatedHeaders);
+        updateRequestHeaders(updatedHeaders, user);
 
         if (indicateReplicated) {
             // If we are replicating a request and indicating that it is replicated, then this means that we are
@@ -299,12 +299,19 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
     }
 
+
     @Override
     public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
+        return forwardToCoordinator(coordinatorNodeId, NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
+    }
+
+    @Override
+    public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final NiFiUser user, final String method,
+                final URI uri, final Object entity, final Map<String, String> headers) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         // include the proxied entities header
-        updateRequestHeaders(updatedHeaders);
+        updateRequestHeaders(updatedHeaders, user);
 
         return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false, false, null);
     }
@@ -436,8 +443,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             }
 
             // replicate the request to all nodes
+            final PreparedRequest request = httpClient.prepareRequest(method, updatedHeaders, entity);
             final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
-                nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, nodeCompletionCallback, finalResponse);
+                nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), nodeCompletionCallback, finalResponse);
+
             submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
 
             return response;
@@ -513,8 +522,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                                 public void run() {
                                     logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
 
+                                    final PreparedRequest request = httpClient.prepareRequest(method, cancelLockHeaders, entity);
                                     final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
-                                        nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, cancelLockHeaders, null, clusterResponse);
+                                        nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), null, clusterResponse);
 
                                     submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, cancelLockHeaders);
                                 }
@@ -526,7 +536,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                             // Check that all nodes responded successfully.
                             for (final NodeResponse response : nodeResponses) {
                                 if (response.getStatus() != NODE_CONTINUE_STATUS_CODE) {
-                                    final ClientResponse clientResponse = response.getClientResponse();
+                                    final Response clientResponse = response.getClientResponse();
 
                                     final String message;
                                     if (clientResponse == null) {
@@ -535,7 +545,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                                         logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. The action will not occur",
                                                 response.getStatus(), response.getNodeId(), method, uri.getPath());
                                     } else {
-                                        final String nodeExplanation = clientResponse.getEntity(String.class);
+                                        final String nodeExplanation = clientResponse.readEntity(String.class);
                                         message = "Node " + response.getNodeId() + " is unable to fulfill this request due to: " + nodeExplanation;
 
                                         logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. "
@@ -588,8 +598,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         };
 
         // Callback function for generating a NodeHttpRequestCallable that can be used to perform the work
-        final Function<NodeIdentifier, NodeHttpRequest> requestFactory = nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, validationHeaders, completionCallback,
-            clusterResponse);
+        final PreparedRequest request = httpClient.prepareRequest(method, validationHeaders, entity);
+        final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+            nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), completionCallback, clusterResponse);
 
         // replicate the 'verification request' to all nodes
         submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, validationHeaders);
@@ -607,38 +618,19 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
     // Visible for testing - overriding this method makes it easy to verify behavior without actually making any web requests
-    protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId,
-        final Map<String, String> headers, final StandardAsyncClusterResponse clusterResponse) {
-        final ClientResponse clientResponse;
-        final long startNanos = System.nanoTime();
-        logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", method, uri, requestId, headers);
+    protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri, final String requestId,
+            final StandardAsyncClusterResponse clusterResponse) throws IOException {
 
-        switch (method.toUpperCase()) {
-            case HttpMethod.DELETE:
-                clientResponse = resourceBuilder.delete(ClientResponse.class);
-                break;
-            case HttpMethod.GET:
-                clientResponse = resourceBuilder.get(ClientResponse.class);
-                break;
-            case HttpMethod.HEAD:
-                clientResponse = resourceBuilder.head();
-                break;
-            case HttpMethod.OPTIONS:
-                clientResponse = resourceBuilder.options(ClientResponse.class);
-                break;
-            case HttpMethod.POST:
-                clientResponse = resourceBuilder.post(ClientResponse.class);
-                break;
-            case HttpMethod.PUT:
-                clientResponse = resourceBuilder.put(ClientResponse.class);
-                break;
-            default:
-                throw new IllegalArgumentException("HTTP Method '" + method + "' not supported for request replication.");
-        }
+        final Response response;
+        final long startNanos = System.nanoTime();
+        logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", request.getMethod(), uri, requestId, request.getHeaders());
+
+        // invoke the request
+        response = httpClient.replicate(request, uri.toString());
 
         final long nanos = System.nanoTime() - startNanos;
         clusterResponse.addTiming("Perform HTTP Request", nodeId.toString(), nanos);
-        final NodeResponse nodeResponse = new NodeResponse(nodeId, method, uri, clientResponse, System.nanoTime() - startNanos, requestId);
+        final NodeResponse nodeResponse = new NodeResponse(nodeId, request.getMethod(), uri, response, System.nanoTime() - startNanos, requestId);
         if (nodeResponse.is2xx()) {
             final int length = nodeResponse.getClientResponse().getLength();
             if (length > 0) {
@@ -798,19 +790,17 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         private final NodeIdentifier nodeId;
         private final String method;
         private final URI uri;
-        private final Object entity;
-        private final Map<String, String> headers = new HashMap<>();
         private final NodeRequestCompletionCallback callback;
         private final StandardAsyncClusterResponse clusterResponse;
         private final long creationNanos = System.nanoTime();
+        private final PreparedRequest request;
 
-        private NodeHttpRequest(final NodeIdentifier nodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers,
-            final NodeRequestCompletionCallback callback, final StandardAsyncClusterResponse clusterResponse) {
+        private NodeHttpRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri,
+                final NodeRequestCompletionCallback callback, final StandardAsyncClusterResponse clusterResponse) {
+            this.request = request;
             this.nodeId = nodeId;
-            this.method = method;
+            this.method = request.getMethod();
             this.uri = uri;
-            this.entity = entity;
-            this.headers.putAll(headers);
             this.callback = callback;
             this.clusterResponse = clusterResponse;
         }
@@ -825,11 +815,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
             try {
                 // create and send the request
-                final WebResource.Builder resourceBuilder = createResourceBuilder();
-                final String requestId = headers.get("x-nifi-request-id");
-
+                final String requestId = request.getHeaders().get("x-nifi-request-id");
                 logger.debug("Replicating request {} {} to {}", method, uri.getPath(), nodeId);
-                nodeResponse = replicateRequest(resourceBuilder, nodeId, method, uri, requestId, headers, clusterResponse);
+
+                nodeResponse = replicateRequest(request, nodeId, uri, requestId, clusterResponse);
             } catch (final Exception e) {
                 nodeResponse = new NodeResponse(nodeId, method, uri, e);
                 logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, e.toString());
@@ -840,54 +829,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 logger.debug("Request {} {} completed for {}", method, uri.getPath(), nodeId);
                 callback.onCompletion(nodeResponse);
             }
-        }
-
-
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        private WebResource.Builder createResourceBuilder() {
-            // convert parameters to a more convenient data structure
-            final MultivaluedMap<String, String> map = new MultivaluedMapImpl();
-
-            if (entity instanceof MultivaluedMap) {
-                map.putAll((Map) entity);
-            }
-
-            // create the resource
-            WebResource resource = client.resource(uri);
-
-            if (responseMapper.isResponseInterpreted(uri, method)) {
-                resource.addFilter(new GZIPContentEncodingFilter(false));
-            }
-
-            // set the parameters as either query parameters or as request body
-            final WebResource.Builder builder;
-            if (HttpMethod.DELETE.equalsIgnoreCase(method) || HttpMethod.HEAD.equalsIgnoreCase(method) || HttpMethod.GET.equalsIgnoreCase(method) || HttpMethod.OPTIONS.equalsIgnoreCase(method)) {
-                resource = resource.queryParams(map);
-                builder = resource.getRequestBuilder();
-            } else {
-                if (entity == null) {
-                    builder = resource.entity(map);
-                } else {
-                    builder = resource.entity(entity);
-                }
-            }
-
-            // set headers
-            boolean foundContentType = false;
-            for (final Map.Entry<String, String> entry : headers.entrySet()) {
-                builder.header(entry.getKey(), entry.getValue());
-                if (entry.getKey().equalsIgnoreCase("content-type")) {
-                    foundContentType = true;
-                }
-            }
-
-            // set default content type
-            if (!foundContentType) {
-                // set default content type
-                builder.type(MediaType.APPLICATION_FORM_URLENCODED);
-            }
-
-            return builder;
         }
     }
 

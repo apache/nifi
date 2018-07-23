@@ -27,7 +27,7 @@
 </p>
 <p>
     This processor does two things. It constructs FlowFile by extracting information from the consumed JMS message including body, standard 
-    <a href="http://docs.spring.io/spring-integration/api/org/springframework/integration/jms/JmsHeaders.html">JMS Headers</a> and Properties. 
+    <a href="http://docs.spring.io/spring-integration/docs/4.2.0.RELEASE/api/org/springframework/integration/jms/JmsHeaders.html">JMS Headers</a> and Properties.
     The message body is written to a FlowFile while standard JMS Headers and Properties are set as FlowFile attributes.
 </p>
 
@@ -46,12 +46,8 @@
     <li><b>Destination Name</b> - [REQUIRED] the name of the <i>javax.jms.Destination</i>. 
     Usually provided by administrator (e.g., 'topic://myTopic'). 
     </li>
-    <li><b>Destination Type</b> - [OPTIONAL] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
-    Usually provided by the administrator. Defaults to 'TOPIC'. 
-    </li>
-    <li><b>Session Cache size</b> - [OPTIONAL] Specify the desired size for the JMS Session cache (per JMS Session type). This cache 
-    size is the maximum limit for the number of cached Sessions.
-    Usually provided by the administrator (e.g., '2453'). Defaults to '1'.
+    <li><b>Destination Type</b> - [REQUIRED] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
+    Usually provided by the administrator. Defaults to 'QUEUE'.
     </li>
     <li><b>Connection Factory Service</b> - [REQUIRED] link to a pre-configured instance of org.apache.nifi.jms.cf.JMSConnectionFactoryProvider.
     </li>

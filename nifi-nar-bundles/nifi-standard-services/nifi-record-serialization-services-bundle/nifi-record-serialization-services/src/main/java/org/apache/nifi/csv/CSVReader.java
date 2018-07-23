@@ -32,6 +32,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -54,17 +55,38 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the "
             + "column names in the header and assuming that all columns are of type String.");
 
+    // CSV parsers
+    public static final AllowableValue APACHE_COMMONS_CSV = new AllowableValue("commons-csv", "Apache Commons CSV",
+            "The CSV parser implementation from the Apache Commons CSV library.");
+
+    public static final AllowableValue JACKSON_CSV = new AllowableValue("jackson-csv", "Jackson CSV",
+            "The CSV parser implementation from the Jackson Dataformats library.");
+
+
+    public static final PropertyDescriptor CSV_PARSER = new PropertyDescriptor.Builder()
+            .name("csv-reader-csv-parser")
+            .displayName("CSV Parser")
+            .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality "
+                    + "and may also exhibit different levels of performance.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(APACHE_COMMONS_CSV, JACKSON_CSV)
+            .defaultValue(APACHE_COMMONS_CSV.getValue())
+            .required(true)
+            .build();
+
+    private volatile String csvParser;
     private volatile CSVFormat csvFormat;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
     private volatile boolean firstLineIsHeader;
     private volatile boolean ignoreHeader;
-
+    private volatile String charSet;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(CSV_PARSER);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -77,17 +99,20 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.COMMENT_MARKER);
         properties.add(CSVUtils.NULL_STRING);
         properties.add(CSVUtils.TRIM_FIELDS);
+        properties.add(CSVUtils.CHARSET);
         return properties;
     }
 
     @OnEnabled
     public void storeCsvFormat(final ConfigurationContext context) {
+        this.csvParser = context.getProperty(CSV_PARSER).getValue();
         this.csvFormat = CSVUtils.createCSVFormat(context);
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
         this.firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).asBoolean();
         this.ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).asBoolean();
+        this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
 
         // Ensure that if we are deriving schema from header that we always treat the first line as a header,
         // regardless of the 'First Line is Header' property
@@ -106,7 +131,13 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(bufferedIn), null);
         bufferedIn.reset();
 
-        return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
+        if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
+            return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        } else if(JACKSON_CSV.getValue().equals(csvParser)) {
+            return new JacksonCSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        } else {
+            throw new IOException("Parser not supported");
+        }
     }
 
     @Override

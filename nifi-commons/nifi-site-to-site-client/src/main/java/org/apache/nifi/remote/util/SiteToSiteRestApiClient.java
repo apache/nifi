@@ -16,55 +16,10 @@
  */
 package org.apache.nifi.remote.util;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -121,20 +76,68 @@ import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 public class SiteToSiteRestApiClient implements Closeable {
 
@@ -177,11 +180,14 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
+    private long cacheExpirationMillis = 30000L;
     private static final Pattern HTTP_ABS_URL = Pattern.compile("^https?://.+$");
 
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
 
+    private static final ConcurrentMap<String, RemoteGroupContents> contentsMap = new ConcurrentHashMap<>();
+    private volatile long lastPruneTimestamp = System.currentTimeMillis();
 
     public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final EventReporter eventReporter) {
         this.sslContext = sslContext;
@@ -269,7 +275,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final HttpClientBuilder clientBuilder = HttpClients.custom();
 
         if (sslContext != null) {
-            clientBuilder.setSslcontext(sslContext);
+            clientBuilder.setSSLContext(sslContext);
             clientBuilder.addInterceptorFirst(new HttpsResponseInterceptor());
         }
 
@@ -369,10 +375,48 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     private ControllerDTO getController() throws IOException {
+        // first check cache and prune any old values.
+        // Periodically prune the map so that we are not keeping entries around forever, in case an RPG is removed
+        // from he canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
+        if (System.currentTimeMillis() > lastPruneTimestamp + TimeUnit.MINUTES.toMillis(5)) {
+            pruneCache();
+        }
+
+        final String internedUrl = baseUrl.intern();
+        synchronized (internedUrl) {
+            final RemoteGroupContents groupContents = contentsMap.get(internedUrl);
+
+            if (groupContents == null || groupContents.getContents() == null || groupContents.isOlderThan(cacheExpirationMillis)) {
+                logger.debug("No Contents for remote group at URL {} or contents have expired; will refresh contents", internedUrl);
+
+                final ControllerDTO refreshedContents;
+                try {
+                    refreshedContents = fetchController();
+                } catch (final Exception e) {
+                    // we failed to refresh contents, but we don't want to constantly poll the remote instance, failing.
+                    // So we put the ControllerDTO back but use a new RemoteGroupContents so that we get a new timestamp.
+                    final ControllerDTO existingController = groupContents == null ? null : groupContents.getContents();
+                    final RemoteGroupContents updatedContents = new RemoteGroupContents(existingController);
+                    contentsMap.put(internedUrl, updatedContents);
+                    throw e;
+                }
+
+                logger.debug("Successfully retrieved contents for remote group at URL {}", internedUrl);
+
+                final RemoteGroupContents updatedContents = new RemoteGroupContents(refreshedContents);
+                contentsMap.put(internedUrl, updatedContents);
+                return refreshedContents;
+            }
+
+            logger.debug("Contents for remote group at URL {} have already been fetched and have not yet expired. Will return the cached value.", internedUrl);
+            return groupContents.getContents();
+        }
+    }
+
+    private ControllerDTO fetchController() throws IOException {
         try {
             final HttpGet get = createGetControllerRequest();
             return execute(get, ControllerEntity.class).getController();
-
         } catch (final HttpGetFailedException e) {
             if (RESPONSE_CODE_NOT_FOUND == e.getResponseCode()) {
                 logger.debug("getController received NOT_FOUND, trying to access the old NiFi version resource url...");
@@ -380,6 +424,20 @@ public class SiteToSiteRestApiClient implements Closeable {
                 return execute(get, ControllerEntity.class).getController();
             }
             throw e;
+        }
+    }
+
+    private void pruneCache() {
+        for (final Map.Entry<String, RemoteGroupContents> entry : contentsMap.entrySet()) {
+            final String url = entry.getKey();
+            final RemoteGroupContents contents = entry.getValue();
+
+            // If any entry in the map is more than 4 times as old as the refresh period,
+            // then we can go ahead and remove it from the map. We use 4 * refreshMillis
+            // just to ensure that we don't have any race condition with the above #getRemoteContents.
+            if (contents.isOlderThan(TimeUnit.MINUTES.toMillis(5))) {
+                contentsMap.remove(url, contents);
+            }
         }
     }
 
@@ -715,8 +773,8 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             private final ByteBuffer buffer = ByteBuffer.allocate(DATA_PACKET_CHANNEL_READ_BUFFER_SIZE);
 
-            private int totalRead = 0;
-            private int totalProduced = 0;
+            private long totalRead = 0;
+            private long totalProduced = 0;
 
             private boolean requestHasBeenReset = false;
 
@@ -1179,7 +1237,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final String responseMessage = execute(get);
 
         final ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         try {
             return mapper.readValue(responseMessage, entityClass);
@@ -1210,6 +1268,10 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     public void setReadTimeoutMillis(final int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
+    }
+
+    public void setCacheExpirationMillis(final long expirationMillis) {
+        this.cacheExpirationMillis = expirationMillis;
     }
 
     public static String getFirstUrl(final String clusterUrlStr) {
@@ -1453,4 +1515,22 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
+    private static class RemoteGroupContents {
+        private final ControllerDTO contents;
+        private final long timestamp;
+
+        public RemoteGroupContents(final ControllerDTO contents) {
+            this.contents = contents;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public ControllerDTO getContents() {
+            return contents;
+        }
+
+        public boolean isOlderThan(final long millis) {
+            final long millisSinceRefresh = System.currentTimeMillis() - timestamp;
+            return millisSinceRefresh > millis;
+        }
+    }
 }

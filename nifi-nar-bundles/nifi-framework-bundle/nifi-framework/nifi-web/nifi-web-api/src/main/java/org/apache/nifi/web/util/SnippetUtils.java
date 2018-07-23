@@ -90,7 +90,6 @@ public final class SnippetUtils {
     private DtoFactory dtoFactory;
     private AccessPolicyDAO accessPolicyDAO;
 
-
     /**
      * Populates the specified snippet and returns the details.
      *
@@ -421,18 +420,24 @@ public final class SnippetUtils {
         }
 
         // get a list of all names of process groups so that we can rename as needed.
-        final List<String> groupNames = new ArrayList<>();
+        final Set<String> groupNames = new HashSet<>();
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             groupNames.add(childGroup.getName());
         }
 
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
-                String groupName = groupDTO.getName();
-                while (groupNames.contains(groupName)) {
-                    groupName = "Copy of " + groupName;
+                // If Version Control Information is present, then we don't want to rename the
+                // Process Group - we want it to remain the same as the one in Version Control.
+                // However, in order to disambiguate things, we generally do want to rename to
+                // 'Copy of...' so we do this only if there is no Version Control Information present.
+                if (groupDTO.getVersionControlInformation() == null) {
+                    String groupName = groupDTO.getName();
+                    while (groupNames.contains(groupName)) {
+                        groupName = "Copy of " + groupName;
+                    }
+                    groupDTO.setName(groupName);
                 }
-                groupDTO.setName(groupName);
                 groupNames.add(groupDTO.getName());
             }
         }
@@ -658,13 +663,24 @@ public final class SnippetUtils {
                     if (contents != null && contents.getInputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getInputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
                         }
                     }
                     if (contents != null && contents.getOutputPorts() != null) {
                         for (final RemoteProcessGroupPortDTO remotePort : contents.getOutputPorts()) {
                             remotePort.setGroupId(cp.getId());
-                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
+                            final String originalId = remotePort.getId();
+                            if (remotePort.getTargetId() == null) {
+                                remotePort.setTargetId(originalId);
+                            }
+                            remotePort.setId(generateId(remotePort.getId(), idGenerationSeed, isCopy));
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + originalId, dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
                         }
                     }
 
@@ -716,7 +732,7 @@ public final class SnippetUtils {
 
     /**
      * Clones all the component specified policies for the specified original component. This will include the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param originalComponentResource original component resource
      * @param clonedComponentResource cloned component resource
@@ -730,6 +746,7 @@ public final class SnippetUtils {
         final Map<Resource, Resource> resources = new HashMap<>();
         resources.put(originalComponentResource, clonedComponentResource);
         resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
+        resources.put(ResourceFactory.getProvenanceDataResource(originalComponentResource), ResourceFactory.getProvenanceDataResource(clonedComponentResource));
         resources.put(ResourceFactory.getDataTransferResource(originalComponentResource), ResourceFactory.getDataTransferResource(clonedComponentResource));
         resources.put(ResourceFactory.getPolicyResource(originalComponentResource), ResourceFactory.getPolicyResource(clonedComponentResource));
 
@@ -813,7 +830,7 @@ public final class SnippetUtils {
 
     /**
      * Attempts to roll back all policies for the specified component. This includes the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance resource for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param componentResource component resource
      */
@@ -825,6 +842,7 @@ public final class SnippetUtils {
         final List<Resource> resources = new ArrayList<>();
         resources.add(componentResource);
         resources.add(ResourceFactory.getDataResource(componentResource));
+        resources.add(ResourceFactory.getProvenanceDataResource(componentResource));
         resources.add(ResourceFactory.getDataTransferResource(componentResource));
         resources.add(ResourceFactory.getPolicyResource(componentResource));
 

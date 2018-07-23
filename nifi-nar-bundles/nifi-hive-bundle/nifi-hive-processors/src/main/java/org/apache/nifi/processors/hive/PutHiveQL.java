@@ -21,12 +21,15 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -69,6 +72,12 @@ import java.util.regex.Pattern;
         @ReadsAttribute(attribute = "hiveql.args.N.value", description = "Incoming FlowFiles are expected to be parametrized HiveQL statements. The value of the Parameters are specified as "
                 + "hiveql.args.1.value, hiveql.args.2.value, hiveql.args.3.value, and so on. The type of the hiveql.args.1.value Parameter is specified by the hiveql.args.1.type attribute.")
 })
+@WritesAttributes({
+        @WritesAttribute(attribute = "query.input.tables", description = "This attribute is written on the flow files routed to the 'success' relationships, "
+                + "and contains input table names (if any) in comma delimited 'databaseName.tableName' format."),
+        @WritesAttribute(attribute = "query.output.tables", description = "This attribute is written on the flow files routed to the 'success' relationships, "
+                + "and contains the target table names in 'databaseName.tableName' format.")
+})
 public class PutHiveQL extends AbstractHiveQLProcessor {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -87,7 +96,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             .required(true)
             .defaultValue(";")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -138,7 +147,21 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             if (e instanceof SQLNonTransientException) {
                 return ErrorTypes.InvalidInput;
             } else if (e instanceof SQLException) {
-                return ErrorTypes.TemporalFailure;
+                // Use the SQLException's vendor code for guidance -- see Hive's ErrorMsg class for details on error codes
+                int errorCode = ((SQLException) e).getErrorCode();
+                if (errorCode >= 10000 && errorCode < 20000) {
+                    return ErrorTypes.InvalidInput;
+                } else if (errorCode >= 20000 && errorCode < 30000) {
+                    return ErrorTypes.TemporalFailure;
+                } else if (errorCode >= 30000 && errorCode < 40000) {
+                    return ErrorTypes.TemporalInputFailure;
+                } else if (errorCode >= 40000 && errorCode < 50000) {
+                    // These are unknown errors (to include some parse errors), but rather than generating an UnknownFailure which causes
+                    // a ProcessException, we'll route to failure via an InvalidInput error type.
+                    return ErrorTypes.InvalidInput;
+                } else {
+                    return ErrorTypes.UnknownFailure;
+                }
             } else {
                 return ErrorTypes.UnknownFailure;
             }
@@ -178,9 +201,9 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
         }
     }
 
-    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc) -> {
+    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ff) -> {
         final HiveDBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(HiveDBCPService.class);
-        final Connection connection = dbcpService.getConnection();
+        final Connection connection = dbcpService.getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
         fc.connectionUrl = dbcpService.getConnectionURL();
         return connection;
     };
@@ -196,13 +219,15 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
 
         String[] hiveQLs = script.split(regex);
 
+        final Set<TableName> tableNames = new HashSet<>();
         exceptionHandler.execute(fc, flowFile, input -> {
             int loc = 1;
-            for (String hiveQL: hiveQLs) {
-                getLogger().debug("HiveQL: {}", new Object[]{hiveQL});
+            for (String hiveQLStr: hiveQLs) {
+                getLogger().debug("HiveQL: {}", new Object[]{hiveQLStr});
 
-                if (!StringUtils.isEmpty(hiveQL.trim())) {
-                    final PreparedStatement stmt = conn.prepareStatement(hiveQL.trim());
+                final String hiveQL = hiveQLStr.trim();
+                if (!StringUtils.isEmpty(hiveQL)) {
+                    final PreparedStatement stmt = conn.prepareStatement(hiveQL);
 
                     // Get ParameterMetadata
                     // Hive JDBC Doesn't support this yet:
@@ -214,6 +239,14 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
                         loc = setParameters(loc, stmt, paramCount, flowFile.getAttributes());
                     }
 
+                    // Parse hiveQL and extract input/output tables
+                    try {
+                        tableNames.addAll(findTableNames(hiveQL));
+                    } catch (Exception e) {
+                        // If failed to parse the query, just log a warning message, but continue.
+                        getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
+                    }
+
                     // Execute the statement
                     stmt.execute();
                     fc.proceed();
@@ -223,7 +256,8 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             // Emit a Provenance SEND event
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - fc.startNanos);
 
-            session.getProvenanceReporter().send(flowFile, fc.connectionUrl, transmissionMillis, true);
+            final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, toQueryTableAttributes(tableNames));
+            session.getProvenanceReporter().send(updatedFlowFile, fc.connectionUrl, transmissionMillis, true);
             result.routeTo(flowFile, REL_SUCCESS);
 
         }, onFlowFileError(context, session, result));

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>XMLReader</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+    <p>
+        The XMLReader Controller Service reads XML content and creates Record objects. The Controller Service
+        must be configured with a schema that describes the structure of the XML data. Fields in the XML data
+        that are not defined in the schema will be skipped. Depending on whether the property "Expect Records as Array"
+        is set to "false" or "true", the reader either expects a single record or an array of records for each FlowFile.
+    </p>
+    <p>
+        Example: Single record
+    </p>
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;field1&gt;content&lt;/field1&gt;
+                  &lt;field2&gt;content&lt;/field2&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        An array of records has to be enclosed by a root tag.
+        Example: Array of records
+    </p>
+
+    <code>
+            <pre>
+                &lt;root&gt;
+                  &lt;record&gt;
+                    &lt;field1&gt;content&lt;/field1&gt;
+                    &lt;field2&gt;content&lt;/field2&gt;
+                  &lt;/record&gt;
+                  &lt;record&gt;
+                    &lt;field1&gt;content&lt;/field1&gt;
+                    &lt;field2&gt;content&lt;/field2&gt;
+                  &lt;/record&gt;
+                &lt;/root&gt;
+            </pre>
+    </code>
+
+    <h2>Example: Simple Fields</h2>
+
+    <p>
+        The simplest kind of data within XML data are tags / fields only containing content (no attributes, no embedded tags).
+        They can be described in the schema by simple types (e. g. INT, STRING, ...).
+    </p>
+
+    <code>
+            <pre>
+                &lt;root&gt;
+                  &lt;record&gt;
+                    &lt;simple_field&gt;content&lt;/simple_field&gt;
+                  &lt;/record&gt;
+                &lt;/root&gt;
+            </pre>
+    </code>
+
+    <p>
+        This record can be described by a schema containing one field (e. g. of type string). By providing this schema,
+        the reader expects zero or one occurrences of "simple_field" in the record.
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "simple_field", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <h2>Example: Arrays with Simple Fields</h2>
+
+    <p>
+        Arrays are considered as repetitive tags / fields in XML data. For the following XML data, "array_field" is considered
+        to be an array enclosing simple fields, whereas "simple_field" is considered to be a simple field not enclosed in
+        an array.
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;array_field&gt;content&lt;/array_field&gt;
+                  &lt;array_field&gt;content&lt;/array_field&gt;
+                  &lt;simple_field&gt;content&lt;/simple_field&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        This record can be described by the following schema:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "array_field", "type":
+                      { "type": "array", "items": string }
+                    },
+                    { "name": "simple_field", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <p>
+        If a field in a schema is embedded in an array, the reader expects zero, one or more occurrences of the field
+        in a record. The field "array_field" principally also could be defined as a simple field, but then the second occurrence
+        of this field would replace the first in the record object. Moreover, the field "simple_field" could also be defined
+        as an array. In this case, the reader would put it into the record object as an array with one element.
+    </p>
+
+    <h2>Example: Tags with Attributes</h2>
+
+    <p>
+        XML fields frequently not only contain content, but also attributes. The following record contains a field with
+        an attribute "attr" and content:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;field_with_attribute attr="attr_content"&gt;content of field&lt;/field_with_attribute&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        To parse the content of the field "field_with_attribute" together with the attribute "attr", two requirements have
+        to be fulfilled:
+    </p>
+
+    <ul>
+        <li>In the schema, the field has to be defined as record.</li>
+        <li>The property "Field Name for Content" has to be set.</li>
+        <li>As an option, the property "Attribute Prefix" also can be set.</li>
+    </ul>
+
+    <p>
+        For the example above, the following property settings are assumed:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td><code>field_name_for_content</code></td>
+        </tr>
+        <tr>
+            <td>Attribute Prefix</td>
+            <td><code>prefix_</code></td>
+        </tr>
+    </table>
+
+    <p>
+        The schema can be defined as follows:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "name": "test",
+                  "namespace": "nifi",
+                  "type": "record",
+                  "fields": [
+                    {
+                      "name": "field_with_attribute",
+                      "type": {
+                        "name": "RecordForTag",
+                        "type": "record",
+                        "fields" : [
+                          {"name": "attr", "type": "string"},
+                          {"name": "field_name_for_content", "type": "string"}
+                        ]
+                    }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <p>
+        Note that the field "field_name_for_content" not only has to be defined in the property section, but also in the
+        schema, whereas the prefix for attributes is not part of the schema. It will be appended when an attribute named
+        "attr" is found at the respective position in the XML data and added to the record. The record object of the above
+        example will be structured as follows:
+    </p>
+
+    <code>
+            <pre>
+                Record (
+                    Record "field_with_attribute" (
+                        RecordField "prefix_attr" = "attr_content",
+                        RecordField "field_name_for_content" = "content of field"
+                    )
+                )
+            </pre>
+    </code>
+
+    <p>
+        Principally, the field "field_with_attribute" could also be defined as a simple field. In this case, the attributes
+        simply would be ignored. Vice versa, the simple field in example 1 above could also be defined as a record (assuming that
+        the property "Field Name for Content" is set.
+    </p>
+
+    <h2>Example: Tags within tags</h2>
+
+    <p>
+        XML data is frequently nested. In this case, tags enclose other tags:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;field_with_embedded_fields attr=&quot;attr_content&quot;&gt;
+                    &lt;embedded_field&gt;embedded content&lt;/embedded_field&gt;
+                    &lt;another_embedded_field&gt;another embedded content&lt;/another_embedded_field&gt;
+                  &lt;/field_with_embedded_fields&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        The enclosing fields always have to be defined as records, irrespective whether they include attributes to be
+        parsed or not. In this example, the tag "field_with_embedded_fields" encloses the fields "embedded_field" and
+        "another_embedded_field", which are both simple fields. The schema can be defined as follows:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "name": "test",
+                  "namespace": "nifi",
+                  "type": "record",
+                  "fields": [
+                    {
+                      "name": "field_with_embedded_fields",
+                      "type": {
+                        "name": "RecordForEmbedded",
+                        "type": "record",
+                        "fields" : [
+                          {"name": "attr", "type": "string"},
+                          {"name": "embedded_field", "type": "string"},
+                          {"name": "another_embedded_field", "type": "string"}
+                        ]
+                    }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <p>
+        Notice that this case does not require the property "Field Name for Content" to be set as this is only required
+        for tags containing attributes and content.
+    </p>
+
+    <h2>Example: Array of records</h2>
+
+    <p>
+        For further explanation of the logic of this reader, an example of an array of records shall be demonstrated.
+        The following record contains the field "array_field", which repeatedly occurs. The field contains two
+        embedded fields.
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;array_field&gt;
+                    &lt;embedded_field&gt;embedded content 1&lt;/embedded_field&gt;
+                    &lt;another_embedded_field&gt;another embedded content 1&lt;/another_embedded_field&gt;
+                  &lt;/array_field&gt;
+                  &lt;array_field&gt;
+                    &lt;embedded_field&gt;embedded content 2&lt;/embedded_field&gt;
+                    &lt;another_embedded_field&gt;another embedded content 2&lt;/another_embedded_field&gt;
+                  &lt;/array_field&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        This XML data can be parsed similarly to the data in example 4. However, the record defined in the schema of
+        example 4 has to be embedded in an array.
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "array_field",
+                      "type": {
+                        "type": "array",
+                        "items": {
+                          "name": "RecordInArray",
+                          "type": "record",
+                          "fields" : [
+                            {"name": "embedded_field", "type": "string"},
+                            {"name": "another_embedded_field", "type": "string"}
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <h2>Example: Array in record</h2>
+
+    <p>
+        In XML data, arrays are frequently enclosed by tags:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;field_enclosing_array&gt;
+                    &lt;element&gt;content 1&lt;/element&gt;
+                    &lt;element&gt;content 2&lt;/element&gt;
+                  &lt;/field_enclosing_array&gt;
+                  &lt;field_without_array&gt; content 3&lt;/field_without_array&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        For the schema, embedded tags have to be described by records. Therefore, the field "field_enclosing_array"
+        is a record that embeds an array with elements of type string:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "field_enclosing_array",
+                      "type": {
+                        "name": "EmbeddedRecord",
+                        "type": "record",
+                        "fields" : [
+                          {
+                            "name": "element",
+                            "type": {
+                              "type": "array",
+                              "items": "string"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    { "name": "field_without_array", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
+
+    <h2>Example: Maps</h2>
+
+    <p>
+        A map is a field embedding fields with different names:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;map_field&gt;
+                    &lt;field1&gt;content&lt;/field1&gt;
+                    &lt;field2&gt;content&lt;/field2&gt;
+                    ...
+                  &lt;/map_field&gt;
+                  &lt;simple_field&gt;content&lt;/simple_field&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        This data can be processed using the following schema:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "map_field", "type":
+                      { "type": "map", "items": string }
+                    },
+                    { "name": "simple_field", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
+    </body>
+</html>

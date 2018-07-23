@@ -16,6 +16,35 @@
  */
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -49,8 +78,10 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -65,34 +96,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public class TestFlowController {
 
     private FlowController controller;
@@ -104,7 +107,20 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
-    private volatile String propsFile = TestFlowController.class.getResource("/flowcontrollertest.nifi.properties").getFile();
+    private volatile String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
+
+    /**
+     * Utility method which accepts {@link NiFiProperties} object but calls {@link StringEncryptor#createEncryptor(String, String, String)} with extracted properties.
+     *
+     * @param nifiProperties the NiFiProperties object
+     * @return the StringEncryptor
+     */
+    private StringEncryptor createEncryptorFromProperties(NiFiProperties nifiProperties) {
+        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        return StringEncryptor.createEncryptor(algorithm, provider, password);
+    }
 
     @Before
     public void setup() {
@@ -116,7 +132,7 @@ public class TestFlowController {
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        encryptor = createEncryptorFromProperties(nifiProperties);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -162,7 +178,8 @@ public class TestFlowController {
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
     }
 
     @After
@@ -173,7 +190,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -181,7 +198,7 @@ public class TestFlowController {
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
         final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
-        final String flow = IOUtils.toString(new FileInputStream(flowFile));
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
         when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
 
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
@@ -206,7 +223,7 @@ public class TestFlowController {
         assertEquals(rootGroupCs.getProperties(), controllerCs.getProperties());
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -236,7 +253,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -244,7 +261,7 @@ public class TestFlowController {
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
-        final String flow = IOUtils.toString(new FileInputStream(flowFile));
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
         when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
 
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
@@ -259,7 +276,7 @@ public class TestFlowController {
         assertNotNull(rootGroupCs);
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -275,7 +292,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreEqual() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -289,7 +306,7 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
         final String authFingerprint = "<authorizations></authorizations>";
@@ -302,7 +319,7 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
@@ -312,7 +329,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenCurrentAuthorizationsAreEmptyAndProposedAreNot() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -323,14 +340,15 @@ public class TestFlowController {
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         controller.shutdown(true);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
     public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         final Set<String> missingComponents = new HashSet<>();
         missingComponents.add("1");
@@ -349,7 +367,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
-        final StringEncryptor stringEncryptor = StringEncryptor.createEncryptor(nifiProperties);
+        final StringEncryptor stringEncryptor = createEncryptorFromProperties(nifiProperties);
         final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties);
 
         final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
@@ -390,7 +408,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
@@ -401,7 +419,7 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
@@ -516,6 +534,13 @@ public class TestFlowController {
         assertEquals(1, p_settings.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.TIMER_DRIVEN, p_settings.getSchedulingStrategy());
         assertEquals("0 sec", p_settings.getSchedulingPeriod());
+    }
+
+    @Test
+    public void testPrimaryNodeOnlyAnnotation() throws ProcessorInstantiationException {
+        String id = UUID.randomUUID().toString();
+        ProcessorNode processorNode = controller.createProcessor(DummyPrimaryNodeOnlyProcessor.class.getName(), id, systemBundle.getBundleDetails().getCoordinate());
+        assertEquals(ExecutionNode.PRIMARY, processorNode.getExecutionNode());
     }
 
     @Test
@@ -649,15 +674,15 @@ public class TestFlowController {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
-        final String originalName = controllerServiceNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        URLClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertTrue(((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().isEmpty());
 
         controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
 
@@ -667,7 +692,8 @@ public class TestFlowController {
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertEquals(3, ((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().size());
     }
 
     @Test
@@ -754,6 +780,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -766,7 +793,7 @@ public class TestFlowController {
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
         processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
-        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
         configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
@@ -807,6 +834,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -819,7 +847,7 @@ public class TestFlowController {
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
         processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
-        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
         configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());
@@ -862,6 +890,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -874,7 +903,7 @@ public class TestFlowController {
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
         processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
-        processorDTO.setSupportsBatching(processorNode.isHighThroughputSupported());
+        processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
         configDTO.setSchedulingPeriod(processorNode.getSchedulingPeriod());

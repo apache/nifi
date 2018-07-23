@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-
-import java.util.Objects;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Objects;
 
 /**
  * DTO for serializing a status descriptor.

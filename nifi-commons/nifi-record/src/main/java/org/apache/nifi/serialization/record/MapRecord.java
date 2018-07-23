@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -70,10 +71,10 @@ public class MapRecord implements Record {
 
     private Map<String, Object> checkTypes(final Map<String, Object> values, final RecordSchema schema) {
         for (final RecordField field : schema.getFields()) {
-            final Object value = getExplicitValue(field, values);
+            Object value = getExplicitValue(field, values);
 
             if (value == null) {
-                if (field.isNullable()) {
+                if (field.isNullable() || field.getDefaultValue() != null) {
                     continue;
                 }
 
@@ -109,7 +110,12 @@ public class MapRecord implements Record {
         final Object[] values = new Object[schema.getFieldCount()];
         int i = 0;
         for (final RecordField recordField : schema.getFields()) {
-            values[i++] = getValue(recordField);
+            Object value = getExplicitValue(recordField);
+            if (value == null) {
+                value = recordField.getDefaultValue();
+            }
+
+            values[i++] = value;
         }
         return values;
     }
@@ -263,7 +269,7 @@ public class MapRecord implements Record {
 
     @Override
     public Object[] getAsArray(final String fieldName) {
-        return DataTypeUtils.toArray(getValue(fieldName), fieldName);
+        return DataTypeUtils.toArray(getValue(fieldName), fieldName, null, StandardCharsets.UTF_8);
     }
 
 

@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -38,17 +39,17 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     public StandardReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final FlowController controller,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent) {
-        super(reportingTask, id, controller, processScheduler, validationContextFactory, variableRegistry, reloadComponent);
+        final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger) {
+        super(reportingTask, id, controller, processScheduler, validationContextFactory, variableRegistry, reloadComponent, validationTrigger);
         this.flowController = controller;
     }
 
     public StandardReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final FlowController controller,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String canonicalClassName, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
+        final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         super(reportingTask, id, controller, processScheduler, validationContextFactory, componentType, canonicalClassName,
-                variableRegistry, reloadComponent, isExtensionMissing);
+            variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
         this.flowController = controller;
     }
 
@@ -65,6 +66,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     @Override
     public boolean isRestricted() {
         return getReportingTask().getClass().isAnnotationPresent(Restricted.class);
+    }
+
+    @Override
+    public Class<?> getComponentClass() {
+        return getReportingContext().getClass();
     }
 
     @Override

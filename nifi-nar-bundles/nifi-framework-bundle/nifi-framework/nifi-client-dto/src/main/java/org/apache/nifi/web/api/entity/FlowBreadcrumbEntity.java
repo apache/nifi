@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 
@@ -30,6 +30,7 @@ public class FlowBreadcrumbEntity extends Entity {
 
     private String id;
     private PermissionsDTO permissions;
+    private String versionedFlowState;
     private FlowBreadcrumbDTO breadcrumb;
     private FlowBreadcrumbEntity parentBreadcrumb;
 
@@ -95,5 +96,16 @@ public class FlowBreadcrumbEntity extends Entity {
 
     public void setParentBreadcrumb(FlowBreadcrumbEntity parentBreadcrumb) {
         this.parentBreadcrumb = parentBreadcrumb;
+    }
+
+    @ApiModelProperty(readOnly = true,
+            value = "The current state of the Process Group, as it relates to the Versioned Flow",
+            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+    public String getVersionedFlowState() {
+        return versionedFlowState;
+    }
+
+    public void setVersionedFlowState(String versionedFlowState) {
+        this.versionedFlowState = versionedFlowState;
     }
 }

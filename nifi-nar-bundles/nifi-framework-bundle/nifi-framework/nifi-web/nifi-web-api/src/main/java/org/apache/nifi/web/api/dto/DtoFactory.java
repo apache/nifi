@@ -16,33 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -61,6 +35,7 @@ import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -89,15 +64,18 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ActiveThreadInfo;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -105,6 +83,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
@@ -120,14 +99,18 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
+import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
@@ -139,6 +122,24 @@ import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowComparison;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedConnection;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedFunnel;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedLabel;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteProcessGroup;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -147,8 +148,8 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
@@ -161,6 +162,19 @@ import org.apache.nifi.web.api.dto.action.details.ConfigureDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ConnectDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.MoveDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.PurgeDetailsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ClassLoaderDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.RepositoryUsageDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ThreadDumpDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
@@ -182,19 +196,51 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
+
+import javax.ws.rs.WebApplicationException;
+import java.text.Collator;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -211,7 +257,6 @@ public final class DtoFactory {
     private ControllerServiceProvider controllerServiceProvider;
     private EntityFactory entityFactory;
     private Authorizer authorizer;
-    private NiFiProperties properties;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -220,7 +265,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -233,6 +280,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }
@@ -248,10 +298,10 @@ public final class DtoFactory {
         actionDto.setId(action.getId());
         actionDto.setSourceId(action.getSourceId());
         actionDto.setSourceName(action.getSourceName());
-        actionDto.setSourceType(action.getSourceType().name());
+        actionDto.setSourceType(action.getSourceType().toString());
         actionDto.setTimestamp(action.getTimestamp());
         actionDto.setUserIdentity(action.getUserIdentity());
-        actionDto.setOperation(action.getOperation().name());
+        actionDto.setOperation(action.getOperation().toString());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
         actionDto.setComponentDetails(createComponentDetailsDto(action.getComponentDetails()));
 
@@ -616,6 +666,7 @@ public final class DtoFactory {
         dto.setzIndex(connection.getZIndex());
         dto.setSource(createConnectableDto(connection.getSource()));
         dto.setDestination(createConnectableDto(connection.getDestination()));
+        dto.setVersionedComponentId(connection.getVersionedComponentId().orElse(null));
 
         dto.setBackPressureObjectThreshold(connection.getFlowFileQueue().getBackPressureObjectThreshold());
         dto.setBackPressureDataSizeThreshold(connection.getFlowFileQueue().getBackPressureDataSizeThreshold());
@@ -667,6 +718,7 @@ public final class DtoFactory {
         dto.setId(connectable.getIdentifier());
         dto.setName(isAuthorized ? connectable.getName() : connectable.getIdentifier());
         dto.setType(connectable.getConnectableType().name());
+        dto.setVersionedComponentId(connectable.getVersionedComponentId().orElse(null));
 
         if (connectable instanceof RemoteGroupPort) {
             final RemoteGroupPort remoteGroupPort = (RemoteGroupPort) connectable;
@@ -708,6 +760,7 @@ public final class DtoFactory {
         dto.setWidth(label.getSize().getWidth());
         dto.setLabel(label.getValue());
         dto.setParentGroupId(label.getProcessGroup().getIdentifier());
+        dto.setVersionedComponentId(label.getVersionedComponentId().orElse(null));
 
         return dto;
     }
@@ -824,6 +877,7 @@ public final class DtoFactory {
         dto.setId(funnel.getIdentifier());
         dto.setPosition(createPositionDto(funnel.getPosition()));
         dto.setParentGroupId(funnel.getProcessGroup().getIdentifier());
+        dto.setVersionedComponentId(funnel.getVersionedComponentId().orElse(null));
 
         return dto;
     }
@@ -931,6 +985,10 @@ public final class DtoFactory {
         snapshot.setId(processGroupStatus.getId());
         snapshot.setName(processGroupStatus.getName());
 
+        if (processGroupStatus.getVersionedFlowState() != null) {
+            snapshot.setVersionedFlowState(processGroupStatus.getVersionedFlowState().name());
+        }
+
         snapshot.setFlowFilesQueued(processGroupStatus.getQueuedCount());
         snapshot.setBytesQueued(processGroupStatus.getQueuedContentSize());
         snapshot.setBytesRead(processGroupStatus.getBytesRead());
@@ -945,7 +1003,10 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
+
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
         return processGroupStatusDto;
     }
@@ -1083,6 +1144,7 @@ public final class DtoFactory {
         dto.setGroupId(procStatus.getGroupId());
         dto.setName(procStatus.getName());
         dto.setStatsLastRefreshed(new Date());
+        dto.setRunStatus(procStatus.getRunStatus().toString());
 
         final ProcessorStatusSnapshotDTO snapshot = new ProcessorStatusSnapshotDTO();
         dto.setAggregateSnapshot(snapshot);
@@ -1106,8 +1168,10 @@ public final class DtoFactory {
 
         // determine the run status
         snapshot.setRunStatus(procStatus.getRunStatus().toString());
+        snapshot.setExecutionNode(procStatus.getExecutionNode().toString());
 
         snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(procStatus.getTerminatedThreadCount());
         snapshot.setType(procStatus.getType());
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
@@ -1226,6 +1290,7 @@ public final class DtoFactory {
         dto.setParentGroupId(port.getProcessGroup().getIdentifier());
         dto.setState(port.getScheduledState().toString());
         dto.setType(port.getConnectableType().name());
+        dto.setVersionedComponentId(port.getVersionedComponentId().orElse(null));
 
         // if this port is on the root group, determine if its actually connected to another nifi
         if (port instanceof RootGroupPort) {
@@ -1316,6 +1381,9 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        final ValidationStatus validationStatus = reportingTaskNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = reportingTaskNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1352,6 +1420,7 @@ public final class DtoFactory {
         dto.setDeprecated(controllerServiceNode.isDeprecated());
         dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+        dto.setVersionedComponentId(controllerServiceNode.getVersionedComponentId().orElse(null));
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -1393,6 +1462,8 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        dto.setValidationStatus(controllerServiceNode.getValidationStatus(1, TimeUnit.MILLISECONDS).name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1407,7 +1478,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ConfiguredComponent component) {
+    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ComponentNode component) {
         final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -1447,39 +1518,43 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
-        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
-            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-                @Override
-                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                    return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-                }
-            });
-            sortedProperties.putAll(component.getProperties());
+        // ensure descriptors is non null
+        if (propertyDescriptors == null) {
+            propertyDescriptors = new ArrayList<>();
+        }
 
-            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                orderedProperties.put(descriptor, null);
+        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
-            orderedProperties.putAll(sortedProperties);
+        });
+        sortedProperties.putAll(component.getProperties());
 
-            // build the descriptor and property dtos
-            dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-            dto.setProperties(new LinkedHashMap<String, String>());
-            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            orderedProperties.put(descriptor, null);
+        }
+        orderedProperties.putAll(sortedProperties);
 
-                // store the property descriptor
-                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
+        dto.setProperties(new LinkedHashMap<String, String>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
 
-                // determine the property value - don't include sensitive properties
-                String propertyValue = entry.getValue();
-                if (propertyValue != null && descriptor.isSensitive()) {
-                    propertyValue = SENSITIVE_VALUE_MASK;
-                }
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
 
-                // set the property value
-                dto.getProperties().put(descriptor.getName(), propertyValue);
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
             }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1501,6 +1576,8 @@ public final class DtoFactory {
 
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setId(port.getIdentifier());
+        dto.setGroupId(port.getRemoteProcessGroup().getIdentifier());
+        dto.setTargetId(port.getTargetIdentifier());
         dto.setName(port.getName());
         dto.setComments(port.getComments());
         dto.setTransmitting(port.isRunning());
@@ -1508,6 +1585,7 @@ public final class DtoFactory {
         dto.setConcurrentlySchedulableTaskCount(port.getMaxConcurrentTasks());
         dto.setUseCompression(port.isUseCompression());
         dto.setExists(port.getTargetExists());
+        dto.setVersionedComponentId(port.getVersionedComponentId().orElse(null));
 
         final BatchSettingsDTO batchDTO = new BatchSettingsDTO();
         batchDTO.setCount(port.getBatchCount());
@@ -1536,8 +1614,8 @@ public final class DtoFactory {
             return null;
         }
 
-        final Set<RemoteProcessGroupPortDTO> inputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
-        final Set<RemoteProcessGroupPortDTO> outputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
+        final Set<RemoteProcessGroupPortDTO> inputPorts = new HashSet<>();
+        final Set<RemoteProcessGroupPortDTO> outputPorts = new HashSet<>();
 
         int activeRemoteInputPortCount = 0;
         int inactiveRemoteInputPortCount = 0;
@@ -1616,8 +1694,9 @@ public final class DtoFactory {
         dto.setInactiveRemoteInputPortCount(inactiveRemoteInputPortCount);
         dto.setActiveRemoteOutputPortCount(activeRemoteOutputPortCount);
         dto.setInactiveRemoteOutputPortCount(inactiveRemoteOutputPortCount);
+        dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
 
-        final ProcessGroupCounts counts = group.getCounts();
+        final RemoteProcessGroupCounts counts = group.getCounts();
         if (counts != null) {
             dto.setInputPortCount(counts.getInputPortCount());
             dto.setOutputPortCount(counts.getOutputPortCount());
@@ -1663,6 +1742,9 @@ public final class DtoFactory {
         dto.setId(group.getIdentifier());
         dto.setName(group.getName());
 
+        final VersionControlInformationDTO versionControlInformation = createVersionControlInformationDto(group);
+        dto.setVersionControlInformation(versionControlInformation);
+
         return dto;
     }
 
@@ -1676,6 +1758,7 @@ public final class DtoFactory {
         dto.setId(componentAuthorizable.getIdentifier());
         dto.setParentGroupId(componentAuthorizable.getProcessGroupIdentifier());
         dto.setName(authorizable.getResource().getName());
+
         return dto;
     }
 
@@ -1735,15 +1818,132 @@ public final class DtoFactory {
         return dto;
     }
 
-    public AffectedComponentDTO createAffectedComponentDto(final ConfiguredComponent component) {
+    public AffectedComponentEntity createAffectedComponentEntity(final ProcessorEntity processorEntity) {
+        if (processorEntity == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setBulletins(processorEntity.getBulletins());
+        component.setId(processorEntity.getId());
+        component.setPermissions(processorEntity.getPermissions());
+        component.setPosition(processorEntity.getPosition());
+        component.setRevision(processorEntity.getRevision());
+        component.setUri(processorEntity.getUri());
+
+        final ProcessorDTO processorDto = processorEntity.getComponent();
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        componentDto.setId(processorDto.getId());
+        componentDto.setName(processorDto.getName());
+        componentDto.setProcessGroupId(processorDto.getParentGroupId());
+        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
+        componentDto.setState(processorDto.getState());
+        componentDto.setValidationErrors(processorDto.getValidationErrors());
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final PortEntity portEntity, final String referenceType) {
+        if (portEntity == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setBulletins(portEntity.getBulletins());
+        component.setId(portEntity.getId());
+        component.setPermissions(portEntity.getPermissions());
+        component.setPosition(portEntity.getPosition());
+        component.setRevision(portEntity.getRevision());
+        component.setUri(portEntity.getUri());
+
+        final PortDTO portDto = portEntity.getComponent();
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        componentDto.setId(portDto.getId());
+        componentDto.setName(portDto.getName());
+        componentDto.setProcessGroupId(portDto.getParentGroupId());
+        componentDto.setReferenceType(referenceType);
+        componentDto.setState(portDto.getState());
+        componentDto.setValidationErrors(portDto.getValidationErrors());
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final ControllerServiceEntity serviceEntity) {
+        if (serviceEntity == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setBulletins(serviceEntity.getBulletins());
+        component.setId(serviceEntity.getId());
+        component.setPermissions(serviceEntity.getPermissions());
+        component.setPosition(serviceEntity.getPosition());
+        component.setRevision(serviceEntity.getRevision());
+        component.setUri(serviceEntity.getUri());
+
+        final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        componentDto.setId(serviceDto.getId());
+        componentDto.setName(serviceDto.getName());
+        componentDto.setProcessGroupId(serviceDto.getParentGroupId());
+        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        componentDto.setState(serviceDto.getState());
+        componentDto.setValidationErrors(serviceDto.getValidationErrors());
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final RemoteProcessGroupPortDTO remotePortDto, final String referenceType, final RemoteProcessGroupEntity rpgEntity) {
+        if (remotePortDto == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setId(remotePortDto.getId());
+        component.setPermissions(rpgEntity.getPermissions());
+        component.setRevision(rpgEntity.getRevision());
+        component.setUri(rpgEntity.getUri());
+
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        componentDto.setId(remotePortDto.getId());
+        componentDto.setName(remotePortDto.getName());
+        componentDto.setProcessGroupId(remotePortDto.getGroupId());
+        componentDto.setReferenceType(referenceType);
+        componentDto.setState(remotePortDto.isTransmitting() ? "Running" : "Stopped");
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+
+    public AffectedComponentDTO createAffectedComponentDto(final ComponentNode component) {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
-        dto.setComponentId(component.getIdentifier());
-        dto.setParentGroupId(component.getProcessGroupIdentifier());
+        dto.setId(component.getIdentifier());
+        dto.setName(component.getName());
+        dto.setProcessGroupId(component.getProcessGroupIdentifier());
 
         if (component instanceof ProcessorNode) {
-            dto.setComponentType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
+            final ProcessorNode node = ((ProcessorNode) component);
+            dto.setState(node.getScheduledState().name());
+            dto.setActiveThreadCount(node.getActiveThreadCount());
+            dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         } else if (component instanceof ControllerServiceNode) {
-            dto.setComponentType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+            final ControllerServiceNode node = ((ControllerServiceNode) component);
+            dto.setState(node.getState().name());
+            dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        }
+
+        final Collection<ValidationResult> validationErrors = component.getValidationErrors();
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            final List<String> errors = new ArrayList<>();
+            for (final ValidationResult validationResult : validationErrors) {
+                errors.add(validationResult.toString());
+            }
+
+            dto.setValidationErrors(errors);
         }
 
         return dto;
@@ -2028,10 +2228,12 @@ public final class DtoFactory {
         dto.setPosition(createPositionDto(group.getPosition()));
         dto.setComments(group.getComments());
         dto.setName(group.getName());
+        dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
+        dto.setVersionControlInformation(createVersionControlInformationDto(group));
 
         final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> entry.getValue()));
-        group.setVariables(variables);
+        dto.setVariables(variables);
 
         final ProcessGroup parentGroup = group.getParent();
         if (parentGroup != null) {
@@ -2047,9 +2249,152 @@ public final class DtoFactory {
         dto.setOutputPortCount(counts.getOutputPortCount());
         dto.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         dto.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        dto.setUpToDateCount(counts.getUpToDateCount());
+        dto.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        dto.setStaleCount(counts.getStaleCount());
+        dto.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        dto.setSyncFailureCount(counts.getSyncFailureCount());
 
         return dto;
     }
+
+
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
+        final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
+
+        for (final FlowDifference difference : comparison.getDifferences()) {
+            // Ignore these as local differences for now because we can't do anything with it
+            if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
+                continue;
+            }
+
+            // Ignore differences for adding remote ports
+            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
+                continue;
+            }
+
+            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
+            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+
+            final DifferenceDTO dto = new DifferenceDTO();
+            dto.setDifferenceType(difference.getDifferenceType().getDescription());
+            dto.setDifference(difference.getDescription());
+
+            differences.add(dto);
+        }
+
+        for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
+            entry.getKey().setDifferences(entry.getValue());
+        }
+
+        return differencesByComponent.keySet();
+    }
+
+    private ComponentDifferenceDTO createComponentDifference(final FlowDifference difference) {
+        VersionedComponent component = difference.getComponentA();
+        if (component == null || difference.getComponentB() instanceof InstantiatedVersionedComponent) {
+            component = difference.getComponentB();
+        }
+
+        final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
+        dto.setComponentName(component.getName());
+        dto.setComponentType(component.getComponentType().toString());
+
+        if (component instanceof InstantiatedVersionedComponent) {
+            final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;
+            dto.setComponentId(instantiatedComponent.getInstanceId());
+            dto.setProcessGroupId(instantiatedComponent.getInstanceGroupId());
+        } else {
+            dto.setComponentId(component.getIdentifier());
+            dto.setProcessGroupId(dto.getProcessGroupId());
+        }
+
+        return dto;
+    }
+
+
+    public VersionControlInformationDTO createVersionControlInformationDto(final ProcessGroup group) {
+        if (group == null) {
+            return null;
+        }
+
+        final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
+        if (versionControlInfo == null) {
+            return null;
+        }
+
+        final VersionControlInformationDTO dto = new VersionControlInformationDTO();
+        dto.setGroupId(group.getIdentifier());
+        dto.setRegistryId(versionControlInfo.getRegistryIdentifier());
+        dto.setRegistryName(versionControlInfo.getRegistryName());
+        dto.setBucketId(versionControlInfo.getBucketIdentifier());
+        dto.setBucketName(versionControlInfo.getBucketName());
+        dto.setFlowId(versionControlInfo.getFlowIdentifier());
+        dto.setFlowName(versionControlInfo.getFlowName());
+        dto.setFlowDescription(versionControlInfo.getFlowDescription());
+        dto.setVersion(versionControlInfo.getVersion());
+
+        final VersionedFlowStatus status = versionControlInfo.getStatus();
+        final VersionedFlowState state = status.getState();
+        dto.setState(state == null ? null : state.name());
+        dto.setStateExplanation(status.getStateExplanation());
+
+        return dto;
+    }
+
+    public Map<String, String> createVersionControlComponentMappingDto(final InstantiatedVersionedProcessGroup group) {
+        final Map<String, String> mapping = new HashMap<>();
+
+        mapping.put(group.getInstanceId(), group.getIdentifier());
+        group.getProcessors().stream()
+            .map(proc -> (InstantiatedVersionedProcessor) proc)
+            .forEach(proc -> mapping.put(proc.getInstanceId(), proc.getIdentifier()));
+        group.getFunnels().stream()
+            .map(funnel -> (InstantiatedVersionedFunnel) funnel)
+            .forEach(funnel -> mapping.put(funnel.getInstanceId(), funnel.getIdentifier()));
+        group.getInputPorts().stream()
+            .map(port -> (InstantiatedVersionedPort) port)
+            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+        group.getOutputPorts().stream()
+            .map(port -> (InstantiatedVersionedPort) port)
+            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+        group.getControllerServices().stream()
+            .map(service -> (InstantiatedVersionedControllerService) service)
+            .forEach(service -> mapping.put(service.getInstanceId(), service.getIdentifier()));
+        group.getLabels().stream()
+            .map(label -> (InstantiatedVersionedLabel) label)
+            .forEach(label -> mapping.put(label.getInstanceId(), label.getIdentifier()));
+        group.getConnections().stream()
+            .map(conn -> (InstantiatedVersionedConnection) conn)
+            .forEach(conn -> mapping.put(conn.getInstanceId(), conn.getIdentifier()));
+        group.getRemoteProcessGroups().stream()
+            .map(rpg -> (InstantiatedVersionedRemoteProcessGroup) rpg)
+            .forEach(rpg -> {
+                mapping.put(rpg.getInstanceId(), rpg.getIdentifier());
+
+                if (rpg.getInputPorts() != null) {
+                    rpg.getInputPorts().stream()
+                        .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
+                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                }
+
+                if (rpg.getOutputPorts() != null) {
+                    rpg.getOutputPorts().stream()
+                        .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
+                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                }
+            });
+
+        group.getProcessGroups().stream()
+            .map(child -> (InstantiatedVersionedProcessGroup) child)
+            .forEach(child -> {
+                final Map<String, String> childMapping = createVersionControlComponentMappingDto(child);
+                mapping.putAll(childMapping);
+            });
+
+        return mapping;
+    }
+
 
     /**
      * Creates a ProcessGroupContentDTO from the specified ProcessGroup.
@@ -2104,9 +2449,47 @@ public final class DtoFactory {
         return dto;
     }
 
+    private boolean isRestricted(final Class<?> cls) {
+        return cls.isAnnotationPresent(Restricted.class);
+    }
+
     private String getUsageRestriction(final Class<?> cls) {
-        final Restricted restriction = cls.getAnnotation(Restricted.class);
-        return restriction == null ? null : restriction.value();
+        final Restricted restricted = cls.getAnnotation(Restricted.class);
+
+        if (restricted == null) {
+            return null;
+        }
+
+        if (StringUtils.isBlank(restricted.value())) {
+            return null;
+        }
+
+        return restricted.value();
+    }
+
+    private Set<ExplicitRestrictionDTO> getExplicitRestrictions(final Class<?> cls) {
+        final Restricted restricted = cls.getAnnotation(Restricted.class);
+
+        if (restricted == null) {
+            return null;
+        }
+
+        final Restriction[] restrictions = restricted.restrictions();
+
+        if (restrictions == null || restrictions.length == 0) {
+            return null;
+        }
+
+        return Arrays.stream(restrictions).map(restriction -> {
+            final RequiredPermissionDTO requiredPermission = new RequiredPermissionDTO();
+            requiredPermission.setId(restriction.requiredPermission().getPermissionIdentifier());
+            requiredPermission.setLabel(restriction.requiredPermission().getPermissionLabel());
+
+            final ExplicitRestrictionDTO usageRestriction = new ExplicitRestrictionDTO();
+            usageRestriction.setRequiredPermission(requiredPermission);
+            usageRestriction.setExplanation(restriction.explanation());
+            return usageRestriction;
+        }).collect(Collectors.toSet());
     }
 
     private String getDeprecationReason(final Class<?> cls) {
@@ -2114,8 +2497,18 @@ public final class DtoFactory {
         return deprecationNotice == null ? null : deprecationNotice.reason();
     }
 
+    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ComponentNode> affectedComponents, final RevisionManager revisionManager) {
+        return affectedComponents.stream()
+                .map(component -> {
+                    final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
+                    final PermissionsDTO permissions = createPermissionsDto(component);
+                    final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(component.getIdentifier()));
+                    return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
+                })
+                .collect(Collectors.toSet());
+    }
 
-    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup) {
+    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
@@ -2130,21 +2523,18 @@ public final class DtoFactory {
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
             variableDto.setProcessGroupId(processGroup.getIdentifier());
 
-            final Set<ConfiguredComponent> affectedComponents = processGroup.getComponentsAffectedByVariable(variableName);
-            final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
-                .map(component -> createAffectedComponentDto(component))
-                .collect(Collectors.toSet());
+            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager);
 
             boolean canWrite = true;
-            for (final ConfiguredComponent component : affectedComponents) {
-                final PermissionsDTO permissions = createPermissionsDto(component);
+            for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
+                final PermissionsDTO permissions = affectedComponent.getPermissions();
                 if (!permissions.getCanRead() || !permissions.getCanWrite()) {
                     canWrite = false;
                     break;
                 }
             }
 
-            variableDto.setAffectedComponents(affectedComponentDtos);
+            variableDto.setAffectedComponents(affectedComponentEntities);
 
             final VariableEntity variableEntity = new VariableEntity();
             variableEntity.setVariable(variableDto);
@@ -2178,6 +2568,8 @@ public final class DtoFactory {
         updateSteps.add(createVariableRegistryUpdateStepDto(request.getStartProcessorsStep()));
         dto.setUpdateSteps(updateSteps);
 
+        dto.setAffectedComponents(new HashSet<>(request.getAffectedComponents().values()));
+
         return dto;
     }
 
@@ -2190,42 +2582,41 @@ public final class DtoFactory {
     }
 
 
-    public VariableRegistryDTO populateAffectedComponents(final VariableRegistryDTO variableRegistry, final ProcessGroup group) {
+    public VariableRegistryDTO populateAffectedComponents(final VariableRegistryDTO variableRegistry, final ProcessGroup group, final RevisionManager revisionManager) {
         if (!group.getIdentifier().equals(variableRegistry.getProcessGroupId())) {
             throw new IllegalArgumentException("Variable Registry does not have the same Group ID as the given Process Group");
         }
 
         final Set<VariableEntity> variableEntities = new LinkedHashSet<>();
 
-        for (final VariableEntity inputEntity : variableRegistry.getVariables()) {
-            final VariableEntity entity = new VariableEntity();
+        if (variableRegistry.getVariables() != null) {
+            for (final VariableEntity inputEntity : variableRegistry.getVariables()) {
+                final VariableEntity entity = new VariableEntity();
 
-            final VariableDTO inputDto = inputEntity.getVariable();
-            final VariableDTO variableDto = new VariableDTO();
-            variableDto.setName(inputDto.getName());
-            variableDto.setValue(inputDto.getValue());
-            variableDto.setProcessGroupId(group.getIdentifier());
+                final VariableDTO inputDto = inputEntity.getVariable();
+                final VariableDTO variableDto = new VariableDTO();
+                variableDto.setName(inputDto.getName());
+                variableDto.setValue(inputDto.getValue());
+                variableDto.setProcessGroupId(group.getIdentifier());
 
-            final Set<ConfiguredComponent> affectedComponents = group.getComponentsAffectedByVariable(variableDto.getName());
-            final Set<AffectedComponentDTO> affectedComponentDtos = affectedComponents.stream()
-                .map(component -> createAffectedComponentDto(component))
-                .collect(Collectors.toSet());
+                final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(group.getComponentsAffectedByVariable(variableDto.getName()), revisionManager);
 
-            boolean canWrite = true;
-            for (final ConfiguredComponent component : affectedComponents) {
-                final PermissionsDTO permissions = createPermissionsDto(component);
-                if (!permissions.getCanRead() || !permissions.getCanWrite()) {
-                    canWrite = false;
-                    break;
+                boolean canWrite = true;
+                for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
+                    final PermissionsDTO permissions = affectedComponent.getPermissions();
+                    if (!permissions.getCanRead() || !permissions.getCanWrite()) {
+                        canWrite = false;
+                        break;
+                    }
                 }
+
+                variableDto.setAffectedComponents(affectedComponentEntities);
+
+                entity.setCanWrite(canWrite);
+                entity.setVariable(inputDto);
+
+                variableEntities.add(entity);
             }
-
-            variableDto.setAffectedComponents(affectedComponentDtos);
-
-            entity.setCanWrite(canWrite);
-            entity.setVariable(inputDto);
-
-            variableEntities.add(entity);
         }
 
         final VariableRegistryDTO registryDto = new VariableRegistryDTO();
@@ -2254,6 +2645,10 @@ public final class DtoFactory {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
             }
+        }
+
+        if (cls.isAnnotationPresent(Restricted.class)) {
+            tags.add("restricted");
         }
 
         return tags;
@@ -2337,7 +2732,9 @@ public final class DtoFactory {
             dto.setBundle(createBundleDto(coordinate));
             dto.setControllerServiceApis(createControllerServiceApiDto(cls));
             dto.setDescription(getCapabilityDescription(cls));
+            dto.setRestricted(isRestricted(cls));
             dto.setUsageRestriction(getUsageRestriction(cls));
+            dto.setExplicitRestrictions(getExplicitRestrictions(cls));
             dto.setDeprecationReason(getDeprecationReason(cls));
             dto.setTags(getTags(cls));
             types.add(dto);
@@ -2389,8 +2786,10 @@ public final class DtoFactory {
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
         dto.setDeprecated(node.isDeprecated());
+        dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
         dto.setExtensionMissing(node.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+        dto.setVersionedComponentId(node.getVersionedComponentId().orElse(null));
 
         dto.setType(node.getCanonicalClassName());
         dto.setBundle(createBundleDto(bundleCoordinate));
@@ -2421,8 +2820,11 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
-        dto.setSupportsBatching(node.isHighThroughputSupported());
+        dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
+
+        final ValidationStatus validationStatus = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -2804,6 +3206,304 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates a ProcessorDiagnosticsDTO from the given Processor and status information with some additional supporting information
+     *
+     * @param procNode the processor to create diagnostics for
+     * @param procStatus the status of given processor
+     * @param bulletinRepo the bulletin repository
+     * @param flowController flowController
+     * @param serviceEntityFactory function for creating a ControllerServiceEntity from a given ID
+     * @return ProcessorDiagnosticsDTO for the given Processor
+     */
+    public ProcessorDiagnosticsDTO createProcessorDiagnosticsDto(final ProcessorNode procNode, final ProcessorStatus procStatus, final BulletinRepository bulletinRepo,
+            final FlowController flowController, final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final ProcessorDiagnosticsDTO procDiagnostics = new ProcessorDiagnosticsDTO();
+
+        procDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(procNode));
+        procDiagnostics.setIncomingConnections(procNode.getIncomingConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setOutgoingConnections(procNode.getConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setJvmDiagnostics(createJvmDiagnosticsDto(flowController));
+        procDiagnostics.setProcessor(createProcessorDto(procNode));
+        procDiagnostics.setProcessorStatus(createProcessorStatusDto(procStatus));
+        procDiagnostics.setThreadDumps(createThreadDumpDtos(procNode));
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = createReferencedServiceDiagnostics(procNode.getProperties(), flowController, serviceEntityFactory);
+        procDiagnostics.setReferencedControllerServices(referencedServiceDiagnostics);
+
+        return procDiagnostics;
+    }
+
+    private Set<ControllerServiceDiagnosticsDTO> createReferencedServiceDiagnostics(final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider,
+        final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = new HashSet<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() == null) {
+                continue;
+            }
+
+            final String serviceId = entry.getValue();
+            final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(serviceId);
+            if (serviceNode == null) {
+                continue;
+            }
+
+            final ControllerServiceDiagnosticsDTO serviceDiagnostics = createControllerServiceDiagnosticsDto(serviceNode, serviceEntityFactory, serviceProvider);
+            if (serviceDiagnostics != null) {
+                referencedServiceDiagnostics.add(serviceDiagnostics);
+            }
+        }
+
+        return referencedServiceDiagnostics;
+    }
+
+    /**
+     * Creates a ControllerServiceDiagnosticsDTO from the given Controller Service with some additional supporting information
+     *
+     * @param serviceNode the controller service to create diagnostics for
+     * @param serviceEntityFactory a function to convert a controller service id to a controller service entity
+     * @param serviceProvider the controller service provider
+     * @return ControllerServiceDiagnosticsDTO for the given Controller Service
+     */
+    public ControllerServiceDiagnosticsDTO createControllerServiceDiagnosticsDto(final ControllerServiceNode serviceNode, final Function<String, ControllerServiceEntity> serviceEntityFactory,
+            final ControllerServiceProvider serviceProvider) {
+
+        final ControllerServiceDiagnosticsDTO serviceDiagnostics = new ControllerServiceDiagnosticsDTO();
+        final ControllerServiceEntity serviceEntity = serviceEntityFactory.apply(serviceNode.getIdentifier());
+        serviceDiagnostics.setControllerService(serviceEntity);
+
+        serviceDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(serviceNode));
+        return serviceDiagnostics;
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ControllerServiceNode serviceNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(serviceNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = serviceNode.getControllerServiceImplementation().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ProcessorNode procNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(procNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = procNode.getProcessor().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ClassLoader classLoader) {
+        final ClassLoaderDiagnosticsDTO dto = new ClassLoaderDiagnosticsDTO();
+
+        final Bundle bundle = ExtensionManager.getBundle(classLoader);
+        if (bundle != null) {
+            dto.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
+        }
+
+        final ClassLoader parentClassLoader = classLoader.getParent();
+        if (parentClassLoader != null) {
+            dto.setParentClassLoader(createClassLoaderDiagnosticsDto(parentClassLoader));
+        }
+
+        return dto;
+    }
+
+    private ConnectionDiagnosticsDTO createConnectionDiagnosticsDto(final Connection connection) {
+        final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
+        dto.setConnection(createConnectionDto(connection));
+
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+        final QueueSize totalSize = queue.size();
+        dto.setTotalByteCount(totalSize.getByteCount());
+        dto.setTotalFlowFileCount(totalSize.getObjectCount());
+
+        final QueueSize activeSize = queue.getActiveQueueSize();
+        dto.setActiveQueueByteCount(activeSize.getByteCount());
+        dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
+
+        final QueueSize inFlightSize = queue.getUnacknowledgedQueueSize();
+        dto.setInFlightByteCount(inFlightSize.getByteCount());
+        dto.setInFlightFlowFileCount(inFlightSize.getObjectCount());
+
+        final QueueSize swapSize = queue.getSwapQueueSize();
+        dto.setSwapByteCount(swapSize.getByteCount());
+        dto.setSwapFlowFileCount(swapSize.getObjectCount());
+
+        dto.setSwapFiles(queue.getSwapFileCount());
+        dto.setAllActiveQueueFlowFilesPenalized(queue.isAllActiveFlowFilesPenalized());
+        dto.setAnyActiveQueueFlowFilesPenalized(queue.isAnyActiveFlowFilePenalized());
+
+        return dto;
+    }
+
+    private JVMDiagnosticsDTO createJvmDiagnosticsDto(final FlowController flowController) {
+        final JVMDiagnosticsDTO dto = new JVMDiagnosticsDTO();
+        dto.setAggregateSnapshot(createJvmDiagnosticsSnapshotDto(flowController));
+        dto.setClustered(flowController.isClustered());
+        dto.setConnected(flowController.isConnected());
+        return dto;
+    }
+
+    private JVMDiagnosticsSnapshotDTO createJvmDiagnosticsSnapshotDto(final FlowController flowController) {
+        final JVMDiagnosticsSnapshotDTO dto = new JVMDiagnosticsSnapshotDTO();
+
+        final JVMControllerDiagnosticsSnapshotDTO controllerDiagnosticsDto = new JVMControllerDiagnosticsSnapshotDTO();
+        final JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto = new JVMFlowDiagnosticsSnapshotDTO();
+        final JVMSystemDiagnosticsSnapshotDTO systemDiagnosticsDto = new JVMSystemDiagnosticsSnapshotDTO();
+
+        dto.setControllerDiagnostics(controllerDiagnosticsDto);
+        dto.setFlowDiagnosticsDto(flowDiagnosticsDto);
+        dto.setSystemDiagnosticsDto(systemDiagnosticsDto);
+
+        final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
+
+        // flow-related information
+        final Set<BundleDTO> bundlesLoaded = ExtensionManager.getAllBundles().stream()
+            .map(bundle -> bundle.getBundleDetails().getCoordinate())
+            .sorted((a, b) -> a.getCoordinate().compareTo(b.getCoordinate()))
+            .map(this::createBundleDto)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        flowDiagnosticsDto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
+        flowDiagnosticsDto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
+        flowDiagnosticsDto.setBundlesLoaded(bundlesLoaded);
+        flowDiagnosticsDto.setTimeZone(System.getProperty("user.timezone"));
+        flowDiagnosticsDto.setUptime(FormatUtils.formatHoursMinutesSeconds(systemDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
+        // controller-related information
+        controllerDiagnosticsDto.setClusterCoordinator(flowController.isClusterCoordinator());
+        controllerDiagnosticsDto.setPrimaryNode(flowController.isPrimary());
+        controllerDiagnosticsDto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
+        controllerDiagnosticsDto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
+
+        // system-related information
+        systemDiagnosticsDto.setMaxOpenFileDescriptors(systemDiagnostics.getMaxOpenFileHandles());
+        systemDiagnosticsDto.setOpenFileDescriptors(systemDiagnostics.getOpenFileHandles());
+        systemDiagnosticsDto.setPhysicalMemoryBytes(systemDiagnostics.getTotalPhysicalMemory());
+        systemDiagnosticsDto.setPhysicalMemory(FormatUtils.formatDataSize(systemDiagnostics.getTotalPhysicalMemory()));
+
+        final NumberFormat percentageFormat = NumberFormat.getPercentInstance();
+        percentageFormat.setMaximumFractionDigits(2);
+
+        final Set<RepositoryUsageDTO> contentRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getContentRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getContentRepoFileStoreName(repoName)));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            contentRepoUsage.add(usageDto);
+        }
+
+        final Set<RepositoryUsageDTO> provRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getProvenanceRepoFileStoreName(repoName)));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            provRepoUsage.add(usageDto);
+        }
+
+        final RepositoryUsageDTO flowFileRepoUsage = new RepositoryUsageDTO();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            flowFileRepoUsage.setName(repoName);
+
+            flowFileRepoUsage.setFileStoreHash(DigestUtils.sha256Hex(flowController.getFlowRepoFileStoreName()));
+            flowFileRepoUsage.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            flowFileRepoUsage.setFreeSpaceBytes(usage.getFreeSpace());
+            flowFileRepoUsage.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            flowFileRepoUsage.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            flowFileRepoUsage.setUtilization(utilization);
+        }
+
+        systemDiagnosticsDto.setContentRepositoryStorageUsage(contentRepoUsage);
+        systemDiagnosticsDto.setCpuCores(systemDiagnostics.getAvailableProcessors());
+        systemDiagnosticsDto.setCpuLoadAverage(systemDiagnostics.getProcessorLoadAverage());
+        systemDiagnosticsDto.setFlowFileRepositoryStorageUsage(flowFileRepoUsage);
+        systemDiagnosticsDto.setMaxHeapBytes(systemDiagnostics.getMaxHeap());
+        systemDiagnosticsDto.setMaxHeap(FormatUtils.formatDataSize(systemDiagnostics.getMaxHeap()));
+        systemDiagnosticsDto.setProvenanceRepositoryStorageUsage(provRepoUsage);
+
+        // Create the Garbage Collection History info
+        final GarbageCollectionHistory gcHistory = flowController.getGarbageCollectionHistory();
+        final List<GarbageCollectionDiagnosticsDTO> gcDiagnostics = new ArrayList<>();
+        for (final String memoryManager : gcHistory.getMemoryManagerNames()) {
+            final List<GarbageCollectionStatus> statuses = gcHistory.getGarbageCollectionStatuses(memoryManager);
+
+            final List<GCDiagnosticsSnapshotDTO> gcSnapshots = new ArrayList<>();
+            for (final GarbageCollectionStatus status : statuses) {
+                final GCDiagnosticsSnapshotDTO snapshotDto = new GCDiagnosticsSnapshotDTO();
+                snapshotDto.setTimestamp(status.getTimestamp());
+                snapshotDto.setCollectionCount(status.getCollectionCount());
+                snapshotDto.setCollectionMillis(status.getCollectionMillis());
+                gcSnapshots.add(snapshotDto);
+            }
+
+            final GarbageCollectionDiagnosticsDTO gcDto = new GarbageCollectionDiagnosticsDTO();
+            gcDto.setMemoryManagerName(memoryManager);
+            gcDto.setSnapshots(gcSnapshots);
+            gcDiagnostics.add(gcDto);
+        }
+
+        systemDiagnosticsDto.setGarbageCollectionDiagnostics(gcDiagnostics);
+
+        return dto;
+    }
+
+    private List<ThreadDumpDTO> createThreadDumpDtos(final ProcessorNode procNode) {
+        final List<ThreadDumpDTO> threadDumps = new ArrayList<>();
+
+        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads();
+        for (final ActiveThreadInfo threadInfo : activeThreads) {
+            final ThreadDumpDTO dto = new ThreadDumpDTO();
+            dto.setStackTrace(threadInfo.getStackTrace());
+            dto.setThreadActiveMillis(threadInfo.getActiveMillis());
+            dto.setThreadName(threadInfo.getThreadName());
+            dto.setTaskTerminated(threadInfo.isTerminated());
+            threadDumps.add(dto);
+        }
+
+        return threadDumps;
+    }
+
+    /**
      * Creates a ProcessorConfigDTO from the specified ProcessorNode.
      *
      * @param procNode node
@@ -2907,6 +3607,12 @@ public final class DtoFactory {
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
 
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setExpressionLanguageScope(description);
+
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {
             final Class serviceClass = propertyDescriptor.getControllerServiceDefinition();
@@ -2962,6 +3668,7 @@ public final class DtoFactory {
         copy.setPosition(original.getPosition());
         copy.setWidth(original.getWidth());
         copy.setHeight(original.getHeight());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;
     }
@@ -2985,6 +3692,8 @@ public final class DtoFactory {
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setPersistsState(original.getPersistsState());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
         return copy;
     }
 
@@ -2993,6 +3702,7 @@ public final class DtoFactory {
         copy.setId(original.getId());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setPosition(original.getPosition());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;
     }
@@ -3058,9 +3768,12 @@ public final class DtoFactory {
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setPersistsState(original.getPersistsState());
+        copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;
     }
@@ -3105,6 +3818,7 @@ public final class DtoFactory {
         copy.setzIndex(original.getzIndex());
         copy.setLabelIndex(original.getLabelIndex());
         copy.setBends(copy(original.getBends()));
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;
     }
@@ -3137,12 +3851,14 @@ public final class DtoFactory {
         copy.setUserAccessControl(copy(original.getUserAccessControl()));
         copy.setGroupAccessControl(copy(original.getGroupAccessControl()));
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setVersionedComponentId(original.getVersionedComponentId());
         return copy;
     }
 
     public RemoteProcessGroupPortDTO copy(final RemoteProcessGroupPortDTO original) {
         final RemoteProcessGroupPortDTO copy = new RemoteProcessGroupPortDTO();
         copy.setId(original.getId());
+        copy.setTargetId(original.getTargetId());
         copy.setGroupId(original.getGroupId());
         copy.setName(original.getName());
         copy.setComments(original.getComments());
@@ -3152,12 +3868,15 @@ public final class DtoFactory {
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setUseCompression(original.getUseCompression());
         copy.setExists(original.getExists());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
+
         final BatchSettingsDTO batchOrg = original.getBatchSettings();
         if (batchOrg != null) {
             final BatchSettingsDTO batchCopy = new BatchSettingsDTO();
             batchCopy.setCount(batchOrg.getCount());
             batchCopy.setSize(batchOrg.getSize());
             batchCopy.setDuration(batchOrg.getDuration());
+            copy.setBatchSettings(batchCopy);
         }
         return copy;
     }
@@ -3171,8 +3890,10 @@ public final class DtoFactory {
         copy.setInputPortCount(original.getInputPortCount());
         copy.setInvalidCount(original.getInvalidCount());
         copy.setName(original.getName());
+        copy.setVersionControlInformation(copy(original.getVersionControlInformation()));
         copy.setOutputPortCount(original.getOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());
@@ -3180,10 +3901,35 @@ public final class DtoFactory {
         copy.setActiveRemotePortCount(original.getActiveRemotePortCount());
         copy.setInactiveRemotePortCount(original.getInactiveRemotePortCount());
 
+        copy.setUpToDateCount(original.getUpToDateCount());
+        copy.setLocallyModifiedCount(original.getLocallyModifiedCount());
+        copy.setStaleCount(original.getStaleCount());
+        copy.setLocallyModifiedAndStaleCount(original.getLocallyModifiedAndStaleCount());
+        copy.setSyncFailureCount(original.getSyncFailureCount());
+
         if (original.getVariables() != null) {
             copy.setVariables(new HashMap<>(original.getVariables()));
         }
 
+        return copy;
+    }
+
+    public VersionControlInformationDTO copy(final VersionControlInformationDTO original) {
+        if (original == null) {
+            return null;
+        }
+
+        final VersionControlInformationDTO copy = new VersionControlInformationDTO();
+        copy.setRegistryId(original.getRegistryId());
+        copy.setRegistryName(original.getRegistryName());
+        copy.setBucketId(original.getBucketId());
+        copy.setBucketName(original.getBucketName());
+        copy.setFlowId(original.getFlowId());
+        copy.setFlowName(original.getFlowName());
+        copy.setFlowDescription(original.getFlowDescription());
+        copy.setVersion(original.getVersion());
+        copy.setState(original.getState());
+        copy.setStateExplanation(original.getStateExplanation());
         return copy;
     }
 
@@ -3228,6 +3974,7 @@ public final class DtoFactory {
         copy.setProxyUser(original.getProxyUser());
         copy.setProxyPassword(original.getProxyPassword());
         copy.setLocalNetworkInterface(original.getLocalNetworkInterface());
+        copy.setVersionedComponentId(original.getVersionedComponentId());
 
         copy.setContents(copyContents);
 
@@ -3240,6 +3987,7 @@ public final class DtoFactory {
         connectable.setId(port.getId());
         connectable.setName(port.getName());
         connectable.setType(type.name());
+        connectable.setVersionedComponentId(port.getVersionedComponentId());
         return connectable;
     }
 
@@ -3249,6 +3997,7 @@ public final class DtoFactory {
         connectable.setId(processor.getId());
         connectable.setName(processor.getName());
         connectable.setType(ConnectableType.PROCESSOR.name());
+        connectable.setVersionedComponentId(processor.getVersionedComponentId());
         return connectable;
     }
 
@@ -3257,6 +4006,7 @@ public final class DtoFactory {
         connectable.setGroupId(funnel.getParentGroupId());
         connectable.setId(funnel.getId());
         connectable.setType(ConnectableType.FUNNEL.name());
+        connectable.setVersionedComponentId(funnel.getVersionedComponentId());
         return connectable;
     }
 
@@ -3266,6 +4016,7 @@ public final class DtoFactory {
         connectable.setId(remoteGroupPort.getId());
         connectable.setName(remoteGroupPort.getName());
         connectable.setType(type.name());
+        connectable.setVersionedComponentId(connectable.getVersionedComponentId());
         return connectable;
     }
 
@@ -3369,44 +4120,6 @@ public final class DtoFactory {
         return copy;
     }
 
-    private static class SortedRemoteGroupPortComparator implements Comparator<RemoteProcessGroupPortDTO> {
-
-        @Override
-        public int compare(final RemoteProcessGroupPortDTO o1, final RemoteProcessGroupPortDTO o2) {
-            if (o2 == null) {
-                return -1;
-            } else if (o1 == null) {
-                return 1;
-            }
-
-            final String name1 = o1.getName();
-            final String name2 = o2.getName();
-            if (name2 == null) {
-                return -1;
-            } else if (name1 == null) {
-                return 1;
-            } else {
-                int compareResult = Collator.getInstance(Locale.US).compare(name2, name2);
-
-                // if the names are same, use the id
-                if (compareResult == 0) {
-                    final String id1 = o1.getId();
-                    final String id2 = o2.getId();
-                    if (id2 == null) {
-                        compareResult = -1;
-                    } else if (id1 == null) {
-                        compareResult = 1;
-                    } else {
-                        compareResult = id1.compareTo(id2);
-                    }
-                }
-
-                return compareResult;
-            }
-
-        }
-    }
-
     /**
      * Factory method for creating a new RevisionDTO based on this controller.
      *
@@ -3481,6 +4194,15 @@ public final class DtoFactory {
         return nodeDto;
     }
 
+    public RegistryDTO createRegistryDto(FlowRegistry registry) {
+        final RegistryDTO dto = new RegistryDTO();
+        dto.setDescription(registry.getDescription());
+        dto.setId(registry.getIdentifier());
+        dto.setName(registry.getName());
+        dto.setUri(registry.getURL());
+        return dto;
+    }
+
 
     /* setters */
     public void setControllerServiceProvider(final ControllerServiceProvider controllerServiceProvider) {
@@ -3497,9 +4219,5 @@ public final class DtoFactory {
 
     public void setBulletinRepository(BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
-    }
-
-    public void setProperties(final NiFiProperties properties) {
-        this.properties = properties;
     }
 }

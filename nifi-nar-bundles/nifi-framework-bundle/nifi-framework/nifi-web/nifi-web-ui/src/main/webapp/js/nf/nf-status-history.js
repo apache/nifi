@@ -87,9 +87,9 @@
     var serverTimeOffset = null;
 
     /**
-     * The current extent of the brush.
+     * The current selection of the brush.
      */
-    var brushExtent = null;
+    var brushSelection = null;
 
     /**
      * The currently selected descriptor.
@@ -192,7 +192,7 @@
                 // get the current user time to properly convert the server time
                 var now = new Date();
 
-                // conver the user offset to millis
+                // convert the user offset to millis
                 var userTimeOffset = now.getTimezoneOffset() * 60 * 1000;
 
                 // create the proper date by adjusting by the offsets
@@ -240,7 +240,7 @@
                 if (selectedDescriptor !== null) {
                     // clear the current extent if this is a newly selected descriptor
                     if (descriptor === null || descriptor.field !== selectedDescriptor.field) {
-                        brushExtent = null;
+                        brushSelection = null;
                     }
 
                     // record the currently selected descriptor
@@ -296,7 +296,7 @@
 
             // add status history details
             var detailsContainer = buildDetailsContainer('Status History');
-            d3.map(statusHistory.details).forEach(function (label, value) {
+            d3.map(statusHistory.details).each(function (value, label) {
                 addDetailItem(detailsContainer, label, value);
             });
 
@@ -312,7 +312,7 @@
             // -------------
 
             // available colors
-            var color = d3.scale.category10();
+            var color = d3.scaleOrdinal(d3.schemeCategory10);
 
             // determine the available instances
             var instanceLabels = [];
@@ -351,32 +351,23 @@
             // custom time axis formatter
             // --------------------------
 
-            var customTimeFormat = d3.time.format.multi([
-                [':%S.%L', function (d) {
-                    return d.getMilliseconds();
-                }],
-                [':%S', function (d) {
-                    return d.getSeconds();
-                }],
-                ['%H:%M', function (d) {
-                    return d.getMinutes();
-                }],
-                ['%H:%M', function (d) {
-                    return d.getHours();
-                }],
-                ['%a %d', function (d) {
-                    return d.getDay() && d.getDate() !== 1;
-                }],
-                ['%b %d', function (d) {
-                    return d.getDate() !== 1;
-                }],
-                ['%B', function (d) {
-                    return d.getMonth();
-                }],
-                ['%Y', function () {
-                    return true;
-                }]
-            ]);
+            var customTimeFormat = function (d) {
+                if (d.getMilliseconds()) {
+                    return d3.timeFormat(':%S.%L')(d);
+                } else if (d.getSeconds()) {
+                    return d3.timeFormat(':%S')(d);
+                } else if (d.getMinutes() || d.getHours()) {
+                    return d3.timeFormat('%H:%M')(d);
+                } else if (d.getDay() && d.getDate() !== 1) {
+                    return d3.timeFormat('%a %d')(d);
+                } else if (d.getDate() !== 1) {
+                    return d3.timeFormat('%b %d')(d);
+                } else if (d.getMonth()) {
+                    return d3.timeFormat('%B')(d);
+                } else {
+                    return d3.timeFormat('%Y')(d);
+                }
+            };
 
             // ----------
             // main chart
@@ -407,28 +398,23 @@
             }
 
             // define the x axis for the main chart
-            var x = d3.time.scale()
+            var x = d3.scaleTime()
                 .range([0, width]);
 
-            var xAxis = d3.svg.axis()
-                .scale(x)
+            var xAxis = d3.axisBottom(x)
                 .ticks(5)
-                .tickFormat(customTimeFormat)
-                .orient('bottom');
+                .tickFormat(customTimeFormat);
 
             // define the y axis
-            var y = d3.scale.linear()
+            var y = d3.scaleLinear()
                 .range([height, 0]);
 
-            var yAxis = d3.svg.axis()
-                .scale(y)
-                .tickFormat(formatters[selectedDescriptor.formatter])
-                .orient('left');
-
+            var yAxis = d3.axisLeft(y)
+                .tickFormat(formatters[selectedDescriptor.formatter]);
 
             // status line
-            var line = d3.svg.line()
-                .interpolate('monotone')
+            var line = d3.line()
+                .curve(d3.curveMonotoneX)
                 .x(function (d) {
                     return x(d.timestamp);
                 })
@@ -441,6 +427,7 @@
                 .attr('style', 'pointer-events: none;')
                 .attr('width', chartContainer.parent().width())
                 .attr('height', chartContainer.innerHeight());
+
             // define a clip the path
             var clipPath = chartSvg.append('defs').append('clipPath')
                 .attr('id', 'clip')
@@ -569,27 +556,23 @@
             var chartControlContainer = $('#status-history-chart-control-container').empty();
             var controlHeight = chartControlContainer.innerHeight() - margin.top - margin.bottom;
 
-            var xControl = d3.time.scale()
+            var xControl = d3.scaleTime()
                 .range([0, width]);
 
-            var xControlAxis = d3.svg.axis()
-                .scale(xControl)
+            var xControlAxis = d3.axisBottom(xControl)
                 .ticks(5)
-                .tickFormat(customTimeFormat)
-                .orient('bottom');
+                .tickFormat(customTimeFormat);
 
-            var yControl = d3.scale.linear()
+            var yControl = d3.scaleLinear()
                 .range([controlHeight, 0]);
 
-            var yControlAxis = d3.svg.axis()
-                .scale(yControl)
+            var yControlAxis = d3.axisLeft(yControl)
                 .tickValues(y.domain())
-                .tickFormat(formatters[selectedDescriptor.formatter])
-                .orient('left');
+                .tickFormat(formatters[selectedDescriptor.formatter]);
 
             // status line
-            var controlLine = d3.svg.line()
-                .interpolate('monotone')
+            var controlLine = d3.line()
+                .curve(d3.curveMonotoneX)
                 .x(function (d) {
                     return xControl(d.timestamp);
                 })
@@ -606,13 +589,9 @@
             var control = controlChartSvg.append('g')
                 .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
 
-            // increase the y domain slightly
-            var yControlDomain = y.domain();
-            yControlDomain[1] *= 1.04;
-
             // define the domain for the control chart
             xControl.domain(x.domain());
-            yControl.domain(yControlDomain);
+            yControl.domain(y.domain());
 
             // build the control x axis
             control.append('g')
@@ -649,130 +628,6 @@
                 .append('title')
                 .text(function (d) {
                     return d.label;
-                });
-
-            // -------------------
-            // configure the brush
-            // -------------------
-
-            /**
-             * Updates the axis for the main chart.
-             *
-             * @param {array} xDomain   The new domain for the x axis
-             * @param {array} yDomain   The new domain for the y axis
-             */
-            var updateAxes = function (xDomain, yDomain) {
-                // update the domain of the main chart
-                x.domain(xDomain);
-                y.domain(yDomain);
-
-                // update the chart lines
-                status.selectAll('.chart-line')
-                    .attr('d', function (d) {
-                        return line(d.values);
-                    });
-                status.selectAll('circle.mark')
-                    .attr('cx', function (v) {
-                        return x(v.timestamp);
-                    })
-                    .attr('cy', function (v) {
-                        return y(v.value);
-                    })
-                    .attr('r', function () {
-                        return brush.empty() ? 1.5 : 4;
-                    });
-
-                // update the x axis
-                chart.select('.x.axis').call(xAxis);
-                chart.select('.y.axis').call(yAxis);
-            };
-
-            /**
-             * Handles brush events by updating the main chart according to the context window
-             * or the control domain if there is no context window.
-             */
-            var brushed = function () {
-                // determine the new x and y domains
-                var xContextDomain, yContextDomain;
-                if (brush.empty()) {
-                    // get the all visible instances
-                    var visibleInstances = $.grep(statusData, function (d) {
-                        return d.visible;
-                    });
-
-                    // determine the appropriate y domain
-                    if (visibleInstances.length === 0) {
-                        yContextDomain = yControl.domain();
-                    } else {
-                        yContextDomain = [
-                            d3.min(visibleInstances, function (d) {
-                                return d3.min(d.values, function (s) {
-                                    return s.value;
-                                });
-                            }),
-                            d3.max(visibleInstances, function (d) {
-                                return d3.max(d.values, function (s) {
-                                    return s.value;
-                                });
-                            })
-                        ];
-                    }
-                    xContextDomain = xControl.domain();
-
-                    // clear the current extent
-                    brushExtent = null;
-                } else {
-                    var extent = brush.extent();
-                    xContextDomain = [extent[0][0], extent[1][0]];
-                    yContextDomain = [extent[0][1], extent[1][1]];
-
-                    // hold onto the current brush
-                    brushExtent = extent;
-                }
-
-                // update the axes accordingly
-                updateAxes(xContextDomain, yContextDomain);
-
-                // update the aggregate statistics according to the new domain
-                updateAggregateStatistics();
-            };
-
-            // build the brush
-            var brush = d3.svg.brush()
-                .x(xControl)
-                .y(yControl)
-                .on('brush', brushed);
-
-            // conditionally set the brush extent
-            if (nfCommon.isDefinedAndNotNull(brushExtent)) {
-                brush = brush.extent(brushExtent);
-            }
-
-            // context area
-            control.append('g')
-                .attr('class', 'brush')
-                .call(brush);
-
-            // add expansion to the extent
-            control.select('rect.extent')
-                .attr('style', 'pointer-events: all;')
-                .on('dblclick', function () {
-                    if (!brush.empty()) {
-                        // get the current extent to get the x range
-                        var extent = brush.extent();
-
-                        // get the y range (this value does not change from the original y domain)
-                        var yRange = yControl.domain();
-
-                        // expand the extent vertically
-                        brush.extent([[extent[0][0], yRange[0]], [extent[1][0], yRange[1]]]);
-
-                        // update the brush control
-                        control.select('.brush').call(brush);
-
-                        // run the brush to update the axes of the main chart
-                        brushed();
-                    }
                 });
 
             // --------------------
@@ -821,6 +676,116 @@
                 // update the cluster min/max/mean
                 $('#cluster-aggregate-statistics').text(clusterMinValue + ' / ' + clusterMaxValue + ' / ' + clusterMeanValue);
             };
+
+            // -------------------
+            // configure the brush
+            // -------------------
+
+            /**
+             * Updates the axis for the main chart.
+             *
+             * @param {array} xDomain   The new domain for the x axis
+             * @param {array} yDomain   The new domain for the y axis
+             */
+            var updateAxes = function (xDomain, yDomain) {
+                // update the domain of the main chart
+                x.domain(xDomain);
+                y.domain(yDomain);
+
+                // update the chart lines
+                status.selectAll('.chart-line')
+                    .attr('d', function (d) {
+                        return line(d.values);
+                    });
+                status.selectAll('circle.mark')
+                    .attr('cx', function (v) {
+                        return x(v.timestamp);
+                    })
+                    .attr('cy', function (v) {
+                        return y(v.value);
+                    })
+                    .attr('r', function () {
+                        return d3.brushSelection(brushNode.node()) === null ? 1.5 : 4;
+                    });
+
+                // update the x axis
+                chart.select('.x.axis').call(xAxis);
+                chart.select('.y.axis').call(yAxis);
+            };
+
+            /**
+             * Handles brush events by updating the main chart according to the context window
+             * or the control domain if there is no context window.
+             */
+            var brushed = function () {
+                brushSelection = d3.brushSelection(brushNode.node());
+
+                // determine the new x and y domains
+                var xContextDomain, yContextDomain;
+                if (brushSelection === null) {
+                    // get the all visible instances
+                    var visibleInstances = $.grep(statusData, function (d) {
+                        return d.visible;
+                    });
+
+                    // determine the appropriate y domain
+                    if (visibleInstances.length === 0) {
+                        yContextDomain = yControl.domain();
+                    } else {
+                        yContextDomain = [
+                            d3.min(visibleInstances, function (d) {
+                                return d3.min(d.values, function (s) {
+                                    return s.value;
+                                });
+                            }),
+                            d3.max(visibleInstances, function (d) {
+                                return d3.max(d.values, function (s) {
+                                    return s.value;
+                                });
+                            })
+                        ];
+                    }
+                    xContextDomain = xControl.domain();
+                } else {
+                    xContextDomain = [brushSelection[0][0], brushSelection[1][0]].map(xControl.invert, xControl);
+                    yContextDomain = [brushSelection[1][1], brushSelection[0][1]].map(yControl.invert, yControl);
+                }
+
+                // update the axes accordingly
+                updateAxes(xContextDomain, yContextDomain);
+
+                // update the aggregate statistics according to the new domain
+                updateAggregateStatistics();
+            };
+
+            // build the brush
+            var brush = d3.brush()
+                .extent([[xControl.range()[0], yControl.range()[1]], [xControl.range()[1], yControl.range()[0]]])
+                .on('brush', brushed);
+
+            // context area
+            var brushNode = control.append('g')
+                .attr('class', 'brush')
+                .on('click', brushed)
+                .call(brush);
+
+            // conditionally set the brush extent
+            if (nfCommon.isDefinedAndNotNull(brushSelection)) {
+                brush = brush.move(brushNode, brushSelection);
+            }
+
+            // add expansion to the extent
+            control.select('rect.selection')
+                .attr('style', 'pointer-events: all;')
+                .on('dblclick', function () {
+                    if (brushSelection !== null) {
+                        // get the y range (this value does not change from the original y domain)
+                        var yRange = yControl.range();
+
+                        // expand the extent vertically
+                        brush.move(brushNode, [[brushSelection[0][0], yRange[1]], [brushSelection[1][0], yRange[0]]]);
+                    }
+                });
 
             // ----------------
             // build the legend
@@ -906,18 +871,12 @@
             // handle resizing
             // ---------------
 
-            var maxWidth, maxHeight, minHeight, resizeExtent, dialog;
+            var maxWidth, maxHeight, minHeight, dialog;
             chartContainer.append('<div class="ui-resizable-handle ui-resizable-se"></div>').resizable({
                 minWidth: 425,
                 minHeight: 150,
                 handles: {
                     'se': '.ui-resizable-se'
-                },
-                start: function (e, ui) {
-                    // record the current extent so it can be reset on stop
-                    if (!brush.empty()) {
-                        resizeExtent = brush.extent();
-                    }
                 },
                 resize: function (e, ui) {
                     // -----------
@@ -1099,7 +1058,7 @@
                         $('#status-history-details').empty();
 
                         // clear the extent and selected descriptor
-                        brushExtent = null;
+                        brushSelection = null;
                         descriptor = null;
                         instances = null;
                     },

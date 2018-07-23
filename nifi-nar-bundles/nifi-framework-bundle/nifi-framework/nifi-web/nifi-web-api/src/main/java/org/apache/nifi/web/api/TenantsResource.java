@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -129,7 +129,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -171,6 +171,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestUserEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -214,7 +216,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -269,7 +271,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UsersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -327,7 +329,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -373,6 +375,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestUserEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserEntity.isDisconnectedNodeAcknowledged());
         }
 
         // Extract the revision
@@ -417,7 +421,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -442,6 +446,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The user id.",
                     required = true
             )
@@ -454,6 +463,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final UserEntity requestUserEntity = new UserEntity();
@@ -518,7 +529,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -560,6 +571,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestUserGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -603,7 +616,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -658,7 +671,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -715,7 +728,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -761,6 +774,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestUserGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         // Extract the revision
@@ -805,7 +820,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -830,6 +845,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The user group id.",
                     required = true
             )
@@ -842,6 +862,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final UserGroupEntity requestUserGroupEntity = new UserGroupEntity();
@@ -885,7 +907,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = TenantsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(

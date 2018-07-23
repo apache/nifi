@@ -16,22 +16,20 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.entity.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -57,29 +55,28 @@ public class NodeResponse {
     private static final Logger logger = LoggerFactory.getLogger(NodeResponse.class);
     private final String httpMethod;
     private final URI requestUri;
-    private final ClientResponse clientResponse;
+    private final Response response;
     private final NodeIdentifier nodeId;
     private Throwable throwable;
     private boolean hasCreatedResponse = false;
     private final Entity updatedEntity;
     private final long requestDurationNanos;
     private final String requestId;
-    private byte[] bufferedResponse;
 
-    public NodeResponse(final NodeIdentifier nodeId, final String httpMethod, final URI requestUri, final ClientResponse clientResponse, final long requestDurationNanos, final String requestId) {
+    public NodeResponse(final NodeIdentifier nodeId, final String httpMethod, final URI requestUri, final Response response, final long requestDurationNanos, final String requestId) {
         if (nodeId == null) {
             throw new IllegalArgumentException("Node identifier may not be null.");
         } else if (StringUtils.isBlank(httpMethod)) {
             throw new IllegalArgumentException("Http method may not be null or empty.");
         } else if (requestUri == null) {
             throw new IllegalArgumentException("Request URI may not be null.");
-        } else if (clientResponse == null) {
+        } else if (response == null) {
             throw new IllegalArgumentException("ClientResponse may not be null.");
         }
         this.nodeId = nodeId;
         this.httpMethod = httpMethod;
         this.requestUri = requestUri;
-        this.clientResponse = clientResponse;
+        this.response = response;
         this.throwable = null;
         this.updatedEntity = null;
         this.requestDurationNanos = requestDurationNanos;
@@ -99,7 +96,7 @@ public class NodeResponse {
         this.nodeId = nodeId;
         this.httpMethod = httpMethod;
         this.requestUri = requestUri;
-        this.clientResponse = null;
+        this.response = null;
         this.throwable = throwable;
         this.updatedEntity = null;
         this.requestDurationNanos = -1L;
@@ -113,7 +110,7 @@ public class NodeResponse {
         this.nodeId = example.nodeId;
         this.httpMethod = example.httpMethod;
         this.requestUri = example.requestUri;
-        this.clientResponse = example.clientResponse;
+        this.response = example.response;
         this.throwable = example.throwable;
         this.updatedEntity = updatedEntity;
         this.requestDurationNanos = example.requestDurationNanos;
@@ -145,7 +142,7 @@ public class NodeResponse {
              * so that we don't read the client's input stream as part of creating
              * the response in the getResponse() method
              */
-            return clientResponse.getStatus();
+            return response.getStatus();
         }
     }
 
@@ -160,24 +157,19 @@ public class NodeResponse {
     }
 
     public synchronized void bufferResponse() {
-        bufferedResponse = new byte[clientResponse.getLength()];
         try {
-            StreamUtils.fillBuffer(clientResponse.getEntityInputStream(), bufferedResponse);
-        } catch (final IOException e) {
+            response.bufferEntity();
+        } catch (final ProcessingException e) {
             this.throwable = e;
         }
     }
 
     public synchronized InputStream getInputStream() {
-        if (bufferedResponse == null) {
-            return clientResponse.getEntityInputStream();
-        }
-
-        return new ByteArrayInputStream(bufferedResponse);
+        return response.readEntity(InputStream.class);
     }
 
-    public ClientResponse getClientResponse() {
-        return clientResponse;
+    public Response getClientResponse() {
+        return response;
     }
 
 
@@ -241,12 +233,12 @@ public class NodeResponse {
         }
 
         // set the status
-        final ResponseBuilder responseBuilder = Response.status(clientResponse.getStatus());
+        final ResponseBuilder responseBuilder = Response.status(response.getStatus());
 
         // set the headers
-        for (final String key : clientResponse.getHeaders().keySet()) {
-            final List<String> values = clientResponse.getHeaders().get(key);
-            for (final String value : values) {
+        for (final String key : response.getHeaders().keySet()) {
+            final List<Object> values = response.getHeaders().get(key);
+            for (final Object value : values) {
                 if (key.equalsIgnoreCase("transfer-encoding") || key.equalsIgnoreCase("content-length")) {
                     /*
                      * do not copy the transfer-encoding header (i.e., chunked encoding) or

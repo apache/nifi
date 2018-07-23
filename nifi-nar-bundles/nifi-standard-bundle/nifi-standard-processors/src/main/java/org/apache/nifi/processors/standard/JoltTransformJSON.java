@@ -42,6 +42,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -96,7 +97,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .name("jolt-spec")
             .displayName("Jolt Specification")
             .description("Jolt Specification for transform of JSON data. This value is ignored if the Jolt Sort Transformation is selected.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
@@ -106,7 +107,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .displayName("Custom Transformation Class Name")
             .description("Fully Qualified Class Name for Custom Transformation")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -115,7 +116,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .displayName("Custom Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -123,7 +124,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .name("Transform Cache Size")
             .description("Compiling a Jolt Transform can be fairly expensive. Ideally, this will be done only once. However, if the Expression Language is used in the transform, we may need "
                 + "a new Transform for each FlowFile. This value controls how many of those Transforms we cache in memory in order to avoid having to compile the Transform each time.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
             .required(true)
@@ -208,13 +209,15 @@ public class JoltTransformJSON extends AbstractProcessor {
                 }
 
                 final String specValue =  validationContext.getProperty(JOLT_SPEC).getValue();
-                final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
 
-                if (validationContext.isExpressionLanguagePresent(specValue) && invalidExpressionMsg != null) {
-                    final String customMessage = "The expression language used withing this specification is invalid";
-                    results.add(new ValidationResult.Builder().valid(false)
-                            .explanation(customMessage)
-                            .build());
+                if (validationContext.isExpressionLanguagePresent(specValue)) {
+                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
+                    if (!StringUtils.isEmpty(invalidExpressionMsg)) {
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .subject(JOLT_SPEC.getDisplayName())
+                                .explanation("Invalid Expression Language: " + invalidExpressionMsg)
+                                .build());
+                    }
                 } else {
                     //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
                     Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
@@ -299,7 +302,7 @@ public class JoltTransformJSON extends AbstractProcessor {
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
         final String specString;
-        if (context.getProperty(JOLT_SPEC).isSet() && !StringUtils.isEmpty(context.getProperty(JOLT_SPEC).getValue())) {
+        if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue();
         } else {
             specString = null;

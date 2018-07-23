@@ -22,6 +22,7 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
     $scope.clientId = '';
     $scope.revisionId = '';
     $scope.editable = false;
+    $scope.disconnectedNodeAcknowledged = false;
     $scope.specEditor = {};
     $scope.inputEditor = {};
     $scope.jsonInput = '';
@@ -345,13 +346,13 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
         }
     };
 
-    $scope.saveSpec = function(jsonInput,jsonSpec,transform,processorId,clientId,revisionId){
+    $scope.saveSpec = function(jsonInput,jsonSpec,transform,processorId,clientId,disconnectedNodeAcknowledged,revisionId){
 
         $scope.clearError();
 
         var properties = $scope.getProperties(transform,jsonSpec);
 
-        ProcessorService.setProperties(processorId,revisionId,clientId,properties)
+        ProcessorService.setProperties(processorId,revisionId,clientId,disconnectedNodeAcknowledged,properties)
             .then(function(response) {
                 var details = response.data;
                 $scope.populateScopeWithDetails(details);
@@ -406,6 +407,7 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
         $scope.processorId = params.id;
         $scope.clientId = params.clientId;
         $scope.revisionId = params.revision;
+        $scope.disconnectedNodeAcknowledged = eval(params.disconnectedNodeAcknowledged);
         $scope.editable = eval(params.editable);
 
         var jsonSpec = $scope.getSpec($scope.transform,$scope.jsonSpec);

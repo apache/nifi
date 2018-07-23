@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -42,7 +45,6 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -82,6 +84,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -92,8 +95,9 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
@@ -102,18 +106,19 @@ import org.apache.nifi.util.Tuple;
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Fetches data from an HTTP or HTTPS URL and writes the data to the content of a FlowFile. Once the content has been fetched, the ETag and Last Modified "
-    + "dates are remembered (if the web server supports these concepts). This allows the Processor to fetch new data only if the remote data has changed or until the state is cleared. That is, "
-    + "once the content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes. Note that due to limitations on state "
-    + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
-    + "is the potential for Out of Memory Errors to occur.")
+        + "dates are remembered (if the web server supports these concepts). This allows the Processor to fetch new data only if the remote data has changed or until the state is cleared. That is, "
+        + "once the content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes. Note that due to limitations on state "
+        + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
+        + "is the potential for Out of Memory Errors to occur.")
 @DynamicProperties({
-    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value", description = "The additional headers to be sent by the processor " +
-            "whenever making a new HTTP request. \n " +
-            "Setting a dynamic property name to XYZ and value to ${attribute} will result in the header 'XYZ: attribute_value' being sent to the HTTP endpoint"),
+        @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value",
+                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                description = "The additional headers to be sent by the processor whenever making a new HTTP request. \n " +
+                        "Setting a dynamic property name to XYZ and value to ${attribute} will result in the header 'XYZ: attribute_value' being sent to the HTTP endpoint"),
 })
 @WritesAttributes({
-    @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
-    @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
+        @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
 })
 @Stateful(scopes = {Scope.LOCAL}, description = "Stores Last Modified Time and ETag headers returned by server so that the same data will not be fetched multiple times.")
 public class GetHTTP extends AbstractSessionFactoryProcessor {
@@ -131,7 +136,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("URL")
             .description("The URL to pull from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .build();
@@ -164,7 +169,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The filename to assign to the file when pulled")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .required(true)
             .build();
@@ -192,18 +197,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
-            .build();
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
     public static final String DEFAULT_COOKIE_POLICY_STR = "default";
@@ -266,6 +259,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
         properties.add(REDIRECT_COOKIE_POLICY);
+        properties.add(HTTPUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
@@ -313,13 +307,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Proxy Host was set but no Proxy Port was specified")
-                    .valid(false)
-                    .subject("Proxy server configuration")
-                    .build());
-        }
+        HTTPUtils.validateProxyProperties(context, results);
 
         return results;
     }
@@ -328,7 +316,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .addValidator(Validator.VALID)
                 .required(false)
                 .dynamic(true)
@@ -348,7 +336,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             sslContextBuilder.loadTrustMaterial(truststore, new TrustSelfSignedStrategy());
         }
 
-        if (StringUtils.isNotBlank(service.getKeyStoreFile())){
+        if (StringUtils.isNotBlank(service.getKeyStoreFile())) {
             final KeyStore keystore = KeyStoreUtils.getKeyStore(service.getKeyStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
                 keystore.load(in, service.getKeyStorePassword().toCharArray());
@@ -418,21 +406,21 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
             switch (context.getProperty(REDIRECT_COOKIE_POLICY).getValue()) {
-            case STANDARD_COOKIE_POLICY_STR:
-                requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
-                break;
-            case STRICT_COOKIE_POLICY_STR:
-                requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD_STRICT);
-                break;
-            case NETSCAPE_COOKIE_POLICY_STR:
-                requestConfigBuilder.setCookieSpec(CookieSpecs.NETSCAPE);
-                break;
-            case IGNORE_COOKIE_POLICY_STR:
-                requestConfigBuilder.setCookieSpec(CookieSpecs.IGNORE_COOKIES);
-                break;
-            case DEFAULT_COOKIE_POLICY_STR:
-            default:
-                requestConfigBuilder.setCookieSpec(CookieSpecs.DEFAULT);
+                case STANDARD_COOKIE_POLICY_STR:
+                    requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
+                    break;
+                case STRICT_COOKIE_POLICY_STR:
+                    requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD_STRICT);
+                    break;
+                case NETSCAPE_COOKIE_POLICY_STR:
+                    requestConfigBuilder.setCookieSpec(CookieSpecs.NETSCAPE);
+                    break;
+                case IGNORE_COOKIE_POLICY_STR:
+                    requestConfigBuilder.setCookieSpec(CookieSpecs.IGNORE_COOKIES);
+                    break;
+                case DEFAULT_COOKIE_POLICY_STR:
+                default:
+                    requestConfigBuilder.setCookieSpec(CookieSpecs.DEFAULT);
             }
 
             // build the http client
@@ -454,22 +442,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final String password = context.getProperty(PASSWORD).getValue();
 
             // set the credentials if appropriate
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             if (username != null) {
-                final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                if (password == null) {
-                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
-                } else {
-                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                }
-                clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
             }
 
             // Set the proxy if specified
-            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-                final String host = context.getProperty(PROXY_HOST).getValue();
-                final int port = context.getProperty(PROXY_PORT).asInteger();
-                clientBuilder.setProxy(new HttpHost(host, port));
-            }
+            HTTPUtils.setProxy(context, clientBuilder, credentialsProvider);
 
             // create request
             final HttpGet get = new HttpGet(url);
@@ -479,12 +459,12 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             try {
                 beforeStateMap = context.getStateManager().getState(Scope.LOCAL);
-                final String lastModified = beforeStateMap.get(LAST_MODIFIED+":" + url);
+                final String lastModified = beforeStateMap.get(LAST_MODIFIED + ":" + url);
                 if (lastModified != null) {
                     get.addHeader(HEADER_IF_MODIFIED_SINCE, parseStateValue(lastModified).getValue());
                 }
 
-                final String etag = beforeStateMap.get(ETAG+":" + url);
+                final String etag = beforeStateMap.get(ETAG + ":" + url);
                 if (etag != null) {
                     get.addHeader(HEADER_IF_NONE_MATCH, parseStateValue(etag).getValue());
                 }
@@ -509,7 +489,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
 
             // create the http client
-            try ( final CloseableHttpClient client = clientBuilder.build() ) {
+            try (final CloseableHttpClient client = clientBuilder.build()) {
                 // NOTE: including this inner try in order to swallow exceptions on close
                 try {
                     final StopWatch stopWatch = new StopWatch(true);
@@ -552,7 +532,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     logger.info("Successfully received {} from {} at a rate of {}; transferred to success", new Object[]{flowFile, url, dataRate});
                     session.commit();
 
-                    updateStateMap(context,response,beforeStateMap,url);
+                    updateStateMap(context, response, beforeStateMap, url);
 
                 } catch (final IOException e) {
                     context.yield();
@@ -573,9 +553,9 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void updateStateMap(ProcessContext context, HttpResponse response, StateMap beforeStateMap, String url){
+    private void updateStateMap(ProcessContext context, HttpResponse response, StateMap beforeStateMap, String url) {
         try {
-            Map<String,String> workingMap = new HashMap<>();
+            Map<String, String> workingMap = new HashMap<>();
             workingMap.putAll(beforeStateMap.toMap());
             final StateManager stateManager = context.getStateManager();
             StateMap oldValue = beforeStateMap;
@@ -584,43 +564,43 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             final Header receivedLastModified = response.getFirstHeader(HEADER_LAST_MODIFIED);
             if (receivedLastModified != null) {
-                workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+                workingMap.put(LAST_MODIFIED + ":" + url, currentTime + ":" + receivedLastModified.getValue());
             }
 
             final Header receivedEtag = response.getFirstHeader(HEADER_ETAG);
             if (receivedEtag != null) {
-                workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+                workingMap.put(ETAG + ":" + url, currentTime + ":" + receivedEtag.getValue());
             }
 
             boolean replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
             boolean changed;
 
-            while(!replaceSucceeded){
+            while (!replaceSucceeded) {
                 oldValue = stateManager.getState(Scope.LOCAL);
                 workingMap.clear();
                 workingMap.putAll(oldValue.toMap());
 
                 changed = false;
 
-                if(receivedLastModified != null){
-                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(LAST_MODIFIED+":"+url));
+                if (receivedLastModified != null) {
+                    Tuple<String, String> storedLastModifiedTuple = parseStateValue(workingMap.get(LAST_MODIFIED + ":" + url));
 
-                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
-                        workingMap.put(LAST_MODIFIED + ":" + url, currentTime+":"+receivedLastModified.getValue());
+                    if (Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime) {
+                        workingMap.put(LAST_MODIFIED + ":" + url, currentTime + ":" + receivedLastModified.getValue());
                         changed = true;
                     }
                 }
 
-                if(receivedEtag != null){
-                    Tuple<String,String> storedLastModifiedTuple = parseStateValue(workingMap.get(ETAG+":"+url));
+                if (receivedEtag != null) {
+                    Tuple<String, String> storedLastModifiedTuple = parseStateValue(workingMap.get(ETAG + ":" + url));
 
-                    if(Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime){
-                        workingMap.put(ETAG + ":" + url, currentTime+":"+receivedEtag.getValue());
+                    if (Long.parseLong(storedLastModifiedTuple.getKey()) < currentTime) {
+                        workingMap.put(ETAG + ":" + url, currentTime + ":" + receivedEtag.getValue());
                         changed = true;
                     }
                 }
 
-                if(changed) {
+                if (changed) {
                     replaceSucceeded = stateManager.replace(oldValue, workingMap, Scope.LOCAL);
                 } else {
                     break;
@@ -631,11 +611,11 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
     }
 
-    protected static Tuple<String, String> parseStateValue(String mapValue){
+    protected static Tuple<String, String> parseStateValue(String mapValue) {
         int indexOfColon = mapValue.indexOf(":");
 
-        String timestamp = mapValue.substring(0,indexOfColon);
-        String value = mapValue.substring(indexOfColon+1);
-        return new Tuple<>(timestamp,value);
+        String timestamp = mapValue.substring(0, indexOfColon);
+        String value = mapValue.substring(indexOfColon + 1);
+        return new Tuple<>(timestamp, value);
     }
 }

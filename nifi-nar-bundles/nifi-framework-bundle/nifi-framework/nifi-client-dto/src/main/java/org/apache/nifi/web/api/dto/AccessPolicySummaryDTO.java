@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -37,7 +37,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The action associated with this access policy.",
-            allowableValues = "READ, WRITE"
+            allowableValues = "read, write"
     )
     public String getAction() {
         return action;

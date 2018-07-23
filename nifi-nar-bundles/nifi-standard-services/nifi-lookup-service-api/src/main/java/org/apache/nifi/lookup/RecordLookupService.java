@@ -17,23 +17,9 @@
 
 package org.apache.nifi.lookup;
 
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.nifi.serialization.record.Record;
 
 public interface RecordLookupService extends LookupService<Record> {
-
-    /**
-     * Returns an Optional Record that corresponds to the given coordinates
-     *
-     * @param coordinates the coordinates to lookup
-     * @return an Optional Record that corresponds to the given coordinates
-     *
-     * @throws LookupFailureException if unable to lookup a value for the given coordinates
-     */
-    @Override
-    Optional<Record> lookup(Map<String, String> coordinates) throws LookupFailureException;
 
     @Override
     default Class<?> getValueType() {

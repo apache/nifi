@@ -20,6 +20,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +34,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.PBEParameterSpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -41,6 +51,7 @@ public class CipherUtility {
     private static final Pattern KEY_LENGTH_PATTERN = Pattern.compile("([\\d]+)BIT");
 
     private static final Map<String, Integer> MAX_PASSWORD_LENGTH_BY_ALGORITHM;
+    private static final int DEFAULT_MAX_ALLOWED_KEY_LENGTH = 128;
 
     static {
         Map<String, Integer> aMap = new HashMap<>();
@@ -187,6 +198,12 @@ public class CipherUtility {
         return getValidKeyLengthsForAlgorithm(algorithm).contains(keyLength);
     }
 
+    /**
+     * Returns a list of valid key lengths in bits for this algorithm. If the algorithm cannot be parsed, an empty list is returned.
+     *
+     * @param algorithm the name of the algorithm
+     * @return a list of valid key lengths
+     */
     public static List<Integer> getValidKeyLengthsForAlgorithm(String algorithm) {
         List<Integer> validKeyLengths = new ArrayList<>();
         if (StringUtils.isEmpty(algorithm)) {
@@ -309,11 +326,84 @@ public class CipherUtility {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("Cannot evaluate an empty encryption method algorithm");
         }
+        return MAX_PASSWORD_LENGTH_BY_ALGORITHM.getOrDefault(encryptionMethod.getAlgorithm(), -1);
+    }
 
-        if (MAX_PASSWORD_LENGTH_BY_ALGORITHM.containsKey(encryptionMethod.getAlgorithm())) {
-            return MAX_PASSWORD_LENGTH_BY_ALGORITHM.get(encryptionMethod.getAlgorithm());
-        } else {
-            return -1;
+    public static boolean isUnlimitedStrengthCryptoSupported() {
+        try {
+            return (Cipher.getMaxAllowedKeyLength("AES") > DEFAULT_MAX_ALLOWED_KEY_LENGTH);
+        } catch (NoSuchAlgorithmException e) {
+            return false;
         }
+    }
+
+    public static boolean isPBECipher(String algorithm) {
+        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
+        return em != null && em.isPBECipher();
+    }
+
+    public static boolean isKeyedCipher(String algorithm) {
+        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
+        return em != null && em.isKeyedCipher();
+    }
+
+    /**
+     * Initializes a {@link Cipher} object with the given PBE parameters.
+     *
+     * @param algorithm      the algorithm
+     * @param provider       the JCA provider
+     * @param password       the password
+     * @param salt           the salt
+     * @param iterationCount the KDF iteration count
+     * @param encryptMode    true to encrypt; false to decrypt
+     * @return the initialized Cipher
+     * @throws IllegalArgumentException if any parameter is invalid
+     */
+    public static Cipher initPBECipher(String algorithm, String provider, String password, byte[] salt, int iterationCount, boolean encryptMode) throws IllegalArgumentException {
+        try {
+            // Initialize secret key from password
+            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
+            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, provider);
+            SecretKey tempKey = factory.generateSecret(pbeKeySpec);
+
+            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, iterationCount);
+            Cipher cipher = Cipher.getInstance(algorithm, provider);
+            cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, parameterSpec);
+            return cipher;
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
+            throw new IllegalArgumentException("One or more parameters to initialize the PBE cipher were invalid", e);
+        }
+    }
+
+    /**
+     * Returns the KDF iteration count for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
+     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
+     *
+     * @param algorithm the {@link EncryptionMethod#algorithm}
+     * @return the iteration count. Default is 0.
+     */
+    public static int getIterationCountForAlgorithm(String algorithm) {
+        int iterationCount = 0;
+        // DES/RC*/SHA-1/-256 algorithms use custom iteration counts
+        if (algorithm.matches("DES|RC|SHAA|SHA256")) {
+            iterationCount = 1000;
+        }
+        return iterationCount;
+    }
+
+    /**
+     * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
+     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
+     *
+     * @param algorithm the {@link EncryptionMethod#algorithm}
+     * @return the salt length in bytes. Default is 16.
+     */
+    public static int getSaltLengthForAlgorithm(String algorithm) {
+        int saltLength = 16;
+        // DES/RC* algorithms use custom iteration counts
+        if (algorithm.contains("DES") || algorithm.contains("RC")) {
+            saltLength = 8;
+        }
+        return saltLength;
     }
 }

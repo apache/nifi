@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -45,23 +61,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-
 public class TestPutElasticsearch5 {
 
     private InputStream docExample;
@@ -81,7 +80,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticSearchOnTrigger() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -109,7 +107,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticSearchOnTriggerEL() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "${cluster.name}");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "${hosts}");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "${ping.timeout}");
@@ -142,7 +139,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticSearchOnTriggerBadDocIdentifier() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -167,7 +163,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticSearchOnTriggerWithFailures() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(true)); // simulate failures
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -198,7 +193,6 @@ public class TestPutElasticsearch5 {
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(PutElasticsearch5.INDEX, "doc");
         runner.setProperty(PutElasticsearch5.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(PutElasticsearch5.ID_ATTRIBUTE, "doc_id");
 
         // No Node Available exception
@@ -255,7 +249,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticsearch5OnTriggerWithNoIdAttribute() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(true)); // simulate failures
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -276,7 +269,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticsearch5OnTriggerWithIndexFromAttribute() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false));
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -313,7 +305,6 @@ public class TestPutElasticsearch5 {
     @Test
     public void testPutElasticSearchOnTriggerWithInvalidIndexOp() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -448,7 +439,6 @@ public class TestPutElasticsearch5 {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearch5());
-        runner.setValidateExpressionUsage(false);
 
         //Local Cluster - Mac pulled from brew
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch_brew");
@@ -480,7 +470,6 @@ public class TestPutElasticsearch5 {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearch5());
-        runner.setValidateExpressionUsage(false);
 
         //Local Cluster - Mac pulled from brew
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch_brew");

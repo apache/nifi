@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.hadoop.io.SequenceFile.Writer;
-import org.apache.hadoop.io.Text;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.slf4j.LoggerFactory;
-
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.hadoop.io.SequenceFile.Writer;
+import org.apache.hadoop.io.Text;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
+import org.slf4j.LoggerFactory;
 
 public class ZipUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
 

@@ -16,22 +16,7 @@
  */
 package org.apache.nifi.processors.yandex;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -46,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -58,30 +44,40 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.yandex.model.Translation;
 import org.apache.nifi.processors.yandex.util.Languages;
-import org.apache.nifi.processors.yandex.util.ObjectMapperResolver;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.web.util.WebUtils;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"yandex", "translate", "translation", "language"})
 @CapabilityDescription("Translates content and attributes from one language to another")
 @WritesAttributes({
-    @WritesAttribute(attribute = "yandex.translate.failure.reason", description = "If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
-    @WritesAttribute(attribute = "language", description = "When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
+        @WritesAttribute(attribute = "yandex.translate.failure.reason", description = "If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
+        @WritesAttribute(attribute = "language", description = "When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
 })
 @DynamicProperty(name = "The name of an attribute to set that will contain the translated text of the value",
         value = "The value to translate",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "User-defined properties are used to translate arbitrary text based on attributes.")
 public class YandexTranslate extends AbstractProcessor {
 
@@ -93,10 +89,9 @@ public class YandexTranslate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor SOURCE_LANGUAGE = new PropertyDescriptor.Builder()
             .name("Input Language")
-            .description("The language of incoming data")
-            .required(true)
-            .defaultValue("es")
-            .expressionLanguageSupported(true)
+            .description("The language of incoming data. If no language is set, Yandex will attempt to detect the incoming language automatically.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
     public static final PropertyDescriptor TARGET_LANGUAGE = new PropertyDescriptor.Builder()
@@ -104,7 +99,7 @@ public class YandexTranslate extends AbstractProcessor {
             .description("The language to translate the text into")
             .required(true)
             .defaultValue("en")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
     public static final PropertyDescriptor TRANSLATE_CONTENT = new PropertyDescriptor.Builder()
@@ -119,7 +114,7 @@ public class YandexTranslate extends AbstractProcessor {
             .description("Specifies the character set of the data to be translated")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -175,7 +170,7 @@ public class YandexTranslate extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }
@@ -203,34 +198,29 @@ public class YandexTranslate extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ClientConfig config = new DefaultClientConfig();
-        config.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-        config.getClasses().add(ObjectMapperResolver.class);
-
-        client = Client.create(config);
+        client = WebUtils.createClient(null);
     }
 
     @OnStopped
     public void destroyClient() {
         if (client != null) {
-            client.destroy();
+            client.close();
         }
     }
 
-    protected WebResource.Builder prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
-        WebResource webResource = client.resource(URL);
+    protected Invocation prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
+        Invocation.Builder builder = client.target(URL).request(MediaType.APPLICATION_JSON);
 
-        final MultivaluedMap<String, String> paramMap = new MultivaluedMapImpl();
-        paramMap.put("text", text);
-        paramMap.add("key", key);
-        paramMap.add("lang", sourceLanguage + "-" + destLanguage);
+        final MultivaluedHashMap entity = new MultivaluedHashMap();
+        entity.put("text", text);
+        entity.add("key", key);
+        if ((StringUtils.isBlank(sourceLanguage))) {
+            entity.add("lang", destLanguage);
+        } else {
+            entity.add("lang", sourceLanguage + "-" + destLanguage);
+        }
 
-        WebResource.Builder builder = webResource
-                .accept(MediaType.APPLICATION_JSON)
-                .type(MediaType.APPLICATION_FORM_URLENCODED);
-        builder = builder.entity(paramMap);
-
-        return builder;
+        return builder.buildPost(Entity.form(entity));
     }
 
     @Override
@@ -267,27 +257,27 @@ public class YandexTranslate extends AbstractProcessor {
             textValues.add(content);
         }
 
-        final WebResource.Builder builder = prepareResource(key, textValues, sourceLanguage, targetLanguage);
+        final Invocation invocation = prepareResource(key, textValues, sourceLanguage, targetLanguage);
 
-        final ClientResponse response;
+        final Response response;
         try {
-            response = builder.post(ClientResponse.class);
+            response = invocation.invoke();
         } catch (final Exception e) {
             getLogger().error("Failed to make request to Yandex to transate text for {} due to {}; routing to comms.failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_COMMS_FAILURE);
             return;
         }
 
-        if (response.getStatus() != Status.OK.getStatusCode()) {
+        if (response.getStatus() != Response.Status.OK.getStatusCode()) {
             getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", new Object[]{
-                flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
+                    flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
             flowFile = session.putAttribute(flowFile, "yandex.translate.failure.reason", response.getStatusInfo().getReasonPhrase());
             session.transfer(flowFile, REL_TRANSLATION_FAILED);
             return;
         }
 
         final Map<String, String> newAttributes = new HashMap<>();
-        final Translation translation = response.getEntity(Translation.class);
+        final Translation translation = response.readEntity(Translation.class);
         final List<String> texts = translation.getText();
         for (int i = 0; i < texts.size(); i++) {
             final String text = texts.get(i);
@@ -320,6 +310,10 @@ public class YandexTranslate extends AbstractProcessor {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ((StringUtils.isBlank(input))) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("No Language Input Present").build();
+            }
+
             if (context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Expression Language Present").build();
             }

@@ -20,24 +20,13 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 import org.junit.Before;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 public class ConsumeKafkaTest {
 
@@ -104,104 +93,5 @@ public class ConsumeKafkaTest {
         } catch (AssertionError e) {
             assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
         }
-    }
-
-    @Test
-    public void validateGetAllMessages() throws Exception {
-        String groupName = "validateGetAllMessages";
-
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
-        when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
-        when(mockLease.commit()).thenReturn(Boolean.TRUE);
-
-        ConsumeKafka proc = new ConsumeKafka() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
-        runner.run(1, false);
-
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
-        verify(mockLease, times(3)).continuePolling();
-        verify(mockLease, times(2)).poll();
-        verify(mockLease, times(1)).commit();
-        verify(mockLease, times(1)).close();
-        verifyNoMoreInteractions(mockConsumerPool);
-        verifyNoMoreInteractions(mockLease);
-    }
-
-    @Test
-    public void validateGetErrorMessages() throws Exception {
-        String groupName = "validateGetErrorMessages";
-
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
-        when(mockLease.continuePolling()).thenReturn(true, false);
-        when(mockLease.commit()).thenReturn(Boolean.FALSE);
-
-        ConsumeKafka proc = new ConsumeKafka() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
-        runner.run(1, false);
-
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
-        verify(mockLease, times(2)).continuePolling();
-        verify(mockLease, times(1)).poll();
-        verify(mockLease, times(1)).commit();
-        verify(mockLease, times(1)).close();
-        verifyNoMoreInteractions(mockConsumerPool);
-        verifyNoMoreInteractions(mockLease);
-    }
-
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
-    @Test
-    public void validateConsumerRetainer() throws Exception {
-        assumeFalse(isWindowsEnvironment());//skip if on windows
-        final ConsumerPool consumerPool = mock(ConsumerPool.class);
-
-        final ConsumeKafka processor = new ConsumeKafka() {
-            @Override
-            protected ConsumerPool createConsumerPool(ProcessContext context, ComponentLog log) {
-                return consumerPool;
-            }
-        };
-
-        final ComponentLog logger = mock(ComponentLog.class);
-        final ProcessorInitializationContext initializationContext = mock(ProcessorInitializationContext.class);
-        when(initializationContext.getLogger()).thenReturn(logger);
-        processor.initialize(initializationContext);
-
-        final ProcessContext processContext = mock(ProcessContext.class);
-        final PropertyValue heartbeatInternalMsConfig = mock(PropertyValue.class);
-        when(heartbeatInternalMsConfig.isSet()).thenReturn(true);
-        when(heartbeatInternalMsConfig.asInteger()).thenReturn(100);
-        when(processContext.getProperty(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG)).thenReturn(heartbeatInternalMsConfig);
-        processor.onScheduled(processContext);
-
-        // retainConsumers should be called at least 1 time if it passed longer than heartbeat interval milliseconds.
-        Thread.sleep(200);
-        verify(consumerPool, atLeast(1)).retainConsumers();
-
-        processor.stopConnectionRetainer();
-
-        // After stopping connection retainer, it shouldn't interact with consumerPool.
-        Thread.sleep(200);
-        verifyNoMoreInteractions(consumerPool);
     }
 }

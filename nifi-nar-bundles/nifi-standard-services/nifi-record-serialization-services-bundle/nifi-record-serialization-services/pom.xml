@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-record-serialization-services-bundle</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-record-serialization-services</artifactId>
@@ -27,6 +27,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -43,22 +44,27 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-syslog-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
+            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>2.9.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+            <version>3.7</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -66,25 +72,49 @@
             <version>1.4</version>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+            <version>2.9.2</version>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
-            <version>0.1.5</version>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
+            <version>0.1.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
+            <version>1.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.stax-utils</groupId>
+            <artifactId>stax-utils</artifactId>
+            <version>20070216</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.bea.xml</groupId>
+                    <artifactId>jsr173-ri</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.xmlunit</groupId>
+            <artifactId>xmlunit-matchers</artifactId>
+            <version>2.2.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -99,6 +129,7 @@
                         <exclude>src/test/resources/csv/extra-white-space.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>
+                        <exclude>src/test/resources/csv/multi-bank-account_escapedchar.csv</exclude>
                         <exclude>src/test/resources/grok/error-with-stack-trace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample-multiline-with-stacktrace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample.log</exclude>
@@ -106,6 +137,10 @@
                         <exclude>src/test/resources/json/bank-account-array-different-schemas.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array-optional-balance.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-mixed.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiarray.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>
                         <exclude>src/test/resources/json/primitive-type-array.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>
@@ -113,6 +148,33 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
+                        <exclude>src/test/resources/json/elements-for-record-choice.json</exclude>
+                        <exclude>src/test/resources/json/record-choice.avsc</exclude>
+                        <exclude>src/test/resources/syslog/syslog5424/log.txt</exclude>
+                        <exclude>src/test/resources/syslog/syslog5424/log_all.txt</exclude>
+                        <exclude>src/test/resources/syslog/syslog5424/log_mix.txt</exclude>
+                        <exclude>src/test/resources/syslog/syslog5424/log_mix_in_error.txt</exclude>
+                        <exclude>src/test/resources/xml/people.xml</exclude>
+                        <exclude>src/test/resources/xml/people2.xml</exclude>
+                        <exclude>src/test/resources/xml/people3.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array_simple.xml</exclude>
+                        <exclude>src/test/resources/xml/people_cdata.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex1.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex2.xml</exclude>
+                        <exclude>src/test/resources/xml/people_empty.xml</exclude>
+                        <exclude>src/test/resources/xml/people_invalid.xml</exclude>
+                        <exclude>src/test/resources/xml/people_map.xml</exclude>
+                        <exclude>src/test/resources/xml/people_map2.xml</exclude>
+                        <exclude>src/test/resources/xml/people_namespace.xml</exclude>
+                        <exclude>src/test/resources/xml/people_nested.xml</exclude>
+                        <exclude>src/test/resources/xml/people_no_attributes.xml</exclude>
+                        <exclude>src/test/resources/xml/people_tag_in_characters.xml</exclude>
+                        <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
+                        <exclude>src/test/resources/xml/person.xml</exclude>
+                        <exclude>src/test/resources/xml/testschema</exclude>
+                        <exclude>src/test/resources/xml/testschema2</exclude>
+                        <exclude>src/test/resources/xml/testschema3</exclude>
                     </excludes>
                 </configuration>
             </plugin>

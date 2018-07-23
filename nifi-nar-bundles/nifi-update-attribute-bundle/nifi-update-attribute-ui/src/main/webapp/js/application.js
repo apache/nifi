@@ -68,8 +68,15 @@ var ua = {
         // enable grid resizing
         $(window).resize(function (e) {
             if (e.target === window) {
-                conditionsGrid.resizeCanvas();
-                actionsGrid.resizeCanvas();
+                var conditionsLock = conditionsGrid.getEditorLock();
+                if (!conditionsLock.isActive()) {
+                    conditionsGrid.resizeCanvas();
+                }
+
+                var actionsLock = actionsGrid.getEditorLock();
+                if (!actionsLock.isActive()) {
+                    actionsGrid.resizeCanvas();
+                }
 
                 // toggle .scrollable when appropriate
                 toggleScrollable($('#rule-details-panel').get(0));
@@ -224,6 +231,7 @@ var ua = {
                             processorId: ua.getProcessorId(),
                             revision: ua.getRevision(),
                             clientId: ua.getClientId(),
+                            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                             flowFilePolicy: selectedOption.value
                         };
 
@@ -765,6 +773,17 @@ var ua = {
             e.stopImmediatePropagation();
         });
 
+        if (ua.editable) {
+            conditionsGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    conditionsGrid.resizeCanvas();
+
+                    var actionsGrid = $('#selected-rule-actions').data('gridInstance');
+                    actionsGrid.resizeCanvas();
+                }, 50);
+            });
+        }
+
         // wire up the dataview to the grid
         conditionsData.onRowCountChanged.subscribe(function (e, args) {
             conditionsGrid.updateRowCount();
@@ -842,6 +861,17 @@ var ua = {
             // prevents standard edit logic
             e.stopImmediatePropagation();
         });
+
+        if (ua.editable) {
+            actionsGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    actionsGrid.resizeCanvas();
+
+                    var conditionsGrid = $('#selected-rule-conditions').data('gridInstance');
+                    conditionsGrid.resizeCanvas();
+                }, 50);
+            });
+        }
 
         // wire up the dataview to the grid
         actionsData.onRowCountChanged.subscribe(function (e, args) {
@@ -1028,6 +1058,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             revision: ua.getRevision(),
             clientId: ua.getClientId(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             ruleOrder: existingRuleOrder
         };
 
@@ -1234,6 +1265,7 @@ var ua = {
                                         processorId: ua.getProcessorId(),
                                         revision: ua.getRevision(),
                                         clientId: ua.getClientId(),
+                                        disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                                         verbose: true
                                     })
                                 }).then(function () {
@@ -1311,6 +1343,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             clientId: ua.getClientId(),
             revision: ua.getRevision(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             rule: rule
         };
 
@@ -1986,6 +2019,15 @@ var ua = {
      */
     getRevision: function () {
         return $('#attribute-updater-revision').text();
+    },
+
+    /**
+     * Gets whether the disconnected node is acknowledged.
+     *
+     * @returns
+     */
+    getDisconnectionAcknowledged: function () {
+        return $('#attribute-updater-disconnected-node-acknowledged').text();
     },
     
     /**

@@ -17,43 +17,103 @@
 
 package org.apache.nifi.web.api.dto;
 
-import javax.xml.bind.annotation.XmlType;
+import io.swagger.annotations.ApiModelProperty;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import java.util.Collection;
 
 @XmlType(name = "affectedComponent")
 public class AffectedComponentDTO {
     public static final String COMPONENT_TYPE_PROCESSOR = "PROCESSOR";
     public static final String COMPONENT_TYPE_CONTROLLER_SERVICE = "CONTROLLER_SERVICE";
+    public static final String COMPONENT_TYPE_INPUT_PORT = "INPUT_PORT";
+    public static final String COMPONENT_TYPE_OUTPUT_PORT = "OUTPUT_PORT";
+    public static final String COMPONENT_TYPE_REMOTE_INPUT_PORT = "REMOTE_INPUT_PORT";
+    public static final String COMPONENT_TYPE_REMOTE_OUTPUT_PORT = "REMOTE_OUTPUT_PORT";
 
-    private String parentGroupId;
-    private String componentId;
-    private String componentType;
+    private String processGroupId;
+    private String id;
+    private String referenceType;
+    private String name;
+    private String state;
+    private Integer activeThreadCount;
+
+    private Collection<String> validationErrors;
 
     @ApiModelProperty("The UUID of the Process Group that this component is in")
-    public String getParentGroupId() {
-        return parentGroupId;
+    public String getProcessGroupId() {
+        return processGroupId;
     }
 
-    public void setParentGroupId(final String parentGroupId) {
-        this.parentGroupId = parentGroupId;
+    public void setProcessGroupId(final String processGroupId) {
+        this.processGroupId = processGroupId;
     }
 
     @ApiModelProperty("The UUID of this component")
-    public String getComponentId() {
-        return componentId;
+    public String getId() {
+        return id;
     }
 
-    public void setComponentId(final String componentId) {
-        this.componentId = componentId;
+    public void setId(final String id) {
+        this.id = id;
     }
 
-    @ApiModelProperty(value = "The type of this component", allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE)
-    public String getComponentType() {
-        return componentType;
+    @ApiModelProperty(value = "The type of this component",
+        allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
+            + COMPONENT_TYPE_INPUT_PORT + ", " + COMPONENT_TYPE_OUTPUT_PORT + ", "
+            + COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
+    public String getReferenceType() {
+        return referenceType;
     }
 
-    public void setComponentType(final String componentType) {
-        this.componentType = componentType;
+    public void setReferenceType(final String referenceType) {
+        this.referenceType = referenceType;
+    }
+
+    @ApiModelProperty("The name of this component.")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * @return active thread count for the referencing component
+     */
+    @ApiModelProperty(
+            value = "The number of active threads for the referencing component."
+    )
+    public Integer getActiveThreadCount() {
+        return activeThreadCount;
+    }
+
+    public void setActiveThreadCount(Integer activeThreadCount) {
+        this.activeThreadCount = activeThreadCount;
+    }
+
+    /**
+     * @return Any validation error associated with this component
+     */
+    @ApiModelProperty(
+            value = "The validation errors for the component."
+    )
+    public Collection<String> getValidationErrors() {
+        return validationErrors;
+    }
+
+    public void setValidationErrors(Collection<String> validationErrors) {
+        this.validationErrors = validationErrors;
+    }
+
+    @ApiModelProperty("The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
+        + "service, this field represents the controller service state.")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

@@ -18,17 +18,10 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -100,97 +93,6 @@ public class ConsumeKafkaTest {
     }
 
     @Test
-    public void validateGetAllMessages() throws Exception {
-        String groupName = "validateGetAllMessages";
-
-        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
-        when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
-        when(mockLease.commit()).thenReturn(Boolean.TRUE);
-
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
-        runner.run(1, false);
-
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
-        verify(mockLease, times(3)).continuePolling();
-        verify(mockLease, times(2)).poll();
-        verify(mockLease, times(1)).commit();
-        verify(mockLease, times(1)).close();
-        verifyNoMoreInteractions(mockConsumerPool);
-        verifyNoMoreInteractions(mockLease);
-    }
-
-    @Test
-    public void validateGetAllMessagesPattern() throws Exception {
-        String groupName = "validateGetAllMessagesPattern";
-
-        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
-        when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
-        when(mockLease.commit()).thenReturn(Boolean.TRUE);
-
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "(fo.*)|(ba)");
-        runner.setProperty(ConsumeKafka_0_10.TOPIC_TYPE, "pattern");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
-        runner.run(1, false);
-
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
-        verify(mockLease, times(3)).continuePolling();
-        verify(mockLease, times(2)).poll();
-        verify(mockLease, times(1)).commit();
-        verify(mockLease, times(1)).close();
-        verifyNoMoreInteractions(mockConsumerPool);
-        verifyNoMoreInteractions(mockLease);
-    }
-
-    @Test
-    public void validateGetErrorMessages() throws Exception {
-        String groupName = "validateGetErrorMessages";
-
-        when(mockConsumerPool.obtainConsumer(anyObject(), anyObject())).thenReturn(mockLease);
-        when(mockLease.continuePolling()).thenReturn(true, false);
-        when(mockLease.commit()).thenReturn(Boolean.FALSE);
-
-        ConsumeKafka_0_10 proc = new ConsumeKafka_0_10() {
-            @Override
-            protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-                return mockConsumerPool;
-            }
-        };
-        final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo,bar");
-        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, groupName);
-        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
-        runner.run(1, false);
-
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject(), anyObject());
-        verify(mockLease, times(2)).continuePolling();
-        verify(mockLease, times(1)).poll();
-        verify(mockLease, times(1)).commit();
-        verify(mockLease, times(1)).close();
-        verifyNoMoreInteractions(mockConsumerPool);
-        verifyNoMoreInteractions(mockLease);
-    }
-
-    @Test
     public void testJaasConfiguration() throws Exception {
         ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
@@ -202,7 +104,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_PRINCIPLE, "kafka");
+        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
         runner.assertValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");
@@ -212,6 +114,14 @@ public class ConsumeKafkaTest {
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "src/test/resources/server.properties");
+        runner.assertValid();
+
+        runner.setVariable("keytab", "src/test/resources/server.properties");
+        runner.setVariable("principal", "nifi@APACHE.COM");
+        runner.setVariable("service", "kafka");
+        runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
+        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
+        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }
 

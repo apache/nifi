@@ -17,10 +17,13 @@
 
 package org.apache.nifi.processors.mqtt;
 
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -58,12 +61,13 @@ import java.util.concurrent.TimeUnit;
 @Tags({"publish", "MQTT", "IOT"})
 @CapabilityDescription("Publishes a message to an MQTT topic")
 @SeeAlso({ConsumeMQTT.class})
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishMQTT extends AbstractMQTTProcessor {
 
     public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()
             .name("Topic")
             .description("The topic to publish the message to.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -74,7 +78,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .description("The Quality of Service(QoS) to send the message with. Accepts three values '0', '1' and '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'. " +
                     "Expression language is allowed in order to support publishing messages with different QoS but the end value of the property must be either '0', '1' or '2'. ")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(QOS_VALIDATOR)
             .build();
 
@@ -82,7 +86,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .name("Retain Message")
             .description("Whether or not the retain flag should be set on the MQTT message.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(RETAIN_VALIDATOR)
             .build();
 

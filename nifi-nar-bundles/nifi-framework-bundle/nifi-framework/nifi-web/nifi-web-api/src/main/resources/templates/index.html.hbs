@@ -457,6 +457,7 @@
                 organizeEndpoints('/snippets', $('#snippet-endpoints'));
                 organizeEndpoints('/system', $('#system-diagnostic-endpoints'));
                 organizeEndpoints('/templates', $('#template-endpoints'));
+                organizeEndpoints('/versions', $('#version-endpoints'));
                 organizeEndpoints(null, $('#controller-endpoints'));
 
                 // handle expanding/collapsing the sections
@@ -674,6 +675,14 @@
                 <div class="clear"></div>
             </div>
             <div id="system-diagnostic-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Versions</div>
+                <div class="sub-title section-description">Manage versions of process groups</div>
+                <div class="clear"></div>
+            </div>
+            <div id="version-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="unorganized hidden">
             {{#each paths}}

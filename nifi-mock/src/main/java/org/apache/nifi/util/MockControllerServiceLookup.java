@@ -21,12 +21,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 public abstract class MockControllerServiceLookup implements ControllerServiceLookup {
 
     private final Map<String, ControllerServiceConfiguration> controllerServiceMap = new ConcurrentHashMap<>();
+
+    public Map<String, ControllerServiceConfiguration> getControllerServices() {
+        return controllerServiceMap;
+    }
 
     public ControllerServiceConfiguration addControllerService(final ControllerService service, final String identifier) {
         final ControllerServiceConfiguration config = new ControllerServiceConfiguration(service);
@@ -96,5 +101,9 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
     public String getControllerServiceName(final String serviceIdentifier) {
         final ControllerServiceConfiguration status = controllerServiceMap.get(serviceIdentifier);
         return status == null ? null : serviceIdentifier;
+    }
+
+    public InputRequirement getInputRequirement() {
+        return null;
     }
 }

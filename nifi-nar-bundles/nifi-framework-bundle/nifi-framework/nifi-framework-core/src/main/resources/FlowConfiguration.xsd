@@ -26,6 +26,8 @@
                 </xs:sequence>
             </xs:choice>
 
+            <xs:element name="registries" type="RegistriesType" minOccurs="0" maxOccurs="1" />
+
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
             
@@ -38,6 +40,21 @@
         <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
 	
+    <xs:complexType name="RegistriesType">
+        <xs:sequence>
+            <xs:element name="flowRegistry" type="FlowRegistryType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="FlowRegistryType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="url" type="NonEmptyStringType" />
+            <xs:element name="description" type="xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+    
     <!-- the processor "id" is a key that should be valid within each flowController-->
     <xs:complexType name="ProcessorType">
         <xs:sequence>
@@ -45,6 +62,7 @@
             of unexpected process termination or execution failure.  The "id" should rarely change and if it
             must then the database directory should be deleted to be safe.-->
             <xs:element name="id" type="NonEmptyStringType"/>
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
 
             <!-- The "name" is a nicely displayable description of the processor's duty-->
             <xs:element name="name" type="NonEmptyStringType"/>
@@ -130,10 +148,12 @@
     <xs:complexType name="ProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
-    		
+    		<xs:element name="versionControlInformation" type="VersionControlInformation" minOccurs="0" maxOccurs="1" />
+            
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
 
@@ -156,11 +176,24 @@
         <xs:attribute name="value" />
     </xs:complexType>
     
+    <xs:complexType name="VersionControlInformation">
+        <xs:sequence>
+            <xs:element name="registryId" type="NonEmptyStringType" />
+            <xs:element name="bucketId" type="NonEmptyStringType" />
+            <xs:element name="bucketName" type="NonEmptyStringType" />
+            <xs:element name="flowId" type="NonEmptyStringType" />
+            <xs:element name="flowName" type="NonEmptyStringType" />
+            <xs:element name="flowDescription" type="xs:string" />
+            <xs:element name="version" type="NonEmptyStringType" />
+        </xs:sequence>
+    </xs:complexType>
+    
     <!-- Same as ProcessGroupType except that instead of input ports & output ports being of type PortType,
     they are of type RootGroupPortType -->
     <xs:complexType name="RootProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
@@ -184,6 +217,7 @@
     <xs:complexType name="FunnelType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="position" type="PositionType" />
         </xs:sequence>
     </xs:complexType>
@@ -191,6 +225,7 @@
     <xs:complexType name="LabelType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="size" type="SizeType" />
             <xs:element name="styles" type="Styles" />
@@ -201,6 +236,7 @@
     <xs:complexType name="RemoteProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="xs:string" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
@@ -227,6 +263,7 @@
     <xs:complexType name="ConnectionType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="xs:string" />
             <xs:element name="bendPoints" type="BendPointsType" minOccurs="0" maxOccurs="1" />
             <xs:element name="labelIndex" type="xs:int" minOccurs="0" maxOccurs="1" />
@@ -262,6 +299,7 @@
     <xs:complexType name="PortType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comments" type="xs:string" />
@@ -285,6 +323,7 @@
         <xs:complexContent>
             <xs:extension base="PortType">
                 <xs:sequence>
+                    <xs:element name="targetId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
                     <xs:element name="maxConcurrentTasks" type="xs:positiveInteger"></xs:element>
                     <xs:element name="useCompression" type="xs:boolean"></xs:element>
                     <xs:element name="batchCount" type="xs:positiveInteger" minOccurs="0" maxOccurs="1" />
@@ -383,6 +422,7 @@
     <xs:complexType name="ControllerServiceType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="versionedComponentId" type="NonEmptyStringType" minOccurs="0" maxOccurs="1" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="comment" type="xs:string" />
             <xs:element name="class" type="NonEmptyStringType" />

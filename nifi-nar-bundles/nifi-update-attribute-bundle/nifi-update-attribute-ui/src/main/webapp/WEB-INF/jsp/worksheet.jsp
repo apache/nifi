@@ -69,6 +69,7 @@
         <div id="attribute-updater-client-id" class="hidden"><%= request.getParameter("clientId") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("clientId")) %></div>
         <div id="attribute-updater-revision" class="hidden"><%= request.getParameter("revision") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("revision")) %></div>
         <div id="attribute-updater-editable" class="hidden"><%= request.getParameter("editable") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("editable")) %></div>
+        <div id="attribute-updater-disconnected-node-acknowledged" class="hidden"><%= request.getParameter("disconnectedNodeAcknowledged") == null ? "false" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("disconnectedNodeAcknowledged")) %></div>
         <div id="update-attributes-content">
             <div id="rule-list-panel">
                 <div id="flowfile-policy-container">

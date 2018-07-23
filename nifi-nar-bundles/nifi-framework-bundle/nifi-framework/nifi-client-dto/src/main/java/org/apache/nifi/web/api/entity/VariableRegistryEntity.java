@@ -14,21 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "variableRegistryEntity")
 public class VariableRegistryEntity extends Entity {
-    private RevisionDTO groupRevision;
+    private RevisionDTO processGroupRevision;
     private VariableRegistryDTO variableRegistry;
-
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The Variable Registry.")
     public VariableRegistryDTO getVariableRegistry() {
@@ -41,10 +39,21 @@ public class VariableRegistryEntity extends Entity {
 
     @ApiModelProperty("The revision of the Process Group that the Variable Registry belongs to")
     public RevisionDTO getProcessGroupRevision() {
-        return groupRevision;
+        return processGroupRevision;
     }
 
-    public void setProcessGroupRevision(RevisionDTO revision) {
-        this.groupRevision = revision;
+    public void setProcessGroupRevision(RevisionDTO processGroupRevision) {
+        this.processGroupRevision = processGroupRevision;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

@@ -22,14 +22,18 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -42,7 +46,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -74,9 +77,12 @@ import java.util.regex.Pattern;
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex"})
 @CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression (regex) against it and replacing the section of "
     + "the content that matches the Regular Expression with some alternate value.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class ReplaceText extends AbstractProcessor {
 
-    private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");
+    private static Pattern QUOTED_GROUP_REF_PATTERN = Pattern.compile("\\$\\{\\s*?'\\$\\d+?'.+?\\}");
+    private static Pattern DOUBLE_QUOTED_GROUP_REF_PATTERN = Pattern.compile("\\$\\{\\s*?\"\\$\\d+?\".+?\\}");
+    private static Pattern LITERAL_QUOTED_PATTERN = Pattern.compile("literal\\(('.*?')\\)",Pattern.DOTALL);
 
     // Constants
     public static final String LINE_BY_LINE = "Line-by-Line";
@@ -114,7 +120,7 @@ public class ReplaceText extends AbstractProcessor {
         .description("The Search Value to search for in the FlowFile content. Only used for 'Literal Replace' and 'Regex Replace' matching strategies")
         .required(true)
         .addValidator(Validator.VALID)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULT_REGEX)
         .build();
     public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder()
@@ -126,7 +132,7 @@ public class ReplaceText extends AbstractProcessor {
         .required(true)
         .defaultValue(DEFAULT_REPLACEMENT_VALUE)
         .addValidator(Validator.VALID)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
@@ -232,8 +238,8 @@ public class ReplaceText extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 100));
-        if (flowFiles.isEmpty()) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 
@@ -279,33 +285,37 @@ public class ReplaceText extends AbstractProcessor {
                 throw new AssertionError();
         }
 
-        for (FlowFile flowFile : flowFiles) {
-            if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                    session.transfer(flowFile, REL_FAILURE);
-                    continue;
-                }
+        if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+            if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
+                session.transfer(flowFile, REL_FAILURE);
+                return;
             }
+        }
 
-            final StopWatch stopWatch = new StopWatch(true);
+        final StopWatch stopWatch = new StopWatch(true);
+
+        try {
 
             flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
 
-            logger.info("Transferred {} to 'success'", new Object[] {flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
+        } catch (StackOverflowError e) {
+            // Some regular expressions can produce many matches on large input data size using recursive code
+            // do not log the StackOverflowError stack trace
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
+
+        logger.info("Transferred {} to 'success'", new Object[] {flowFile});
+        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
     // groups and the Replacement Value has the value is "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather
-    // than attempting to use it as a back reference.
+    // than attempting to use it as a back reference.  We do this even if there are no capture groups.
     private static String escapeLiteralBackReferences(final String unescaped, final int numCapturingGroups) {
-        if (numCapturingGroups == 0) {
-            return unescaped;
-        }
-
         String value = unescaped;
         final Matcher backRefMatcher = unescapedBackReferencePattern.matcher(value); // consider unescaped back references
         while (backRefMatcher.find()) {
@@ -541,12 +551,18 @@ public class ReplaceText extends AbstractProcessor {
                         additionalAttrs.put("$" + i, groupValue);
                     }
 
-                    String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
+                    // prepare the string and do the regex replace first
+                    // then evaluate the EL on the result
+                    String replacement = context.getProperty(REPLACEMENT_VALUE).getValue();
                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
+                    replacement = escapeExpressionDollarSigns(replacement);
+                    replacement = wrapLiterals(replacement);
+                    replacement = contentString.replaceAll(searchRegex, replacement);
+                    replacement = escapeForEvaluation(replacement);
 
-                    String replacementFinal = normalizeReplacementString(replacement);
+                    PropertyValue tempValue =  context.newPropertyValue(replacement);
+                    final String updatedValue = tempValue.evaluateAttributeExpressions(flowFile, additionalAttrs, null).getValue();
 
-                    final String updatedValue = contentString.replaceAll(searchRegex, replacementFinal);
                     updatedFlowFile = session.write(flowFile, new OutputStreamCallback() {
                         @Override
                         public void process(final OutputStream out) throws IOException {
@@ -573,12 +589,17 @@ public class ReplaceText extends AbstractProcessor {
                                         additionalAttrs.put("$" + i, groupValue);
                                     }
 
-                                    String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
+                                    // prepare the string and do the regex replace first
+                                    // then evaluate the EL on the result
+                                    String replacement = context.getProperty(REPLACEMENT_VALUE).getValue();
                                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
+                                    replacement = escapeExpressionDollarSigns(replacement);
+                                    replacement = wrapLiterals(replacement);
+                                    replacement = oneLine.replaceAll(searchRegex, replacement);
+                                    replacement = escapeForEvaluation(replacement);
 
-                                    String replacementFinal = normalizeReplacementString(replacement);
-
-                                    final String updatedValue = oneLine.replaceAll(searchRegex, replacementFinal);
+                                    PropertyValue tempValue =  context.newPropertyValue(replacement);
+                                    final String updatedValue = tempValue.evaluateAttributeExpressions(flowFile, additionalAttrs, null).getValue();
                                     bw.write(updatedValue);
                                 } else {
                                     // No match. Just write out the line as it was.
@@ -658,16 +679,76 @@ public class ReplaceText extends AbstractProcessor {
     }
 
     /**
+     * Wraps '$1' with the {@code literal} function for EL evaluation.
+     * @param possibleLiteral the {@code String} to evaluate.
+     * @return {@code String} with literals wrapped.  If no literals or Expression Lanaguage present the passed string
+     * is returned.
+     */
+    private static String wrapLiterals(String possibleLiteral) {
+        String replacementFinal = possibleLiteral;
+        if (!possibleLiteral.contains("${")) {
+            return possibleLiteral;
+        }
+
+        if (QUOTED_GROUP_REF_PATTERN.matcher(replacementFinal).find()) {
+            replacementFinal = replacementFinal.replaceAll("(\\$\\{\\s*?)('\\$\\d+?')(.*\\})", "$1literal($2)$3");
+        }
+
+        if (DOUBLE_QUOTED_GROUP_REF_PATTERN.matcher(replacementFinal).find()) {
+            replacementFinal = replacementFinal.replaceAll("(\\$\\{\\s*?)(\"\\$\\d+?\")(.*\\})", "$1literal($2)$3");
+        }
+
+        return replacementFinal;
+    }
+
+    /**
      * If we have a '$' followed by anything other than a number, then escape
-     * it. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
+     * it if it is not already escaped. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
      * regex.
      */
-    private static String normalizeReplacementString(String replacement) {
-        String replacementFinal = replacement;
-        if (REPLACEMENT_NORMALIZATION_PATTERN.matcher(replacement).find()) {
-            replacementFinal = Matcher.quoteReplacement(replacement);
+    private static String escapeExpressionDollarSigns(String replacement) {
+
+        // are there expressions or group references
+        if (replacement.indexOf('$') == -1) {
+            return replacement;
         }
-        return replacementFinal;
+        StringBuilder sb = new StringBuilder();
+        boolean lastWasEscape = false;
+        for (int i=0; i<replacement.length(); i++) {
+            char c = replacement.charAt(i);
+            if (c == '\\' ) {
+                lastWasEscape = true;
+            } else {
+                if ( c == '$') {
+                    if (!lastWasEscape && !Character.isDigit(replacement.charAt(i+1))) {
+                        sb.append('\\');
+                    }
+                }
+                lastWasEscape = false;
+            }
+            sb.append(c);
+        }
+       return sb.toString();
+    }
+
+    /**
+     * Escapes a {@code String} containing literal('') EL values.
+     * @param contentString the {@code String}
+     * @return the escaped {@code String}. If no literal() is present, then the input {@code String} will be returned
+     */
+    private static String escapeForEvaluation(String contentString) {
+        final Matcher matcher = LITERAL_QUOTED_PATTERN.matcher(contentString);
+        String returnString = contentString;
+        while(matcher.find()) {
+            for (int i = 1; i <= matcher.groupCount(); i ++) {
+                String replacement = matcher.group(i)
+                    .replaceAll("\\n","\\\\n")
+                    .replaceAll("\\r","\\\\r")
+                    .replaceAll("\\t","\\\\t");
+                returnString = new StringBuilder(returnString).replace(matcher.start(i),matcher.end(i),replacement).toString();
+            }
+        }
+        return returnString;
     }
 
     private interface ReplacementStrategyExecutor {

@@ -21,6 +21,8 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -141,6 +143,17 @@ public class GetHDFSTest {
     }
 
     @Test
+    public void testDirectoryDoesNotExist() {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "does/not/exist/${now():format('yyyyMMdd')}");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(0, flowFiles.size());
+    }
+
+    @Test
     public void testAutomaticDecompression() throws IOException {
         GetHDFS proc = new TestableGetHDFS(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(proc);
@@ -214,6 +227,12 @@ public class GetHDFSTest {
         assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord receiveEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, receiveEvent.getEventType());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(receiveEvent.getTransitUri().endsWith("13545423550275052.zip"));
     }
 
     @Test

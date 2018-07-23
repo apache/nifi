@@ -23,9 +23,10 @@
                 'd3',
                 'nf.Common',
                 'nf.Client',
+                'nf.ClusterSummary',
                 'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
+            function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
+                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Processor =
@@ -33,15 +34,17 @@
                 require('d3'),
                 require('nf.Common'),
                 require('nf.Client'),
+                require('nf.ClusterSummary'),
                 require('nf.CanvasUtils')));
     } else {
         nf.Processor = factory(root.$,
             root.d3,
             root.nf.Common,
             root.nf.Client,
+            root.nf.ClusterSummary,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
     'use strict';
 
     var nfConnectable;
@@ -90,14 +93,20 @@
         });
     };
 
-    // renders the processors
+    /**
+     * Renders the processors in the specified selection.
+     *
+     * @param {selection} entered           The selection of processors to be rendered
+     * @param {boolean} selected             Whether the element should be selected
+     * @return the entered selection
+     */
     var renderProcessors = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var processor = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -108,7 +117,7 @@
 
         // processor border
         processor.append('rect')
-            .attr({
+            .attrs({
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -122,7 +131,7 @@
 
         // processor body
         processor.append('rect')
-            .attr({
+            .attrs({
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -136,17 +145,17 @@
 
         // processor name
         processor.append('text')
-            .attr({
+            .attrs({
                 'x': 75,
                 'y': 18,
-                'width': 210,
+                'width': 230,
                 'height': 14,
                 'class': 'processor-name'
             });
 
         // processor icon container
         processor.append('rect')
-            .attr({
+            .attrs({
                 'x': 0,
                 'y': 0,
                 'width': 50,
@@ -156,7 +165,7 @@
 
         // processor icon
         processor.append('text')
-            .attr({
+            .attrs({
                 'x': 9,
                 'y': 35,
                 'class': 'processor-icon'
@@ -165,7 +174,7 @@
 
         // restricted icon background
         processor.append('circle')
-            .attr({
+            .attrs({
                 'r': 9,
                 'cx': 12,
                 'cy': 12,
@@ -174,15 +183,38 @@
 
         // restricted icon
         processor.append('text')
-            .attr({
+            .attrs({
                 'x': 7.75,
                 'y': 17,
                 'class': 'restricted'
             })
             .text('\uf132');
 
+        // is primary icon background
+        processor.append('circle')
+            .attrs({
+                'r': 9,
+                'cx': 38,
+                'cy': 36,
+                'class': 'is-primary-background'
+            });
+
+        // is primary icon
+        processor.append('text')
+            .attrs({
+                'x': 34.75,
+                'y': 40,
+                'class': 'is-primary'
+            })
+            .text('P')
+            .append('title').text(function (d) {
+                return 'This component is only scheduled to execute on the Primary Node';
+            });
+
         // make processors selectable
         processor.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
+
+        return processor;
     };
 
     /**
@@ -224,15 +256,17 @@
 
                     // run status icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'run-status-icon',
                             'x': 55,
-                            'y': 23
+                            'y': 23,
+                            'width': 14,
+                            'height': 14
                         });
 
                     // processor type
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'processor-type',
                             'x': 75,
                             'y': 32,
@@ -242,11 +276,11 @@
 
                     // processor type
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'processor-bundle',
                             'x': 75,
                             'y': 45,
-                            'width': 230,
+                            'width': 200,
                             'height': 12
                         });
 
@@ -258,7 +292,7 @@
 
                     // in
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -270,7 +304,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -282,7 +316,7 @@
 
                     // read/write
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -294,7 +328,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -306,7 +340,7 @@
 
                     // out
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -318,7 +352,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -330,7 +364,7 @@
 
                     // tasks/time
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -342,13 +376,13 @@
 
                     // stats label container
                     var processorStatsLabel = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(10, 55)'
                         });
 
                     // in label
                     processorStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'y': 9,
@@ -358,7 +392,7 @@
 
                     // read/write label
                     processorStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'y': 27,
@@ -368,7 +402,7 @@
 
                     // out label
                     processorStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'y': 46,
@@ -378,7 +412,7 @@
 
                     // tasks/time label
                     processorStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'y': 65,
@@ -388,13 +422,13 @@
 
                     // stats value container
                     var processorStatsValue = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(85, 55)'
                         });
 
                     // in value
                     var inText = processorStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 9,
                             'y': 9,
@@ -403,19 +437,19 @@
 
                     // in count
                     inText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // in size
                     inText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // read/write value
                     processorStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'y': 27,
@@ -424,7 +458,7 @@
 
                     // out value
                     var outText = processorStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'y': 46,
@@ -433,19 +467,19 @@
 
                     // out count
                     outText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // out size
                     outText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // tasks/time value
                     processorStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'y': 65,
@@ -458,7 +492,7 @@
 
                     // in info
                     processorStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'y': 9,
@@ -468,7 +502,7 @@
 
                     // read/write info
                     processorStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'y': 27,
@@ -478,7 +512,7 @@
 
                     // out info
                     processorStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'y': 46,
@@ -488,7 +522,7 @@
 
                     // tasks/time info
                     processorStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'y': 65,
@@ -496,23 +530,34 @@
                         })
                         .text('5 min');
 
+                    // --------
+                    // comments
+                    // --------
+
+                    details.append('path')
+                        .attrs({
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (processorData.dimensions.width - 2) + ', ' + (processorData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
+                        });
+
                     // -------------------
                     // active thread count
                     // -------------------
 
                     // active thread count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count-icon',
-                            'y': 45
+                            'y': 46
                         })
                         .text('\ue83f');
 
                     // active thread background
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count',
-                            'y': 45
+                            'y': 46
                         });
 
                     // ---------
@@ -521,7 +566,7 @@
 
                     // bulletin background
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-background',
                             'x': function (d) {
                                 return processorData.dimensions.width - 24;
@@ -532,7 +577,7 @@
 
                     // bulletin icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-icon',
                             'x': function (d) {
                                 return processorData.dimensions.width - 17;
@@ -584,6 +629,37 @@
                         }).append('title').text(function (d) {
                             return nfCommon.formatBundle(d.component.bundle);
                         });
+
+                    // update the processor comments
+                    processor.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(processorData.component.config.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + processorData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(processorData.component.config.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#processor-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + processorData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.text(processorData.component.config.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
                 } else {
                     // clear the processor name
                     processor.select('text.processor-name').text(null);
@@ -593,6 +669,12 @@
 
                     // clear the processor bundle
                     processor.select('text.processor-bundle').text(null);
+
+                    // clear the processor comments
+                    processor.select('path.component-comments').style('visibility', 'hidden');
+
+                    // clear tooltips
+                    processor.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -686,11 +768,15 @@
             // restricted component indicator
             processor.select('circle.restricted-background').style('visibility', showRestricted);
             processor.select('text.restricted').style('visibility', showRestricted);
+
+            // is primary component indicator
+            processor.select('circle.is-primary-background').style('visibility', showIsPrimary);
+            processor.select('text.is-primary').style('visibility', showIsPrimary);
         });
     };
 
     /**
-     * Returns whether the resticted indicator should be shown for a given
+     * Returns whether the resticted indicator should be shown for a given component
      * @param d
      * @returns {*}
      */
@@ -700,7 +786,45 @@
         }
 
         return d.component.restricted ? 'visible' : 'hidden';
-    }
+    };
+
+    /**
+     * Returns whether the is primary indicator should be shown for a given component
+     * @param d
+     * @returns {*}
+     */
+    var showIsPrimary = function (d) {
+        return nfClusterSummary.isClustered() && d.status.aggregateSnapshot.executionNode === 'PRIMARY' ? 'visible' : 'hidden';
+    };
+
+    /**
+     * Determines whether the specific component needs a tooltip.
+     *
+     * @param d
+     * @return if a tip is required
+     */
+    var needsTip = function (d) {
+        return (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) || d.status.aggregateSnapshot.runStatus === 'Validating';
+    };
+
+    /**
+     * Gets the tooltip content.
+     *
+     * @param d
+     * @return the tip content
+     */
+    var getTip = function (d) {
+        if (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) {
+            var list = nfCommon.formatUnorderedList(d.component.validationErrors);
+            if (list === null || list.length === 0) {
+                return '';
+            } else {
+                return list;
+            }
+        } else {
+            return 'Validating...';
+        }
+    };
 
     /**
      * Updates the stats for the processors in the specified selection.
@@ -714,11 +838,13 @@
 
         // update the run status
         updated.select('text.run-status-icon')
-            .attr({
+            .attrs({
                 'fill': function (d) {
                     var fill = '#728e9b';
 
-                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                    if (d.status.aggregateSnapshot.runStatus === 'Validating') {
+                        fill = '#a8a8a8';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                         fill = '#cf9f5d';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                         fill = '#7dc7a0';
@@ -736,10 +862,15 @@
                     return family;
                 }
             })
+            .classed('fa-spin', function (d) {
+                return d.status.aggregateSnapshot.runStatus === 'Validating';
+            })
             .text(function (d) {
                 var img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Validating') {
+                    img = '\uf1ce';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     img = '\uf071';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
@@ -754,7 +885,7 @@
                 var tip = d3.select('#run-status-tip-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) {
+                if (needsTip(d)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#processor-tooltips').append('div')
@@ -766,12 +897,7 @@
 
                     // update the tip
                     tip.html(function () {
-                        var list = nfCommon.formatUnorderedList(d.component.validationErrors);
-                        if (list === null || list.length === 0) {
-                            return '';
-                        } else {
-                            return $('<div></div>').append(list).html();
-                        }
+                        return $('<div></div>').append(getTip(d)).html();
                     });
 
                     // add the tooltip
@@ -866,6 +992,7 @@
             // remove any associated tooltips
             $('#run-status-tip-' + d.id).remove();
             $('#bulletin-tip-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 
@@ -892,7 +1019,7 @@
 
             // create the processor container
             processorContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'processors'
                 });
@@ -932,10 +1059,14 @@
                 add(processorEntities);
             }
 
-            // apply the selection and handle new processor
+            // select
             var selection = select();
-            selection.enter().call(renderProcessors, selectAll);
-            selection.call(updateProcessors);
+
+            // enter
+            var entered = renderProcessors(selection.enter(), selectAll);
+
+            // update
+            updateProcessors(selection.merge(entered));
         },
 
         /**
@@ -986,10 +1117,18 @@
                 set(processorEntities);
             }
 
-            // apply the selection and handle all new processors
+            // select
             var selection = select();
-            selection.enter().call(renderProcessors, selectAll);
-            selection.call(updateProcessors).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderProcessors(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateProcessors);
+            updated.call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removeProcessors);
         },
 
@@ -1092,7 +1231,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }

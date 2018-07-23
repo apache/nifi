@@ -68,6 +68,13 @@ public class NiFi {
     public NiFi(final NiFiProperties properties)
             throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
+        this(properties, ClassLoader.getSystemClassLoader());
+
+    }
+
+    public NiFi(final NiFiProperties properties, ClassLoader rootClassLoader)
+            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
         // There can only be one krb5.conf for the overall Java process so set this globally during
         // start up so that processors and our Kerberos authentication code don't have to set this
         final File kerberosConfigFile = properties.getKerberosConfigurationFile();
@@ -77,22 +84,10 @@ public class NiFi {
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(final Thread t, final Throwable e) {
-                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                LOGGER.error("", e);
-            }
-        });
+        setDefaultUncaughtExceptionHandler();
 
         // register the shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // shutdown the jetty server
-                shutdownHook();
-            }
-        }));
+        addShutdownHook();
 
         final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
         if (bootstrapPort != null) {
@@ -125,8 +120,7 @@ public class NiFi {
         detectTimingIssues();
 
         // redirect JUL log events
-        SLF4JBridgeHandler.removeHandlersForRootLogger();
-        SLF4JBridgeHandler.install();
+        initLogging();
 
         final Bundle systemBundle = SystemBundle.create(properties);
 
@@ -134,15 +128,18 @@ public class NiFi {
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         // load the extensions classloaders
-        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        NarClassLoaders narClassLoaders = NarClassLoaders.getInstance();
+
+        narClassLoaders.init(rootClassLoader,
+                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
         // load the framework classloader
-        final ClassLoader frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
+        final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();
         if (frameworkClassLoader == null) {
             throw new IllegalStateException("Unable to find the framework NAR ClassLoader.");
         }
 
-        final Set<Bundle> narBundles = NarClassLoaders.getInstance().getBundles();
+        final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
         // load the server from the framework classloader
         Thread.currentThread().setContextClassLoader(frameworkClassLoader);
@@ -169,35 +166,68 @@ public class NiFi {
         }
     }
 
-    private static ClassLoader createBootstrapClassLoader() throws IOException {
-        //Get list of files in bootstrap folder
-        final List<URL> urls = new ArrayList<>();
-        Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
-            try {
-                urls.add(p.toUri().toURL());
-            } catch (final MalformedURLException mef) {
-                LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+    protected void setDefaultUncaughtExceptionHandler() {
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(final Thread t, final Throwable e) {
+                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
+                LOGGER.error("", e);
             }
         });
+    }
+
+    protected void addShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // shutdown the jetty server
+                shutdownHook();
+            }
+        }));
+    }
+
+    protected void initLogging() {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+    }
+
+    private static ClassLoader createBootstrapClassLoader() {
+        //Get list of files in bootstrap folder
+        final List<URL> urls = new ArrayList<>();
+        try {
+            Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
+                try {
+                    urls.add(p.toUri().toURL());
+                } catch (final MalformedURLException mef) {
+                    LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+                }
+            });
+        } catch (IOException ioe) {
+            LOGGER.warn("Unable to access lib/bootstrap to create bootstrap classloader", ioe);
+        }
         //Create the bootstrap classloader
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
     protected void shutdownHook() {
         try {
-            this.shutdown = true;
-
-            LOGGER.info("Initiating shutdown of Jetty web server...");
-            if (nifiServer != null) {
-                nifiServer.stop();
-            }
-            if (bootstrapListener != null) {
-                bootstrapListener.stop();
-            }
-            LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
+            shutdown();
         } catch (final Throwable t) {
             LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
         }
+    }
+
+    protected void shutdown() {
+        this.shutdown = true;
+
+        LOGGER.info("Initiating shutdown of Jetty web server...");
+        if (nifiServer != null) {
+            nifiServer.stop();
+        }
+        if (bootstrapListener != null) {
+            bootstrapListener.stop();
+        }
+        LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
     }
 
     /**
@@ -262,13 +292,18 @@ public class NiFi {
     public static void main(String[] args) {
         LOGGER.info("Launching NiFi...");
         try {
-            final ClassLoader bootstrap = createBootstrapClassLoader();
-            NiFiProperties properties = initializeProperties(args, bootstrap);
-            properties.validate();
+            NiFiProperties properties = convertArgumentsToValidatedNiFiProperties(args);
             new NiFi(properties);
         } catch (final Throwable t) {
             LOGGER.error("Failure to launch NiFi due to " + t, t);
         }
+    }
+
+    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) {
+        final ClassLoader bootstrap = createBootstrapClassLoader();
+        NiFiProperties properties = initializeProperties(args, bootstrap);
+        properties.validate();
+        return properties;
     }
 
     private static NiFiProperties initializeProperties(final String[] args, final ClassLoader boostrapLoader) {
@@ -296,7 +331,10 @@ public class NiFi {
             final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
             LOGGER.info("Loaded {} properties", properties.size());
             return properties;
-        } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException reex) {
+        } catch (InvocationTargetException wrappedException) {
+            final String msg = "There was an issue decrypting protected properties";
+            throw new IllegalArgumentException(msg, wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
+        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException reex) {
             final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
             throw new IllegalArgumentException(msg, reex);
         } catch (final RuntimeException e) {
@@ -321,9 +359,9 @@ public class NiFi {
         if (null == key) {
             return "";
         } else if (!isHexKeyValid(key)) {
-          throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
+            throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
         } else {
-          return key;
+            return key;
         }
     }
 

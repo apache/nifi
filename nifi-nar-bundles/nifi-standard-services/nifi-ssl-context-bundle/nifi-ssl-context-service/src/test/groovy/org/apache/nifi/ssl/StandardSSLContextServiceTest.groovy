@@ -117,7 +117,7 @@ class StandardSSLContextServiceTest {
         }
 
         // Assert
-        assert msg =~ "invalid because Cannot access file"
+        assert msg =~ "Cannot enable Controller Service SSLContextService.* because it is in an invalid state: 'Truststore Filename'.* is invalid because File.* does not exist or cannot be read";
         runner.assertNotValid(sslContextService)
     }
 

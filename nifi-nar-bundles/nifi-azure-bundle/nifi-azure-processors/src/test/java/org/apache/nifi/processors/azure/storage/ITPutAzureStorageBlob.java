@@ -22,7 +22,7 @@ import java.security.InvalidKeyException;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.nifi.processors.azure.AzureConstants;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -42,11 +42,9 @@ public class ITPutAzureStorageBlob {
         final TestRunner runner = TestRunners.newTestRunner(new PutAzureBlobStorage());
 
         try {
-            runner.setValidateExpressionUsage(true);
-
-            runner.setProperty(AzureConstants.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureConstants.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureConstants.CONTAINER, containerName);
+            runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
+            runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
+            runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
             runner.setProperty(FetchAzureBlobStorage.BLOB, "testingUpload");
 
             runner.enqueue("0123456789".getBytes());

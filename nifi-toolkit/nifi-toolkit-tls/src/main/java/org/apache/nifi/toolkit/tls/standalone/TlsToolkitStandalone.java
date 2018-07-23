@@ -200,7 +200,7 @@ public class TlsToolkitStandalone {
         List<String> clientPasswords = standaloneConfig.getClientPasswords();
         for (int i = 0; i < clientDns.size(); i++) {
             String reorderedDn = CertificateUtils.reorderDn(clientDns.get(i));
-            String clientDnFile = getClientDnFile(reorderedDn);
+            String clientDnFile = TlsHelper.escapeFilename(reorderedDn);
             File clientCertFile = new File(baseDir, clientDnFile + ".p12");
 
             if (clientCertFile.exists()) {
@@ -235,7 +235,4 @@ public class TlsToolkitStandalone {
         }
     }
 
-    protected static String getClientDnFile(String clientDn) {
-        return clientDn.replace(',', '_').replace(' ', '_');
-    }
 }

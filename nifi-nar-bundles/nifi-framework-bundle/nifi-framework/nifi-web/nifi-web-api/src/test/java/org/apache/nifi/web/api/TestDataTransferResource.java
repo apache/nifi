@@ -41,10 +41,14 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_SCHEME_HTTP_HEADER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -53,6 +57,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestDataTransferResource {
 
@@ -156,9 +161,55 @@ public class TestDataTransferResource {
 
         final ServletContext context = null;
         final UriInfo uriInfo = mockUriInfo(locationUriStr);
+        final Field uriInfoField = resource.getClass().getSuperclass().getSuperclass()
+                .getDeclaredField("uriInfo");
+        uriInfoField.setAccessible(true);
+        uriInfoField.set(resource, uriInfo);
+
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final Field httpServletRequestField = resource.getClass().getSuperclass().getSuperclass()
+                .getDeclaredField("httpServletRequest");
+        httpServletRequestField.setAccessible(true);
+        httpServletRequestField.set(resource, request);
+
         final InputStream inputStream = null;
 
        final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
+
+        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+
+        assertEquals(201, response.getStatus());
+        assertEquals(ResponseCode.PROPERTIES_OK.getCode(), resultEntity.getResponseCode());
+        assertEquals(locationUriStr, response.getMetadata().getFirst(HttpHeaders.LOCATION_HEADER_NAME).toString());
+    }
+
+    @Test
+    public void testCreateTransactionThroughReverseProxy() throws Exception {
+        final HttpServletRequest req = createCommonHttpServletRequest();
+
+        final DataTransferResource resource = getDataTransferResource();
+
+        final String locationUriStr = "https://nifi2.example.com:443/nifi-api/data-transfer/input-ports/port-id/transactions/transaction-id";
+
+        final ServletContext context = null;
+        final UriInfo uriInfo = mockUriInfo(locationUriStr);
+        final Field uriInfoField = resource.getClass().getSuperclass().getSuperclass()
+                .getDeclaredField("uriInfo");
+        uriInfoField.setAccessible(true);
+        uriInfoField.set(resource, uriInfo);
+
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader(PROXY_SCHEME_HTTP_HEADER)).thenReturn("https");
+        when(request.getHeader(PROXY_HOST_HTTP_HEADER)).thenReturn("nifi2.example.com");
+        when(request.getHeader(PROXY_PORT_HTTP_HEADER)).thenReturn("443");
+        final Field httpServletRequestField = resource.getClass().getSuperclass().getSuperclass()
+                .getDeclaredField("httpServletRequest");
+        httpServletRequestField.setAccessible(true);
+        httpServletRequestField.set(resource, request);
+
+        final InputStream inputStream = null;
+
+        final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
         TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 

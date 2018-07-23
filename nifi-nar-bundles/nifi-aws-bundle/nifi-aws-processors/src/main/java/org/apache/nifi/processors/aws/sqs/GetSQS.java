@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -85,7 +86,7 @@ public class GetSQS extends AbstractSQSProcessor {
     public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Visibility Timeout")
             .description("The amount of time after a message is received but not deleted that the message is hidden from other consumers")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .defaultValue("15 mins")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -101,7 +102,7 @@ public class GetSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor DYNAMIC_QUEUE_URL = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(QUEUE_URL)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
             .build();
 
@@ -109,7 +110,7 @@ public class GetSQS extends AbstractSQSProcessor {
             .name("Receive Message Wait Time")
             .description("The maximum amount of time to wait on a long polling receive call. Setting this to a value of 1 second or greater will "
                 + "reduce the number of SQS requests and decrease fetch latency at the cost of a constantly active thread.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .defaultValue("0 sec")
             .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.SECONDS, 20, TimeUnit.SECONDS))  // 20 seconds is the maximum allowed by SQS

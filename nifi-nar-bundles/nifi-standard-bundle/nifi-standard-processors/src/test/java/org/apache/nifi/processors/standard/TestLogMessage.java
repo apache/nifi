@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
@@ -27,10 +31,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 
 public class TestLogMessage {
 
@@ -75,8 +75,6 @@ public class TestLogMessage {
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);
-        runner.setValidateExpressionUsage(false);
-
         runner.run();
 
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
@@ -106,8 +104,6 @@ public class TestLogMessage {
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);
-        runner.setValidateExpressionUsage(false);
-
         runner.run();
 
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);

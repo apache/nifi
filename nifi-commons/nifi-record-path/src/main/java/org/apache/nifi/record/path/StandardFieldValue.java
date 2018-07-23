@@ -78,7 +78,7 @@ public class StandardFieldValue implements FieldValue {
             return Arrays.toString((Object[]) value);
         }
 
-        return value.toString();
+        return String.valueOf(value);
     }
 
     protected static FieldValue validateParentRecord(final FieldValue parent) {
@@ -122,6 +122,8 @@ public class StandardFieldValue implements FieldValue {
             if (value instanceof Record) {
                 ((Record) value).setValue(getField().getFieldName(), newValue);
                 return;
+            } else if (value == null) {
+                return; // value is null, nothing to update
             } else {
                 throw new UnsupportedOperationException("Cannot update the field value because the value is not associated with any record");
             }

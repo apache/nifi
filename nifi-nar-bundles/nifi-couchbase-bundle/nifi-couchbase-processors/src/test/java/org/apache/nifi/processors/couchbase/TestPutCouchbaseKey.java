@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.couchbase;
 
-import static org.apache.nifi.couchbase.CouchbaseAttributes.Exception;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.BUCKET_NAME;
-import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.COUCHBASE_CLUSTER_SERVICE;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMENT_TYPE;
+import static org.apache.nifi.processors.couchbase.CouchbaseAttributes.Exception;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.DOC_ID;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_RETRY;
@@ -37,9 +38,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.client.deps.io.netty.buffer.Unpooled;
+import com.couchbase.client.java.document.BinaryDocument;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
-import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
+import org.apache.nifi.couchbase.DocumentType;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -73,13 +76,13 @@ public class TestPutCouchbaseKey {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.couchbase.TestPutCouchbaseKey", "debug");
 
         testRunner = TestRunners.newTestRunner(PutCouchbaseKey.class);
-        testRunner.setValidateExpressionUsage(false);
     }
 
     private void setupMockBucket(Bucket bucket) throws InitializationException {
         CouchbaseClusterControllerService service = mock(CouchbaseClusterControllerService.class);
         when(service.getIdentifier()).thenReturn(SERVICE_ID);
         when(service.openBucket(anyString())).thenReturn(bucket);
+        when(bucket.name()).thenReturn("bucket-1");
         testRunner.addControllerService(SERVICE_ID, service);
         testRunner.enableControllerService(service);
         testRunner.setProperty(COUCHBASE_CLUSTER_SERVICE, SERVICE_ID);
@@ -106,6 +109,42 @@ public class TestPutCouchbaseKey {
         testRunner.run();
 
         verify(bucket, times(1)).upsert(any(RawJsonDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertTransferCount(REL_RETRY, 0);
+        testRunner.assertTransferCount(REL_FAILURE, 0);
+        MockFlowFile outFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        outFile.assertContentEquals(inFileData);
+        outFile.assertAttributeEquals(CouchbaseAttributes.Cluster.key(), SERVICE_ID);
+        outFile.assertAttributeEquals(CouchbaseAttributes.Bucket.key(), bucketName);
+        outFile.assertAttributeEquals(CouchbaseAttributes.DocId.key(), docId);
+        outFile.assertAttributeEquals(CouchbaseAttributes.Cas.key(), String.valueOf(cas));
+        outFile.assertAttributeEquals(CouchbaseAttributes.Expiry.key(), String.valueOf(expiry));
+    }
+
+    @Test
+    public void testBinaryDoc() throws Exception {
+        String bucketName = "bucket-1";
+        String docId = "doc-a";
+        int expiry = 100;
+        long cas = 200L;
+
+        String inFileData = "12345";
+        byte[] inFileDataBytes = inFileData.getBytes(StandardCharsets.UTF_8);
+
+        Bucket bucket = mock(Bucket.class);
+        when(bucket.upsert(any(BinaryDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE)))
+                .thenReturn(BinaryDocument.create(docId, expiry, Unpooled.copiedBuffer(inFileData.getBytes(StandardCharsets.UTF_8)), cas));
+        setupMockBucket(bucket);
+
+        testRunner.enqueue(inFileDataBytes);
+        testRunner.setProperty(BUCKET_NAME, bucketName);
+        testRunner.setProperty(DOC_ID, docId);
+        testRunner.setProperty(DOCUMENT_TYPE, DocumentType.Binary.name());
+        testRunner.run();
+
+        verify(bucket, times(1)).upsert(any(BinaryDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
         testRunner.assertTransferCount(REL_SUCCESS, 1);

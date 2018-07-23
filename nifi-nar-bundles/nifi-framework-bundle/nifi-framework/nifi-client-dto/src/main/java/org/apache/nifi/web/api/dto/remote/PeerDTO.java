@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.remote;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 

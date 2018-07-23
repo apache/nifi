@@ -120,7 +120,7 @@ public class TestStandardRemoteGroupPort {
                 break;
         }
 
-        port = spy(new StandardRemoteGroupPort(ID, NAME,
+        port = spy(new StandardRemoteGroupPort(ID, ID, NAME,
                 processGroup, remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
 
         doReturn(true).when(remoteGroup).isTransmitting();
@@ -173,6 +173,7 @@ public class TestStandardRemoteGroupPort {
             assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
             assertEquals(peerUrl + "/" + flowFile.getAttribute(CoreAttributes.UUID.key()), provenanceEvent.getTransitUri());
             assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
+            assertEquals("remote-group-port-id", provenanceEvent.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key()));
 
         }
     }
@@ -220,6 +221,7 @@ public class TestStandardRemoteGroupPort {
             final MockFlowFile flowFile = flowFiles.get(0);
             flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
             flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_PORT_ID.key(), "remote-group-port-id");
         }
 
     }
@@ -253,6 +255,7 @@ public class TestStandardRemoteGroupPort {
         assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
         assertEquals(flowFileEndpointUri, provenanceEvent.getTransitUri());
         assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
+        assertEquals("remote-group-port-id", provenanceEvent.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key()));
     }
 
     @Test
@@ -436,6 +439,7 @@ public class TestStandardRemoteGroupPort {
         final MockFlowFile flowFile = flowFiles.get(0);
         flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
         flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_PORT_ID.key(), "remote-group-port-id");
 
     }
 }

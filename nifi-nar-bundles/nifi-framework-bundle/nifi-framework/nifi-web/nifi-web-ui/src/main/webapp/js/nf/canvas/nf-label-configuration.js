@@ -21,19 +21,21 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
+                'nf.Storage',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Label'],
-            function ($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
-                return (nf.LabelConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel));
+            function ($, d3, nfStorage, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
+                return (nf.LabelConfiguration = factory($, d3, nfStorage, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.LabelConfiguration =
             factory(require('jquery'),
                 require('d3'),
+                require('nf.Storage'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Client'),
@@ -43,6 +45,7 @@
     } else {
         nf.LabelConfiguration = factory(root.$,
             root.d3,
+            root.nf.Storage,
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Client,
@@ -50,7 +53,7 @@
             root.nf.ng.Bridge,
             root.nf.Label);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
+}(this, function ($, d3, nfStorage, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
     'use strict';
 
     var labelId = '';
@@ -83,6 +86,7 @@
                             // build the label entity
                             var labelEntity = {
                                 'revision': nfClient.getRevision(labelData),
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                 'component': {
                                     'id': labelId,
                                     'label': labelValue,

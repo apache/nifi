@@ -17,23 +17,9 @@
 
 package org.apache.nifi.processor.util.list;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -41,9 +27,12 @@ import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
@@ -55,15 +44,30 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.apache.nifi.util.StringUtils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * <p>
- * An Abstract Processor that is intended to simplify the coding required in order to perform Listing operations of remote resources.
- * Those remote resources may be files, "objects", "messages", or any other sort of entity that may need to be listed in such a way that
+ * An Abstract Processor that is intended to simplify the coding required in order to perform Listing operations of remote or local resources.
+ * Those resources may be files, "objects", "messages", or any other sort of entity that may need to be listed in such a way that
  * we identity the entity only once. Each of these objects, messages, etc. is referred to as an "entity" for the scope of this Processor.
  * </p>
  * <p>
@@ -83,6 +87,9 @@ import org.codehaus.jackson.map.ObjectMapper;
  * than the last timestamp pulled, then the entity is considered new.
  * </li>
  * <li>
+ * With 'Tracking Entities' strategy, the size of entity content is also used to determine if an entity is "new". If the size changes the entity is considered "new".
+ * </li>
+ * <li>
  * Entity must have a user-readable name that can be used for logging purposes.
  * </li>
  * </ul>
@@ -96,9 +103,10 @@ import org.codehaus.jackson.map.ObjectMapper;
  * NOTE: This processor performs migrations of legacy state mechanisms inclusive of locally stored, file-based state and the optional utilization of the <code>Distributed Cache
  * Service</code> property to the new {@link StateManager} functionality. Upon successful migration, the associated data from one or both of the legacy mechanisms is purged.
  * </p>
+ *
  * <p>
  * For each new entity that is listed, the Processor will send a FlowFile to the 'success' relationship. The FlowFile will have no content but will have some set
- * of attributes (defined by the concrete implementation) that can be used to fetch those remote resources or interact with them in whatever way makes sense for
+ * of attributes (defined by the concrete implementation) that can be used to fetch those resources or interact with them in whatever way makes sense for
  * the configured dataflow.
  * </p>
  * <p>
@@ -106,8 +114,8 @@ import org.codehaus.jackson.map.ObjectMapper;
  * </p>
  * <ul>
  * <li>
- * Perform a listing of remote resources. The subclass will implement the {@link #performListing(ProcessContext, Long)} method, which creates a listing of all
- * entities on the remote system that have timestamps later than the provided timestamp. If the entities returned have a timestamp before the provided one, those
+ * Perform a listing of resources. The subclass will implement the {@link #performListing(ProcessContext, Long)} method, which creates a listing of all
+ * entities on the target system that have timestamps later than the provided timestamp. If the entities returned have a timestamp before the provided one, those
  * entities will be filtered out. It is therefore not necessary to perform the filtering of timestamps but is provided in order to give the implementation the ability
  * to filter those resources on the server side rather than pulling back all of the information, if it makes sense to do so in the concrete implementation.
  * </li>
@@ -125,6 +133,10 @@ import org.codehaus.jackson.map.ObjectMapper;
  * changing a property value. The {@link #isListingResetNecessary(PropertyDescriptor)} method is responsible for determining when the listing needs to be reset by returning
  * a boolean indicating whether or not a change in the value of the provided property should trigger the timestamp and identifier information to be cleared.
  * </li>
+ * <li>
+ * Provide the target system timestamp precision. By either letting user to choose the right one by adding TARGET_SYSTEM_TIMESTAMP_PRECISION to the return value of
+ * getSupportedPropertyDescriptors method or, overriding getDefaultTimePrecision method in case the target system has a fixed time precision.
+ * </li>
  * </ul>
  */
 @TriggerSerially
@@ -134,9 +146,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from the remote server so that if a new node "
-            + "begins pulling data, it won't duplicate all of the work that has been done. If not specified, the information will not be shared across the cluster. "
-            + "This property does not need to be set for standalone instances of NiFi but should be configured if NiFi is run within a cluster.")
+        .description("NOTE: This property is used merely for migration from old NiFi version before state management was introduced at version 0.5.0. "
+            + "The stored value in the cache service will be migrated into the state when this processor is started at the first time. "
+            + "The specified Controller Service was used to maintain state about what had been pulled from the remote server so that if a new node "
+            + "begins pulling data, it won't duplicate all of the work that has been done. If not specified, the information was not shared across the cluster. "
+            + "This property did not need to be set for standalone instances of NiFi but was supposed to be configured if NiFi had been running within a cluster.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
@@ -165,6 +179,28 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         .description("All FlowFiles that are received are routed to success")
         .build();
 
+    public static final AllowableValue BY_TIMESTAMPS = new AllowableValue("timestamps", "Tracking Timestamps",
+            "This strategy tracks the latest timestamp of listed entity to determine new/updated entities." +
+                    " Since it only tracks few timestamps, it can manage listing state efficiently." +
+                    " However, any newly added, or updated entity having timestamp older than the tracked latest timestamp can not be picked by this strategy." +
+                    " For example, such situation can happen in a file system if a file with old timestamp" +
+                    " is copied or moved into the target directory without its last modified timestamp being updated.");
+
+    public static final AllowableValue BY_ENTITIES = new AllowableValue("entities", "Tracking Entities",
+            "This strategy tracks information of all the listed entities within the latest 'Entity Tracking Time Window' to determine new/updated entities." +
+                    " This strategy can pick entities having old timestamp that can be missed with 'Tracing Timestamps'." +
+                    " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
+                    " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .name("listing-strategy")
+        .displayName("Listing Strategy")
+        .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
+        .required(true)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .defaultValue(BY_TIMESTAMPS.getValue())
+        .build();
+
     /**
      * Represents the timestamp of an entity which was the latest one within those listed at the previous cycle.
      * It does not necessary mean it has been processed as well.
@@ -180,6 +216,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetState = false;
     private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
+
+    private volatile ListedEntityTracker<T> listedEntityTracker;
 
     /*
      * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
@@ -203,14 +241,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
-        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        return properties;
-    }
-
-    @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
             resetTimeStates(); // clear lastListingTime so that we have to fetch new time
@@ -224,6 +254,32 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
         return relationships;
+    }
+
+    /**
+     * In order to add custom validation at sub-classes, implement {@link #customValidate(ValidationContext, Collection)} method.
+     */
+    @Override
+    protected final Collection<ValidationResult> customValidate(ValidationContext context) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        if (BY_ENTITIES.equals(listingStrategy)) {
+            ListedEntityTracker.validateProperties(context, results, getStateScope(context));
+        }
+
+        customValidate(context, results);
+        return results;
+    }
+
+
+    /**
+     * Sub-classes can add custom validation by implementing this method.
+     * @param validationContext the validation context
+     * @param validationResults add custom validation result to this collection
+     */
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> validationResults) {
+
     }
 
     @OnPrimaryNodeStateChange
@@ -256,7 +312,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         if (resetState) {
             context.getStateManager().clear(getStateScope(context));
-            resetState = false;
         }
     }
 
@@ -345,17 +400,32 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     private EntityListing deserialize(final String serializedState) throws JsonParseException, JsonMappingException, IOException {
         final ObjectMapper mapper = new ObjectMapper();
-        final JsonNode jsonNode = mapper.readTree(serializedState);
-        return mapper.readValue(jsonNode, EntityListing.class);
+        return mapper.readValue(serializedState, EntityListing.class);
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
+        resetState = false;
+
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        if (BY_TIMESTAMPS.equals(listingStrategy)) {
+            listByTrackingTimestamps(context, session);
+
+        } else if (BY_ENTITIES.equals(listingStrategy)) {
+            listByTrackingEntities(context, session);
+
+        } else {
+            throw new ProcessException("Unknown listing strategy: " + listingStrategy);
+        }
+    }
+
+    public void listByTrackingTimestamps(final ProcessContext context, final ProcessSession session) throws ProcessException {
         Long minTimestampToListMillis = lastListedLatestEntryTimestampMillis;
 
         if (this.lastListedLatestEntryTimestampMillis == null || this.lastProcessedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
             try {
+                boolean noUpdateRequired = false;
                 // Attempt to retrieve state from the state manager if a last listing was not yet established or
                 // if just elected the primary node
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
@@ -371,8 +441,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                         minTimestampToListMillis = Long.parseLong(v);
                         // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
                         if (minTimestampToListMillis.equals(this.lastListedLatestEntryTimestampMillis)) {
-                            context.yield();
-                            return;
+                            noUpdateRequired = true;
                         } else {
                             this.lastListedLatestEntryTimestampMillis = minTimestampToListMillis;
                         }
@@ -383,6 +452,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     }
                 }
                 justElectedPrimaryNode = false;
+                if (noUpdateRequired) {
+                    context.yield();
+                    return;
+                }
             } catch (final IOException ioe) {
                 getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
                 context.yield();
@@ -440,7 +513,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             latestListedEntryTimestampThisCycleMillis = orderedEntries.lastKey();
 
             // Determine target system time precision.
-            final String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            if (StringUtils.isBlank(specifiedPrecision)) {
+                // If TARGET_SYSTEM_TIMESTAMP_PRECISION is not supported by the Processor, then specifiedPrecision can be null, instead of its default value.
+                specifiedPrecision = getDefaultTimePrecision();
+            }
             final TimeUnit targetSystemTimePrecision
                     = PRECISION_AUTO_DETECT.getValue().equals(specifiedPrecision)
                         ? targetSystemHasMilliseconds ? TimeUnit.MILLISECONDS : targetSystemHasSeconds ? TimeUnit.SECONDS : TimeUnit.MINUTES
@@ -546,6 +623,17 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
     }
 
+    /**
+     * This method is intended to be overridden by SubClasses those do not support TARGET_SYSTEM_TIMESTAMP_PRECISION property.
+     * So that it use return different precisions than PRECISION_AUTO_DETECT.
+     * If TARGET_SYSTEM_TIMESTAMP_PRECISION is supported as a valid Processor property,
+     * then PRECISION_AUTO_DETECT will be the default value when not specified by a user.
+     * @return
+     */
+    protected String getDefaultTimePrecision() {
+        return TARGET_SYSTEM_TIMESTAMP_PRECISION.getDefaultValue();
+    }
+
     private void resetTimeStates() {
         lastListedLatestEntryTimestampMillis = null;
         lastProcessedLatestEntryTimestampMillis = 0L;
@@ -602,7 +690,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * @param context the ProcessContext to use in order to make a determination
      * @return a Scope that specifies where the state should be managed for this Processor
      */
-    protected abstract Scope getStateScope(final ProcessContext context);
+    protected abstract Scope getStateScope(final PropertyContext context);
 
 
     private static class StringSerDe implements Serializer<String>, Deserializer<String> {
@@ -620,4 +708,41 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             out.write(value.getBytes(StandardCharsets.UTF_8));
         }
     }
+
+    @OnScheduled
+    public void initListedEntityTracker(ProcessContext context) {
+        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
+        if (listedEntityTracker != null && (resetState || !isTrackingEntityStrategy)) {
+            try {
+                listedEntityTracker.clearListedEntities();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to reset previously listed entities due to " + e, e);
+            }
+        }
+
+        if (isTrackingEntityStrategy) {
+            if (listedEntityTracker == null) {
+                listedEntityTracker = createListedEntityTracker();
+            }
+        } else {
+            listedEntityTracker = null;
+        }
+    }
+
+    protected ListedEntityTracker<T> createListedEntityTracker() {
+        return new ListedEntityTracker<>(getIdentifier(), getLogger());
+    }
+
+    private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {
+        listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, getStateScope(context), minTimestampToList -> {
+            try {
+                return performListing(context, minTimestampToList);
+            } catch (final IOException e) {
+                getLogger().error("Failed to perform listing on remote host due to {}", e);
+                return Collections.emptyList();
+            }
+        }, entity -> createAttributes(entity, context));
+        justElectedPrimaryNode = false;
+    }
+
 }

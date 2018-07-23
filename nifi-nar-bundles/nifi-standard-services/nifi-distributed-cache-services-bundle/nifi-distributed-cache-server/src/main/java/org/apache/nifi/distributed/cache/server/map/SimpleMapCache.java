@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
@@ -60,7 +61,7 @@ public class SimpleMapCache implements MapCache {
 
     @Override
     public String toString() {
-        return "SimpleSetCache[service id=" + serviceIdentifier + "]";
+        return "SimpleMapCache[service id=" + serviceIdentifier + "]";
     }
 
     // don't need synchronized because this method is only called when the writeLock is held, and all
@@ -171,6 +172,31 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
+    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException {
+        if (keys == null) {
+            return null;
+        }
+        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        readLock.lock();
+        try {
+            keys.forEach((key) -> {
+                final MapCacheRecord record = cache.get(key);
+                if (record == null) {
+                    results.put(key, null);
+                } else {
+                    inverseCacheMap.remove(record);
+                    record.hit();
+                    inverseCacheMap.put(record, key);
+                    results.put(key, record.getValue());
+                }
+            });
+        } finally {
+            readLock.unlock();
+        }
+        return results;
+    }
+
+    @Override
     public ByteBuffer remove(ByteBuffer key) throws IOException {
         writeLock.lock();
         try {
@@ -245,6 +271,16 @@ public class SimpleMapCache implements MapCache {
             return put(key, value, existing);
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<ByteBuffer> keySet() throws IOException {
+        readLock.lock();
+        try {
+            return cache.keySet();
+        } finally {
+            readLock.unlock();
         }
     }
 

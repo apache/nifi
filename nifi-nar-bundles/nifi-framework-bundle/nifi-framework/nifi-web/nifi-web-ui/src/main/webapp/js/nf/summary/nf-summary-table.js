@@ -266,12 +266,25 @@
 
         // define a custom formatter for showing more processor details
         var moreProcessorDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle" style="margin-right: 3px;"></div>';
+            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle"></div>';
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
                 markup += '<div class="has-bulletins fa fa-sticky-note-o"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
+
+            return markup;
+        };
+
+        // formatter for name
+        var nameFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (isClustered && dataContext.executionNode === 'PRIMARY') {
+                markup += '<div class="is-primary-icon" title="This component is only scheduled to execute on the Primary Node">P</div>';
+            }
+
+            markup += nfCommon.escapeHtml(value);
 
             return markup;
         };
@@ -293,32 +306,51 @@
 
         // define a custom formatter for the run status column
         var runStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
+            var threadCounts = '';
+            var threadTip = '';
+            if (dataContext.terminatedThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ' / ' + dataContext.terminatedThreadCount + ')';
+                threadTip = 'Threads: (Active / Terminated)';
+            } else if (dataContext.activeThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ')';
+                threadTip = 'Active Threads';
             }
-            var classes = nfCommon.escapeHtml(value.toLowerCase());
-            switch (nfCommon.escapeHtml(value.toLowerCase())) {
+            var classes;
+            switch (value.toLowerCase()) {
                 case 'running':
-                    classes += ' fa fa-play running';
+                    classes = 'fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop stopped';
+                    classes = 'fa fa-stop stopped';
                     break;
                 case 'enabled':
-                    classes += ' fa fa-flash enabled';
+                    classes = 'fa fa-flash enabled';
                     break;
                 case 'disabled':
-                    classes += ' icon icon-enable-false disabled';
+                    classes = 'icon icon-enable-false disabled';
+                    break;
+                case 'validating':
+                    classes = 'fa fa-spin fa-circle-notch validating';
                     break;
                 case 'invalid':
-                    classes += ' fa fa-warning invalid';
+                    classes = 'fa fa-warning invalid';
                     break;
                 default:
-                    classes += '';
+                    classes = '';
             }
-            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+
+            var markup =
+                '<div layout="row">' +
+                    '<div class="' + classes + '"></div>' +
+                    '<div class="status-text">' +
+                        nfCommon.escapeHtml(value) +
+                    '</div>' +
+                    '<div style="float: left; margin-left: 4px;" title="' + threadTip + '">' +
+                        nfCommon.escapeHtml(threadCounts) +
+                    '</div>' +
+                '</div>';
+
+            return markup;
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -326,9 +358,9 @@
             id: 'name',
             field: 'name',
             name: 'Name',
+            formatter: nameFormatter,
             sortable: true,
-            resizable: true,
-            formatter: nfCommon.genericValueFormatter
+            resizable: true
         };
         var runStatusColumn = {
             id: 'runStatus',
@@ -400,6 +432,15 @@
                 resizable: true,
                 formatter: nfCommon.genericValueFormatter
             },
+            {
+                id: 'parentGroup',
+                field: 'parentProcessGroupName',
+                name: 'Process Group',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter,
+                toolTip: 'Parent Process Group name'
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -417,11 +458,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -664,7 +705,7 @@
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details"></div>';
         };
 
         var backpressureFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -749,11 +790,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -971,7 +1012,7 @@
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
 
             return markup;
@@ -1019,6 +1060,37 @@
             formatter: nfCommon.genericValueFormatter
         };
 
+        // define how the column is formatted
+        var versionStateFormatter = function (row, cell, value, columnDef, dataContext) {
+            var classes, label;
+            switch (value) {
+                case 'UP_TO_DATE':
+                    classes = 'fa fa-check up-to-date';
+                    label = 'Up to date';
+                    break;
+                case 'LOCALLY_MODIFIED':
+                    classes = 'fa fa-asterisk locally-modified';
+                    label = 'Locally modified';
+                    break;
+                case 'STALE':
+                    classes = 'fa fa-arrow-circle-up stale';
+                    label = 'Stale';
+                    break;
+                case 'LOCALLY_MODIFIED_AND_STALE':
+                    classes = 'fa fa-exclamation-circle locally-modified-and-stale';
+                    label = 'Locally modified and stale';
+                    break;
+                case 'SYNC_FAILURE':
+                    classes = 'fa fa-question sync-failure';
+                    label = 'Sync failure';
+                    break;
+                default:
+                    classes = '';
+                    label = '';
+            }
+            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text">' + label + '</div></div>';
+        };
+
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
@@ -1029,6 +1101,14 @@
                 sortable: true,
                 resizable: true,
                 formatter: valueFormatter
+            },
+            {
+                id: 'versionedFlowState',
+                field: 'versionedFlowState',
+                name: 'Version State',
+                sortable: true,
+                resizable: true,
+                formatter: versionStateFormatter
             },
             transferredColumn,
             inputColumn,
@@ -1045,11 +1125,11 @@
                 var markup = '';
 
                 if (isInShell && dataContext.groupId !== null) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -1305,7 +1385,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1552,7 +1632,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1804,7 +1884,7 @@
 
             // generate the mark up
             var formattedValue = '<div layout="row"><div class="' + transmissionClass + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+            return formattedValue + '<div class="status-text">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var transmissionStatusColumn = {
@@ -1851,11 +1931,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -2510,12 +2590,21 @@
      * @argument {array} inputPortItems                 The input port data
      * @argument {array} outputPortItems                The input port data
      * @argument {array} remoteProcessGroupItems        The remote process group data
-     * @argument {object} aggregateSnapshot            The process group status
+     * @argument {object} aggregateSnapshot             The process group status
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
      */
-    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot) {
+    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, ancestorsSnapshot) {
         // add the processors to the summary grid
         $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatusEntity) {
-            processorItems.push(procStatusEntity.processorStatusSnapshot);
+            var currentProcessorStatusSnapshot = procStatusEntity.processorStatusSnapshot;
+
+            currentProcessorStatusSnapshot.parentProcessGroupName = aggregateSnapshot.name;
+            // construct a 'path' based on hierarchical group levels
+            currentProcessorStatusSnapshot.processGroupNamePath = ancestorsSnapshot.reduce(function(tempGroupNamesPath, ancestorGroup) {
+                return tempGroupNamesPath + '/' + ancestorGroup.name;
+            }, '');
+
+            processorItems.push(currentProcessorStatusSnapshot);
         });
 
         // add the processors to the summary grid
@@ -2543,8 +2632,21 @@
 
         // add any child group's status
         $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroupEntity) {
-            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupEntity.processGroupStatusSnapshot);
+            var childProcessGroupStatusSnapshot = childProcessGroupEntity.processGroupStatusSnapshot;
+            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupStatusSnapshot, createUpdatedAncestorsSnapshot(ancestorsSnapshot, childProcessGroupStatusSnapshot));
         });
+    };
+
+    /**
+     * Creates a new process group hierarchy.
+     *
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
+     * @argument {object} newAncestor                   The process group to add
+     */
+    var createUpdatedAncestorsSnapshot = function(ancestorsSnapshot, newAncestor) {
+        var snapshotCopy = ancestorsSnapshot.slice();
+        snapshotCopy.push(newAncestor);
+        return snapshotCopy;
     };
 
     /**
@@ -2611,6 +2713,7 @@
                         node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
                         runStatus: snapshot.runStatus,
                         activeThreadCount: snapshot.activeThreadCount,
+                        terminatedThreadCount: snapshot.terminatedThreadCount,
                         input: snapshot.input,
                         read: snapshot.read,
                         written: snapshot.written,
@@ -3092,7 +3195,7 @@
                     var remoteProcessGroupItems = [];
 
                     // populate the tables
-                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot);
+                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
 
                     // update the processors
                     processorsData.setItems(processorItems);

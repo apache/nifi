@@ -18,7 +18,7 @@ package org.apache.nifi.processors.lumberjack.frame;
 
 import org.junit.Test;
 
-
+@SuppressWarnings("deprecation")
 public class TestLumberjackFrame {
 
     @Test(expected = LumberjackFrameException.class)

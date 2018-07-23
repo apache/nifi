@@ -16,25 +16,26 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import static org.junit.Assert.assertEquals;
 
 public class TestEvaluateJsonPath {
 
@@ -48,6 +49,44 @@ public class TestEvaluateJsonPath {
         testRunner.setProperty("invalid.jsonPath", "$..");
 
         Assert.fail("An improper JsonPath expression was not detected as being invalid.");
+    }
+
+    @Test
+    public void testUpgradeToJsonPath24() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        List<String> badInputs = Arrays.asList("LoremIpsum []", "LoremIpsum[]", "$..", "$.xyz.");
+        for (String bad : badInputs) {
+            testRunner.setProperty("DefinitelyNotJsonPath", bad);
+
+            testRunner.enqueue(JSON_SNIPPET);
+            testRunner.assertNotValid();
+        }
+
+        /*
+         * Not sure why these passed with v2, but they do. These are weird strings that oddly worked before.
+         */
+        List<String> testWhatUsedToPass = Arrays.asList("LoremIpsum@$Q#$^Q$%Q#", "TestTest['sdfadsf']#$%#$^#$^.xyz");
+        for (String old : testWhatUsedToPass) {
+            testRunner.setProperty("DefinitelyNotJsonPath", old);
+
+            testRunner.enqueue(JSON_SNIPPET);
+            testRunner.assertValid();
+        }
+
+        /*
+         * Test some obviously good JsonPath strings
+         */
+        List<String> goodStrings = Arrays.asList("$", "$.xyz", "$['xyz']", "$.*['xyz']");
+        for (String good : goodStrings) {
+            testRunner.setProperty("DefinitelyNotJsonPath", good);
+
+            testRunner.enqueue(JSON_SNIPPET);
+            testRunner.assertValid();
+        }
+
+        testRunner.setProperty("DefinitelyNotJsonPath", "   ");
+        testRunner.assertNotValid();
     }
 
     @Test

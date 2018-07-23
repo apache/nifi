@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -82,6 +83,32 @@ public class TestLookupRecord {
         recordReader.addRecord("John Doe", 48, null);
         recordReader.addRecord("Jane Doe", 47, null);
         recordReader.addRecord("Jimmy Doe", 14, null);
+    }
+
+    @Test
+    public void testFlowfileAttributesPassed() {
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("schema.name", "person");
+        attrs.put("something_something", "test");
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.putAll(attrs);
+
+        lookupService.setExpectedContext(expected);
+
+        lookupService.addValue("John Doe", "Soccer");
+        lookupService.addValue("Jane Doe", "Basketball");
+        lookupService.addValue("Jimmy Doe", "Football");
+
+        runner.enqueue("", attrs);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+
+        out.assertAttributeEquals("record.count", "3");
+        out.assertAttributeEquals("mime.type", "text/plain");
+        out.assertContentEquals("John Doe,48,Soccer\nJane Doe,47,Basketball\nJimmy Doe,14,Football\n");
     }
 
     @Test
@@ -372,6 +399,7 @@ public class TestLookupRecord {
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
         private final Map<String, String> values = new HashMap<>();
+        private Map<String, Object> expectedContext;
 
         public void addValue(final String key, final String value) {
             values.put(key, value);
@@ -382,13 +410,18 @@ public class TestLookupRecord {
             return String.class;
         }
 
+        public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
+            validateContext(context);
+            return lookup(coordinates);
+        }
+
         @Override
-        public Optional<String> lookup(final Map<String, String> coordinates) {
-            if (coordinates == null) {
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
+            if (coordinates == null || coordinates.get("lookup") == null) {
                 return Optional.empty();
             }
 
-            final String key = coordinates.get("lookup");
+            final String key = (String)coordinates.get("lookup");
             if (key == null) {
                 return Optional.empty();
             }
@@ -399,6 +432,20 @@ public class TestLookupRecord {
         @Override
         public Set<String> getRequiredKeys() {
             return Collections.singleton("lookup");
+        }
+
+        public void setExpectedContext(Map<String, Object> expectedContext) {
+            this.expectedContext = expectedContext;
+        }
+
+        private void validateContext(Map<String, String> context) {
+            if (expectedContext != null) {
+                for (Map.Entry<String, Object> entry : expectedContext.entrySet()) {
+                    Assert.assertTrue(String.format("%s was not in coordinates.", entry.getKey()),
+                            context.containsKey(entry.getKey()));
+                    Assert.assertEquals("Wrong value", entry.getValue(), context.get(entry.getKey()));
+                }
+            }
         }
     }
 
@@ -415,12 +462,12 @@ public class TestLookupRecord {
         }
 
         @Override
-        public Optional<Record> lookup(final Map<String, String> coordinates) {
-            if (coordinates == null) {
+        public Optional<Record> lookup(final Map<String, Object> coordinates) {
+            if (coordinates == null || coordinates.get("lookup") == null) {
                 return Optional.empty();
             }
 
-            final String key = coordinates.get("lookup");
+            final String key = (String)coordinates.get("lookup");
             if (key == null) {
                 return Optional.empty();
             }

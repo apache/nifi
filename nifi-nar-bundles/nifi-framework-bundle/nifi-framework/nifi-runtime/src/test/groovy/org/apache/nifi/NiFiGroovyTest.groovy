@@ -25,7 +25,6 @@ import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,6 +33,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+import java.nio.file.Paths
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -43,7 +43,6 @@ class NiFiGroovyTest extends GroovyTestCase {
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
 
     private static final String TEST_RES_PATH = NiFiGroovyTest.getClassLoader().getResource(".").toURI().getPath()
-    private static final File workDir = new File("./target/work/jetty/")
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -56,13 +55,6 @@ class NiFiGroovyTest extends GroovyTestCase {
         }
 
         logger.info("Identified test resources path as ${TEST_RES_PATH}")
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        if (!workDir.exists()) {
-            workDir.mkdirs()
-        }
     }
 
     @After
@@ -88,7 +80,7 @@ class NiFiGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, plainPropertiesPath)
 
         // Act
-        NiFiProperties loadedProperties = NiFi.initializeProperties(args)
+        NiFiProperties loadedProperties = NiFi.initializeProperties(args, NiFiGroovyTest.class.classLoader)
 
         // Assert
         assert loadedProperties.size() > 0
@@ -105,14 +97,13 @@ class NiFiGroovyTest extends GroovyTestCase {
         NiFi.main(args)
 
         // Assert
-        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key and there are protected properties present in the properties file"
+        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: There was an issue decrypting protected properties"
     }
 
     @Test
     public void testParseArgsShouldSplitCombinedArgs() throws Exception {
         // Arrange
-        final String DIFFERENT_KEY = "0" * 64
-        def args = ["-k ${DIFFERENT_KEY}"] as String[]
+        def args = ["-K filename"] as String[]
 
         // Act
         def parsedArgs = NiFi.parseArgs(args)
@@ -125,7 +116,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     @Test
     public void testMainShouldHandleBadArgs() throws Exception {
         // Arrange
-        def args = ["-k"] as String[]
+        def args = ["-K"] as String[]
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "${TEST_RES_PATH}/NiFiProperties/conf/nifi_with_sensitive_properties_protected_aes.properties")
 
@@ -135,14 +126,16 @@ class NiFiGroovyTest extends GroovyTestCase {
         // Assert
         assert TestAppender.events.collect {
             it.getFormattedMessage()
-        }.contains("The bootstrap process passed the -k flag without a key")
-        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key and there are protected properties present in the properties file"
+        }.contains("The bootstrap process passed the -K flag without a filename")
+        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
     }
 
     @Test
-    public void testMainShouldHandleMalformedBootstrapKey() throws Exception {
+    public void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
         // Arrange
-        def args = ["-k", "BAD KEY"] as String[]
+        def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testMainShouldHandleMalformedBootstrapKeyFromFile.txt").toFile()
+        passwordFile.text = "BAD KEY"
+        def args = ["-K", passwordFile.absolutePath] as String[]
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "${TEST_RES_PATH}/NiFiProperties/conf/nifi_with_sensitive_properties_protected_aes.properties")
 
@@ -150,32 +143,36 @@ class NiFiGroovyTest extends GroovyTestCase {
         NiFi.main(args)
 
         // Assert
-        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key and there are protected properties present in the properties file"
+        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
     }
 
     @Test
-    public void testInitializePropertiesShouldSetBootstrapKeyFromArgs() throws Exception {
+    public void testInitializePropertiesShouldSetBootstrapKeyFromFile() throws Exception {
         // Arrange
         final String DIFFERENT_KEY = "0" * 64
-        def args = ["-k", DIFFERENT_KEY] as String[]
+        def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testInitializePropertiesShouldSetBootstrapKeyFromFile.txt").toFile()
+        passwordFile.text = DIFFERENT_KEY
+        def args = ["-K", passwordFile.absolutePath] as String[]
 
         String testPropertiesPath = "${TEST_RES_PATH}/NiFiProperties/conf/nifi_with_sensitive_properties_protected_aes_different_key.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, testPropertiesPath)
 
-        NiFiProperties unprocessedProperties = new NiFiPropertiesLoader().loadRaw(new File(testPropertiesPath))
+        def protectedNiFiProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(new File(testPropertiesPath))
+        NiFiProperties unprocessedProperties = protectedNiFiProperties.internalNiFiProperties
         def protectedKeys = getProtectedKeys(unprocessedProperties)
         logger.info("Reading from raw properties file gives protected properties: ${protectedKeys}")
 
         // Act
-        NiFiProperties properties = NiFi.initializeProperties(args)
+        NiFiProperties properties = NiFi.initializeProperties(args, NiFiGroovyTest.class.classLoader)
 
         // Assert
 
         // Ensure that there were protected properties, they were encrypted using AES/GCM (128/256 bit key), and they were decrypted (raw value != retrieved value)
         assert !hasProtectedKeys(properties)
-        def unprotectedProperties = decrypt(unprocessedProperties, DIFFERENT_KEY)
-        getProtectedPropertyKeys(unprocessedProperties).every { k, v ->
-            String rawValue = unprocessedProperties.getProperty(k)
+        def unprotectedProperties = decrypt(protectedNiFiProperties, DIFFERENT_KEY)
+        def protectedPropertyKeys = getProtectedPropertyKeys(unprocessedProperties)
+        protectedPropertyKeys.every { k, v ->
+            String rawValue = protectedNiFiProperties.getProperty(k)
             logger.raw("${k} -> ${rawValue}")
             String retrievedValue = properties.getProperty(k)
             logger.decrypted("${k} -> ${retrievedValue}")
@@ -188,6 +185,7 @@ class NiFiGroovyTest extends GroovyTestCase {
             String decryptedProperty = unprotectedProperties.getProperty(k)
             logger.assert("${retrievedValue} == ${decryptedProperty}")
             assert retrievedValue == decryptedProperty
+            true
         }
     }
 
@@ -202,7 +200,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     private static Set<String> getProtectedKeys(NiFiProperties properties) {
-        properties.getPropertyKeys().findAll { it.endsWith(".protected") }
+        properties.getPropertyKeys().findAll { it.endsWith(".protected") }.collect { it - ".protected"}
     }
 
     private static NiFiProperties decrypt(NiFiProperties encryptedProperties, String keyHex) {

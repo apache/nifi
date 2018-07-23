@@ -16,30 +16,27 @@
  */
 package org.apache.nifi.processors.email;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Date;
-
 import javax.activation.DataSource;
 import javax.mail.Address;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.util.MimeMessageParser;
-
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -61,7 +58,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.stream.io.BufferedInputStream;
 
 
 
@@ -121,21 +117,27 @@ public class ExtractEmailAttachments extends AbstractProcessor {
         final List<FlowFile> invalidFlowFilesList = new ArrayList<>();
         final List<FlowFile> originalFlowFilesList = new ArrayList<>();
 
+        final String requireStrictAddresses = "false";
+
         session.read(originalFlowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         Properties props = new Properties();
-                        Session mailSession = Session.getDefaultInstance(props, null);
+                        props.put("mail.mime.address.strict", requireStrictAddresses);
+                        Session mailSession = Session.getInstance(props);
                         MimeMessage originalMessage = new MimeMessage(mailSession, in);
                         MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
                         // RFC-2822 determines that a message must have a "From:" header
                         // if a message lacks the field, it is flagged as invalid
                         Address[] from = originalMessage.getFrom();
+                        if (from == null) {
+                            throw new MessagingException("Message failed RFC-2822 validation: No Sender");
+                        }
                         Date sentDate = originalMessage.getSentDate();
-                        if (from == null || sentDate == null) {
+                        if (sentDate == null) {
                             // Throws MessageException due to lack of minimum required headers
-                            throw new MessagingException("Message failed RFC2822 validation");
+                            throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
                         }
                         originalFlowFilesList.add(originalFlowFile);
                         if (parser.hasAttachments()) {
@@ -209,4 +211,3 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
 
 }
-

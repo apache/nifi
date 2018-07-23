@@ -26,14 +26,33 @@ import org.apache.kudu.client.Upsert;
 
 import org.apache.nifi.serialization.record.Record;
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
 
-public class MockPutKudu extends PutKudu{
+public class MockPutKudu extends PutKudu {
+  private KuduSession session;
+  private LinkedList<Insert> insertQueue;
+
+  public MockPutKudu() {
+    this(mock(KuduSession.class));
+  }
+
+  public MockPutKudu(KuduSession session) {
+    this.session = session;
+    this.insertQueue = new LinkedList<>();
+  }
+
+  public void queue(Insert... operations) {
+    insertQueue.addAll(Arrays.asList(operations));
+  }
+
   @Override
   protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
-    return mock(Insert.class);
+    Insert insert = insertQueue.poll();
+    return insert != null ? insert : mock(Insert.class);
   }
 
   @Override
@@ -48,7 +67,7 @@ public class MockPutKudu extends PutKudu{
 
   @Override
   protected KuduSession getKuduSession(KuduClient client){
-    return mock(KuduSession.class);
+    return session;
   }
 
   @Override

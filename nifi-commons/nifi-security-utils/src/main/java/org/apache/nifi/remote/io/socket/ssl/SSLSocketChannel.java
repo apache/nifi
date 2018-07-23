@@ -48,7 +48,7 @@ public class SSLSocketChannel implements Closeable {
     public static final int MAX_WRITE_SIZE = 65536;
 
     private static final Logger logger = LoggerFactory.getLogger(SSLSocketChannel.class);
-    private static final long BUFFER_FULL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
+    private static final long BUFFER_FULL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
     private final String hostname;
     private final int port;
@@ -307,17 +307,20 @@ public class SSLSocketChannel implements Closeable {
 
             final int readCount = channel.read(dest);
 
+            long sleepNanos = 1L;
             if (readCount == 0) {
                 if (System.currentTimeMillis() > startTime + timeoutMillis) {
                     throw new SocketTimeoutException("Timed out reading from socket connected to " + hostname + ":" + port);
                 }
                 try {
-                    TimeUnit.NANOSECONDS.sleep(BUFFER_FULL_EMPTY_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException();
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, BUFFER_FULL_EMPTY_WAIT_NANOS);
 
                 continue;
             }
@@ -360,6 +363,8 @@ public class SSLSocketChannel implements Closeable {
             final int written = channel.write(src);
             bytesWritten += written;
             final long now = System.currentTimeMillis();
+            long sleepNanos = 1L;
+
             if (written > 0) {
                 lastByteWrittenTime = now;
             } else {
@@ -367,12 +372,14 @@ public class SSLSocketChannel implements Closeable {
                     throw new SocketTimeoutException("Timed out writing to socket connected to " + hostname + ":" + port);
                 }
                 try {
-                    TimeUnit.NANOSECONDS.sleep(BUFFER_FULL_EMPTY_WAIT_NANOS);
+                    TimeUnit.NANOSECONDS.sleep(sleepNanos);
                 } catch (final InterruptedException e) {
                     close();
                     Thread.currentThread().interrupt(); // set the interrupt status
                     throw new ClosedByInterruptException();
                 }
+
+                sleepNanos = Math.min(sleepNanos * 2, BUFFER_FULL_EMPTY_WAIT_NANOS);
             }
         }
 

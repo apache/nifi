@@ -60,7 +60,6 @@ public class ITPutSQS {
         runner.setProperty(PutSQS.TIMEOUT, "30 secs");
         String queueUrl = "Add queue url here";
         runner.setProperty(PutSQS.QUEUE_URL, queueUrl);
-        runner.setValidateExpressionUsage(false);
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);

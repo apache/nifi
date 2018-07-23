@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
@@ -27,6 +26,7 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 
+import javax.ws.rs.core.Response;
 import java.io.File;
 
 import static org.junit.Assert.assertEquals;
@@ -46,6 +46,7 @@ public class AccessControlHelper {
     private NiFiTestUser readWriteUser;
     private NiFiTestUser noneUser;
     private NiFiTestUser privilegedUser;
+    private NiFiTestUser executeCodeUser;
 
     private static final String CONTEXT_PATH = "/nifi-api";
 
@@ -83,6 +84,7 @@ public class AccessControlHelper {
         readWriteUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.READ_WRITE_USER_DN);
         noneUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.NONE_USER_DN);
         privilegedUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.PRIVILEGED_USER_DN);
+        executeCodeUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.EXECUTED_CODE_USER_DN);
 
         // populate the initial data flow
         NiFiWebApiTest.populateFlow(server.getClient(), baseUrl, readWriteUser, READ_WRITE_CLIENT_ID);
@@ -108,8 +110,12 @@ public class AccessControlHelper {
         return privilegedUser;
     }
 
+    public NiFiTestUser getExecuteCodeUser() {
+        return executeCodeUser;
+    }
+
     public void testGenericGetUri(final String uri) throws Exception {
-        ClientResponse response;
+        Response response;
 
         // read
         response = getReadUser().testGet(uri);

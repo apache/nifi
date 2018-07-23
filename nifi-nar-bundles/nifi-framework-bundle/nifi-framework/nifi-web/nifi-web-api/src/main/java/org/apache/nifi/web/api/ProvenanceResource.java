@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -113,7 +113,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets the searchable attributes for provenance events",
             response = ProvenanceOptionsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(
@@ -162,8 +162,8 @@ public class ProvenanceResource extends ApplicationResource {
                     + "should be deleted by the client who originally submitted it.",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -258,8 +258,8 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets a provenance query",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -336,7 +336,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Deletes a provenance query",
             response = ProvenanceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(
@@ -414,8 +414,8 @@ public class ProvenanceResource extends ApplicationResource {
                     + "should be deleted by the client who originally submitted it.",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -513,8 +513,8 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Gets a lineage query",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = ""),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read - /provenance"),
+                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -573,7 +573,7 @@ public class ProvenanceResource extends ApplicationResource {
             value = "Deletes a lineage query",
             response = LineageEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /provenance", type = "")
+                    @Authorization(value = "Read - /provenance")
             }
     )
     @ApiResponses(

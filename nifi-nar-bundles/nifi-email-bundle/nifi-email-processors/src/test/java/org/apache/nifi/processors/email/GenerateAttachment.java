@@ -17,16 +17,15 @@
 
 package org.apache.nifi.processors.email;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailAttachment;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.MultiPartEmail;
 import org.apache.commons.mail.SimpleEmail;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import java.io.IOException;
 
 public class GenerateAttachment {
     String from;
@@ -44,6 +43,20 @@ public class GenerateAttachment {
     }
 
     public byte[] SimpleEmail() {
+        MimeMessage mimeMessage = SimpleEmailMimeMessage();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            mimeMessage.writeTo(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+
+        return output.toByteArray();
+    }
+
+    public MimeMessage SimpleEmailMimeMessage() {
         Email email = new SimpleEmail();
         try {
             email.setFrom(from);
@@ -56,18 +69,9 @@ public class GenerateAttachment {
             e.printStackTrace();
         }
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        MimeMessage mimeMessage = email.getMimeMessage();
-        try {
-            mimeMessage.writeTo(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
-
-        return output.toByteArray();
+        return email.getMimeMessage();
     }
+
 
     public byte[] WithAttachments(int amount) {
         MultiPartEmail email = new MultiPartEmail();

@@ -17,9 +17,11 @@
 package org.apache.nifi.processors.solr;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.krb.KeytabUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,21 +30,20 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.StringUtils;
 import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
+import javax.security.auth.login.LoginException;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -69,6 +70,7 @@ public class TestPutSolrContentStream {
 
     static final SolrDocument expectedDoc1 = new SolrDocument();
     static {
+        expectedDoc1.addField("id", "1");
         expectedDoc1.addField("first", "John");
         expectedDoc1.addField("last", "Doe");
         expectedDoc1.addField("grade", 8);
@@ -79,6 +81,7 @@ public class TestPutSolrContentStream {
 
     static final SolrDocument expectedDoc2 = new SolrDocument();
     static {
+        expectedDoc2.addField("id", "2");
         expectedDoc2.addField("first", "John");
         expectedDoc2.addField("last", "Doe");
         expectedDoc2.addField("grade", 8);
@@ -92,8 +95,8 @@ public class TestPutSolrContentStream {
      */
     private static TestRunner createDefaultTestRunner(PutSolrContentStream processor) {
         TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         return runner;
     }
 
@@ -137,6 +140,7 @@ public class TestPutSolrContentStream {
         runner.setProperty("f.4", "subject:/exams/subject");
         runner.setProperty("f.5", "test:/exams/test");
         runner.setProperty("f.6", "marks:/exams/marks");
+        runner.setProperty("f.7", "id:/exams/id");
 
         try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
             runner.enqueue(fileIn);
@@ -162,7 +166,7 @@ public class TestPutSolrContentStream {
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/csv");
-        runner.setProperty("fieldnames", "first,last,grade,subject,test,marks");
+        runner.setProperty("fieldnames", "id,first,last,grade,subject,test,marks");
 
         try (FileInputStream fileIn = new FileInputStream(CSV_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
@@ -219,6 +223,7 @@ public class TestPutSolrContentStream {
 
         // add a document so there is something to delete
         SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("id", "1");
         doc.addField("first", "bob");
         doc.addField("last", "smith");
         doc.addField("created", new Date());
@@ -246,9 +251,9 @@ public class TestPutSolrContentStream {
         final CollectionVerifyingProcessor proc = new CollectionVerifyingProcessor(collection);
 
         final TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "localhost:9983");
-        runner.setProperty(PutSolrContentStream.COLLECTION, "${solr.collection}");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "localhost:9983");
+        runner.setProperty(SolrUtils.COLLECTION, "${solr.collection}");
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put("solr.collection", collection);
@@ -345,11 +350,11 @@ public class TestPutSolrContentStream {
     @Test
     public void testSolrTypeCloudShouldRequireCollection() {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertNotValid();
 
-        runner.setProperty(PutSolrContentStream.COLLECTION, "someCollection1");
+        runner.setProperty(SolrUtils.COLLECTION, "someCollection1");
         runner.assertValid();
     }
 
@@ -357,64 +362,64 @@ public class TestPutSolrContentStream {
     @Test
     public void testSolrTypeStandardShouldNotRequireCollection() {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
     }
 
     @Test
     public void testHttpsUrlShouldRequireSSLContext() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "https://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "https://localhost:8443/solr");
         runner.assertNotValid();
 
         final SSLContextService sslContextService = new MockSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PutSolrContentStream.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(SolrUtils.SSL_CONTEXT_SERVICE, "ssl-context");
         runner.assertValid();
     }
 
     @Test
     public void testHttpUrlShouldNotAllowSSLContext() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
 
         final SSLContextService sslContextService = new MockSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PutSolrContentStream.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(SolrUtils.SSL_CONTEXT_SERVICE, "ssl-context");
         runner.assertNotValid();
     }
 
     @Test
     public void testUsernamePasswordValidation() {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
 
-        runner.setProperty(PutSolrContentStream.BASIC_USERNAME, "user1");
+        runner.setProperty(SolrUtils.BASIC_USERNAME, "user1");
         runner.assertNotValid();
 
-        runner.setProperty(PutSolrContentStream.BASIC_PASSWORD, "password");
+        runner.setProperty(SolrUtils.BASIC_PASSWORD, "password");
         runner.assertValid();
 
-        runner.setProperty(PutSolrContentStream.BASIC_USERNAME, "");
+        runner.setProperty(SolrUtils.BASIC_USERNAME, "");
         runner.assertNotValid();
 
-        runner.setProperty(PutSolrContentStream.BASIC_USERNAME, "${solr.user}");
+        runner.setProperty(SolrUtils.BASIC_USERNAME, "${solr.user}");
         runner.assertNotValid();
 
         runner.setVariable("solr.user", "solrRocks");
         runner.assertValid();
 
-        runner.setProperty(PutSolrContentStream.BASIC_PASSWORD, "${solr.password}");
+        runner.setProperty(SolrUtils.BASIC_PASSWORD, "${solr.password}");
         runner.assertNotValid();
 
         runner.setVariable("solr.password", "solrRocksPassword");
@@ -422,30 +427,103 @@ public class TestPutSolrContentStream {
     }
 
     @Test
-    public void testJAASClientAppNameValidation() {
-        final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
+    public void testBasicAuthAndKerberosNotAllowedTogether() throws IOException, InitializationException {
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+        final TestRunner runner = createDefaultTestRunner(proc);
         runner.assertValid();
 
-        // clear the jaas config system property if it was set
-        final String jaasConfig = System.getProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
-        if (!StringUtils.isEmpty(jaasConfig)) {
-            System.clearProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
+        runner.setProperty(SolrUtils.BASIC_USERNAME, "user1");
+        runner.setProperty(SolrUtils.BASIC_PASSWORD, "password");
+        runner.assertValid();
+
+        final String principal = "nifi@FOO.COM";
+        final String keytab = "src/test/resources/foo.keytab";
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
+        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
+        runner.enableControllerService(kerberosCredentialsService);
+        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
+
+        runner.assertNotValid();
+
+        runner.removeProperty(SolrUtils.BASIC_USERNAME);
+        runner.removeProperty(SolrUtils.BASIC_PASSWORD);
+        runner.assertValid();
+
+        proc.onScheduled(runner.getProcessContext());
+        final KeytabUser keytabUser = proc.getMockKerberosKeytabUser();
+        Assert.assertNotNull(keytabUser);
+        Assert.assertEquals(principal, keytabUser.getPrincipal());
+        Assert.assertEquals(keytab, keytabUser.getKeytabFile());
+    }
+
+    @Test
+    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException {
+        final String principal = "nifi@FOO.COM";
+        final String keytab = "src/test/resources/foo.keytab";
+
+        // Setup a mock KeytabUser that will still execute the privileged action
+        final KeytabUser keytabUser = Mockito.mock(KeytabUser.class);
+        when(keytabUser.getPrincipal()).thenReturn(principal);
+        when(keytabUser.getKeytabFile()).thenReturn(keytab);
+        when(keytabUser.doAs(any(PrivilegedAction.class))).thenAnswer((invocation -> {
+                    final PrivilegedAction action = (PrivilegedAction) invocation.getArguments()[0];
+                    action.run();
+                    return null;
+                })
+        );
+
+        // Configure the processor with the mock KeytabUser and with a credentials service
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient, keytabUser);
+        final TestRunner runner = createDefaultTestRunner(proc);
+
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
+        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
+        runner.enableControllerService(kerberosCredentialsService);
+        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
+
+        // Run an update and verify the update worked based on a flow file going to success
+        try (FileInputStream fileIn = new FileInputStream(SOLR_JSON_MULTIPLE_DOCS_FILE)) {
+            runner.enqueue(fileIn);
+
+            runner.run(1, false);
+            runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
+            runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
+            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
+        } finally {
+            try {
+                proc.getSolrClient().close();
+            } catch (Exception e) {
+            }
         }
 
-        // should be invalid if we have a client name but not config file
-        runner.setProperty(PutSolrContentStream.JAAS_CLIENT_APP_NAME, "Client");
-        runner.assertNotValid();
+        // Verify that during the update the user was logged in, TGT was checked, and the action was executed
+        verify(keytabUser, times(1)).login();
+        verify(keytabUser, times(1)).checkTGTAndRelogin();
+        verify(keytabUser, times(1)).doAs(any(PrivilegedAction.class));
+    }
 
-        // should be invalid if we have a client name that is not in the config file
-        final File jaasConfigFile = new File("src/test/resources/jaas-client.conf");
-        System.setProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP, jaasConfigFile.getAbsolutePath());
-        runner.assertNotValid();
 
-        // should be valid now that the name matches up with the config file
-        runner.setProperty(PutSolrContentStream.JAAS_CLIENT_APP_NAME, "SolrJClient");
-        runner.assertValid();
+    private class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
+
+        private String principal;
+        private String keytab;
+
+        public MockKerberosCredentialsService(String principal, String keytab) {
+            this.principal = principal;
+            this.keytab = keytab;
+        }
+
+        @Override
+        public String getKeytab() {
+            return keytab;
+        }
+
+        @Override
+        public String getPrincipal() {
+            return principal;
+        }
     }
 
     /**
@@ -569,13 +647,33 @@ public class TestPutSolrContentStream {
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends PutSolrContentStream {
         private SolrClient solrClient;
+        private KeytabUser keytabUser;
 
         public TestableProcessor(SolrClient solrClient) {
             this.solrClient = solrClient;
         }
+
+        public TestableProcessor(SolrClient solrClient, KeytabUser keytabUser) {
+            this.solrClient = solrClient;
+            this.keytabUser = keytabUser;
+        }
+
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             return solrClient;
+        }
+
+        @Override
+        protected KeytabUser createKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
+            if (keytabUser != null) {
+                return keytabUser;
+            } else {
+                return super.createKeytabUser(kerberosCredentialsService);
+            }
+        }
+
+        public KeytabUser getMockKerberosKeytabUser() {
+            return super.getKerberosKeytabUser();
         }
     }
 

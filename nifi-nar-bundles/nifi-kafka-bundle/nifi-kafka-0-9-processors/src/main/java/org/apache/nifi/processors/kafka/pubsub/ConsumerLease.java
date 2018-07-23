@@ -178,10 +178,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 logger.debug("Resuming " + assignments);
             }
         } finally {
-            if (assignments != null) {
-                kafkaConsumer.resume(assignments);
+            try {
+                if (assignments != null) {
+                    kafkaConsumer.resume(assignments);
+                }
+            } finally {
+                pollingLock.unlock();
             }
-            pollingLock.unlock();
         }
     }
 
@@ -358,9 +361,12 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         FlowFile flowFile = session.create();
         final BundleTracker tracker = new BundleTracker(record, topicPartition, keyEncoding);
         tracker.incrementRecordCount(1);
-        flowFile = session.write(flowFile, out -> {
-            out.write(record.value());
-        });
+        final byte[] value = record.value();
+        if (value != null) {
+            flowFile = session.write(flowFile, out -> {
+                out.write(value);
+            });
+        }
         tracker.updateFlowFile(flowFile);
         populateAttributes(tracker);
         session.transfer(tracker.flowFile, REL_SUCCESS);
@@ -387,7 +393,10 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 if (useDemarcator) {
                     out.write(demarcatorBytes);
                 }
-                out.write(record.value());
+                final byte[] value = record.value();
+                if (value != null) {
+                    out.write(record.value());
+                }
                 useDemarcator = true;
             }
         });

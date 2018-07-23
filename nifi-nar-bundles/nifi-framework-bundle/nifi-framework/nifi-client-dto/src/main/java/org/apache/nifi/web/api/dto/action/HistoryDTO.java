@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.web.api.dto.action;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Collection;
-import java.util.Date;
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.ActionEntity;
+
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * NiFi action history.

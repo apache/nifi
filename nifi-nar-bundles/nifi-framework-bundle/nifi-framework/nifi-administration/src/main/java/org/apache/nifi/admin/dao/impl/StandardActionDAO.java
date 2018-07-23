@@ -219,8 +219,8 @@ public class StandardActionDAO implements ActionDAO {
             statement.setString(1, StringUtils.left(action.getUserIdentity(), 4096));
             statement.setString(2, action.getSourceId());
             statement.setString(3, StringUtils.left(action.getSourceName(), 1000));
-            statement.setString(4, action.getSourceType().toString());
-            statement.setString(5, action.getOperation().toString());
+            statement.setString(4, action.getSourceType().name());
+            statement.setString(5, action.getOperation().name());
             statement.setTimestamp(6, new java.sql.Timestamp(action.getTimestamp().getTime()));
 
             // insert the action

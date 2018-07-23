@@ -33,6 +33,19 @@ public class BulletinFactory {
         return bulletin;
     }
 
+    public static Bulletin createBulletin(final String groupId, final String groupName, final String sourceId, final String sourceName,
+            final String category, final String severity, final String message) {
+        final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
+        bulletin.setGroupId(groupId);
+        bulletin.setGroupName(groupName);
+        bulletin.setSourceId(sourceId);
+        bulletin.setSourceName(sourceName);
+        bulletin.setCategory(category);
+        bulletin.setLevel(severity);
+        bulletin.setMessage(message);
+        return bulletin;
+    }
+
     public static Bulletin createBulletin(final String category, final String severity, final String message) {
         final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
         bulletin.setCategory(category);

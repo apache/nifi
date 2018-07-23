@@ -94,10 +94,12 @@ public class MockFlowFile implements FlowFileRecord {
         final byte[] dataToCopy = ((MockFlowFile) toCopy).data;
         this.data = new byte[dataToCopy.length];
         System.arraycopy(dataToCopy, 0, this.data, 0, dataToCopy.length);
+
+        this.penalized = toCopy.isPenalized();
     }
 
-    void setPenalized() {
-        this.penalized = true;
+    void setPenalized(boolean penalized) {
+        this.penalized = penalized;
     }
 
     public long getCreationTime() {
@@ -191,8 +193,8 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertAttributeNotExists(final String attributeName) {
-        Assert.assertFalse("Attribute " + attributeName + " not exists with value " + attributes.get(attributeName),
-            attributes.containsKey(attributeName));
+        Assert.assertFalse("Attribute " + attributeName + " should not exist on FlowFile, but exists with value "
+                        + attributes.get(attributeName), attributes.containsKey(attributeName));
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {

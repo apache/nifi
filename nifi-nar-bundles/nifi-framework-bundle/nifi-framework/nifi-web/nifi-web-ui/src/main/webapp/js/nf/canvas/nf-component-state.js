@@ -230,7 +230,7 @@
                 applyFilter();
             });
 
-            // initialize the processor configuration dialog
+            // initialize the component state dialog
             $('#component-state-dialog').modal({
                 scrollableContentStyle: 'scrollable',
                 headerText: 'Component State',

@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi RecordPath Guide
-============================
+= Apache NiFi RecordPath Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
 [[overview]]
-Overview
---------
+== Overview
 Apache NiFi offers a very robust set of Processors that are capable of ingesting, processing,
 routing, transforming, and delivering data of any format. This is possible because the NiFi
 framework itself is data-agnostic. It doesn't care whether your data is a 100-byte JSON message
@@ -76,8 +74,7 @@ Enter the NiFi RecordPath language. RecordPath is intended to be a simple, easy-
 
 
 [[structure]]
-Structure of a RecordPath
--------------------------
+== Structure of a RecordPath
 
 A Record in NiFi is made up of (potentially) many fields, and each of these fields could actually be itself a Record. This means that
 a Record can be thought of as having a hierarchical, or nested, structure. We talk about an "inner Record" as being the child of the
@@ -459,6 +456,176 @@ Concatenates all the arguments together.
 |==========================================================
 
 
+=== fieldName
+
+Normally, when a path is given to a particular field in a Record, what is returned is the value of that field. It
+can sometimes be useful, however, to obtain the name of the field instead of the value. To do this, we can use the
+`fieldName` function.
+
+|=====================================================================
+| RecordPath | Return value
+| `fieldName(//city/..)` | `workAddress` and `homeAddress`
+| `//city[not(startsWith(fieldName(..), 'work'))]` | Jersey City
+|=====================================================================
+
+In the above example, the first RecordPath returns two separate field names: "workAddress" and "homeAddress". The second
+RecordPath, in contrast, returns the value of a "city" field and uses the `fieldName` function as a predicate. The second
+RecordPath finds a "city" field whose parent does not have a name that begins with "work". This means that it will return
+the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".  
+
+
+=== toDate
+
+Converts a String to a date.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+}
+----
+
+The following record path would parse the eventDate field into a Date:
+
+`toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
+
+=== toString
+
+Converts a value to a String, using the given character set if the input type is "bytes".  For example,
+given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "bytes", "type" : "bytes"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "bytes" : "Hello World!"
+}
+----
+
+The following record path would parse the bytes field into a String:
+
+`toString( /bytes, "UTF-8")`
+
+=== toBytes
+
+Converts a String to byte[], using the given character set.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "s", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "s" : "Hello World!"
+}
+----
+
+The following record path would convert the String field into a byte array using UTF-16 encoding:
+
+`toBytes( /s, "UTF-16")`
+
+=== format
+
+Converts a Date to a String in the given format.
+
+The first argument to this function must be a Date or a Number, and the second argument must be a format String that
+follows the Java SimpleDateFormat.
+
+For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : { "type" : "long", "logicalType" : "timestamp-millis" } }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : 1508457600000
+}
+----
+
+The following record path expressions would format the date as a String:
+
+|==========================================================
+| RecordPath | Return value
+| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20'T'11:00:00'Z'
+| `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
+|==========================================================
+
+In the case where the field is declared as a String, the toDate function must be called before formatting.
+
+For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+}
+----
+
+The following record path expression would re-format the date String:
+
+|==========================================================
+| RecordPath | Return value
+| `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
+|==========================================================
 
 [[filter_functions]]
 == Filter Functions

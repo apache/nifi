@@ -31,7 +31,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Command line parser for a StandaloneConfig object and a main entry point to invoke the parser and run the standalone generator
  */
-public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
+public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     public static final String OUTPUT_DIRECTORY_ARG = "outputDirectory";
     public static final String NIFI_PROPERTIES_FILE_ARG = "nifiPropertiesFile";
     public static final String KEY_STORE_PASSWORD_ARG = "keyStorePassword";

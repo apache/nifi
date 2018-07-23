@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.documentation;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.Properties;
+import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -28,14 +36,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.Set;
 
 public class DocGeneratorTest {
 
@@ -63,7 +63,7 @@ public class DocGeneratorTest {
         File processorDirectory = new File(temporaryFolder.getRoot(), path);
         File indexHtml = new File(processorDirectory, "index.html");
         Assert.assertTrue(indexHtml + " should have been generated", indexHtml.exists());
-        String generatedHtml = FileUtils.readFileToString(indexHtml);
+        String generatedHtml = FileUtils.readFileToString(indexHtml, Charset.defaultCharset());
         Assert.assertNotNull(generatedHtml);
         Assert.assertTrue(generatedHtml.contains("This example processor loads a resource from the nar and writes it to the FlowFile content"));
         Assert.assertTrue(generatedHtml.contains("files that were successfully processed"));

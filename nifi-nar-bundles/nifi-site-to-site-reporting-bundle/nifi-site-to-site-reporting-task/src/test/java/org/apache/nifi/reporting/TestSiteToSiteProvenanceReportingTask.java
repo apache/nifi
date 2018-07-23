@@ -18,10 +18,15 @@
 package org.apache.nifi.reporting;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
@@ -48,6 +53,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +61,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteProvenanceReportingTask {
 
@@ -63,9 +70,13 @@ public class TestSiteToSiteProvenanceReportingTask {
     private final ConfigurationContext confContext = Mockito.mock(ConfigurationContext.class);
 
     private MockSiteToSiteProvenanceReportingTask setup(ProvenanceEventRecord event, Map<PropertyDescriptor, String> properties) throws IOException {
+        return setup(event, properties, 2500);
+    }
+
+    private MockSiteToSiteProvenanceReportingTask setup(ProvenanceEventRecord event, Map<PropertyDescriptor, String> properties, long maxEventId) throws IOException {
         final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
 
-        Mockito.when(context.getStateManager())
+        when(context.getStateManager())
                 .thenReturn(new MockStateManager(task));
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
@@ -83,7 +94,6 @@ public class TestSiteToSiteProvenanceReportingTask {
             }
         }).when(confContext).getProperty(Mockito.any(PropertyDescriptor.class));
 
-        final long maxEventId = 2500;
         final AtomicInteger totalEvents = new AtomicInteger(0);
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
@@ -104,6 +114,65 @@ public class TestSiteToSiteProvenanceReportingTask {
                 return eventsToReturn;
             }
         }).when(eventAccess).getProvenanceEvents(Mockito.anyLong(), Mockito.anyInt());
+        ProcessGroupStatus pgRoot = new ProcessGroupStatus();
+        pgRoot.setId("root");
+        when(eventAccess.getControllerStatus()).thenReturn(pgRoot);
+
+        // Add child Process Groups.
+        // Root -> (A, B -> (B2 -> (B3)))
+        final ProcessGroupStatus pgA = new ProcessGroupStatus();
+        pgA.setId("pgA");
+        final ProcessGroupStatus pgB = new ProcessGroupStatus();
+        pgB.setId("pgB");
+        final ProcessGroupStatus pgB2 = new ProcessGroupStatus();
+        pgB2.setId("pgB2");
+        final ProcessGroupStatus pgB3 = new ProcessGroupStatus();
+        pgB3.setId("pgB3");
+        final Collection<ProcessGroupStatus> childPGs = pgRoot.getProcessGroupStatus();
+        childPGs.add(pgA);
+        childPGs.add(pgB);
+        pgB.getProcessGroupStatus().add(pgB2);
+        pgB2.getProcessGroupStatus().add(pgB3);
+
+        // Add Processors.
+        final ProcessorStatus prcRoot = new ProcessorStatus();
+        prcRoot.setId("1234");
+        pgRoot.getProcessorStatus().add(prcRoot);
+
+        final ProcessorStatus prcA = new ProcessorStatus();
+        prcA.setId("A001");
+        prcA.setName("Processor in PGA");
+        pgA.getProcessorStatus().add(prcA);
+
+        final ProcessorStatus prcB = new ProcessorStatus();
+        prcB.setId("B001");
+        prcB.setName("Processor in PGB");
+        pgB.getProcessorStatus().add(prcB);
+
+        final ProcessorStatus prcB2 = new ProcessorStatus();
+        prcB2.setId("B201");
+        prcB2.setName("Processor in PGB2");
+        pgB2.getProcessorStatus().add(prcB2);
+
+        final ProcessorStatus prcB3 = new ProcessorStatus();
+        prcB3.setId("B301");
+        prcB3.setName("Processor in PGB3");
+        pgB3.getProcessorStatus().add(prcB3);
+
+        // Add connection status to test Remote Input/Output Ports
+        final ConnectionStatus b2RemoteInputPort = new ConnectionStatus();
+        b2RemoteInputPort.setGroupId("pgB2");
+        b2RemoteInputPort.setSourceId("B201");
+        b2RemoteInputPort.setDestinationId("riB2");
+        b2RemoteInputPort.setDestinationName("Remote Input Port name");
+        pgB2.getConnectionStatus().add(b2RemoteInputPort);
+
+        final ConnectionStatus b3RemoteOutputPort = new ConnectionStatus();
+        b3RemoteOutputPort.setGroupId("pgB3");
+        b3RemoteOutputPort.setSourceId("roB3");
+        b3RemoteOutputPort.setSourceName("Remote Output Port name");
+        b3RemoteOutputPort.setDestinationId("B301");
+        pgB3.getConnectionStatus().add(b3RemoteOutputPort);
 
         final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
         Mockito.doAnswer(new Answer<Long>() {
@@ -113,12 +182,12 @@ public class TestSiteToSiteProvenanceReportingTask {
             }
         }).when(provenanceRepository).getMaxEventId();
 
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
-        Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+        when(context.getEventAccess()).thenReturn(eventAccess);
+        when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
 
         return task;
     }
@@ -204,6 +273,25 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterComponentTypeExcludeSuccess() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
+    }
+
+    @Test
     public void testFilterComponentTypeNoResult() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
@@ -223,6 +311,25 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterComponentTypeNoResultExcluded() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "proc.*");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(3, task.dataSent.size());
+    }
+
+    @Test
     public void testFilterEventTypeSuccess() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
@@ -239,6 +346,25 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
+    }
+
+    @Test
+    public void testFilterEventTypeExcludeSuccess() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE_EXCLUDE, "RECEIVE, notExistingType, DROP");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
     }
 
     @Test
@@ -303,6 +429,110 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterMultiFilterExcludeTakesPrecedence() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
+    }
+
+    @Test
+    public void testFilterProcessGroupId() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "pgB2");
+
+
+        // B201 belongs to ProcessGroup B2, so it should be picked.
+        ProvenanceEventRecord event = createProvenanceEventRecord("B201", "dummy");
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        assertEquals("B201", reportedEvent.get("componentId").asText());
+        assertEquals("Processor in PGB2", reportedEvent.get("componentName").asText());
+
+
+        // B301 belongs to PG B3, whose parent is PGB2, so it should be picked, too.
+        event = createProvenanceEventRecord("B301", "dummy");
+        task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        assertEquals("B301", reportedEvent.get("componentId").asText());
+        assertEquals("Processor in PGB3", reportedEvent.get("componentName").asText());
+
+        // A001 belongs to PG A, whose parent is the root PG, so it should be filtered out.
+        event = createProvenanceEventRecord("A001", "dummy");
+        task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
+    }
+
+    @Test
+    public void testRemotePorts() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "riB2,roB3");
+
+
+        // riB2 is a Remote Input Port in Process Group B2.
+        ProvenanceEventRecord event = createProvenanceEventRecord("riB2", "Remote Input Port");
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        assertEquals("riB2", reportedEvent.get("componentId").asText());
+        assertEquals("Remote Input Port name", reportedEvent.get("componentName").asText());
+        assertEquals("pgB2", reportedEvent.get("processGroupId").asText());
+
+
+        // roB3 is a Remote Output Port in Process Group B3.
+        event = createProvenanceEventRecord("roB3", "Remote Output Port");
+        task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        assertEquals("roB3", reportedEvent.get("componentId").asText());
+        assertEquals("Remote Output Port name", reportedEvent.get("componentName").asText());
+        assertEquals("pgB3", reportedEvent.get("processGroupId").asText());
+
+    }
+
+    @Test
     public void testWhenProvenanceMaxIdEqualToLastEventIdInStateManager() throws IOException, InitializationException {
         final long maxEventId = 2500;
 
@@ -331,11 +561,12 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         // setup the mock EventAccess to return the mock provenance repository
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+        when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         task.initialize(initContext);
 
         // execute the reporting task and should not produce any data b/c max id same as previous id
+        task.onScheduled(confContext);
         task.onTrigger(context);
         assertEquals(0, task.dataSent.size());
     }
@@ -347,6 +578,9 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     private ProvenanceEventRecord createProvenanceEventRecord() {
+        return createProvenanceEventRecord("1234", "dummy processor");
+    }
+    private ProvenanceEventRecord createProvenanceEventRecord(final String componentId, final String componentType) {
         final String uuid = "10000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -363,12 +597,16 @@ public class TestSiteToSiteProvenanceReportingTask {
         attributes.put("uuid", uuid);
         builder.fromFlowFile(createFlowFile(3L, attributes));
         builder.setAttributes(prevAttrs, attributes);
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
+        builder.setComponentId(componentId);
+        builder.setComponentType(componentType);
         return builder.build();
     }
 
     private static final class MockSiteToSiteProvenanceReportingTask extends SiteToSiteProvenanceReportingTask {
+
+        public MockSiteToSiteProvenanceReportingTask() throws IOException {
+            super();
+        }
 
         final List<byte[]> dataSent = new ArrayList<>();
 
@@ -387,7 +625,7 @@ public class TestSiteToSiteProvenanceReportingTask {
                     }
                 }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
             } catch (final Exception e) {
                 e.printStackTrace();
                 Assert.fail(e.toString());

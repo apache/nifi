@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -36,25 +44,19 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-
 public class TestStandardReportingContext {
 
+    private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
     private FlowController controller;
     private AbstractPolicyBasedAuthorizer authorizer;
     private FlowFileEventRepository flowFileEventRepo;
@@ -64,6 +66,7 @@ public class TestStandardReportingContext {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
+    private FlowRegistryClient flowRegistry;
     private volatile String propsFile = TestStandardReportingContext.class.getResource("/flowcontrollertest.nifi.properties").getFile();
 
     @Before
@@ -76,7 +79,13 @@ public class TestStandardReportingContext {
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        if (StringUtils.isBlank(password)) {
+            password = DEFAULT_SENSITIVE_PROPS_KEY;
+        }
+        encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -120,9 +129,10 @@ public class TestStandardReportingContext {
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
+        flowRegistry = Mockito.mock(FlowRegistryClient.class);
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry, flowRegistry);
     }
 
     @After

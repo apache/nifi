@@ -17,18 +17,20 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.util.Tuple;
+
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class MockSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private final ConcurrentMap<String, RecordSchema> schemaNameMap = new ConcurrentHashMap<>();
@@ -38,39 +40,38 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
         schemaNameMap.put(name, schema);
     }
 
-    @Override
-    public String retrieveSchemaText(final String schemaName) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = schemaNameMap.get(schemaName);
-        if (schema == null) {
-            return null;
+    private RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final Optional<String> schemaName = schemaIdentifier.getName();
+        if (!schemaName.isPresent()) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
-        final Optional<String> text = schema.getSchemaText();
-        return text.orElse(null);
+        return schemaNameMap.get(schemaName.get());
     }
 
-    @Override
-    public String retrieveSchemaText(final long schemaId, final int version) throws IOException, SchemaNotFoundException {
-        final Tuple<Long, Integer> tuple = new Tuple<>(schemaId, version);
-        final RecordSchema schema = schemaIdVersionMap.get(tuple);
-        if (schema == null) {
-            return null;
+    private RecordSchema retrieveSchemaByIdAndVersion(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final OptionalLong schemaId = schemaIdentifier.getIdentifier();
+        if (!schemaId.isPresent()) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is not present");
         }
 
-        final Optional<String> text = schema.getSchemaText();
-        return text.orElse(null);
-    }
+        final OptionalInt version = schemaIdentifier.getVersion();
+        if (!version.isPresent()) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Version is not present");
+        }
 
-    @Override
-    public RecordSchema retrieveSchema(final String schemaName) throws IOException, SchemaNotFoundException {
-        return schemaNameMap.get(schemaName);
-    }
-
-    @Override
-    public RecordSchema retrieveSchema(final long schemaId, final int version) throws IOException, SchemaNotFoundException {
-        final Tuple<Long, Integer> tuple = new Tuple<>(schemaId, version);
+        final Tuple<Long, Integer> tuple = new Tuple<>(schemaId.getAsLong(), version.getAsInt());
         final RecordSchema schema = schemaIdVersionMap.get(tuple);
         return schema;
+    }
+
+    @Override
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        if (schemaIdentifier.getName().isPresent()) {
+            return retrieveSchemaByName(schemaIdentifier);
+        } else {
+            return retrieveSchemaByIdAndVersion(schemaIdentifier);
+        }
     }
 
     @Override

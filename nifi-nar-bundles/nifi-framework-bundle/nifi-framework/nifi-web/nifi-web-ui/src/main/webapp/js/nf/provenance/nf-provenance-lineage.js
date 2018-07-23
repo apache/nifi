@@ -238,7 +238,7 @@
                 // push off processing a node until its deepest point
                 // by removing any descendants from the immediate nodes.
                 // in this case, a link is panning multiple levels
-                descendantSet.forEach(function (d) {
+                descendantSet.each(function (d) {
                     immediateSet.remove(d);
                 });
 
@@ -478,7 +478,7 @@
                 var startNodes = d3.set(nodeLookup.keys());
 
                 // go through the nodes to reset their outgoing links
-                nodeLookup.forEach(function (id, node) {
+                nodeLookup.each(function (node, id) {
                     node.outgoing = [];
                     node.incoming = [];
 
@@ -493,7 +493,7 @@
                 });
 
                 // go through the links in order to compute the new layout
-                linkLookup.forEach(function (id, link) {
+                linkLookup.each(function (link, id) {
                     // updating the nodes connections
                     link.source.outgoing.push(link);
                     link.target.incoming.push(link);
@@ -535,11 +535,11 @@
             });
 
             // handle zoom behavior
-            var lineageZoom = d3.behavior.zoom()
+            var lineageZoom = d3.zoom()
                 .scaleExtent([0.2, 8])
                 .on('zoom', function () {
                     d3.select('g.lineage').attr('transform', function () {
-                        return 'translate(' + d3.event.translate + ') scale(' + d3.event.scale + ')';
+                        return 'translate(' + d3.event.transform.x + ', ' + d3.event.transform.y + ') scale(' + d3.event.transform.k + ')';
                     });
                 });
 
@@ -576,7 +576,7 @@
                 });
 
             svg.append('rect')
-                .attr({
+                .attrs({
                     'width': '100%',
                     'height': '100%',
                     'fill': '#f9fafb'
@@ -585,7 +585,7 @@
             svg.append('defs').selectAll('marker')
                 .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
                 .enter().append('marker')
-                .attr({
+                .attrs({
                     'id': function (d) {
                         return d;
                     },
@@ -614,7 +614,7 @@
 
             // group everything together
             var lineageContainer = svg.append('g')
-                .attr({
+                .attrs({
                     'transform': 'translate(0, 0) scale(1)',
                     'pointer-events': 'all',
                     'class': 'lineage'
@@ -638,8 +638,8 @@
                     });
 
                     // hide applicable nodes and lines
-                    linksToHide.transition().duration(400).style('opacity', 0);
                     nodesToHide.transition().delay(200).duration(400).style('opacity', 0);
+                    linksToHide.transition().duration(400).style('opacity', 0);
                 } else {
                     // the slider is ascending
 
@@ -652,8 +652,8 @@
                     });
 
                     // show applicable nodes and lines
-                    nodesToShow.transition().duration(400).style('opacity', 1);
                     linksToShow.transition().delay(200).duration(400).style('opacity', 1);
+                    nodesToShow.transition().duration(400).style('opacity', 1);
                 }
 
                 // update the event time
@@ -679,7 +679,7 @@
 
                 // node
                 flowfiles.append('circle')
-                    .attr({
+                    .attrs({
                         'r': 16,
                         'fill': '#fff',
                         'stroke': '#000',
@@ -704,13 +704,13 @@
                     });
 
                 var icon = flowfiles.append('g')
-                    .attr({
+                    .attrs({
                         'class': 'flowfile-icon',
                         'transform': function (d) {
                             return 'translate(-9,-9)';
                         }
                     }).append('text')
-                    .attr({
+                    .attrs({
                         'font-family': 'flowfont',
                         'font-size': '18px',
                         'fill': '#ad9897',
@@ -1021,7 +1021,7 @@
                     .classed('event', true)
                     // join node to its label
                     .append('rect')
-                    .attr({
+                    .attrs({
                         'x': 0,
                         'y': -8,
                         'height': 16,
@@ -1037,7 +1037,7 @@
                     .classed('selected', function (d) {
                         return d.id === eventId;
                     })
-                    .attr({
+                    .attrs({
                         'r': 8,
                         'fill': '#aabbc3',
                         'stroke': '#000',
@@ -1049,7 +1049,7 @@
 
                 events
                     .append('text')
-                    .attr({
+                    .attrs({
                         'id': function (d) {
                             return 'event-text-' + d.id;
                         },
@@ -1083,7 +1083,7 @@
                             });
                             label.attr('transform', 'translate(10,-14)');
                         } else {
-                            label.text(d.eventType).attr({
+                            label.text(d.eventType).attrs({
                                 'x': 10,
                                 'y': 4
                             });
@@ -1098,7 +1098,22 @@
                     return d.id;
                 });
 
-                // add new nodes
+                // exit
+                nodes.exit()
+                    .transition()
+                    .delay(200)
+                    .duration(400)
+                    .attr('transform', function (d) {
+                        if (d.incoming.length === 0) {
+                            return 'translate(' + (width / 2) + ',50)';
+                        } else {
+                            return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
+                        }
+                    })
+                    .style('opacity', 0)
+                    .remove();
+
+                // enter
                 var nodesEntered = nodes.enter()
                     .append('g')
                     .attr('id', function (d) {
@@ -1122,39 +1137,37 @@
                     return d.type === 'EVENT';
                 }).call(renderEvent, provenanceTableCtrl);
 
+                // merge
+                nodes = nodes.merge(nodesEntered);
+
                 // update the nodes
-                nodes
-                    .transition()
+                nodes.transition()
                     .duration(400)
                     .attr('transform', function (d) {
                         return 'translate(' + d.x + ', ' + d.y + ')';
                     })
                     .style('opacity', 1);
 
-                // remove old nodes
-                nodes.exit()
-                    .transition()
-                    .delay(200)
-                    .duration(400)
-                    .attr('transform', function (d) {
-                        if (d.incoming.length === 0) {
-                            return 'translate(' + (width / 2) + ',50)';
-                        } else {
-                            return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
-                        }
-                    })
-                    .style('opacity', 0)
-                    .remove();
-
                 // update the link data
                 links = links.data(linkLookup.values(), function (d) {
                     return d.id;
                 });
 
+                // exit
+                links.exit()
+                    .attr('marker-end', '')
+                    .transition()
+                    .duration(400)
+                    .attr('d', function (d) {
+                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
+                    })
+                    .style('opacity', 0)
+                    .remove();
+
                 // add new links
-                links.enter()
+                var linksEntered = links.enter()
                     .insert('path', '.node')
-                    .attr({
+                    .attrs({
                         'class': 'link',
                         'stroke-width': 1.5,
                         'stroke': '#000',
@@ -1165,13 +1178,15 @@
                     })
                     .style('opacity', 0);
 
+                // merge
+                links = links.merge(linksEntered)
+                    .attr('marker-end', '');
+
                 // update the links
-                links
-                    .attr('marker-end', '')
-                    .transition()
+                links.transition()
                     .delay(200)
                     .duration(400)
-                    .attr({
+                    .attrs({
                         'marker-end': function (d) {
                             return 'url(#' + d.target.type + ')';
                         },
@@ -1180,17 +1195,6 @@
                         }
                     })
                     .style('opacity', 1);
-
-                // remove old links
-                links.exit()
-                    .attr('marker-end', '')
-                    .transition()
-                    .duration(400)
-                    .attr('d', function (d) {
-                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
-                    })
-                    .style('opacity', 0)
-                    .remove();
             };
 
             // show the lineage pane and hide the event search results

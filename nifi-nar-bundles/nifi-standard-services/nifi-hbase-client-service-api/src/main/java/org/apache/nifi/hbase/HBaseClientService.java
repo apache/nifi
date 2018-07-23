@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
@@ -29,6 +30,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 @Tags({"hbase", "client"})
 @CapabilityDescription("A controller service for accessing an HBase client.")
@@ -40,24 +42,28 @@ public interface HBaseClientService extends ControllerService {
               " such as hbase-site.xml and core-site.xml for kerberos, " +
               "including full paths to the files.")
             .addValidator(new ConfigFilesValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
             .name("ZooKeeper Quorum")
             .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
             .name("ZooKeeper Client Port")
             .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
             .name("ZooKeeper ZNode Parent")
             .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
@@ -65,13 +71,14 @@ public interface HBaseClientService extends ControllerService {
             .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     PropertyDescriptor PHOENIX_CLIENT_JAR_LOCATION = new PropertyDescriptor.Builder()
             .name("Phoenix Client JAR Location")
             .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -117,6 +124,46 @@ public interface HBaseClientService extends ControllerService {
     void delete(String tableName, byte[] rowId) throws IOException;
 
     /**
+     * Deletes the given row on HBase. Uses the supplied visibility label for all cells in the delete.
+     * It will fail if HBase cannot delete a cell because the visibility label on the cell does not match the specified
+     * label.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to delete
+     * @param visibilityLabel a visibility label to apply to the delete
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException;
+
+    /**
+     * Deletes a list of rows in HBase. All cells are deleted.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowIds a list of rowIds to send in a batch delete
+     */
+
+    void delete(String tableName, List<byte[]> rowIds) throws IOException;
+
+    /**
+     * Deletes a list of cells from HBase. This is intended to be used with granular delete operations.
+     *
+     * @param tableName the name of an HBase table.
+     * @param deletes a list of DeleteRequest objects.
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException;
+
+    /**
+     * Deletes a list of rows in HBase. All cells that match the visibility label are deleted.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowIds a list of rowIds to send in a batch delete
+     * @param visibilityLabel a visibility label expression
+     */
+
+    void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException;
+
+    /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.
      *
      * @param tableName the name of an HBase table to scan
@@ -129,6 +176,19 @@ public interface HBaseClientService extends ControllerService {
     void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, ResultHandler handler) throws IOException;
 
     /**
+     * Scans the given table using the optional filter criteria and passing each result to the provided handler.
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param filterExpression optional filter expression, if not specified no filtering is performed
+     * @param minTime the minimum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param authorizations the visibility labels to apply to the scanner.
+     * @param handler a handler to process rows of the result set
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> authorizations, ResultHandler handler) throws IOException;
+
+    /**
      * Scans the given table for the given rowId and passes the result to the handler.
      *
      * @param tableName the name of an HBase table to scan
@@ -138,7 +198,25 @@ public interface HBaseClientService extends ControllerService {
      * @param handler a handler to process rows of the result
      * @throws IOException thrown when there are communication errors with HBase
      */
-    void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException;
+    void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
+
+    /**
+     * Scans the given table for the given range of row keys or time rage and passes the result to a handler.<br/>
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param startRow the row identifier to start scanning at
+     * @param endRow the row identifier to end scanning at
+     * @param filterExpression  optional filter expression, if not specified no filtering is performed
+     * @param timerangeMin the minimum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param timerangeMax the maximum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param limitRows the maximum number of rows to be returned by scanner
+     * @param isReversed whether this scan is a reversed one.
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param authorizations optional list of visibility labels that the user should be able to see when communicating with HBase
+     * @param handler a handler to process rows of the result
+     */
+    void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
+            Boolean isReversed, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
 
     /**
      * Converts the given boolean to it's byte representation.
@@ -195,5 +273,16 @@ public interface HBaseClientService extends ControllerService {
      * @return the string represented as bytes
      */
     byte[] toBytesBinary(String s);
+
+    /**
+     * Create a transit URI from the current configuration and the specified table name.
+     * The default implementation just prepend "hbase://" to the table name and row key, i.e. "hbase://tableName/rowKey".
+     * @param tableName The name of a HBase table
+     * @param rowKey The target HBase row key, this can be null or empty string if the operation is not targeted to a specific row
+     * @return a qualified transit URI which can identify a HBase table row in a HBase cluster
+     */
+    default String toTransitUri(String tableName, String rowKey) {
+        return "hbase://" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
+    }
 
 }

@@ -109,6 +109,14 @@ body {
     color: #262626;
 }
 
+body.md-default-theme, body, html.md-default-theme, html {
+    background-color: white;
+}
+
+button {
+    border-radius: 0;
+}
+
 .value-color {
     color: #775351;
 }
@@ -209,7 +217,7 @@ label {
     color: #728e9b;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password] {
     background-color: #eaeef0;
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
@@ -235,11 +243,22 @@ input:focus, textarea:focus {
 }
 
 textarea {
-    overflow: hidden;
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px !important;
     padding: 10px 10px;
     resize: vertical;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
     color: #262626;
-    font-size: 13px !important;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
 
 ul.property-info {
@@ -402,7 +421,7 @@ button.fa {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
-    line-height: 23px;
+    line-height: 25px;
 }
 
 button.icon {

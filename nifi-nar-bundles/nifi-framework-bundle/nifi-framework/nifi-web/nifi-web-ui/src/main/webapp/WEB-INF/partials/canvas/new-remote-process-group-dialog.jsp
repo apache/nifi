@@ -22,7 +22,7 @@
                 <div class="fa fa-question-circle" alt="Info" title="Specify the remote target NiFi URLs. Multiple URLs can be specified in comma-separated format. Different protocols cannot be mixed. If remote NiFi is a cluster, two or more node URLs are recommended for better connection establishment availability."></div>
              </div>
             <div class="setting-field">
-                <input id="new-remote-process-group-uris" type="text" placeholder="https://remotehost:8080/nifi"/>
+                <input id="new-remote-process-group-uris" type="text" placeholder="https://remotehost:8443/nifi"/>
             </div>
         </div>
         <div class="setting">

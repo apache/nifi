@@ -20,6 +20,8 @@ import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import com.google.common.io.Files;
+import okhttp3.Cache;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -44,10 +46,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -55,6 +59,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -62,6 +68,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
@@ -69,10 +76,11 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Proxy.Type;
 import java.net.URL;
@@ -120,9 +128,9 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
     @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be the body of the HTTP response.")})
-@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Send request header "
-        + "with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value "
-        + "of the Dynamic Property.")
+@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                            + "the Attribute Expression Language set in the value of the Dynamic Property.")
 public final class InvokeHTTP extends AbstractProcessor {
 
     // flowfile attribute keys returned after reading the response
@@ -147,6 +155,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
+    public static final String HTTP = "http";
+    public static final String HTTPS = "https";
+
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
@@ -154,7 +165,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
@@ -162,7 +173,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .name("Remote URL")
             .description("Remote URL which will be connected to, including scheme, host, port, path.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -212,9 +223,19 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections."
+                    + " It is also used to connect to HTTPS Proxy.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor PROP_PROXY_TYPE = new PropertyDescriptor.Builder()
+            .name("Proxy Type")
+            .displayName("Proxy Type")
+            .description("The type of the proxy we are connecting to. Must be either " + HTTP + " or " + HTTPS)
+            .defaultValue(HTTP)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_HOST = new PropertyDescriptor.Builder()
@@ -222,6 +243,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The fully qualified hostname or IP address of the proxy server")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PORT = new PropertyDescriptor.Builder()
@@ -229,6 +251,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The port of the proxy server")
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_USER = new PropertyDescriptor.Builder()
@@ -237,6 +260,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Username to set when authenticating against proxy")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
@@ -246,17 +270,18 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
-        .name("Content-Type")
-        .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
-            + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
-        .required(true)
-        .expressionLanguageSupported(true)
-        .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-        .build();
+            .name("Content-Type")
+            .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
+                    + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .build();
 
     public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
             .name("send-message-body")
@@ -301,7 +326,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
                     + "FlowFile. The attribute key to put to is determined by evaluating value of this property. ")
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor PROP_PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
@@ -370,6 +395,28 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor PROP_USE_ETAG = new PropertyDescriptor.Builder()
+            .name("use-etag")
+            .description("Enable HTTP entity tag (ETag) support for HTTP requests.")
+            .displayName("Use HTTP ETag")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor PROP_ETAG_MAX_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("etag-max-cache-size")
+            .description("The maximum size that the ETag cache should be allowed to grow to. The default size is 10MB.")
+            .displayName("Maximum ETag Cache Size")
+            .required(true)
+            .defaultValue("10MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -381,8 +428,10 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_ATTRIBUTES_TO_SEND,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
+            PROXY_CONFIGURATION_SERVICE,
             PROP_PROXY_HOST,
             PROP_PROXY_PORT,
+            PROP_PROXY_TYPE,
             PROP_PROXY_USER,
             PROP_PROXY_PASSWORD,
             PROP_PUT_OUTPUT_IN_ATTRIBUTE,
@@ -394,7 +443,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
-            PROP_PENALIZE_NO_RETRY));
+            PROP_PENALIZE_NO_RETRY,
+            PROP_USE_ETAG,
+            PROP_ETAG_MAX_CACHE_SIZE));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -453,7 +504,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 
@@ -504,9 +555,23 @@ public final class InvokeHTTP extends AbstractProcessor {
         if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
             results.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
         }
-        if(proxyUserSet && !proxyHostSet) {
+        if (proxyUserSet && !proxyHostSet) {
             results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
+
+        final String proxyType = validationContext.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue();
+
+        if (!HTTP.equals(proxyType) && !HTTPS.equals(proxyType)) {
+            results.add(new ValidationResult.Builder().subject(PROP_PROXY_TYPE.getDisplayName()).valid(false)
+                    .explanation(PROP_PROXY_TYPE.getDisplayName() + " must be either " + HTTP + " or " + HTTPS).build());
+        }
+
+        if (HTTPS.equals(proxyType)
+                && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
+        }
+
+        ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
         return results;
     }
@@ -518,11 +583,37 @@ public final class InvokeHTTP extends AbstractProcessor {
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROP_PROXY_HOST).getValue();
-        final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).asInteger();
-        if (proxyHost != null && proxyPort != null) {
-            final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        boolean isHttpsProxy = HTTPS.equals(context.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue());
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+            final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
+            final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
+            if (proxyHost != null && proxyPort != null) {
+                componentProxyConfig.setProxyType(Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).evaluateAttributeExpressions().getValue());
+                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                componentProxyConfig.setProxyUserName(proxyUsername);
+                componentProxyConfig.setProxyUserPassword(proxyPassword);
+            }
+            return componentProxyConfig;
+        });
+
+        final Proxy proxy = proxyConfig.createProxy();
+        if (!Type.DIRECT.equals(proxy.type())) {
             okHttpClientBuilder.proxy(proxy);
+            if (proxyConfig.hasCredential()) {
+                ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
+            }
+        }
+
+        // configure ETag cache if enabled
+        final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
+        if(etagEnabled) {
+            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
+            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
         // Set timeouts
@@ -537,7 +628,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext);
+            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
         }
 
         // check the trusted hostname property and override the HostnameVerifier
@@ -561,33 +652,44 @@ public final class InvokeHTTP extends AbstractProcessor {
         In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
             https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
      */
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext)
+    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
-        final String keystoreLocation = sslService.getKeyStoreFile();
-        final String keystorePass = sslService.getKeyStorePassword();
-        final String keystoreType = sslService.getKeyStoreType();
-
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore.load(keyStoreStream, keystorePass.toCharArray());
-        }
 
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-
-        // load truststore
-        final String truststoreLocation = sslService.getTrustStoreFile();
-        final String truststorePass = sslService.getTrustStorePassword();
-        final String truststoreType = sslService.getTrustStoreType();
-
-        KeyStore truststore = KeyStore.getInstance(truststoreType);
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-        trustManagerFactory.init(truststore);
+        // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
+        KeyManager[] keyManagers = null;
 
-        /*
+        // we will only initialize the keystore if properties have been supplied by the SSLContextService
+        if (sslService.isKeyStoreConfigured()) {
+            final String keystoreLocation = sslService.getKeyStoreFile();
+            final String keystorePass = sslService.getKeyStorePassword();
+            final String keystoreType = sslService.getKeyStoreType();
+
+            // prepare the keystore
+            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
+
+            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+                keyStore.load(keyStoreStream, keystorePass.toCharArray());
+            }
+
+            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+            keyManagers = keyManagerFactory.getKeyManagers();
+        }
+
+        // we will only initialize the truststure if properties have been supplied by the SSLContextService
+        if (sslService.isTrustStoreConfigured()) {
+            // load truststore
+            final String truststoreLocation = sslService.getTrustStoreFile();
+            final String truststorePass = sslService.getTrustStorePassword();
+            final String truststoreType = sslService.getTrustStoreType();
+
+            KeyStore truststore = KeyStore.getInstance(truststoreType);
+            truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
+            trustManagerFactory.init(truststore);
+        }
+
+         /*
             TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
             as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
 
@@ -601,15 +703,18 @@ public final class InvokeHTTP extends AbstractProcessor {
             throw new IllegalStateException("List of trust managers is null");
         }
 
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+        // if keystore properties were not supplied, the keyManagers array will be null
+        sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
 
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+        if (setAsSocketFactory) {
+            okHttpClientBuilder.socketFactory(sslSocketFactory);
+        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
-        final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
@@ -624,23 +729,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
 
-            if(!proxyUsername.isEmpty()) {
-                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
-                ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyUsername, proxyPassword);
-
-                okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
-            }
-
             okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));
             okHttpClientBuilder.authenticator(new CachingAuthenticatorDecorator(digestAuthenticator, authCache));
-        } else {
-            // Add proxy authentication only
-            if(!proxyUsername.isEmpty()) {
-                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).getValue();
-                ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyUsername, proxyPassword);
-
-                okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
-            }
         }
     }
 
@@ -669,6 +759,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final ComponentLog logger = getLogger();
 
+        // log ETag cache metrics
+        final boolean eTagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
+        if(eTagEnabled && logger.isDebugEnabled()) {
+            final Cache cache = okHttpClient.cache();
+            logger.debug("OkHttp ETag cache metrics :: Request Count: {} | Network Count: {} | Hit Count: {}",
+                    new Object[] {cache.requestCount(), cache.networkCount(), cache.hitCount()});
+        }
+
         // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
         final UUID txId = UUID.randomUUID();
 
@@ -689,133 +787,135 @@ public final class InvokeHTTP extends AbstractProcessor {
             }
 
             final long startNanos = System.nanoTime();
-            Response responseHttp = okHttpClient.newCall(httpRequest).execute();
 
-            // output the raw response headers (DEBUG level only)
-            logResponse(logger, url, responseHttp);
+            try (Response responseHttp = okHttpClient.newCall(httpRequest).execute()) {
+                // output the raw response headers (DEBUG level only)
+                logResponse(logger, url, responseHttp);
 
-            // store the status code and message
-            int statusCode = responseHttp.code();
-            String statusMessage = responseHttp.message();
+                // store the status code and message
+                int statusCode = responseHttp.code();
+                String statusMessage = responseHttp.message();
 
-            if (statusCode == 0) {
-                throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
-            }
-
-            // Create a map of the status attributes that are always written to the request and response FlowFiles
-            Map<String, String> statusAttributes = new HashMap<>();
-            statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
-            statusAttributes.put(STATUS_MESSAGE, statusMessage);
-            statusAttributes.put(REQUEST_URL, url.toExternalForm());
-            statusAttributes.put(TRANSACTION_ID, txId.toString());
-
-            if (requestFlowFile != null) {
-                requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
-            }
-
-            // If the property to add the response headers to the request flowfile is true then add them
-            if (context.getProperty(PROP_ADD_HEADERS_TO_REQUEST).asBoolean() && requestFlowFile != null) {
-                // write the response headers as attributes
-                // this will overwrite any existing flowfile attributes
-                requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(url, responseHttp));
-            }
-
-            boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
-            boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
-            ResponseBody responseBody = responseHttp.body();
-            boolean bodyExists = responseBody != null;
-
-            InputStream responseBodyStream = null;
-            SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
-            TeeInputStream teeInputStream = null;
-            try {
-                responseBodyStream = bodyExists ? responseBody.byteStream() : null;
-                if (responseBodyStream != null && outputBodyToRequestAttribute && outputBodyToResponseContent) {
-                    outputStreamToRequestAttribute = new SoftLimitBoundedByteArrayOutputStream(maxAttributeSize);
-                    teeInputStream = new TeeInputStream(responseBodyStream, outputStreamToRequestAttribute);
+                if (statusCode == 0) {
+                    throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
                 }
 
-                if (outputBodyToResponseContent) {
-                    /*
-                     * If successful and putting to response flowfile, store the response body as the flowfile payload
-                     * we include additional flowfile attributes including the response headers and the status codes.
-                     */
+                // Create a map of the status attributes that are always written to the request and response FlowFiles
+                Map<String, String> statusAttributes = new HashMap<>();
+                statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
+                statusAttributes.put(STATUS_MESSAGE, statusMessage);
+                statusAttributes.put(REQUEST_URL, url.toExternalForm());
+                statusAttributes.put(TRANSACTION_ID, txId.toString());
 
-                    // clone the flowfile to capture the response
-                    if (requestFlowFile != null) {
-                        responseFlowFile = session.create(requestFlowFile);
-                    } else {
-                        responseFlowFile = session.create();
-                    }
+                if (requestFlowFile != null) {
+                    requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
+                }
 
-                    // write attributes to response flowfile
-                    responseFlowFile = session.putAllAttributes(responseFlowFile, statusAttributes);
-
+                // If the property to add the response headers to the request flowfile is true then add them
+                if (context.getProperty(PROP_ADD_HEADERS_TO_REQUEST).asBoolean() && requestFlowFile != null) {
                     // write the response headers as attributes
                     // this will overwrite any existing flowfile attributes
-                    responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(url, responseHttp));
+                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(url, responseHttp));
+                }
 
-                    // transfer the message body to the payload
-                    // can potentially be null in edge cases
-                    if (bodyExists) {
-                        // write content type attribute to response flowfile if it is available
-                        if (responseBody.contentType() != null) {
-                             responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
-                        }
-                        if (teeInputStream != null) {
-                            responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
+                boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
+                boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
+                ResponseBody responseBody = responseHttp.body();
+                boolean bodyExists = responseBody != null;
+
+                InputStream responseBodyStream = null;
+                SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
+                TeeInputStream teeInputStream = null;
+                try {
+                    responseBodyStream = bodyExists ? responseBody.byteStream() : null;
+                    if (responseBodyStream != null && outputBodyToRequestAttribute && outputBodyToResponseContent) {
+                        outputStreamToRequestAttribute = new SoftLimitBoundedByteArrayOutputStream(maxAttributeSize);
+                        teeInputStream = new TeeInputStream(responseBodyStream, outputStreamToRequestAttribute);
+                    }
+
+                    if (outputBodyToResponseContent) {
+                        /*
+                         * If successful and putting to response flowfile, store the response body as the flowfile payload
+                         * we include additional flowfile attributes including the response headers and the status codes.
+                         */
+
+                        // clone the flowfile to capture the response
+                        if (requestFlowFile != null) {
+                            responseFlowFile = session.create(requestFlowFile);
                         } else {
-                            responseFlowFile = session.importFrom(responseBodyStream, responseFlowFile);
+                            responseFlowFile = session.create();
                         }
 
-                        // emit provenance event
+                        // write attributes to response flowfile
+                        responseFlowFile = session.putAllAttributes(responseFlowFile, statusAttributes);
+
+                        // write the response headers as attributes
+                        // this will overwrite any existing flowfile attributes
+                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(url, responseHttp));
+
+                        // transfer the message body to the payload
+                        // can potentially be null in edge cases
+                        if (bodyExists) {
+                            // write content type attribute to response flowfile if it is available
+                            if (responseBody.contentType() != null) {
+                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                            }
+                            if (teeInputStream != null) {
+                                responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
+                            } else {
+                                responseFlowFile = session.importFrom(responseBodyStream, responseFlowFile);
+                            }
+
+                            // emit provenance event
+                            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                            if(requestFlowFile != null) {
+                                session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
+                            } else {
+                                session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
+                            }
+                        }
+                    }
+
+                    // if not successful and request flowfile is not null, store the response body into a flowfile attribute
+                    if (outputBodyToRequestAttribute && bodyExists) {
+                        String attributeKey = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).evaluateAttributeExpressions(requestFlowFile).getValue();
+                        if (attributeKey == null) {
+                            attributeKey = RESPONSE_BODY;
+                        }
+                        byte[] outputBuffer;
+                        int size;
+
+                        if (outputStreamToRequestAttribute != null) {
+                            outputBuffer = outputStreamToRequestAttribute.getBuffer();
+                            size = outputStreamToRequestAttribute.size();
+                        } else {
+                            outputBuffer = new byte[maxAttributeSize];
+                            size = StreamUtils.fillBuffer(responseBodyStream, outputBuffer, false);
+                        }
+                        String bodyString = new String(outputBuffer, 0, size, getCharsetFromMediaType(responseBody.contentType()));
+                        requestFlowFile = session.putAttribute(requestFlowFile, attributeKey, bodyString);
+
                         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                        if(requestFlowFile != null) {
-                            session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
-                        } else {
-                            session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
-                        }
+                        session.getProvenanceReporter().modifyAttributes(requestFlowFile, "The " + attributeKey + " has been added. The value of which is the body of a http call to "
+                                + url.toExternalForm() + ". It took " + millis + "millis,");
+                    }
+                } finally {
+                    if(outputStreamToRequestAttribute != null){
+                        outputStreamToRequestAttribute.close();
+                        outputStreamToRequestAttribute = null;
+                    }
+                    if(teeInputStream != null){
+                        teeInputStream.close();
+                        teeInputStream = null;
+                    } else if(responseBodyStream != null){
+                        responseBodyStream.close();
+                        responseBodyStream = null;
                     }
                 }
 
-                // if not successful and request flowfile is not null, store the response body into a flowfile attribute
-                if (outputBodyToRequestAttribute && bodyExists) {
-                    String attributeKey = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).evaluateAttributeExpressions(requestFlowFile).getValue();
-                    if (attributeKey == null) {
-                        attributeKey = RESPONSE_BODY;
-                    }
-                    byte[] outputBuffer;
-                    int size;
+                route(requestFlowFile, responseFlowFile, session, context, statusCode);
 
-                    if (outputStreamToRequestAttribute != null) {
-                        outputBuffer = outputStreamToRequestAttribute.getBuffer();
-                        size = outputStreamToRequestAttribute.size();
-                    } else {
-                        outputBuffer = new byte[maxAttributeSize];
-                        size = StreamUtils.fillBuffer(responseBodyStream, outputBuffer, false);
-                    }
-                    String bodyString = new String(outputBuffer, 0, size, getCharsetFromMediaType(responseBody.contentType()));
-                    requestFlowFile = session.putAttribute(requestFlowFile, attributeKey, bodyString);
-
-                    final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                    session.getProvenanceReporter().modifyAttributes(requestFlowFile, "The " + attributeKey + " has been added. The value of which is the body of a http call to "
-                            + url.toExternalForm() + ". It took " + millis + "millis,");
-                }
-            } finally {
-                if(outputStreamToRequestAttribute != null){
-                    outputStreamToRequestAttribute.close();
-                    outputStreamToRequestAttribute = null;
-                }
-                if(teeInputStream != null){
-                    teeInputStream.close();
-                    teeInputStream = null;
-                } else if(responseBodyStream != null){
-                    responseBodyStream.close();
-                    responseBodyStream = null;
-                }
             }
-
-            route(requestFlowFile, responseFlowFile, session, context, statusCode);
         } catch (final Exception e) {
             // penalize or yield
             if (requestFlowFile != null) {
@@ -1091,6 +1191,19 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private Charset getCharsetFromMediaType(MediaType contentType) {
         return contentType != null ? contentType.charset(StandardCharsets.UTF_8) : StandardCharsets.UTF_8;
+    }
+
+    /**
+     * Retrieve the directory in which OkHttp should cache responses. This method opts
+     * to use a temp directory to write the cache, which means that the cache will be written
+     * to a new location each time this processor is scheduled.
+     *
+     * Ref: https://github.com/square/okhttp/wiki/Recipes#response-caching
+     *
+     * @return the directory in which the ETag cache should be written
+     */
+    private static File getETagCacheDir() {
+        return Files.createTempDir();
     }
 
     private static class OverrideHostnameVerifier implements HostnameVerifier {

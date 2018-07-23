@@ -44,6 +44,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.lookup.LookupFailureException;
@@ -65,7 +66,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Lookup attributes from a lookup service")
 @DynamicProperty(name = "The name of the attribute to add to the FlowFile",
     value = "The name of the key or property to retrieve from the lookup service",
-    supportsExpressionLanguage = true,
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
     description = "Adds a FlowFile attribute specified by the dynamic property's key with the value found in the lookup service using the the dynamic property's value")
 public class LookupAttribute extends AbstractProcessor {
 
@@ -150,7 +151,7 @@ public class LookupAttribute extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dynamic(true)
             .build();
     }
@@ -221,7 +222,8 @@ public class LookupAttribute extends AbstractProcessor {
                 final PropertyValue lookupKeyExpression = e.getValue();
                 final String lookupKey = lookupKeyExpression.evaluateAttributeExpressions(flowFile).getValue();
                 final String attributeName = e.getKey().getName();
-                final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, lookupKey));
+                final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, lookupKey),
+                        flowFile.getAttributes());
                 matched = putAttribute(attributeName, attributeValue, attributes, includeEmptyValues, logger) || matched;
 
                 if (!matched && logger.isDebugEnabled()) {

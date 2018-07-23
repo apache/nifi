@@ -24,11 +24,12 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.Connection'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
-                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
+                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionConfiguration =
@@ -37,6 +38,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.Connection')));
@@ -46,15 +48,19 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.Connection);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
     'use strict';
 
     var nfBirdseye;
     var nfGraph;
+
+    var defaultBackPressureObjectThreshold;
+    var defaultBackPressureDataSizeThreshold;
 
     var CONNECTION_OFFSET_Y_INCREMENT = 75;
     var CONNECTION_OFFSET_X_INCREMENT = 200;
@@ -74,6 +80,16 @@
     };
 
     /**
+     * Activates dialog's button model refresh on a connection relationships change.
+     */
+    var addDialogRelationshipsChangeListener = function() {
+        // refresh button model when a relationship selection changes
+        $('div.available-relationship').bind('change', function() {
+            $('#connection-configuration').modal('refreshButtons');
+        });
+    }
+
+    /**
      * Initializes the source in the new connection dialog.
      *
      * @argument {selection} source        The source
@@ -89,6 +105,8 @@
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship.name);
                         });
+                        
+                        addDialogRelationshipsChangeListener();
 
                         // if there is a single relationship auto select
                         var relationships = $('#relationship-names').children('div');
@@ -104,21 +122,13 @@
                                 hover: '#004849',
                                 text: '#ffffff'
                             },
+                            disabled: function () {
+                                // ensure some relationships were selected
+                                return getSelectedRelationships().length === 0;
+                            },
                             handler: {
                                 click: function () {
-                                    // get the selected relationships
-                                    var selectedRelationships = getSelectedRelationships();
-
-                                    // ensure some relationships were selected
-                                    if (selectedRelationships.length > 0) {
-                                        addConnection(selectedRelationships);
-                                    } else {
-                                        // inform users that no relationships were selected
-                                        nfDialog.showOkDialog({
-                                            headerText: 'Connection Configuration',
-                                            dialogContent: 'The connection must have at least one relationship selected.'
-                                        });
-                                    }
+                                    addConnection(getSelectedRelationships());
 
                                     // close the dialog
                                     $('#connection-configuration').modal('hide');
@@ -917,6 +927,7 @@
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': connectionName,
                     'source': {
@@ -1001,6 +1012,7 @@
             var d = nfConnection.get(connectionId);
             var connectionEntity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': connectionId,
                     'name': connectionName,
@@ -1171,9 +1183,12 @@
          * @param nfBirdseyeRef   The nfBirdseye module.
          * @param nfGraphRef   The nfGraph module.
          */
-        init: function (nfBirdseyeRef, nfGraphRef) {
+        init: function (nfBirdseyeRef, nfGraphRef, defaultBackPressureObjectThresholdRef, defaultBackPressureDataSizeThresholdRef) {
             nfBirdseye = nfBirdseyeRef;
             nfGraph = nfGraphRef;
+
+            defaultBackPressureObjectThreshold = defaultBackPressureObjectThresholdRef;
+            defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThresholdRef;
 
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
@@ -1246,7 +1261,7 @@
 
             // add the description if applicable
             if (nfCommon.isDefinedAndNotNull(prioritizerType.description)) {
-                $('<div class="fa fa-question-circle" style="float: right; margin-right: 5px;""></div>').appendTo(prioritizer).qtip($.extend({
+                $('<div class="fa fa-question-circle"></div>').appendTo(prioritizer).qtip($.extend({
                     content: nfCommon.escapeHtml(prioritizerType.description)
                 }, nfCommon.config.tooltipConfig));
             }
@@ -1271,8 +1286,8 @@
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
                 $('#flow-file-expiration').val('0 sec');
-                $('#back-pressure-object-threshold').val('10000');
-                $('#back-pressure-data-size-threshold').val('1 GB');
+                $('#back-pressure-object-threshold').val(defaultBackPressureObjectThreshold);
+                $('#back-pressure-data-size-threshold').val(defaultBackPressureDataSizeThreshold);
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();
@@ -1330,6 +1345,8 @@
                         $.each(availableRelationships, function (i, name) {
                             createRelationshipOption(name);
                         });
+
+                        addDialogRelationshipsChangeListener();
 
                         // ensure all selected relationships are present
                         // (may be undefined) and selected
@@ -1395,30 +1412,23 @@
                             hover: '#004849',
                             text: '#ffffff'
                         },
+                        disabled: function () {
+                            // ensure some relationships were selected with a processor as the source
+                            if (nfCanvasUtils.isProcessor(source)) {
+                                return getSelectedRelationships().length === 0;
+                            }
+                            return false;
+                        },
                         handler: {
                             click: function () {
-                                // get the selected relationships
-                                var selectedRelationships = getSelectedRelationships();
-
                                 // see if we're working with a processor as the source
                                 if (nfCanvasUtils.isProcessor(source)) {
-                                    if (selectedRelationships.length > 0) {
-                                        // if there are relationships selected update
-                                        updateConnection(selectedRelationships).done(function () {
-                                            deferred.resolve();
-                                        }).fail(function () {
-                                            deferred.reject();
-                                        });
-                                    } else {
-                                        // inform users that no relationships were selected and the source is a processor
-                                        nfDialog.showOkDialog({
-                                            headerText: 'Connection Configuration',
-                                            dialogContent: 'The connection must have at least one relationship selected.'
-                                        });
-
-                                        // reject the deferred
+                                    // update the selected relationships
+                                    updateConnection(getSelectedRelationships()).done(function () {
+                                        deferred.resolve();
+                                    }).fail(function () {
                                         deferred.reject();
-                                    }
+                                    });
                                 } else {
                                     // there are no relationships, but the source wasn't a processor, so update anyway
                                     updateConnection(undefined).done(function () {

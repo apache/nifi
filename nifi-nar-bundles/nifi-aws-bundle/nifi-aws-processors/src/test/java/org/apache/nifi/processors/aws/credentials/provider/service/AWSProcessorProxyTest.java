@@ -67,4 +67,41 @@ public class AWSProcessorProxyTest {
         runner.setProperty(AbstractAWSProcessor.PROXY_HOST, "proxyHost");
         runner.assertValid();
     }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testProxyUserNoPasswordInValid() throws Throwable {
+        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
+        runner.assertNotValid();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testProxyNoUserPasswordInValid() throws Throwable {
+        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+        runner.assertNotValid();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testProxyUserPasswordNoHostInValid() throws Throwable {
+        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
+        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+        runner.assertNotValid();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testProxyUserPasswordHostValid() throws Throwable {
+        runner.setProperty(AbstractAWSProcessor.PROXY_HOST_PORT, "1");
+        runner.setProperty(AbstractAWSProcessor.PROXY_HOST, "proxyHost");
+        runner.setProperty(AbstractAWSProcessor.PROXY_USERNAME, "foo");
+        runner.setProperty(AbstractAWSProcessor.PROXY_PASSWORD, "foo");
+        runner.assertValid();
+    }
+
+
+
+
+
 }

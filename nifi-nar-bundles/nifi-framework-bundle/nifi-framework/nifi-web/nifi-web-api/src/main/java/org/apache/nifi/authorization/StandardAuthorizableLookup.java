@@ -22,18 +22,20 @@ import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
+import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -70,7 +72,6 @@ import java.util.stream.Collectors;
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
-    private static final Authorizable RESTRICTED_COMPONENTS_AUTHORIZABLE = new RestrictedComponentsAuthorizable();
 
     private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -181,8 +182,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ComponentAuthorizable getConfigurableComponent(final String type, final BundleDTO bundle) {
+        final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
+        return getConfigurableComponent(configurableComponent);
+    }
+
+    @Override
+    public ComponentAuthorizable getConfigurableComponent(ConfigurableComponent configurableComponent) {
         try {
-            final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
             return new ConfigurableComponentAuthorizable(configurableComponent);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create component to verify if it references any Controller Services.");
@@ -319,9 +325,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return FLOW_AUTHORIZABLE;
     }
 
-    private ConfiguredComponent findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
-        ConfiguredComponent reference = null;
-        for (final ConfiguredComponent component : referencingComponents.getReferencingComponents()) {
+    private ComponentNode findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
+        ComponentNode reference = null;
+        for (final ComponentNode component : referencingComponents.getReferencingComponents()) {
             if (component.getIdentifier().equals(id)) {
                 reference = component;
                 break;
@@ -343,7 +349,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
-        final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
+        final ComponentNode reference = findControllerServiceReferencingComponent(referencingComponents, id);
 
         if (reference == null) {
             throw new ResourceNotFoundException("Unable to find referencing component with id " + id);
@@ -475,12 +481,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             throw new ResourceNotFoundException("Unrecognized resource: " + resource);
         }
 
-        // if this is a policy or a provenance event resource, there should be another resource type
-        if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
+        // if this is a policy, data or a provenance event resource, there should be another resource type
+        if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType) || ResourceType.ProvenanceData.equals(resourceType)) {
             final ResourceType primaryResourceType = resourceType;
+            resourceType = null;
 
             // get the resource type
-            resource = StringUtils.substringAfter(resource, resourceType.getValue());
+            resource = StringUtils.substringAfter(resource, primaryResourceType.getValue());
 
             for (ResourceType type : ResourceType.values()) {
                 if (resource.equals(type.getValue()) || resource.startsWith(type.getValue() + "/")) {
@@ -489,7 +496,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             }
 
             if (resourceType == null) {
-                throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+                throw new ResourceNotFoundException("Unrecognized base resource: " + resource);
             }
 
             // must either be a policy, event, or data transfer
@@ -497,8 +504,24 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 return new AccessPolicyAuthorizable(getAccessPolicy(resourceType, resource));
             } else if (ResourceType.Data.equals(primaryResourceType)) {
                 return new DataAuthorizable(getAccessPolicy(resourceType, resource));
+            } else if (ResourceType.ProvenanceData.equals(primaryResourceType)) {
+                return new ProvenanceDataAuthorizable(getAccessPolicy(resourceType, resource));
             } else {
                 return new DataTransferAuthorizable(getAccessPolicy(resourceType, resource));
+            }
+        } else if (ResourceType.RestrictedComponents.equals(resourceType)) {
+            final String slashRequiredPermission = StringUtils.substringAfter(resource, resourceType.getValue());
+
+            if (slashRequiredPermission.startsWith("/")) {
+                final RequiredPermission requiredPermission = RequiredPermission.valueOfPermissionIdentifier(slashRequiredPermission.substring(1));
+
+                if (requiredPermission == null) {
+                    throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+                }
+
+                return getRestrictedComponents(requiredPermission);
+            } else {
+                return getRestrictedComponents();
             }
         } else {
             return getAccessPolicy(resourceType, resource);
@@ -629,9 +652,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case Tenant:
                 authorizable = getTenant();
                 break;
-            case RestrictedComponents:
-                authorizable = getRestrictedComponents();
-                break;
         }
 
         if (authorizable == null) {
@@ -724,7 +744,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getRestrictedComponents() {
-        return RESTRICTED_COMPONENTS_AUTHORIZABLE;
+        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable();
+    }
+
+    @Override
+    public Authorizable getRestrictedComponents(final RequiredPermission requiredPermission) {
+        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(requiredPermission);
     }
 
     @Override
@@ -751,6 +776,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public boolean isRestricted() {
             return configurableComponent.getClass().isAnnotationPresent(Restricted.class);
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(configurableComponent.getClass());
         }
 
         @Override
@@ -795,6 +825,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(processorNode.getComponentClass());
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return processorNode.getProperty(propertyDescriptor);
         }
@@ -836,6 +871,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(controllerServiceNode.getComponentClass());
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return controllerServiceNode.getProperty(propertyDescriptor);
         }
@@ -874,6 +914,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public boolean isRestricted() {
             return reportingTaskNode.isRestricted();
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(reportingTaskNode.getComponentClass());
         }
 
         @Override

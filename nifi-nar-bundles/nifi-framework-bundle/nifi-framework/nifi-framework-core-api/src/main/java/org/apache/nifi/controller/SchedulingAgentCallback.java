@@ -20,9 +20,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
 public interface SchedulingAgentCallback {
-    void postMonitor();
+    void onTaskComplete();
 
-    Future<?> invokeMonitoringTask(Callable<?> task);
+    Future<?> scheduleTask(Callable<?> task);
 
     void trigger();
 }

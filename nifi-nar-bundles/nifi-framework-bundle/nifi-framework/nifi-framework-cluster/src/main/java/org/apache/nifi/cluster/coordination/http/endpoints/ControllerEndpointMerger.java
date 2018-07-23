@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 
 public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<ControllerEntity, ControllerDTO> {
     public static final Pattern CONTROLLER_URI_PATTERN = Pattern.compile("/nifi-api/site-to-site");
-    private PortEntityMerger portMerger = new PortEntityMerger();
 
     @Override
     protected Class<ControllerEntity> getEntityClass() {
@@ -47,7 +46,6 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
 
     @Override
     protected void mergeResponses(ControllerDTO clientDto, Map<NodeIdentifier, ControllerDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        ControllerDTO mergedController = clientDto;
         final Map<String, Map<NodeIdentifier, PortDTO>> inputPortMap = new HashMap<>(); // map of port id to map of node id to port dto
         final Map<String, Map<NodeIdentifier, PortDTO>> outputPortMap = new HashMap<>(); // map of port id to map of node id to port dto
 

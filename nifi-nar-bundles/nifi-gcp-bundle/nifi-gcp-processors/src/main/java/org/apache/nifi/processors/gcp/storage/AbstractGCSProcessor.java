@@ -16,17 +16,23 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.RetryParams;
+import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.cloud.storage.spi.StorageRpc;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.util.StringUtils;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,7 +44,7 @@ import java.util.Set;
  *
  * Every GCS processor operation requires a bucket, whether it's reading or writing from said bucket.
  */
-public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage, StorageRpc, StorageOptions> {
+public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage, StorageOptions> {
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder().name("success")
                     .description("FlowFiles are routed to this relationship after a successful Google Cloud Storage operation.")
@@ -66,15 +72,30 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     @Override
     protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).getValue();
-        final Integer retryCount = Integer.valueOf(context.getProperty(RETRY_COUNT).getValue());
+        final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
-        return StorageOptions.newBuilder()
+        final String proxyHost = context.getProperty(PROXY_HOST).getValue();
+        final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
+
+        StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
                 .setProjectId(projectId)
-                .setRetryParams(RetryParams.newBuilder()
-                        .setRetryMaxAttempts(retryCount)
-                        .setRetryMinAttempts(retryCount)
-                        .build())
-                .build();
+                .setRetrySettings(RetrySettings.newBuilder()
+                        .setMaxAttempts(retryCount)
+                        .build());
+
+        if (!StringUtils.isBlank(proxyHost) && proxyPort > 0) {
+            storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(new HttpTransportFactory() {
+                @Override
+                public HttpTransport create() {
+                    return new NetHttpTransport.Builder()
+                            .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
+                            .build();
+                }
+            }).build());
+        }
+        return  storageOptionsBuilder.build();
     }
+
+
 }

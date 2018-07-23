@@ -47,6 +47,10 @@ public class ChildFieldPath extends RecordPathSegment {
         }
 
         final Record record = (Record) fieldValue.getValue();
+        if(record == null) {
+            return missingChild(fieldValue);
+        }
+
         final Object value = record.getValue(childName);
         if (value == null) {
             return missingChild(fieldValue);

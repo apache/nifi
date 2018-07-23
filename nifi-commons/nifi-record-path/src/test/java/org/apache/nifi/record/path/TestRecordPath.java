@@ -17,15 +17,20 @@
 
 package org.apache.nifi.record.path;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.record.path.exception.RecordPathException;
@@ -36,6 +41,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
 public class TestRecordPath {
@@ -130,6 +136,10 @@ public class TestRecordPath {
 
         assertEquals("balance", fieldValues.get(1).getField().getFieldName());
         assertEquals(123.45D, fieldValues.get(1).getValue());
+
+        RecordPath.compile("/mainAccount/*[. > 100]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(122.44D));
+        assertEquals(1, accountValues.get("id"));
+        assertEquals(122.44D, accountValues.get("balance"));
     }
 
     @Test
@@ -150,9 +160,21 @@ public class TestRecordPath {
         assertEquals(1, fieldValues.size());
 
         final FieldValue fieldValue = fieldValues.get(0);
-        assertTrue(fieldValue.getField().getFieldName().startsWith("accounts["));
+        assertEquals("accounts", fieldValue.getField().getFieldName());
         assertEquals(record, fieldValue.getParentRecord().get());
         assertEquals(accountRecord, fieldValue.getValue());
+
+        final Map<String, Object> updatedAccountValues = new HashMap<>(accountValues);
+        updatedAccountValues.put("balance", 122.44D);
+        final Record updatedAccountRecord = new MapRecord(getAccountSchema(), updatedAccountValues);
+        RecordPath.compile("/*[0]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(updatedAccountRecord));
+
+        final Object[] accountRecords = (Object[]) record.getValue("accounts");
+        assertEquals(1, accountRecords.length);
+        final Record recordToVerify = (Record) accountRecords[0];
+        assertEquals(122.44D, recordToVerify.getValue("balance"));
+        assertEquals(48, record.getValue("id"));
+        assertEquals("John Doe", record.getValue("name"));
     }
 
     @Test
@@ -224,9 +246,28 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get();
-        assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+        assertTrue(fieldValue.getField().getFieldName().equals("attributes"));
         assertEquals("New York", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testUpdateMap() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("city", "New York");
+        attributes.put("state", "NY");
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", "John Doe");
+        values.put("attributes", attributes);
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get().updateValue("Boston");
+        assertEquals("Boston", ((Map<String, Object>) record.getValue("attributes")).get("city"));
     }
 
     @Test
@@ -250,9 +291,18 @@ public class TestRecordPath {
         assertEquals("NY", fieldValues.get(1).getValue());
 
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+            assertEquals("attributes", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
+
+        RecordPath.compile("/attributes[*]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
+
+        RecordPath.compile("/attributes[*][fieldName(.) = 'attributes']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
+
     }
 
     @Test
@@ -276,9 +326,13 @@ public class TestRecordPath {
         assertEquals("NY", fieldValues.get(1).getValue());
 
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+            assertEquals("attributes", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
+
+        RecordPath.compile("/attributes['city', 'state']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
     }
 
     @Test
@@ -310,7 +364,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("/numbers[3]").evaluate(record).getSelectedFields().findFirst().get();
-        assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+        assertEquals("numbers", fieldValue.getField().getFieldName());
         assertEquals(3, fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
     }
@@ -326,7 +380,7 @@ public class TestRecordPath {
 
         final List<FieldValue> fieldValues = RecordPath.compile("/numbers[0..1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
@@ -350,11 +404,13 @@ public class TestRecordPath {
         int i = 0;
         final int[] expectedValues = new int[] {3, 6, 9, 8};
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(expectedValues[i++], fieldValue.getValue());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
+        RecordPath.compile("/numbers[3,6, -1, -2]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(99));
+        assertArrayEquals(new Object[] {0, 1, 2, 99, 4, 5, 99, 7, 99, 99}, (Object[]) values.get("numbers"));
     }
 
     @Test
@@ -368,7 +424,7 @@ public class TestRecordPath {
 
         List<FieldValue> fieldValues = RecordPath.compile("/numbers[0, 2, 4..7, 9]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
@@ -380,7 +436,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[0..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -392,7 +448,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[-1..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {9};
@@ -403,7 +459,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[*]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers["));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -437,7 +493,7 @@ public class TestRecordPath {
 
         for (final FieldValue fieldValue : fieldValues) {
             final String fieldName = fieldValue.getField().getFieldName();
-            assertTrue(Pattern.compile("numbers\\[\\d\\]").matcher(fieldName).matches());
+            assertEquals("numbers", fieldName);
             assertEquals(RecordFieldType.INT, fieldValue.getField().getDataType().getFieldType());
             assertEquals(4, fieldValue.getValue());
             assertEquals(record, fieldValue.getParentRecord().get());
@@ -474,6 +530,9 @@ public class TestRecordPath {
         assertEquals(accountRecord, fieldValue.getParentRecord().get());
         assertEquals(123.45D, fieldValue.getValue());
         assertEquals("balance", fieldValue.getField().getFieldName());
+
+        RecordPath.compile("/mainAccount/././balance/.").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(123.44D));
+        assertEquals(123.44D, accountValues.get("balance"));
     }
 
     @Test
@@ -532,7 +591,8 @@ public class TestRecordPath {
         assertEquals(1, fieldValues.size());
 
         final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("accounts[0]", fieldValue.getField().getFieldName());
+        assertEquals("accounts", fieldValue.getField().getFieldName());
+        assertEquals(0, ((ArrayIndexFieldValue) fieldValue).getArrayIndex());
         assertEquals(record, fieldValue.getParentRecord().get());
         assertEquals(accountRecord1, fieldValue.getValue());
     }
@@ -789,10 +849,12 @@ public class TestRecordPath {
         assertEquals("hn Doe", RecordPath.compile("substringAfter(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfter(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfter(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("n Doe", RecordPath.compile("substringAfter(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         assertEquals("e", RecordPath.compile("substringAfterLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("n Doe", RecordPath.compile("substringAfterLast(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -997,6 +1059,224 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testFieldName() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("name", "John Doe");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("name", RecordPath.compile("fieldName(/name)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("name", RecordPath.compile("fieldName(/*)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", RecordPath.compile("//*[startsWith(fieldName(.), 'na')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("name", RecordPath.compile("fieldName(//*[startsWith(fieldName(.), 'na')])").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", RecordPath.compile("//name[not(startsWith(fieldName(.), 'xyz'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(0L, RecordPath.compile("//name[not(startsWith(fieldName(.), 'n'))]").evaluate(record).getSelectedFields().count());
+    }
+
+    @Test
+    public void testToDateFromString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("date", "2017-10-20T11:00:00Z");
+        final Record record = new MapRecord(schema, values);
+
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
+    }
+
+    @Test
+    public void testToDateFromLong() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
+        final long dateValue = dateFormat.parse("2017-10-20T11:00:00Z").getTime();
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("date", dateValue);
+        final Record record = new MapRecord(schema, values);
+
+        // since the field is a long it shouldn't do the conversion and should return the value unchanged
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
+    }
+
+    @Test
+    public void testToDateFromNonDateString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", "John Doe");
+        final Record record = new MapRecord(schema, values);
+
+        // since the field is a string it shouldn't do the conversion and should return the value unchanged
+        final FieldValue fieldValue = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue.getValue());
+    }
+
+    @Test
+    public void testFormatDateFromString() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("date", "2017-10-20T11:00:00Z");
+        final Record record = new MapRecord(schema, values);
+
+        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("2017-10-20", fieldValue.getValue());
+
+        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged.getValue());
+    }
+
+    @Test
+    public void testFormatDateFromLong() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
+        final long dateValue = dateFormat.parse("2017-10-20").getTime();
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("date", dateValue);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged.getValue());
+    }
+
+    @Test
+    public void testFormatDateFromDate() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
+        final java.util.Date utilDate = dateFormat.parse("2017-10-20");
+        final Date dateValue = new Date(utilDate.getTime());
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("date", dateValue);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged.getValue());
+    }
+
+    @Test
+    public void testFormatDateWhenNotDate() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", "John Doe");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testToString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("bytes", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test(expected = IllegalCharsetNameException.class)
+    public void testToStringBadCharset() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("bytes", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+    }
+
+    @Test
+    public void testToBytes() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("s", "Hello World!");
+        final Record record = new MapRecord(schema, values);
+
+        assertArrayEquals("Hello World!".getBytes(StandardCharsets.UTF_16LE),
+                (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test(expected = IllegalCharsetNameException.class)
+    public void testToBytesBadCharset() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("s", "Hello World!");
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
     }
 
     private List<RecordField> getDefaultFields() {

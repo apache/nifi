@@ -1,0 +1,21 @@
+{
+  "type" : "record",
+  "name" : "bulletins",
+  "namespace" : "bulletins",
+  "fields" : [ 
+	{ "name" : "objectId", "type" : "string" },
+	{ "name" : "platform", "type" : "string" },
+	{ "name" : "bulletinId", "type" : "long" },
+	{ "name" : "bulletinCategory", "type" : ["string", "null"] },
+	{ "name" : "bulletinGroupId", "type" : ["string", "null"] },
+	{ "name" : "bulletinGroupName", "type" : ["string", "null"] },
+	{ "name" : "bulletinLevel", "type" : ["string", "null"] },
+	{ "name" : "bulletinMessage", "type" : ["string", "null"] },
+	{ "name" : "bulletinNodeAddress", "type" : ["string", "null"] },
+	{ "name" : "bulletinNodeId", "type" : ["string", "null"] },
+	{ "name" : "bulletinSourceId", "type" : ["string", "null"] },
+	{ "name" : "bulletinSourceName", "type" : ["string", "null"] },
+	{ "name" : "bulletinSourceType", "type" : ["string", "null"] },
+	{ "name" : "bulletinTimestamp", "type" : ["string", "null"], "doc" : "Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" }
+  ]
+}

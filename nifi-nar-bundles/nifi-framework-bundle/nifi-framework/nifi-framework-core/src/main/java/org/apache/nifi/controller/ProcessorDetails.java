@@ -18,13 +18,13 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 
 /**
@@ -40,8 +40,9 @@ public class ProcessorDetails {
     private final boolean triggerWhenAnyDestinationAvailable;
     private final boolean eventDrivenSupported;
     private final boolean batchSupported;
+    private final boolean executionNodeRestricted;
     private final InputRequirement.Requirement inputRequirement;
-    private final ComponentLog componentLog;
+    private final TerminationAwareLogger componentLog;
     private final BundleCoordinate bundleCoordinate;
 
     public ProcessorDetails(final LoggableComponent<Processor> processor) {
@@ -56,6 +57,7 @@ public class ProcessorDetails {
         this.triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
         this.triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
         this.eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
+        this.executionNodeRestricted = procClass.isAnnotationPresent(PrimaryNodeOnly.class);
 
         final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
         if (inputRequirementPresent) {
@@ -97,11 +99,15 @@ public class ProcessorDetails {
         return batchSupported;
     }
 
+    public boolean isExecutionNodeRestricted(){
+        return executionNodeRestricted;
+    }
+
     public InputRequirement.Requirement getInputRequirement() {
         return inputRequirement;
     }
 
-    public ComponentLog getComponentLog() {
+    public TerminationAwareLogger getComponentLog() {
         return componentLog;
     }
 

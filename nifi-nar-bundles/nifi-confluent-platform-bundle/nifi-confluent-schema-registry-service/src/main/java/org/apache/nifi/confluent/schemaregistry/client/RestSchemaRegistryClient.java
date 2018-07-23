@@ -17,33 +17,31 @@
 
 package org.apache.nifi.confluent.schemaregistry.client;
 
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaParseException;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.web.util.WebUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
+
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaParseException;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.apache.nifi.web.util.WebUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ArrayNode;
-
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 
 /**
@@ -57,25 +55,28 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
  * </p>
  */
 public class RestSchemaRegistryClient implements SchemaRegistryClient {
+
     private final List<String> baseUrls;
     private final Client client;
+    private final ComponentLog logger;
 
     private static final String SUBJECT_FIELD_NAME = "subject";
     private static final String VERSION_FIELD_NAME = "version";
     private static final String ID_FIELD_NAME = "id";
     private static final String SCHEMA_TEXT_FIELD_NAME = "schema";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String SCHEMA_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
 
-    private final ConcurrentMap<String, Integer> schemaNameToIdentifierMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Integer, String> schemaIdentifierToNameMap = new ConcurrentHashMap<>();
 
-
-    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext) {
+    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
-        final ClientConfig clientConfig = new DefaultClientConfig();
-        clientConfig.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, timeoutMillis);
-        clientConfig.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, timeoutMillis);
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
+        clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
+
+        this.logger = logger;
     }
 
 
@@ -98,45 +99,41 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         // To make this more efficient, we will cache a mapping of Schema Name to identifier, so that we can look this up more efficiently.
 
         // Check if we have cached the Identifier to Name mapping
-        final String schemaName = schemaIdentifierToNameMap.get(schemaId);
-        if (schemaName != null) {
-            return getSchema(schemaName);
-        }
 
-        final String schemaDescription = "identifier " + schemaId;
-        final JsonNode schemaNameArray = fetchJsonResponse("/subjects", schemaDescription);
-        if (!schemaNameArray.isArray()) {
-            throw new IOException("When determining Subjects that are available, expected a JSON Array but did not receive a valid response");
-        }
+        final String schemaPath = getSchemaPath(schemaId);
+        final JsonNode responseJson = fetchJsonResponse(schemaPath, "id " + schemaId);
+        final JsonNode subjectsJson = fetchJsonResponse("/subjects", "subjects array");
+        final ArrayNode subjectsList = (ArrayNode) subjectsJson;
 
-        final ArrayNode arrayNode = (ArrayNode) schemaNameArray;
-        for (final JsonNode node : arrayNode) {
-            final String nodeName = node.getTextValue();
-
-            final String schemaPath = getSubjectPath(nodeName);
-            final JsonNode schemaNode = fetchJsonResponse(schemaPath, schemaDescription);
-
-            final int id = schemaNode.get(ID_FIELD_NAME).asInt();
-            schemaNameToIdentifierMap.put(nodeName, id);
-            schemaIdentifierToNameMap.put(id, nodeName);
-
-            if (id == schemaId) {
-                return createRecordSchema(schemaNode);
+        JsonNode completeSchema = null;
+        for (JsonNode subject: subjectsList) {
+            try {
+                final String subjectName = subject.asText();
+                completeSchema = postJsonResponse("/subjects/" + subjectName, responseJson, "schema id: " + schemaId);
+                break;
+            } catch (SchemaNotFoundException e) {
+                continue;
             }
+
         }
 
-        throw new SchemaNotFoundException("Could not find a schema with identifier " + schemaId);
+        if(completeSchema == null) {
+            throw new SchemaNotFoundException("could not get schema with id: " + schemaId);
+        }
+
+        final RecordSchema recordSchema = createRecordSchema(completeSchema);
+        return recordSchema;
     }
 
     private RecordSchema createRecordSchema(final JsonNode schemaNode) throws SchemaNotFoundException {
-        final String subject = schemaNode.get(SUBJECT_FIELD_NAME).getTextValue();
+        final String subject = schemaNode.get(SUBJECT_FIELD_NAME).asText();
         final int version = schemaNode.get(VERSION_FIELD_NAME).asInt();
         final int id = schemaNode.get(ID_FIELD_NAME).asInt();
-        final String schemaText = schemaNode.get(SCHEMA_TEXT_FIELD_NAME).getTextValue();
+        final String schemaText = schemaNode.get(SCHEMA_TEXT_FIELD_NAME).asText();
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);
-            final SchemaIdentifier schemaId = SchemaIdentifier.of(subject, id, version);
+            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id(Long.valueOf(id)).version(version).build();
 
             final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
             return recordSchema;
@@ -150,19 +147,47 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         return "/subjects/" + URLEncoder.encode(schemaName, "UTF-8") + "/versions/latest";
     }
 
+    private String getSchemaPath(final int schemaId) throws UnsupportedEncodingException {
+        return "/schemas/ids/" + URLEncoder.encode(String.valueOf(schemaId), "UTF-8");
+    }
+
+    private JsonNode postJsonResponse(final String pathSuffix, final JsonNode schema, final String schemaDescription) throws SchemaNotFoundException {
+        String errorMessage = null;
+        for(final String baseUrl: baseUrls) {
+            final String path = getPath(pathSuffix);
+            final String trimmedBase = getTrimmedBase(baseUrl);
+            final String url = trimmedBase + path;
+            final WebTarget builder = client.target(url);
+            final Response response = builder.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE).post(Entity.json(schema.toString()));
+            final int responseCode = response.getStatus();
+
+            if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
+                continue;
+            }
+
+            if(responseCode == Response.Status.OK.getStatusCode()) {
+                final JsonNode responseJson = response.readEntity(JsonNode.class);
+                return responseJson;
+            }
+        }
+
+        throw new SchemaNotFoundException("Failed to retrieve Schema with " + schemaDescription + " from any of the Confluent Schema Registry URL's provided; failure response message: "
+                + errorMessage);
+    }
+
     private JsonNode fetchJsonResponse(final String pathSuffix, final String schemaDescription) throws SchemaNotFoundException, IOException {
         String errorMessage = null;
         for (final String baseUrl : baseUrls) {
-            final String path = pathSuffix.startsWith("/") ? pathSuffix : "/" + pathSuffix;
-            final String trimmedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+            final String path = getPath(pathSuffix);
+            final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
 
-            final WebResource.Builder builder = client.resource(url).accept(MediaType.APPLICATION_JSON);
-            final ClientResponse response = builder.get(ClientResponse.class);
+            final WebTarget webTarget = client.target(url);
+            final Response response = webTarget.request().accept(MediaType.APPLICATION_JSON).get();
             final int responseCode = response.getStatus();
 
             if (responseCode == Response.Status.OK.getStatusCode()) {
-                final JsonNode responseJson = response.getEntity(JsonNode.class);
+                final JsonNode responseJson = response.readEntity(JsonNode.class);
                 return responseJson;
             }
 
@@ -171,11 +196,19 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             }
 
             if (errorMessage == null) {
-                errorMessage = response.getEntity(String.class);
+                errorMessage = response.readEntity(String.class);
             }
         }
 
         throw new IOException("Failed to retrieve Schema with " + schemaDescription + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
+    }
+
+    private String getTrimmedBase(String baseUrl) {
+        return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    }
+
+    private String getPath(String pathSuffix) {
+        return pathSuffix.startsWith("/") ? pathSuffix : "/" + pathSuffix;
     }
 
 }

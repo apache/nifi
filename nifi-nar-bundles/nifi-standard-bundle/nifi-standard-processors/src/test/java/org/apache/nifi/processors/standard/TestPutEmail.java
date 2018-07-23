@@ -31,6 +31,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
@@ -136,12 +137,13 @@ public class TestPutEmail {
     public void testOutgoingMessageWithOptionalProperties() throws Exception {
         // verifies that optional attributes are set on the outgoing Message correctly
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNíFiNonASCII");
         runner.setProperty(PutEmail.FROM, "${from}");
         runner.setProperty(PutEmail.MESSAGE, "${message}");
         runner.setProperty(PutEmail.TO, "${to}");
         runner.setProperty(PutEmail.BCC, "${bcc}");
         runner.setProperty(PutEmail.CC, "${cc}");
+        runner.setProperty(PutEmail.ATTRIBUTE_NAME_REGEX, "Precedence.*");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("from", "test@apache.org <NiFi>");
@@ -149,6 +151,8 @@ public class TestPutEmail {
         attributes.put("to", "to@apache.org");
         attributes.put("bcc", "bcc@apache.org");
         attributes.put("cc", "cc@apache.org");
+        attributes.put("Precedence", "bulk");
+        attributes.put("PrecedenceEncodeDecodeTest", "búlk");
         runner.enqueue("Some Text".getBytes(), attributes);
 
         runner.run();
@@ -160,7 +164,7 @@ public class TestPutEmail {
         assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
         Message message = processor.getMessages().get(0);
         assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("X-Mailer Header", "TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]));
         assertEquals("the message body", message.getContent());
         assertEquals(1, message.getRecipients(RecipientType.TO).length);
         assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
@@ -168,6 +172,8 @@ public class TestPutEmail {
         assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
         assertEquals(1, message.getRecipients(RecipientType.CC).length);
         assertEquals("cc@apache.org",message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("bulk", MimeUtility.decodeText(message.getHeader("Precedence")[0]));
+        assertEquals("búlk", MimeUtility.decodeText(message.getHeader("PrecedenceEncodeDecodeTest")[0]));
     }
 
     @Test
@@ -249,6 +255,37 @@ public class TestPutEmail {
         final String text = IOUtils.toString(attachIs, "UTF-8");
         assertEquals("Some text", text);
 
+        assertNull(message.getRecipients(RecipientType.BCC));
+        assertNull(message.getRecipients(RecipientType.CC));
+    }
+
+    @Test
+    public void testOutgoingMessageWithFlowfileContent() throws Exception {
+        // verifies that are set on the outgoing Message correctly
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("sendContent", "true");
+        attributes.put("body", "Message Body");
+
+        runner.enqueue("Some Text".getBytes(), attributes);
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        // Verify that the Message was populated correctly
+        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        Message message = processor.getMessages().get(0);
+        assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("Some Text", message.getContent());
+        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertNull(message.getRecipients(RecipientType.BCC));
         assertNull(message.getRecipients(RecipientType.CC));
     }

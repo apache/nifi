@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Client',
+                'nf.Storage',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Dialog',
                 'nf.Shell'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
-                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
+            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PolicyManagement =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Client'),
+                require('nf.Storage'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
                 require('nf.Dialog'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Client,
+            root.nf.Storage,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
             root.nf.Dialog,
             root.nf.Shell);
     }
-}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
     'use strict';
     
     var config = {
@@ -64,6 +67,7 @@
     };
 
     var initialized = false;
+    var initializedComponentRestrictions = false;
 
     var initAddTenantToPolicyDialog = function () {
         $('#new-policy-user-button').on('click', function () {
@@ -199,7 +203,7 @@
             },
             _renderGroup: function (ul, match) {
                 var groupLabel = $('<span></span>').text(match.component.identity);
-                var groupContent = $('<a></a>').append('<div class="fa fa-users" style="margin-right: 5px;"></div>').append(groupLabel);
+                var groupContent = $('<a></a>').append('<div class="fa fa-users"></div>').append(groupLabel);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(groupContent).appendTo(ul);
             }
         });
@@ -418,7 +422,10 @@
 
                     // if the option is for a specific component
                     if (globalPolicySupportsReadWrite(option.value)) {
-                        // update the policy target and let it relaod the policy
+                        $('#restricted-component-required-permissions').hide();
+                        $('#restriction-message').hide();
+
+                        // update the policy target and let it reload the policy
                         $('#controller-policy-target').combo('setSelectedOption', {
                             'value': 'read'
                         }).show();
@@ -430,6 +437,59 @@
                             $('#selected-policy-action').text('write');
                         } else {
                             $('#selected-policy-action').text('read');
+                        }
+
+                        // handle any granular restrictions
+                        if (option.value === 'restricted-components') {
+                            if (!initializedComponentRestrictions) {
+                                var regardlessOfRestrictions = 'regardless of restrictions';
+                                var componentRestrictions = nfCanvasUtils.getComponentRestrictions();
+                                var requiredPermissions = componentRestrictions.requiredPermissions;
+
+                                var options = [{
+                                    text: regardlessOfRestrictions,
+                                    value: '',
+                                    description: 'Allows users to create/modify all restricted components regardless of restrictions.'
+                                }];
+
+                                requiredPermissions.each(function (label, id) {
+                                    if (id !== option.value) {
+                                        options.push({
+                                            text: "requiring '" + label + "'",
+                                            value: id,
+                                            description: "Allows users to create/modify restricted components requiring '" + nfCommon.escapeHtml(label) + "'"
+                                        });
+                                    }
+                                });
+
+                                options.sort(function (a, b) {
+                                    if (a.text === regardlessOfRestrictions) {
+                                        return -1;
+                                    } else if (b.text === regardlessOfRestrictions) {
+                                        return 1;
+                                    }
+
+                                    return a.text < b.text ? -1 : a.text > b.text ? 1 : 0;
+                                });
+
+                                $('#restricted-component-required-permissions').combo({
+                                    options: options,
+                                    select: function (restrictionOption) {
+                                        if (restrictionOption.text === regardlessOfRestrictions) {
+                                            $('#restriction-message').hide();
+                                        } else {
+                                            $('#restriction-message').show();
+                                        }
+
+                                        loadPolicy();
+                                    }
+                                });
+                            }
+
+                            $('#restricted-component-required-permissions').show();
+                        } else {
+                            $('#restriction-message').hide();
+                            $('#restricted-component-required-permissions').hide();
                         }
 
                         // reload the policy
@@ -470,13 +530,17 @@
                 value: 'write-component',
                 description: 'Allows users to modify component configuration details'
             }, {
+                text: 'view provenance',
+                value: 'read-provenance',
+                description: 'Allows users to view provenance events generated by this component'
+            }, {
                 text: 'view the data',
                 value: 'read-data',
-                description: 'Allows users to view metadata and content for this component through provenance data and flowfile queues in outbound connections'
+                description: 'Allows users to view metadata and content for this component in flowfile queues in outbound connections and through provenance events'
             }, {
                 text: 'modify the data',
                 value: 'write-data',
-                description: 'Allows users to empty flowfile queues in outbound connections and submit replays'
+                description: 'Allows users to empty flowfile queues in outbound connections and submit replays through provenance events'
             }, {
                 text: 'receive data via site-to-site',
                 value: 'write-receive-data',
@@ -510,6 +574,9 @@
                     } else if (option.value === 'write-data') {
                         $('#selected-policy-action').text('write');
                         resource = ('data/' + resource);
+                    } else if (option.value === 'read-provenance') {
+                        $('#selected-policy-action').text('read');
+                        resource = ('provenance-data/' + resource);
                     } else if (option.value === 'read-policies') {
                         $('#selected-policy-action').text('read');
                         resource = ('policies/' + resource);
@@ -537,7 +604,7 @@
         var identityFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
             if (dataContext.type === 'group') {
-                markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
+                markup += '<div class="fa fa-users"></div>';
             }
 
             markup += nfCommon.escapeHtml(dataContext.component.identity);
@@ -735,11 +802,14 @@
      */
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
+        var revision = nfClient.getRevision(currentEntity);
         
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
-                url: currentEntity.uri + '?' + $.param(nfClient.getRevision(currentEntity)),
+                url: currentEntity.uri + '?' + $.param($.extend({
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                }, revision)),
                 dataType: 'json'
             }).done(function () {
                 loadPolicy();
@@ -764,6 +834,14 @@
         var resource = $('#selected-policy-type').text();
         if (componentId !== '') {
             resource += ('/' + componentId);
+        }
+
+        // identify more granular restrict component access if applicable
+        if (resource === 'restricted-components') {
+            var requiredPermission = $('#restricted-component-required-permissions').combo('getSelectedOption').value;
+            if (!nfCommon.isBlank(requiredPermission)) {
+                resource += ('/' + requiredPermission);
+            }
         }
 
         return {
@@ -909,7 +987,10 @@
 
         var policyDeferred;
         if (resourceAndAction.resource.startsWith('/policies')) {
-            $('#admin-policy-message').show();
+            // if this is a component specific policy permission, show the admin policy message
+            if (resourceAndAction.resource.endsWith('/policies')) {
+                $('#admin-policy-message').show();
+            }
 
             policyDeferred = $.Deferred(function (deferred) {
                 $.ajax({
@@ -965,6 +1046,87 @@
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
                             $('#add-local-admin-message').show();
+                        }
+
+                        deferred.resolve();
+                    } else if (xhr.status === 403) {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        $('#policy-message').text('Not authorized to access the policy for the specified resource.');
+
+                        deferred.resolve();
+                    } else {
+                        // reset the policy
+                        resetPolicy();
+
+                        deferred.reject();
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
+                    }
+                });
+            }).promise();
+        } else if (resourceAndAction.resource.startsWith('/restricted-components')) {
+            $('#admin-policy-message').hide();
+
+            policyDeferred = $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/policies/' + resourceAndAction.action + resourceAndAction.resource,
+                    dataType: 'json'
+                }).done(function (policyEntity) {
+                    // update the refresh timestamp
+                    $('#policy-last-refreshed').text(policyEntity.generated);
+
+                    // ensure appropriate actions for the loaded policy
+                    if (policyEntity.permissions.canRead === true) {
+                        var policy = policyEntity.component;
+
+                        // if the return policy is for the desired policy (not inherited, show it)
+                        if (resourceAndAction.resource === policy.resource) {
+                            // populate the policy details
+                            populatePolicy(policyEntity);
+                        } else {
+                            // reset the policy
+                            resetPolicy();
+
+                            // show an appropriate message
+                            $('#policy-message').text('No restriction specific users.');
+
+                            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                                // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                                $('#new-policy-message').show();
+                            }
+                        }
+                    } else {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        $('#policy-message').text('Not authorized to view the policy.');
+
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#new-policy-message').show();
+                        }
+                    }
+
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 404) {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        if (resourceAndAction.resource === '/restricted-components') {
+                            $('#policy-message').text('No users with permission "regardless of restrictions."');
+                        } else {
+                            $('#policy-message').text('No users with permission to specific restriction.');
+                        }
+
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#new-policy-message').show();
                         }
 
                         deferred.resolve();
@@ -1087,6 +1249,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'action': resourceAndAction.action,
                 'resource': resourceAndAction.resource,
@@ -1142,6 +1305,7 @@
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             var entity = {
                 'revision': nfClient.getRevision(currentEntity),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': currentEntity.id,
                     'users': users,
@@ -1314,6 +1478,9 @@
                     value: 'read-data'
                 }, false)
                 .combo('setOptionEnabled', {
+                    value: 'read-provenance'
+                }, false)
+                .combo('setOptionEnabled', {
                     value: 'write-data'
                 }, false)
                 .combo('setSelectedOption', {
@@ -1356,6 +1523,9 @@
                 }, false)
                 .combo('setOptionEnabled', {
                     value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-provenance'
                 }, false)
                 .combo('setOptionEnabled', {
                     value: 'write-data'
@@ -1402,6 +1572,9 @@
                     value: 'read-data'
                 }, false)
                 .combo('setOptionEnabled', {
+                    value: 'read-provenance'
+                }, false)
+                .combo('setOptionEnabled', {
                     value: 'write-data'
                 }, false)
                 .combo('setSelectedOption', {
@@ -1440,6 +1613,9 @@
                     }, false)
                     .combo('setOptionEnabled', {
                         value: 'read-data'
+                    }, true)
+                    .combo('setOptionEnabled', {
+                        value: 'read-provenance'
                     }, true)
                     .combo('setOptionEnabled', {
                         value: 'write-data'

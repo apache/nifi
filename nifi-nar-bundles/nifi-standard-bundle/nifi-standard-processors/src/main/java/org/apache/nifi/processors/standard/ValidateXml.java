@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,6 +74,7 @@ public class ValidateXml extends AbstractProcessor {
             .name("Schema File")
             .description("The path to the Schema file that is to be used for validation")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
@@ -115,7 +118,11 @@ public class ValidateXml extends AbstractProcessor {
     @OnScheduled
     public void parseSchema(final ProcessContext context) throws IOException, SAXException {
         try {
-            final File file = new File(context.getProperty(SCHEMA_FILE).getValue());
+            final File file = new File(context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().getValue());
+            // Ensure the file exists
+            if (!file.exists()) {
+                throw new FileNotFoundException("Schema file not found at specified location: " + file.getAbsolutePath());
+            }
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(SCHEMA_LANGUAGE);
             final Schema schema = schemaFactory.newSchema(file);
             this.schemaRef.set(schema);

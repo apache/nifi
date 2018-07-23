@@ -102,7 +102,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
         final Map<String, MetricDescriptor<?>> metricDescriptors = getStandardMetricDescriptors(uri);
 
-        final StatusHistoryEntity responseEntity = clientResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
+        final StatusHistoryEntity responseEntity = clientResponse.getClientResponse().readEntity(StatusHistoryEntity.class);
 
         final Set<StatusDescriptorDTO> fieldDescriptors = new LinkedHashSet<>();
 
@@ -111,7 +111,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         final List<NodeStatusSnapshotsDTO> nodeStatusSnapshots = new ArrayList<>(successfulResponses.size());
         LinkedHashMap<String, String> noReadPermissionsComponentDetails = null;
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final StatusHistoryEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
+            final StatusHistoryEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(StatusHistoryEntity.class);
             final StatusHistoryDTO nodeStatus = nodeResponseEntity.getStatusHistory();
             lastStatusHistory = nodeStatus;
             if (noReadPermissionsComponentDetails == null && !nodeResponseEntity.getCanRead()) {

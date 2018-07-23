@@ -33,7 +33,9 @@ goto startConfig
 :startConfig
 set LIB_DIR=%~sdp0..\classpath;%~sdp0..\lib
 
-SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.toolkit.admin.nodemanager.NodeManagerTool
+Sif "%JAVA_OPTS%" == "" set JAVA_OPTS=-Xms12m -Xmx24m
+
+ET JAVA_PARAMS=-cp %LIB_DIR%\* %JAVA_OPTS% org.apache.nifi.toolkit.admin.nodemanager.NodeManagerTool
 
 cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* ""
 

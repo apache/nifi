@@ -25,6 +25,12 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
@@ -38,19 +44,24 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Factory bean for loading the configured authorizer.
@@ -61,6 +72,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     private static final String AUTHORIZERS_XSD = "/authorizers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
+
+    private static SensitivePropertyProviderFactory SENSITIVE_PROPERTY_PROVIDER_FACTORY;
+    private static SensitivePropertyProvider SENSITIVE_PROPERTY_PROVIDER;
 
     /**
      * Load the JAXBContext.
@@ -112,6 +126,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each user group provider
                     for (final org.apache.nifi.authorization.generated.UserGroupProvider userGroupProvider : authorizerConfiguration.getUserGroupProvider()) {
+                        if (userGroupProviders.containsKey(userGroupProvider.getIdentifier())) {
+                            throw new Exception("Duplicate User Group Provider identifier in Authorizers configuration: " + userGroupProvider.getIdentifier());
+                        }
                         userGroupProviders.put(userGroupProvider.getIdentifier(), createUserGroupProvider(userGroupProvider.getIdentifier(), userGroupProvider.getClazz()));
                     }
 
@@ -123,6 +140,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each access policy provider
                     for (final org.apache.nifi.authorization.generated.AccessPolicyProvider accessPolicyProvider : authorizerConfiguration.getAccessPolicyProvider()) {
+                        if (accessPolicyProviders.containsKey(accessPolicyProvider.getIdentifier())) {
+                            throw new Exception("Duplicate Access Policy Provider identifier in Authorizers configuration: " + accessPolicyProvider.getIdentifier());
+                        }
                         accessPolicyProviders.put(accessPolicyProvider.getIdentifier(), createAccessPolicyProvider(accessPolicyProvider.getIdentifier(), accessPolicyProvider.getClazz()));
                     }
 
@@ -134,6 +154,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each authorizer
                     for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
+                        if (authorizers.containsKey(authorizer.getIdentifier())) {
+                            throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
+                        }
                         authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
                     }
 
@@ -149,6 +172,8 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     // ensure it was found
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
+                    } else {
+                        authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
                     }
                 }
             }
@@ -168,11 +193,12 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                 final Schema schema = schemaFactory.newSchema(Authorizers.class.getResource(AUTHORIZERS_XSD));
 
                 // attempt to unmarshal
+                final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(authorizersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
-                final JAXBElement<Authorizers> element = unmarshaller.unmarshal(new StreamSource(authorizersConfigurationFile), Authorizers.class);
+                final JAXBElement<Authorizers> element = unmarshaller.unmarshal(xsr, Authorizers.class);
                 return element.getValue();
-            } catch (SAXException | JAXBException e) {
+            } catch (XMLStreamException | SAXException | JAXBException e) {
                 throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
             }
         } else {
@@ -326,15 +352,21 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
-        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance, authorizerClassLoader));
+        return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
     }
 
     private AuthorizerConfigurationContext loadAuthorizerConfiguration(final String identifier, final List<Property> properties) {
         final Map<String, String> authorizerProperties = new HashMap<>();
 
         for (final Property property : properties) {
-            authorizerProperties.put(property.getName(), property.getValue());
+            if (!StringUtils.isBlank(property.getEncryption())) {
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                authorizerProperties.put(property.getName(), decryptedValue);
+            } else {
+                authorizerProperties.put(property.getName(), property.getValue());
+            }
         }
+
         return new StandardAuthorizerConfigurationContext(identifier, authorizerProperties);
     }
 
@@ -426,6 +458,28 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
         };
     }
 
+    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
+        initializeSensitivePropertyProvider(encryptionScheme);
+        return SENSITIVE_PROPERTY_PROVIDER.unprotect(cipherText);
+    }
+
+    private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
+        if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
+            try {
+                String keyHex = getMasterKey();
+                SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
+                SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
+            } catch (IOException e) {
+                logger.error("Error extracting master key from bootstrap.conf for login identity provider decryption", e);
+                throw new SensitivePropertyProtectionException("Could not read master key from bootstrap.conf");
+            }
+        }
+    }
+
+    private static String getMasterKey() throws IOException {
+        return NiFiPropertiesLoader.extractKeyFromBootstrapFile();
+    }
+
     @Override
     public Class getObjectType() {
         return Authorizer.class;
@@ -438,8 +492,44 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     @Override
     public void destroy() throws Exception {
-        if (authorizer != null) {
-            authorizer.preDestruction();
+        List<Exception> errors = new ArrayList<>();
+
+        if (authorizers != null) {
+            authorizers.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
+                }
+            });
+        }
+
+        if (accessPolicyProviders != null) {
+            accessPolicyProviders.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
+                }
+            });
+        }
+
+        if (userGroupProviders != null) {
+            userGroupProviders.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
+                }
+            });
+        }
+
+        if (!errors.isEmpty()) {
+            List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
+            throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.get(0));
         }
     }
 

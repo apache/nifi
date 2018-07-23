@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -25,19 +28,15 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.AmazonSNSException;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.AmazonSNSException;
+import com.amazonaws.services.sns.model.PublishRequest;
+import com.amazonaws.services.sns.model.PublishResult;
 
 
 public class TestPutSNS {
@@ -51,6 +50,7 @@ public class TestPutSNS {
     public void setUp() {
         mockSNSClient = Mockito.mock(AmazonSNSClient.class);
         mockPutSNS = new PutSNS() {
+            @Override
             protected AmazonSNSClient getClient() {
                 actualSNSClient = client;
                 return mockSNSClient;
@@ -61,7 +61,6 @@ public class TestPutSNS {
 
     @Test
     public void testPublish() throws IOException {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSNS.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         runner.setProperty(PutSNS.SUBJECT, "${eval.subject}");
@@ -92,7 +91,6 @@ public class TestPutSNS {
 
     @Test
     public void testPublishFailure() throws IOException {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:123456789012:test-topic-1");
         final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", "1.txt");

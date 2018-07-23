@@ -19,6 +19,7 @@ package org.apache.nifi.processors.image;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -70,14 +72,14 @@ public class ResizeImage extends AbstractProcessor {
         .name("Image Width (in pixels)")
         .description("The desired number of pixels for the image's width")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor IMAGE_HEIGHT = new PropertyDescriptor.Builder()
         .name("Image Height (in pixels)")
         .description("The desired number of pixels for the image's height")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor SCALING_ALGORITHM = new PropertyDescriptor.Builder()
@@ -173,7 +175,13 @@ public class ResizeImage extends AbstractProcessor {
                         if (scaledImage instanceof BufferedImage) {
                             scaledBufferedImg = (BufferedImage) scaledImage;
                         } else {
-                            scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), image.getType());
+                            // Determine image type, since calling image.getType may return 0
+                            int imageType = BufferedImage.TYPE_INT_ARGB;
+                            if(image.getTransparency() == Transparency.OPAQUE) {
+                                imageType = BufferedImage.TYPE_INT_RGB;
+                            }
+
+                            scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), imageType);
                             final Graphics2D graphics = scaledBufferedImg.createGraphics();
                             try {
                                 graphics.drawImage(scaledImage, 0, 0, null);

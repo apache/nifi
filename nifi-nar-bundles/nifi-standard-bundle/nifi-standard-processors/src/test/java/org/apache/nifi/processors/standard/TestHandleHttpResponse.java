@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.AsyncContext;
@@ -267,6 +268,11 @@ public class TestHandleHttpResponse {
 
         public int getCompletionCount() {
             return completedCount.get();
+        }
+
+        @Override
+        public long getRequestTimeout(TimeUnit timeUnit) {
+            return timeUnit.convert(30000, TimeUnit.MILLISECONDS);
         }
     }
 }

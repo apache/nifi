@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.net.ssl.SSLContext;
 
@@ -29,7 +31,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -119,112 +120,96 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .defaultValue("REQUIRED")
             .build();
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    /*
-     * Will ensure that list of PropertyDescriptors is build only once, since
-     * all other lifecycle methods are invoked multiple times.
-     */
     static {
-        descriptors.add(HOST);
-        descriptors.add(PORT);
-        descriptors.add(V_HOST);
-        descriptors.add(USER);
-        descriptors.add(PASSWORD);
-        descriptors.add(AMQP_VERSION);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(USE_CERT_AUTHENTICATION);
-        descriptors.add(CLIENT_AUTH);
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(HOST);
+        properties.add(PORT);
+        properties.add(V_HOST);
+        properties.add(USER);
+        properties.add(PASSWORD);
+        properties.add(AMQP_VERSION);
+        properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(USE_CERT_AUTHENTICATION);
+        properties.add(CLIENT_AUTH);
+        propertyDescriptors = Collections.unmodifiableList(properties);
     }
 
-    protected volatile Connection amqpConnection;
+    protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
-    protected volatile T targetResource;
+    private final BlockingQueue<AMQPResource<T>> resourceQueue = new LinkedBlockingQueue<>();
+
 
     /**
-     * Will builds target resource ({@link AMQPPublisher} or
-     * {@link AMQPConsumer}) upon first invocation and will delegate to the
-     * implementation of
-     * {@link #rendezvousWithAmqp(ProcessContext, ProcessSession)} method for
-     * further processing.
+     * Will builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}) upon first invocation and will delegate to the
+     * implementation of {@link #processResource(ProcessContext, ProcessSession)} method for further processing.
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        synchronized (this) {
-            this.buildTargetResource(context);
+    public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        AMQPResource<T> resource = resourceQueue.poll();
+        if (resource == null) {
+            resource = createResource(context);
         }
-        this.rendezvousWithAmqp(context, session);
+
+        try {
+            processResource(resource.getConnection(), resource.getWorker(), context, session);
+            resourceQueue.offer(resource);
+        } catch (final Exception e) {
+            try {
+                resource.close();
+            } catch (final Exception e2) {
+                e.addSuppressed(e2);
+            }
+
+            throw e;
+        }
     }
 
-    /**
-     * Will close current AMQP connection.
-     */
+
     @OnStopped
     public void close() {
-        try {
-            if (this.targetResource != null) {
-                this.targetResource.close();
+        AMQPResource<T> resource;
+        while ((resource = resourceQueue.poll()) != null) {
+            try {
+                resource.close();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to close AMQP Connection", e);
             }
-        } catch (Exception e) {
-            this.getLogger().warn("Failure while closing target resource " + this.targetResource, e);
         }
-        try {
-            if (this.amqpConnection != null) {
-                this.amqpConnection.close();
-            }
-        } catch (IOException e) {
-            this.getLogger().warn("Failure while closing connection", e);
-        }
-        this.amqpConnection = null;
     }
 
     /**
-     * Delegate method to supplement
-     * {@link #onTrigger(ProcessContext, ProcessSession)}. It is implemented by
-     * sub-classes to perform {@link Processor} specific functionality.
-     *
-     * @param context
-     *            instance of {@link ProcessContext}
-     * @param session
-     *            instance of {@link ProcessSession}
+     * Performs functionality of the Processor, given the appropriate connection and worker
      */
-    protected abstract void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException;
+    protected abstract void processResource(Connection connection, T worker, ProcessContext context, ProcessSession session) throws ProcessException;
 
     /**
-     * Delegate method to supplement building of target {@link AMQPWorker} (see
-     * {@link AMQPPublisher} or {@link AMQPConsumer}) and is implemented by
-     * sub-classes.
+     * Builds the appropriate AMQP Worker for the implementing processor
      *
-     * @param context
-     *            instance of {@link ProcessContext}
+     * @param context instance of {@link ProcessContext}
      * @return new instance of {@link AMQPWorker}
      */
-    protected abstract T finishBuildingTargetResource(ProcessContext context);
+    protected abstract T createAMQPWorker(ProcessContext context, Connection connection);
 
-    /**
-     * Builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}).
-     * It does so by making a {@link Connection} and then delegating to the
-     * implementation of {@link #finishBuildingTargetResource(ProcessContext)}
-     * which will build {@link AMQPWorker} (see {@link AMQPPublisher} or
-     * {@link AMQPConsumer}).
-     */
-    private void buildTargetResource(ProcessContext context) {
-        if (this.amqpConnection == null || !this.amqpConnection.isOpen()) {
-            this.amqpConnection = this.createConnection(context);
-            this.targetResource = this.finishBuildingTargetResource(context);
-        }
+
+    private AMQPResource<T> createResource(final ProcessContext context) {
+        final Connection connection = createConnection(context);
+        final T worker = createAMQPWorker(context, connection);
+        return new AMQPResource<>(connection, worker);
     }
 
-    /**
-     * Creates {@link Connection} to AMQP system.
-     */
-    private Connection createConnection(ProcessContext context) {
-        ConnectionFactory cf = new ConnectionFactory();
+
+    protected Connection createConnection(ProcessContext context) {
+        final ConnectionFactory cf = new ConnectionFactory();
         cf.setHost(context.getProperty(HOST).getValue());
         cf.setPort(Integer.parseInt(context.getProperty(PORT).getValue()));
         cf.setUsername(context.getProperty(USER).getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
-        String vHost = context.getProperty(V_HOST).getValue();
+
+        final String vHost = context.getProperty(V_HOST).getValue();
         if (vHost != null) {
             cf.setVirtualHost(vHost);
         }

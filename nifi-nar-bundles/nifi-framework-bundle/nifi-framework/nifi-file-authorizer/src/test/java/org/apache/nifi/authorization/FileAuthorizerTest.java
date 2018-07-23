@@ -341,11 +341,19 @@ public class FileAuthorizerTest {
 
         // verify user2's policies
         final Map<String,Set<RequestAction>> user2Policies = getResourceActions(policies, user2);
-        assertEquals(2, user2Policies.size());
+        assertEquals(3, user2Policies.size());
 
         assertTrue(user2Policies.containsKey(ResourceType.Provenance.getValue()));
         assertEquals(1, user2Policies.get(ResourceType.Provenance.getValue()).size());
         assertTrue(user2Policies.get(ResourceType.Provenance.getValue()).contains(RequestAction.READ));
+
+        assertTrue(user2Policies.containsKey(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID));
+        assertEquals(1, user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
+        assertTrue(user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
+
+        assertTrue(user2Policies.containsKey(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID));
+        assertEquals(1, user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
+        assertTrue(user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
 
         // verify user3's policies
         final Map<String,Set<RequestAction>> user3Policies = getResourceActions(policies, user3);
@@ -435,6 +443,10 @@ public class FileAuthorizerTest {
         props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
 
+        props.setProperty("nifi.security.group.mapping.pattern.anygroup", "^(.*)$");
+        props.setProperty("nifi.security.group.mapping.value.anygroup", "$1");
+        props.setProperty("nifi.security.group.mapping.transform.anygroup", "UPPER");
+
         properties = getNiFiProperties(props);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
@@ -469,7 +481,7 @@ public class FileAuthorizerTest {
         final Set<Group> groups = authorizer.getGroups();
         assertEquals(1, groups.size());
         final Group group1 = groups.iterator().next();
-        assertEquals("group1", group1.getName());
+        assertEquals("GROUP1", group1.getName());
 
         final Resource inputPortResource = ResourceFactory.getDataTransferResource(
                 ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
@@ -1150,7 +1162,7 @@ public class FileAuthorizerTest {
         assertEquals(3, groups.size());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testAddGroupWhenUserDoesNotExist() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
         writeFile(primaryTenants, EMPTY_TENANTS);
@@ -1164,6 +1176,8 @@ public class FileAuthorizerTest {
                 .build();
 
         authorizer.addGroup(group);
+
+        assertEquals(1, authorizer.getGroups().size());
     }
 
     @Test

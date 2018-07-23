@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Map;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Map;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
@@ -31,10 +29,13 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 public class ScheduleComponentsEntity extends Entity {
     public static final String STATE_RUNNING = "RUNNING";
     public static final String STATE_STOPPED = "STOPPED";
+    public static final String STATE_ENABLED = "ENABLED";
+    public static final String STATE_DISABLED = "DISABLED";
 
     private String id;
     private String state;
     private Map<String, RevisionDTO> components;
+    private Boolean disconnectedNodeAcknowledged;
 
     /**
      * @return The id of the ProcessGroup
@@ -51,11 +52,11 @@ public class ScheduleComponentsEntity extends Entity {
     }
 
     /**
-     * @return The desired state of the descendant components. Possible states are 'RUNNING' and 'STOPPED'
+     * @return The desired state of the descendant components. Possible states are 'RUNNING', 'STOPPED', 'ENABLED', and 'DISABLED'
      */
     @ApiModelProperty(
         value = "The desired state of the descendant components",
-        allowableValues = STATE_RUNNING + ", " + STATE_STOPPED
+        allowableValues = STATE_RUNNING + ", " + STATE_STOPPED + ", " + STATE_ENABLED + ", " + STATE_DISABLED
     )
     public String getState() {
         return state;
@@ -77,5 +78,16 @@ public class ScheduleComponentsEntity extends Entity {
 
     public void setComponents(Map<String, RevisionDTO> components) {
         this.components = components;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

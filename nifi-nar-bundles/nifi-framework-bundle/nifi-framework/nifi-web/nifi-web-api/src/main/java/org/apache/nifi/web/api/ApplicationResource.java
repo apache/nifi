@@ -18,15 +18,12 @@ package org.apache.nifi.web.api;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
@@ -58,6 +55,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +64,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -100,6 +99,7 @@ public abstract class ApplicationResource {
 
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
+    public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
 
     public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
     public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
@@ -118,13 +118,10 @@ public abstract class ApplicationResource {
     public static final String NODEWISE = "false";
 
     @Context
-    private HttpServletRequest httpServletRequest;
+    protected HttpServletRequest httpServletRequest;
 
     @Context
-    private UriInfo uriInfo;
-
-    @Context
-    private HttpContext httpContext;
+    protected UriInfo uriInfo;
 
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
@@ -141,32 +138,25 @@ public abstract class ApplicationResource {
      * @return resource uri
      */
     protected String generateResourceUri(final String... path) {
+        URI uri = buildResourceUri(path);
+        return uri.toString();
+    }
+
+    private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         uriBuilder.segment(path);
         URI uri = uriBuilder.build();
         try {
 
             // check for proxy settings
+
             final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
             final String host = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
             final String port = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
-            String baseContextPath = getFirstHeaderValue(PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER);
 
-            // if necessary, prepend the context path
-            String resourcePath = uri.getPath();
-            if (baseContextPath != null) {
-                // normalize context path
-                if (!baseContextPath.startsWith("/")) {
-                    baseContextPath = "/" + baseContextPath;
-                }
-
-                if (baseContextPath.endsWith("/")) {
-                    baseContextPath = StringUtils.substringBeforeLast(baseContextPath, "/");
-                }
-
-                // determine the complete resource path
-                resourcePath = baseContextPath + resourcePath;
-            }
+            // Catch header poisoning
+            String whitelistedContextPaths = properties.getWhitelistedContextPaths();
+            String resourcePath = WebUtils.getResourcePath(uri, httpServletRequest, whitelistedContextPaths);
 
             // determine the port uri
             int uriPort = uri.getPort();
@@ -195,7 +185,7 @@ public abstract class ApplicationResource {
         } catch (final URISyntaxException use) {
             throw new UriBuilderException(use);
         }
-        return uri.toString();
+        return uri;
     }
 
     /**
@@ -238,7 +228,6 @@ public abstract class ApplicationResource {
 
         return Optional.of(idGenerationSeed);
     }
-
 
     /**
      * Generates an Ok response with no content.
@@ -300,22 +289,16 @@ public abstract class ApplicationResource {
     }
 
     protected MultivaluedMap<String, String> getRequestParameters() {
-        final MultivaluedMap<String, String> entity = new MultivaluedMapImpl();
+        final MultivaluedMap<String, String> entity = new MultivaluedHashMap();
 
-        // get the form that jersey processed and use it if it exists (only exist for requests with a body and application form urlencoded
-        final Form form = (Form) httpContext.getProperties().get(FormDispatchProvider.FORM_PROPERTY);
-        if (form == null) {
-            for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
-                if (entry.getValue() == null) {
-                    entity.add(entry.getKey(), null);
-                } else {
-                    for (final String aValue : entry.getValue()) {
-                        entity.add(entry.getKey(), aValue);
-                    }
+        for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
+            if (entry.getValue() == null) {
+                entity.add(entry.getKey(), null);
+            } else {
+                for (final String aValue : entry.getValue()) {
+                    entity.add(entry.getKey(), aValue);
                 }
             }
-        } else {
-            entity.putAll(form);
         }
 
         return entity;
@@ -472,15 +455,25 @@ public abstract class ApplicationResource {
     }
 
     /**
+     * Authorize any restrictions for the specified ComponentAuthorizable.
+     *
+     * @param authorizer                authorizer
+     * @param authorizable              component authorizable
+     */
+    protected void authorizeRestrictions(final Authorizer authorizer, final ComponentAuthorizable authorizable) {
+        authorizable.getRestrictedAuthorizables().forEach(restrictionAuthorizable -> restrictionAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
+    }
+
+    /**
      * Authorizes the specified process group.
      *
-     * @param processGroupAuthorizable      process group
-     * @param authorizer                    authorizer
-     * @param lookup                        lookup
-     * @param action                        action
-     * @param authorizeReferencedServices   whether to authorize referenced services
-     * @param authorizeTemplates            whether to authorize templates
-     * @param authorizeControllerServices   whether to authorize controller services
+     * @param processGroupAuthorizable    process group
+     * @param authorizer                  authorizer
+     * @param lookup                      lookup
+     * @param action                      action
+     * @param authorizeReferencedServices whether to authorize referenced services
+     * @param authorizeTemplates          whether to authorize templates
+     * @param authorizeControllerServices whether to authorize controller services
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices, final boolean authorizeTemplates,
@@ -869,8 +862,8 @@ public abstract class ApplicationResource {
     /**
      * Replicates the request to the given node
      *
-     * @param method the HTTP method
-     * @param entity the Entity to replicate
+     * @param method   the HTTP method
+     * @param entity   the Entity to replicate
      * @param nodeUuid the UUID of the node to replicate the request to
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
@@ -975,7 +968,7 @@ public abstract class ApplicationResource {
      * @throws InterruptedException if interrupted while replicating the request
      */
     protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
-        return replicateNodeResponse(method, getRequestParameters(), (Map<String, String>) null);
+        return replicateNodeResponse(method, getRequestParameters(), null);
     }
 
     /**
@@ -1066,6 +1059,17 @@ public abstract class ApplicationResource {
         return clusterCoordinator != null;
     }
 
+    boolean isDisconnectedFromCluster() {
+        return isClustered() && !clusterCoordinator.isConnected();
+    }
+
+    void verifyDisconnectedNodeModification(final Boolean disconnectionAcknowledged) {
+        if (!Boolean.TRUE.equals(disconnectionAcknowledged)) {
+            throw new IllegalArgumentException("This node is disconnected from its configured cluster. The requested change "
+                    + "will only be allowed if the flag to acknowledge the disconnected node is set.");
+        }
+    }
+
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1096,8 +1100,8 @@ public abstract class ApplicationResource {
         return properties;
     }
 
-    public static enum ReplicationTarget {
-        CLUSTER_NODES, CLUSTER_COORDINATOR;
+    public enum ReplicationTarget {
+        CLUSTER_NODES, CLUSTER_COORDINATOR
     }
 
     // -----------------
@@ -1239,9 +1243,9 @@ public abstract class ApplicationResource {
         public Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity,
                                          Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
 
-            String path = "/data-transfer/" + portType + "/" + portId + "/transactions/" + transactionId;
-            URI location = uriInfo.getBaseUriBuilder().path(path).build();
-            return noCache(setCommonHeaders(Response.created(location), protocolVersion, transactionManager)
+            final URI transactionUri = buildResourceUri("data-transfer", portType, portId, "transactions", transactionId);
+
+            return noCache(setCommonHeaders(Response.created(transactionUri), protocolVersion, transactionManager)
                     .header(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE))
                     .entity(entity).build();
         }

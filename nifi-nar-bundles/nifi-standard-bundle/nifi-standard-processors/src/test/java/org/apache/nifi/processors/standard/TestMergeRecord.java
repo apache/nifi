@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -68,9 +69,12 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).stream().forEach(
+                ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 
 
@@ -96,7 +100,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
 
-        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
         assertEquals(1L, mffs.stream()
             .filter(ff -> "2".equals(ff.getAttribute("record.count")))
             .filter(ff -> "header\nJohn,35\nJane,34\n".equals(new String(ff.toByteArray())))
@@ -159,7 +163,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
 
-        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
         assertEquals(1L, mffs.stream()
             .filter(ff -> "2".equals(ff.getAttribute("record.count")))
             .filter(ff -> "header\nJohn,35\nJane,34\n".equals(new String(ff.toByteArray())))

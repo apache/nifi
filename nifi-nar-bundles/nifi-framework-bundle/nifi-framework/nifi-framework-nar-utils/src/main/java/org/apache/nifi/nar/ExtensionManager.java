@@ -95,6 +95,12 @@ public class ExtensionManager {
         definitionMap.put(StateProvider.class, new HashSet<>());
     }
 
+    public static Set<Bundle> getAllBundles() {
+        return classNameBundleLookup.values().stream()
+            .flatMap(List::stream)
+            .collect(Collectors.toSet());
+    }
+
     /**
      * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class types that can be found on the bootstrap classloader and by creating classloaders for all NARs found within the classpath.
      * @param narBundles the bundles to scan through in search of extensions
@@ -375,7 +381,7 @@ public class ExtensionManager {
 
         if (logger.isTraceEnabled()) {
             for (URL url : instanceClassLoader.getURLs()) {
-                logger.trace("URL resource {} for {}...", new Object[]{url.toExternalForm(), instanceIdentifier});
+                logger.trace("URL resource {} for {}...", new Object[] {url.toExternalForm(), instanceIdentifier});
             }
         }
 

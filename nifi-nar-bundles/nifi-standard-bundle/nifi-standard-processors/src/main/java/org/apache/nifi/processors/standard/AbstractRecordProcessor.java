@@ -17,18 +17,8 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -47,6 +37,17 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -63,6 +64,17 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
+
+    static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
+            .name("include-zero-record-flowfiles")
+            .displayName("Include Zero Record FlowFiles")
+            .description("When converting an incoming FlowFile, if the conversion results in no data, "
+                    + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -99,6 +111,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).isSet()? context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean():true;
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -128,7 +141,9 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                             recordCount.set(writeResult.getRecordCount());
                         }
-                    } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                    } catch (final SchemaNotFoundException e) {
+                        throw new ProcessException(e.getLocalizedMessage(), e);
+                    } catch (final MalformedRecordException e) {
                         throw new ProcessException("Could not parse incoming data", e);
                     }
                 }
@@ -140,7 +155,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         }
 
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.transfer(flowFile, REL_SUCCESS);
+        if(!includeZeroRecordFlowFiles && recordCount.get() == 0){
+            session.remove(flowFile);
+        } else {
+            session.transfer(flowFile, REL_SUCCESS);
+        }
 
         final int count = recordCount.get();
         session.adjustCounter("Records Processed", count, false);

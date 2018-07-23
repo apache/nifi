@@ -35,7 +35,7 @@
 }(this, function (nfCanvasUtils, nfContextMenu) {
     'use strict';
 
-    return function () {
+    return function ($timeout) {
         'use strict';
 
         function NavigateCtrl() {
@@ -44,66 +44,42 @@
              * Zoom in on the canvas.
              */
             this.zoomIn = function () {
-                nfCanvasUtils.zoomCanvasViewIn();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                $timeout(function () {
+                    nfCanvasUtils.zoomInCanvas();
+                }, 0);
             };
 
             /**
              * Zoom out on the canvas.
              */
             this.zoomOut = function () {
-                nfCanvasUtils.zoomCanvasViewOut();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                $timeout(function () {
+                    nfCanvasUtils.zoomOutCanvas();
+                }, 0);
             };
 
             /**
              * Zoom fit on the canvas.
              */
             this.zoomFit = function () {
-                nfCanvasUtils.fitCanvasView();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                $timeout(function () {
+                    nfCanvasUtils.fitCanvas();
+                }, 0);
             };
 
             /**
              * Zoom actual size on the canvas.
              */
             this.zoomActualSize = function () {
-                nfCanvasUtils.actualSizeCanvasView();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                $timeout(function () {
+                    nfCanvasUtils.actualSizeCanvas();
+                }, 0);
             };
         }
 
         NavigateCtrl.prototype = {
             constructor: NavigateCtrl
-        }
+        };
 
         var navigateCtrl = new NavigateCtrl();
         return navigateCtrl;

@@ -50,4 +50,9 @@ public class MockConfigurationContext implements ConfigurationContext {
     public Long getSchedulingPeriod(final TimeUnit timeUnit) {
         return 0L;
     }
+
+    @Override
+    public String getName() {
+        return null;
+    }
 }

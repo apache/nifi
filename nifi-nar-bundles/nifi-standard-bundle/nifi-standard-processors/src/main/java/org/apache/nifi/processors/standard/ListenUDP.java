@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -69,7 +70,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
             .description("IP, or name, of a remote host. Only Datagrams from the specified Sending Host Port and this host will "
                     + "be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(new HostValidator())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SENDING_HOST_PORT = new PropertyDescriptor.Builder()
@@ -77,7 +78,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
             .description("Port being used by remote host to send Datagrams. Only Datagrams from the specified Sending Host and "
                     + "this port will be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final String UDP_PORT_ATTR = "udp.port";

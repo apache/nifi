@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ReportingTaskEntityMerger implements ComponentEntityMerger<ReportingTaskEntity> {
 
@@ -34,6 +35,7 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final ReportingTaskEntity clientEntity, final Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
         final ReportingTaskDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ReportingTaskDTO> dtoMap = new HashMap<>();
@@ -90,6 +92,11 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
 
         // set the merged active thread counts
         clientDto.setActiveThreadCount(activeThreadCount);
+
+        final Set<String> validationStatuses = dtoMap.values().stream()
+            .map(ReportingTaskDTO::getValidationStatus)
+            .collect(Collectors.toSet());
+        clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(validationStatuses));
 
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
