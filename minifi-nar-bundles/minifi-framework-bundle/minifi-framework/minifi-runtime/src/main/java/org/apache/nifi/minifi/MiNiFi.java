@@ -152,7 +152,10 @@ public class MiNiFi {
             }
 
             final long endTime = System.nanoTime();
-            logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+            final long durationNanos = endTime - startTime;
+            // Convert to millis for higher precision and then convert to a float representation of seconds
+            final float durationSeconds = TimeUnit.MILLISECONDS.convert(durationNanos, TimeUnit.NANOSECONDS) / 1000f;
+            logger.info("Controller initialization took {} nanoseconds ({} seconds).", durationNanos, String.format("%.01f", durationSeconds));
         }
     }
 
