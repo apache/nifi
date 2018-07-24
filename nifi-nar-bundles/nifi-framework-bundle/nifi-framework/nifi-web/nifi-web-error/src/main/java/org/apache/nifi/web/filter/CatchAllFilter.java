@@ -23,8 +23,6 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.UriBuilderException;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +47,7 @@ public class CatchAllFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         // Capture the provided context path headers and sanitize them before using in the response
-        String contextPath = getSanitizedContextPath(request);
+        String contextPath = WebUtils.sanitizeContextPath(request, whitelistedContextPaths, "index.jsp");
         request.setAttribute("contextPath", contextPath);
 
         // for all requests to index.jsp
@@ -58,24 +56,5 @@ public class CatchAllFilter implements Filter {
 
     @Override
     public void destroy() {
-    }
-
-    /**
-     * Returns a "safe" context path value from the request headers to use in a proxy environment.
-     * This is used on the JSP to build the resource paths for the external resources (CSS, JS, etc.).
-     * If no headers are present specifying this value, it is an empty string.
-     *
-     * @param request the HTTP request
-     * @return the context path safe to be printed to the page
-     */
-    private String getSanitizedContextPath(ServletRequest request) {
-        String contextPath = WebUtils.normalizeContextPath(WebUtils.determineContextPath((HttpServletRequest) request));
-        try {
-            WebUtils.verifyContextPath(whitelistedContextPaths, contextPath);
-            return contextPath;
-        } catch (UriBuilderException e) {
-            logger.error("Error determining context path on index.jsp: " + e.getMessage());
-            return "";
-        }
     }
 }
