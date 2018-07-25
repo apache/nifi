@@ -33,6 +33,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+import javax.crypto.Cipher
 import java.nio.file.Paths
 import java.security.Security
 
@@ -44,8 +45,12 @@ class NiFiGroovyTest extends GroovyTestCase {
 
     private static final String TEST_RES_PATH = NiFiGroovyTest.getClassLoader().getResource(".").toURI().getPath()
 
+    private static int getMaxKeyLength() {
+        return (Cipher.getMaxAllowedKeyLength("AES") > 128) ? 256 : 128
+    }
+
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         SLF4JBridgeHandler.install()
@@ -58,21 +63,21 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         NiFiPropertiesLoader.@sensitivePropertyProviderFactory = null
         TestAppender.reset()
         System.setIn(System.in)
     }
 
     @AfterClass
-    public static void tearDownOnce() {
+    static void tearDownOnce() {
         if (originalPropertiesPath) {
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
         }
     }
 
     @Test
-    public void testInitializePropertiesShouldHandleNoBootstrapKey() throws Exception {
+    void testInitializePropertiesShouldHandleNoBootstrapKey() throws Exception {
         // Arrange
         def args = [] as String[]
 
@@ -87,7 +92,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testMainShouldHandleNoBootstrapKeyWithProtectedProperties() throws Exception {
+    void testMainShouldHandleNoBootstrapKeyWithProtectedProperties() throws Exception {
         // Arrange
         def args = [] as String[]
 
@@ -101,7 +106,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testParseArgsShouldSplitCombinedArgs() throws Exception {
+    void testParseArgsShouldSplitCombinedArgs() throws Exception {
         // Arrange
         def args = ["-K filename"] as String[]
 
@@ -114,7 +119,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testMainShouldHandleBadArgs() throws Exception {
+    void testMainShouldHandleBadArgs() throws Exception {
         // Arrange
         def args = ["-K"] as String[]
 
@@ -131,7 +136,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
+    void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
         // Arrange
         def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testMainShouldHandleMalformedBootstrapKeyFromFile.txt").toFile()
         passwordFile.text = "BAD KEY"
@@ -147,14 +152,17 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testInitializePropertiesShouldSetBootstrapKeyFromFile() throws Exception {
+    void testInitializePropertiesShouldSetBootstrapKeyFromFile() throws Exception {
         // Arrange
-        final String DIFFERENT_KEY = "0" * 64
+        int currentMaxKeyLengthInBits = getMaxKeyLength()
+
+        // 64 chars of '0' for a 256 bit key; 32 chars for 128 bit
+        final String DIFFERENT_KEY = "0" * (currentMaxKeyLengthInBits / 4)
         def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testInitializePropertiesShouldSetBootstrapKeyFromFile.txt").toFile()
         passwordFile.text = DIFFERENT_KEY
         def args = ["-K", passwordFile.absolutePath] as String[]
 
-        String testPropertiesPath = "${TEST_RES_PATH}/NiFiProperties/conf/nifi_with_sensitive_properties_protected_aes_different_key.properties"
+        String testPropertiesPath =  "${TEST_RES_PATH}/NiFiProperties/conf/nifi_with_sensitive_properties_protected_aes_different_key${currentMaxKeyLengthInBits == 256 ? "" : "_128"}.properties"
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, testPropertiesPath)
 
         def protectedNiFiProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(new File(testPropertiesPath))
@@ -200,7 +208,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     private static Set<String> getProtectedKeys(NiFiProperties properties) {
-        properties.getPropertyKeys().findAll { it.endsWith(".protected") }.collect { it - ".protected"}
+        properties.getPropertyKeys().findAll { it.endsWith(".protected") }.collect { it - ".protected" }
     }
 
     private static NiFiProperties decrypt(NiFiProperties encryptedProperties, String keyHex) {
@@ -216,7 +224,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldValidateKeys() {
+    void testShouldValidateKeys() {
         // Arrange
         final List<String> VALID_KEYS = [
                 "0" * 64, // 256 bit keys
@@ -235,7 +243,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldNotValidateInvalidKeys() {
+    void testShouldNotValidateInvalidKeys() {
         // Arrange
         final List<String> VALID_KEYS = [
                 "0" * 63,
@@ -257,19 +265,19 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 }
 
-public class TestAppender extends AppenderBase<LoggingEvent> {
-    static List<LoggingEvent> events = new ArrayList<>();
+class TestAppender extends AppenderBase<LoggingEvent> {
+    static List<LoggingEvent> events = new ArrayList<>()
 
     @Override
     protected void append(LoggingEvent e) {
         synchronized (events) {
-            events.add(e);
+            events.add(e)
         }
     }
 
-    public static void reset() {
+    static void reset() {
         synchronized (events) {
-            events.clear();
+            events.clear()
         }
     }
 }
