@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.admin.client
 
 import org.apache.commons.lang3.SystemUtils
+import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone
@@ -110,7 +111,7 @@ class NiFiClientFactorySpec extends Specification {
         final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN,ISSUER_DN)
         def mockSession = Mock(SSLSession)
-        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
         mockSession.getPeerCertificates() >> certificateChain
 
         when:
@@ -121,21 +122,86 @@ class NiFiClientFactorySpec extends Specification {
 
     }
 
+    def "should verify wildcard in CN in certificate based on subjectDN"(){
+
+        given:
+        final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN,ISSUER_DN)
+        def mockSession = Mock(SSLSession)
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("client.nifi.apache.org",mockSession)
+        def verified1 = verifier.verify("server.nifi.apache.org",mockSession)
+        def verified2 = !verifier.verify("client.hive.apache.org",mockSession)
+
+        then:
+        verified
+        verified1
+        verified2
+    }
+
+    def "should verify appropriately CN in certificate based on TLD wildcard in SAN"(){
+
+        given:
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String wildcardHostname = "client.nifi.apache.*"
+        byte[] subjectAltName = new GeneralNames(new GeneralName(GeneralName.dNSName, wildcardHostname)).getEncoded()
+        Extensions extensions = new Extensions(new Extension(Extension.subjectAlternativeName, false, subjectAltName))
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN, ISSUER_DN, extensions)
+        def mockSession = Mock(SSLSession)
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("client.nifi.apache.org",mockSession)
+        def verified2 = verifier.verify("client.nifi.apache.com",mockSession)
+
+        then:
+        verified
+        verified2
+    }
+
+    def "should verify appropriately CN in certificate based on subdomain wildcard in SAN"(){
+
+        given:
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String wildcardHostname = "*.nifi.apache.org"
+        byte[] subjectAltName = new GeneralNames(new GeneralName(GeneralName.dNSName, wildcardHostname)).getEncoded()
+        Extensions extensions = new Extensions(new Extension(Extension.subjectAlternativeName, false, subjectAltName))
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN, ISSUER_DN, extensions)
+        def mockSession = Mock(SSLSession)
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("client.nifi.apache.org", mockSession)
+        def verified1 = verifier.verify("egg.nifi.apache.org", mockSession)
+        def verified2 = !verifier.verify("client.hive.apache.org", mockSession)
+        def verified3 = !verifier.verify("egg.com", mockSession)
+
+        then:
+        verified
+        verified1
+        verified2
+        verified3
+    }
+
     def "should not verify based on no certificate chain"(){
 
         given:
         final String EXPECTED_DN = "CN=client.nifi.apache.org, OU=Security, O=Apache, ST=CA, C=US"
         Certificate[] certificateChain = [] as Certificate[]
         def mockSession = Mock(SSLSession)
-        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
         mockSession.getPeerCertificates() >> certificateChain
 
         when:
         def notVerified = !verifier.verify("client.nifi.apache.org",mockSession)
 
         then:
-        notVerified
-
+        final ArrayIndexOutOfBoundsException exception = thrown()
     }
 
     def "should not verify based on multiple CN values"(){
@@ -163,7 +229,7 @@ class NiFiClientFactorySpec extends Specification {
 
         Certificate[] certificateChain = [certificate,issuerCertificate] as Certificate[]
         def mockSession = Mock(SSLSession)
-        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
         mockSession.getPeerCertificates() >> certificateChain
 
 
@@ -175,7 +241,7 @@ class NiFiClientFactorySpec extends Specification {
 
     }
 
-    def "should verify appropriately CN in certificate based on SAN"(){
+    def "should verify appropriately CN in certificate based on SAN"() {
 
         given:
 
@@ -194,7 +260,40 @@ class NiFiClientFactorySpec extends Specification {
         final X509Certificate certificate = generateIssuedCertificate(EXPECTED_DN, issuerCertificate,extensions, issuerKeyPair)
         Certificate[] certificateChain = [certificate, issuerCertificate] as X509Certificate[]
         def mockSession = Mock(SSLSession)
-        NiFiClientFactory.NiFiHostnameVerifier verifier = new NiFiClientFactory.NiFiHostnameVerifier()
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
+        mockSession.getPeerCertificates() >> certificateChain
+
+        when:
+        def verified = verifier.verify("nifi.apache.org",mockSession)
+        def notVerified = !verifier.verify("fake.apache.org",mockSession)
+
+
+        then:
+        verified
+        notVerified
+
+    }
+
+    def "should verify appropriately CN in certificate based on SANa"() {
+
+        given:
+
+        final List<String> SANS = ["127.0.0.1", "nifi.apache.org"]
+        def gns = SANS.collect { String san ->
+            new GeneralName(GeneralName.dNSName, san)
+        }
+        def generalNames = new GeneralNames(gns as GeneralName[])
+        ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator()
+        extensionsGenerator.addExtension(Extension.subjectAlternativeName, false, generalNames)
+        Extensions extensions = extensionsGenerator.generate()
+
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final KeyPair issuerKeyPair = generateKeyPair()
+        final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair,ISSUER_DN, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
+        final X509Certificate certificate = generateIssuedCertificate(EXPECTED_DN, issuerCertificate,extensions, issuerKeyPair)
+        Certificate[] certificateChain = [certificate, issuerCertificate] as X509Certificate[]
+        def mockSession = Mock(SSLSession)
+        DefaultHostnameVerifier verifier = new DefaultHostnameVerifier()
         mockSession.getPeerCertificates() >> certificateChain
 
         when:
@@ -220,9 +319,13 @@ class NiFiClientFactorySpec extends Specification {
     }
 
     def X509Certificate[] generateCertificateChain(String dn,String issuerDn) {
+        generateCertificateChain(dn, issuerDn, null)
+    }
+
+    def X509Certificate[] generateCertificateChain(String dn,String issuerDn, Extensions extensions) {
         final KeyPair issuerKeyPair = generateKeyPair()
         final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, issuerDn, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
-        final X509Certificate certificate = generateIssuedCertificate(dn, issuerCertificate,null, issuerKeyPair)
+        final X509Certificate certificate = generateIssuedCertificate(dn, issuerCertificate, extensions, issuerKeyPair)
         [certificate, issuerCertificate] as X509Certificate[]
     }
 
