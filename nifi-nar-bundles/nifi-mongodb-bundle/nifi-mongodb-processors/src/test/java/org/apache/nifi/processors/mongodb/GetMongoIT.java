@@ -529,4 +529,20 @@ public class GetMongoIT {
 
         }
     }
+
+    @Test
+    public void testDBAttributes() {
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (MockFlowFile ff : ffs) {
+            String db = ff.getAttribute(GetMongo.DB_NAME);
+            String col = ff.getAttribute(GetMongo.COL_NAME);
+            Assert.assertNotNull(db);
+            Assert.assertNotNull(col);
+            Assert.assertEquals(DB_NAME, db);
+            Assert.assertEquals(COLLECTION_NAME, col);
+        }
+    }
 }

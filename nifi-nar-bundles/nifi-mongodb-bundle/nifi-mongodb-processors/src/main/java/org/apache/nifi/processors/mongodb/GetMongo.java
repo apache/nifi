@@ -25,6 +25,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -56,8 +58,14 @@ import java.util.Set;
 
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Creates FlowFiles from documents in MongoDB")
+@CapabilityDescription("Creates FlowFiles from documents in MongoDB loaded by a user-specified query.")
+@WritesAttributes({
+    @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
+    @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
+})
 public class GetMongo extends AbstractMongoProcessor {
+    static final String DB_NAME = "mongo.database.name";
+    static final String COL_NAME = "mongo.collection.name";
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -253,6 +261,10 @@ public class GetMongo extends AbstractMongoProcessor {
 
         try {
             final MongoCollection<Document> collection = getCollection(context, input);
+
+            attributes.put(DB_NAME, collection.getNamespace().getDatabaseName());
+            attributes.put(COL_NAME, collection.getNamespace().getCollectionName());
+
             final FindIterable<Document> it = query != null ? collection.find(query) : collection.find();
             if (projection != null) {
                 it.projection(projection);
