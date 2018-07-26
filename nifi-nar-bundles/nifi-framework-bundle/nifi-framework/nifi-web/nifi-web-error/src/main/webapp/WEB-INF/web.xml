@@ -18,6 +18,14 @@
     <filter>
         <filter-name>catch-all-filter</filter-name>
         <filter-class>org.apache.nifi.web.filter.CatchAllFilter</filter-class>
+        <init-param>
+            <param-name>displayPath</param-name>
+            <param-value>index.jsp</param-value>
+        </init-param>
+        <init-param>
+            <param-name>forwardPath</param-name>
+            <param-value>/index.jsp</param-value>
+        </init-param>
     </filter>
     <filter-mapping>
         <filter-name>catch-all-filter</filter-name>

@@ -17,41 +17,42 @@
 package org.apache.nifi.web.filter;
 
 import java.io.IOException;
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Filter for forward all requests to index.jsp.
+ * This filter catches all requests and explicitly forwards them to a JSP ({@code index.jsp} injected in
+ * the filter configuration. This is used to handle all errors (this module is only used for errors). It
+ * extends {@link SanitizeContextPathFilter} which sanitizes the context path and injects it as a request
+ * attribute to be used on the page for linking resources without XSS vulnerabilities.
  */
-public class CatchAllFilter implements Filter {
+public class CatchAllFilter extends SanitizeContextPathFilter {
     private static final Logger logger = LoggerFactory.getLogger(CatchAllFilter.class);
 
-    private static String whitelistedContextPaths = "";
+    private String forwardPath = "";
+    private String displayPath = "";
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        String providedWhitelist = filterConfig.getServletContext().getInitParameter("whitelistedContextPaths");
-        logger.debug("CatchAllFilter received provided whitelisted context paths from NiFi properties: " + providedWhitelist);
-        if (providedWhitelist != null) {
-            whitelistedContextPaths = providedWhitelist;
-        }
+        // TODO: Perform path validation (against what set of rules)?
+        forwardPath = filterConfig.getInitParameter("forwardPath");
+        displayPath = filterConfig.getInitParameter("displayPath");
+
+        logger.debug("CatchAllFilter  [" + displayPath + "] received provided whitelisted context paths from NiFi properties: " + getWhitelistedContextPaths());
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
-        // Capture the provided context path headers and sanitize them before using in the response
-        String contextPath = WebUtils.sanitizeContextPath(request, whitelistedContextPaths, "index.jsp");
-        request.setAttribute("contextPath", contextPath);
+        // Inject the contextPath attribute into the request
+        injectContextPathAttribute(request);
 
-        // for all requests to index.jsp
-        request.getRequestDispatcher("/index.jsp").forward(request, response);
+        // Forward all requests to index.jsp
+        request.getRequestDispatcher(forwardPath).forward(request, response);
     }
 
     @Override
