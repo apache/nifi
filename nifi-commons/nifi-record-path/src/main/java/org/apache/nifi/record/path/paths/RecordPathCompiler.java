@@ -64,6 +64,8 @@ import org.apache.nifi.record.path.filter.NotEqualsFilter;
 import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Base64Decode;
+import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.FieldName;
@@ -263,6 +265,14 @@ public class RecordPathCompiler {
                     case "format": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Format(args[0], args[1], absolute);
+                    }
+                    case "base64Encode": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new Base64Encode(args[0], absolute);
+                    }
+                    case "base64Decode": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new Base64Decode(args[0], absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
