@@ -27,6 +27,8 @@ import java.sql.Date;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1277,6 +1279,44 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+    }
+
+    @Test
+    public void testBase64Encode() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final List<String> expectedValues = Arrays.asList(
+                Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)),
+                Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8))
+        );
+        final Map<String, Object> values = new HashMap<>();
+        values.put("firstName", "John");
+        values.put("lastName", "Doe");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals(Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)),
+                RecordPath.compile("base64Encode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(expectedValues, RecordPath.compile("base64Encode(/*)").evaluate(record).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testBase64Decode() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final List<String> expectedValues = Arrays.asList("John", "Doe");
+        final Map<String, Object> values = new HashMap<>();
+        values.put("firstName", Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)));
+        values.put("lastName", Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8)));
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John", new String((byte[]) RecordPath.compile("base64Decode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue()));
+        assertEquals(expectedValues, RecordPath.compile("base64Decode(/*)").evaluate(record).getSelectedFields().map(fv -> new String((byte[]) fv.getValue())).collect(Collectors.toList()));
     }
 
     private List<RecordField> getDefaultFields() {
