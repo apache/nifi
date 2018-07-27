@@ -1,12 +1,18 @@
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
 import org.apache.nifi.controller.queue.clustered.TransactionThreshold;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
 import org.apache.nifi.controller.queue.clustered.server.TransactionAbortedException;
+import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.remote.StandardVersionNegotiator;
+import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -27,14 +34,17 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_PROTOCOL_NEGOTIATION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
 
-public class ActiveTransaction {
-    private static final Logger logger = LoggerFactory.getLogger(ActiveTransaction.class);
+public class LoadBalanceSession {
+    private static final Logger logger = LoggerFactory.getLogger(LoadBalanceSession.class);
     static final int MAX_DATA_FRAME_SIZE = 65535;
 
     private final RegisteredPartition partition;
@@ -47,20 +57,23 @@ public class ActiveTransaction {
     private final String connectionId;
     private final TransactionThreshold transactionThreshold = new SimpleLimitThreshold(1000, 10_000_000L);
 
+    final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
+    private int protocolVersion = 1;
+
     private final Checksum checksum = new CRC32();
 
     // guarded by synchronizing on 'this'
     private ByteBuffer preparedFrame;
     private FlowFileRecord currentFlowFile;
     private List<FlowFileRecord> flowFilesSent = new ArrayList<>();
-    private TransactionPhase phase = TransactionPhase.SEND_CONNECTION_ID;
+    private TransactionPhase phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
     private InputStream flowFileInputStream;
     private byte[] byteBuffer = new byte[MAX_DATA_FRAME_SIZE];
     private boolean complete = false;
     private long readTimeout;
 
-    public ActiveTransaction(final RegisteredPartition partition, final FlowFileContentAccess contentAccess, final LoadBalanceFlowFileCodec flowFileCodec, final PeerChannel peerChannel,
-                             final int timeoutMillis) {
+    public LoadBalanceSession(final RegisteredPartition partition, final FlowFileContentAccess contentAccess, final LoadBalanceFlowFileCodec flowFileCodec, final PeerChannel peerChannel,
+                              final int timeoutMillis) {
         this.partition = partition;
         this.flowFileSupplier = partition.getFlowFileRecordSupplier();
         this.connectionId = partition.getConnectionId();
@@ -80,17 +93,7 @@ public class ActiveTransaction {
     }
 
     public synchronized int getDesiredReadinessFlag() {
-        switch (phase) {
-            case SEND_CONNECTION_ID:
-            case GET_NEXT_FLOWFILE:
-            case SEND_FLOWFILE_DEFINITION:
-            case SEND_FLOWFILE_CONTENTS:
-            case SEND_CHECKSUM:
-            case SEND_TRANSACTION_COMPLETE:
-                return SelectionKey.OP_WRITE;
-            default:
-                return SelectionKey.OP_READ;
-        }
+        return phase.getRequiredSelectionKey();
     }
 
     public synchronized List<FlowFileRecord> getFlowFilesSent() {
@@ -118,15 +121,15 @@ public class ActiveTransaction {
                     return verifyChecksum();
                 case CONFIRM_TRANSACTION_COMPLETE:
                     return confirmTransactionComplete();
+                case RECEIVE_PROTOCOL_VERSION_ACKNOWLEDGMENT:
+                    return receiveProtocolVersionAcknowledgment();
+                case RECEIVE_RECOMMENDED_PROTOCOL_VERSION:
+                    return receiveRecommendedProtocolVersion();
             }
 
 
-            final ByteBuffer dataFrame = getDataFrame();
-            if (dataFrame == null) {
-                return false;
-            }
-
-            preparedFrame = channel.prepareForWrite(dataFrame);
+            final ByteBuffer byteBuffer = getDataFrame();
+            preparedFrame = channel.prepareForWrite(byteBuffer);
 
             final int bytesWritten = channel.write(preparedFrame);
             return bytesWritten > 0;
@@ -135,7 +138,6 @@ public class ActiveTransaction {
             throw e;
         }
     }
-
 
 
     private boolean confirmTransactionComplete() throws IOException {
@@ -163,7 +165,7 @@ public class ActiveTransaction {
         }
 
         complete = true;
-        logger.info("Successfully completed Transaction to send {} FlowFiles to Peer {} for Connection {}", flowFilesSent.size(), peerDescription, connectionId);
+        logger.debug("Successfully completed Transaction to send {} FlowFiles to Peer {} for Connection {}", flowFilesSent.size(), peerDescription, connectionId);
 
         return true;
     }
@@ -204,6 +206,10 @@ public class ActiveTransaction {
 
     private ByteBuffer getDataFrame() throws IOException {
         switch (phase) {
+            case RECOMMEND_PROTOCOL_VERSION:
+                return recommendProtocolVersion();
+            case ABORT_PROTOCOL_NEGOTIATION:
+                return abortProtocolNegotiation();
             case SEND_CONNECTION_ID:
                 return getConnectionId();
             case GET_NEXT_FLOWFILE:
@@ -248,41 +254,73 @@ public class ActiveTransaction {
     }
 
     private ByteBuffer getFlowFileContent() throws IOException {
-        // TODO: This method is rather inefficient, copying lots of byte[]. Can do better. But keeping it simple for
+        // This method is fairly inefficient, copying lots of byte[]. Can do better. But keeping it simple for
         // now to get this working. Revisit with optimizations later.
-        if (flowFileInputStream == null) {
-            flowFileInputStream = flowFileContentAccess.read(currentFlowFile);
-        }
+        try {
+            if (flowFileInputStream == null) {
+                flowFileInputStream = flowFileContentAccess.read(currentFlowFile);
+            }
 
-        final int bytesRead = StreamUtils.fillBuffer(flowFileInputStream, byteBuffer,false);
-        if (bytesRead < 1) {
-            // If no data available, close the stream and move on to the next phase, returning a NO_DATA_FRAME buffer.
-            flowFileInputStream.close();
-            flowFileInputStream = null;
-            phase = TransactionPhase.GET_NEXT_FLOWFILE;
+            final int bytesRead = StreamUtils.fillBuffer(flowFileInputStream, byteBuffer, false);
+            if (bytesRead < 1) {
+                // If no data available, close the stream and move on to the next phase, returning a NO_DATA_FRAME buffer.
+                flowFileInputStream.close();
+                flowFileInputStream = null;
+                phase = TransactionPhase.GET_NEXT_FLOWFILE;
 
-            final ByteBuffer buffer = ByteBuffer.allocate(1);
-            buffer.put((byte) LoadBalanceProtocolConstants.NO_DATA_FRAME);
+                final ByteBuffer buffer = ByteBuffer.allocate(1);
+                buffer.put((byte) LoadBalanceProtocolConstants.NO_DATA_FRAME);
+                buffer.rewind();
+
+                checksum.update(LoadBalanceProtocolConstants.NO_DATA_FRAME);
+
+                logger.debug("Sending NO_DATA_FRAME indicator to Peer {}", peerDescription);
+
+                return buffer;
+            }
+
+            logger.trace("Sending Data Frame that is {} bytes long to Peer {}", bytesRead, peerDescription);
+            final ByteBuffer buffer;
+
+            if (partition.getCompression() == LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT) {
+                final byte[] compressed = compressDataFrame(byteBuffer, bytesRead);
+                final int compressedMaxLen = compressed.length;
+
+                buffer = ByteBuffer.allocate(3 + compressedMaxLen);
+                buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
+                buffer.putShort((short) compressedMaxLen);
+
+                buffer.put(compressed, 0, compressedMaxLen);
+
+            } else {
+                buffer = ByteBuffer.allocate(3 + bytesRead);
+                buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
+                buffer.putShort((short) bytesRead);
+
+                buffer.put(byteBuffer, 0, bytesRead);
+            }
+
+            final byte[] frameArray = buffer.array();
+            checksum.update(frameArray, 0, frameArray.length);
+
+            phase = TransactionPhase.SEND_FLOWFILE_CONTENTS;
             buffer.rewind();
-
-            checksum.update(LoadBalanceProtocolConstants.NO_DATA_FRAME);
             return buffer;
+        } catch (final ContentNotFoundException cnfe) {
+            throw new ContentNotFoundException(currentFlowFile, cnfe.getMissingClaim(), cnfe.getMessage());
         }
-
-        logger.trace("Sending Data Frame that is {} bytes long to Peer {}", bytesRead, peerDescription);
-        final ByteBuffer buffer = ByteBuffer.allocate(3 + bytesRead);
-        buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        buffer.putShort((short) bytesRead);
-        buffer.put(byteBuffer, 0, bytesRead);
-
-        final byte[] frameArray = buffer.array();
-        checksum.update(frameArray, 0, frameArray.length);
-
-        phase = TransactionPhase.SEND_FLOWFILE_CONTENTS;
-        buffer.rewind();
-        return buffer;
     }
 
+    private byte[] compressDataFrame(final byte[] uncompressed, final int byteCount) throws IOException {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             final OutputStream gzipOut = new GZIPOutputStream(baos, 1)) {
+
+            gzipOut.write(uncompressed, 0, byteCount);
+            gzipOut.close();
+
+            return baos.toByteArray();
+        }
+    }
 
     private ByteBuffer getNextFlowFile() throws IOException {
         if (transactionThreshold.isThresholdMet()) {
@@ -305,15 +343,35 @@ public class ActiveTransaction {
         logger.debug("Next FlowFile to send to Peer {} is {}", peerDescription, currentFlowFile);
         flowFilesSent.add(currentFlowFile);
 
+        final LoadBalanceCompression compression = partition.getCompression();
+        final boolean compressAttributes = compression != LoadBalanceCompression.DO_NOT_COMPRESS;
+        logger.debug("Compression to use for sending to Peer {} is {}", peerDescription, compression);
+
         final byte[] flowFileEncoded;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            flowFileCodec.encode(currentFlowFile, baos);
+            if (compressAttributes) {
+                try (final OutputStream gzipOut = new GZIPOutputStream(baos, 1);
+                     final ByteCountingOutputStream out = new ByteCountingOutputStream(gzipOut)) {
+
+                    flowFileCodec.encode(currentFlowFile, out);
+                }
+            } else {
+                flowFileCodec.encode(currentFlowFile, baos);
+            }
+
             flowFileEncoded = baos.toByteArray();
         }
 
-        final ByteBuffer buffer = ByteBuffer.allocate(flowFileEncoded.length + 1);
+        final int metadataLength = flowFileEncoded.length;
+        final ByteBuffer buffer = ByteBuffer.allocate(flowFileEncoded.length + 5);
         buffer.put((byte) LoadBalanceProtocolConstants.MORE_FLOWFILES);
         checksum.update(LoadBalanceProtocolConstants.MORE_FLOWFILES);
+
+        buffer.putInt(metadataLength);
+        checksum.update((metadataLength >> 24) & 0xFF);
+        checksum.update((metadataLength >> 16) & 0xFF);
+        checksum.update((metadataLength >> 8) & 0xFF);
+        checksum.update(metadataLength & 0xFF);
 
         buffer.put(flowFileEncoded);
         checksum.update(flowFileEncoded, 0, flowFileEncoded.length);
@@ -324,12 +382,104 @@ public class ActiveTransaction {
     }
 
 
+    private ByteBuffer recommendProtocolVersion() {
+        logger.debug("Recommending to Peer {} that Protocol Version {} be used", peerDescription, protocolVersion);
+
+        final ByteBuffer buffer = ByteBuffer.allocate(1);
+        buffer.put((byte) protocolVersion);
+        buffer.rewind();
+
+        readTimeout = System.currentTimeMillis() + timeoutMillis;
+        phase = TransactionPhase.RECEIVE_PROTOCOL_VERSION_ACKNOWLEDGMENT;
+        return buffer;
+    }
+
+    private boolean receiveProtocolVersionAcknowledgment() throws IOException {
+        logger.debug("Confirming Transaction Complete for Peer {}", peerDescription);
+
+        final OptionalInt ackResponse = channel.read();
+        if (!ackResponse.isPresent()) {
+            if (System.currentTimeMillis() > readTimeout) {
+                throw new SocketTimeoutException("Timed out waiting for Peer " + peerDescription + " to acknowledge Protocol Version");
+            }
+
+            return false;
+        }
+
+        final int response = ackResponse.getAsInt();
+        if (response < 0) {
+            throw new EOFException("Encounter End-of-File with Peer " + peerDescription + " when expecting a Protocol Version Acknowledgment");
+        }
+
+        if (response == VERSION_ACCEPTED) {
+            logger.debug("Peer {} accepted Protocol Version {}", peerDescription, protocolVersion);
+            phase = TransactionPhase.SEND_CONNECTION_ID;
+            return true;
+        }
+
+        if (response == REQEUST_DIFFERENT_VERSION) {
+            logger.debug("Recommended using Protocol Version of {} with Peer {} but received REQUEST_DIFFERENT_VERSION response", protocolVersion, peerDescription);
+            readTimeout = System.currentTimeMillis() + timeoutMillis;
+            phase = TransactionPhase.RECEIVE_RECOMMENDED_PROTOCOL_VERSION;
+            return true;
+        }
+
+        throw new IOException("Failed to negotiate Protocol Version with Peer " + peerDescription + ". Recommended version " + protocolVersion + " but instead of an ACCEPT or REJECT " +
+                "response got back a response of " + response);
+    }
+
+    private boolean receiveRecommendedProtocolVersion() throws IOException {
+        logger.debug("Receiving Protocol Version from Peer {}", peerDescription);
+
+        final OptionalInt recommendationResponse = channel.read();
+        if (!recommendationResponse.isPresent()) {
+            if (System.currentTimeMillis() > readTimeout) {
+                throw new SocketTimeoutException("Timed out waiting for Peer " + peerDescription + " to recommend Protocol Version");
+            }
+
+            return false;
+        }
+
+        final int requestedVersion = recommendationResponse.getAsInt();
+        if (requestedVersion < 0) {
+            throw new EOFException("Encounter End-of-File with Peer " + peerDescription + " when expecting a Protocol Version Recommendation");
+        }
+
+        if (negotiator.isVersionSupported(requestedVersion)) {
+            protocolVersion = requestedVersion;
+            phase = TransactionPhase.SEND_CONNECTION_ID;
+            logger.debug("Peer {} recommended Protocol Version of {}. Accepting version.", peerDescription, requestedVersion);
+
+            return true;
+        } else {
+            final Integer preferred = negotiator.getPreferredVersion(requestedVersion);
+            if (preferred == null) {
+                logger.debug("Peer {} requested version {} of the Load Balance Protocol. This version is not acceptable. Aborting communications.", peerDescription, requestedVersion);
+                phase = TransactionPhase.ABORT_PROTOCOL_NEGOTIATION;
+                return true;
+            } else {
+                logger.debug("Peer {} requested version {} of the Protocol. Recommending version {} instead", peerDescription, requestedVersion, preferred);
+                protocolVersion = preferred;
+                phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
+                return true;
+            }
+        }
+    }
+
     private ByteBuffer noMoreFlowFiles() {
         final ByteBuffer buffer = ByteBuffer.allocate(1);
         buffer.put((byte) LoadBalanceProtocolConstants.NO_MORE_FLOWFILES);
         buffer.rewind();
 
         checksum.update(LoadBalanceProtocolConstants.NO_MORE_FLOWFILES);
+        return buffer;
+    }
+
+    private ByteBuffer abortProtocolNegotiation() {
+        final ByteBuffer buffer = ByteBuffer.allocate(1);
+        buffer.put((byte) ABORT_PROTOCOL_NEGOTIATION);
+        buffer.rewind();
+
         return buffer;
     }
 
@@ -348,21 +498,41 @@ public class ActiveTransaction {
         return buffer;
     }
 
+
     private enum TransactionPhase {
-        SEND_CONNECTION_ID,
+        RECOMMEND_PROTOCOL_VERSION(SelectionKey.OP_WRITE),
 
-        SEND_FLOWFILE_DEFINITION,
+        RECEIVE_PROTOCOL_VERSION_ACKNOWLEDGMENT(SelectionKey.OP_READ),
 
-        SEND_FLOWFILE_CONTENTS,
+        RECEIVE_RECOMMENDED_PROTOCOL_VERSION(SelectionKey.OP_READ),
 
-        GET_NEXT_FLOWFILE,
+        ABORT_PROTOCOL_NEGOTIATION(SelectionKey.OP_WRITE),
 
-        SEND_CHECKSUM,
+        SEND_CONNECTION_ID(SelectionKey.OP_WRITE),
 
-        VERIFY_CHECKSUM,
+        SEND_FLOWFILE_DEFINITION(SelectionKey.OP_WRITE),
 
-        SEND_TRANSACTION_COMPLETE,
+        SEND_FLOWFILE_CONTENTS(SelectionKey.OP_WRITE),
 
-        CONFIRM_TRANSACTION_COMPLETE;
+        GET_NEXT_FLOWFILE(SelectionKey.OP_WRITE),
+
+        SEND_CHECKSUM(SelectionKey.OP_WRITE),
+
+        VERIFY_CHECKSUM(SelectionKey.OP_READ),
+
+        SEND_TRANSACTION_COMPLETE(SelectionKey.OP_WRITE),
+
+        CONFIRM_TRANSACTION_COMPLETE(SelectionKey.OP_READ);
+
+
+        private final int requiredSelectionKey;
+
+        TransactionPhase(final int requiredSelectionKey) {
+            this.requiredSelectionKey = requiredSelectionKey;
+        }
+
+        public int getRequiredSelectionKey() {
+            return requiredSelectionKey;
+        }
     }
 }

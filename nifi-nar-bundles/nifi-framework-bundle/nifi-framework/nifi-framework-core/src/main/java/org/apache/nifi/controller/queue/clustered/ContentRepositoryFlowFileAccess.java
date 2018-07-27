@@ -37,13 +37,18 @@ public class ContentRepositoryFlowFileAccess implements FlowFileContentAccess {
 
     @Override
     public InputStream read(final FlowFileRecord flowFile) throws IOException {
-        final InputStream rawIn = contentRepository.read(flowFile.getContentClaim());
+        final InputStream rawIn;
+        try {
+            rawIn = contentRepository.read(flowFile.getContentClaim());
+        } catch (final ContentNotFoundException cnfe) {
+            throw new ContentNotFoundException(flowFile, flowFile.getContentClaim(), cnfe.getMessage());
+        }
 
         if (flowFile.getContentClaimOffset() > 0) {
             try {
                 StreamUtils.skip(rawIn, flowFile.getContentClaimOffset());
             } catch (final EOFException eof) {
-                throw new ContentNotFoundException(flowFile.getContentClaim(), "FlowFile has a Content Claim Offset of "
+                throw new ContentNotFoundException(flowFile, flowFile.getContentClaim(), "FlowFile has a Content Claim Offset of "
                     + flowFile.getContentClaimOffset() + " bytes but the Content Claim does not have that many bytes");
             }
         }

@@ -17,15 +17,26 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 
 public class ConnectionLoadBalanceServer {
@@ -37,21 +48,35 @@ public class ConnectionLoadBalanceServer {
     private final ExecutorService threadPool;
     private final LoadBalanceProtocol loadBalanceProtocol;
     private final int connectionTimeoutMillis;
+    private final int numThreads;
+    private final EventReporter eventReporter;
+
+    private volatile Set<CommunicateAction> communicationActions = Collections.emptySet();
+    private final BlockingQueue<Socket> connectionQueue = new LinkedBlockingQueue<>();
 
     private volatile AcceptConnection acceptConnection;
     private volatile ServerSocket serverSocket;
+    private volatile boolean stopped = true;
 
-    public ConnectionLoadBalanceServer(final String hostname, final int port, final SSLContext sslContext, final ExecutorService threadPool, final LoadBalanceProtocol loadBalanceProtocol,
-                                       final int connectionTimeoutMillis) {
+    public ConnectionLoadBalanceServer(final String hostname, final int port, final SSLContext sslContext, final int numThreads, final LoadBalanceProtocol loadBalanceProtocol,
+                                       final EventReporter eventReporter, final int connectionTimeoutMillis) {
         this.hostname = hostname;
         this.port = port;
         this.sslContext = sslContext;
-        this.threadPool = threadPool;
         this.loadBalanceProtocol = loadBalanceProtocol;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
+        this.numThreads = numThreads;
+        this.eventReporter = eventReporter;
+
+        threadPool = new FlowEngine(numThreads, "Load Balance Server");
     }
 
     public void start() throws IOException {
+        if (!stopped) {
+            return;
+        }
+
+        stopped = false;
         if (serverSocket != null) {
             return;
         }
@@ -63,10 +88,18 @@ public class ConnectionLoadBalanceServer {
                     "'nifi.cluster.load.balance.port' and 'nifi.cluster.load.balance.host' properties as well as the 'nifi.security.*' properties", e);
         }
 
-        acceptConnection = new AcceptConnection(serverSocket, threadPool, loadBalanceProtocol);
+        final Set<CommunicateAction> actions = new HashSet<>(numThreads);
+        for (int i=0; i < numThreads; i++) {
+            final CommunicateAction action = new CommunicateAction(loadBalanceProtocol);
+            actions.add(action);
+            threadPool.submit(action);
+        }
+
+        this.communicationActions = actions;
+
+        acceptConnection = new AcceptConnection(serverSocket);
         final Thread receiveConnectionThread = new Thread(acceptConnection);
         receiveConnectionThread.setName("Receive Queue Load-Balancing Connections");
-        receiveConnectionThread.setDaemon(true);
         receiveConnectionThread.start();
     }
 
@@ -75,49 +108,104 @@ public class ConnectionLoadBalanceServer {
     }
 
     public void stop() {
+        stopped = false;
+        threadPool.shutdown();
+
         if (acceptConnection != null) {
             acceptConnection.stop();
         }
 
-        if (serverSocket == null) {
-            return;
-        }
+        communicationActions.forEach(CommunicateAction::stop);
 
-        try {
-            serverSocket.close();
-        } catch (IOException e) {
-            logger.warn("Unable to close Server that is responsible for load-balancing connections. Some resources may not be cleaned up appropriately.");
+        Socket socket;
+        while ((socket = connectionQueue.poll()) != null) {
+            try {
+                socket.close();
+                logger.info("{} Closed connection to {} on Server stop", this, socket.getRemoteSocketAddress());
+            } catch (final IOException ioe) {
+                logger.warn("Failed to properly close socket to " + socket.getRemoteSocketAddress(), ioe);
+            }
         }
-
-        serverSocket = null;
     }
 
     private ServerSocket createServerSocket() throws IOException {
-        if (hostname == null) {
-            if (sslContext == null) {
-                return new ServerSocket(port, 50);
-            } else {
-                return sslContext.getServerSocketFactory().createServerSocket(port, 50);
-            }
+        final InetAddress inetAddress = hostname == null ? null : InetAddress.getByName(hostname);
+
+        if (sslContext == null) {
+            return new ServerSocket(port, 50, InetAddress.getByName(hostname));
         } else {
-            if (sslContext == null) {
-                return new ServerSocket(port, 50, InetAddress.getByName(hostname));
-            } else {
-                return sslContext.getServerSocketFactory().createServerSocket(port, 50, InetAddress.getByName(hostname));
-            }
+            final ServerSocket serverSocket = sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
+            ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
+            return serverSocket;
         }
     }
 
-    private class AcceptConnection implements Runnable {
-        private final ServerSocket serverSocket;
-        private final ExecutorService executor;
+
+    private class CommunicateAction implements Runnable {
         private final LoadBalanceProtocol loadBalanceProtocol;
         private volatile boolean stopped = false;
 
-        public AcceptConnection(final ServerSocket serverSocket, final ExecutorService executor, final LoadBalanceProtocol loadBalanceProtocol) {
-            this.serverSocket = serverSocket;
-            this.executor = executor;
+        public CommunicateAction(final LoadBalanceProtocol loadBalanceProtocol) {
             this.loadBalanceProtocol = loadBalanceProtocol;
+        }
+
+        public void stop() {
+            this.stopped = true;
+        }
+
+        @Override
+        public void run() {
+            String peerDescription = "<Unknown Client>";
+
+            while (!stopped) {
+                Socket socket = null;
+                try {
+                    socket = connectionQueue.poll(1, TimeUnit.SECONDS);
+                    if (socket == null) {
+                        continue;
+                    }
+
+                    peerDescription = socket.getRemoteSocketAddress().toString();
+
+                    if (socket.isClosed()) {
+                        logger.debug("Connection to Peer {} is closed. Will not attempt to communicate over this Socket.", peerDescription);
+                        continue;
+                    }
+
+                    logger.debug("Receiving FlowFiles from Peer {}", peerDescription);
+                    loadBalanceProtocol.receiveFlowFiles(socket);
+
+                    if (socket.isConnected()) {
+                        logger.debug("Finished receiving FlowFiles from Peer {}. Will recycle connection.", peerDescription);
+                        connectionQueue.offer(socket);
+                    } else {
+                        logger.debug("Finished receiving FlowFiles from Peer {}. Socket is no longer connected so will not recycle connection.", peerDescription);
+                    }
+                } catch (final Exception e) {
+                    if (socket != null) {
+                        try {
+                            socket.close();
+                        } catch (final IOException ioe) {
+                            e.addSuppressed(ioe);
+                        }
+                    }
+
+                    logger.error("Failed to communicate with Peer {}", peerDescription, e);
+                    eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
+                }
+            }
+
+            logger.info("Connection Load Balance Server shutdown. Will no longer handle incoming requests.");
+        }
+    }
+
+
+    private class AcceptConnection implements Runnable {
+        private final ServerSocket serverSocket;
+        private volatile boolean stopped = false;
+
+        public AcceptConnection(final ServerSocket serverSocket) {
+            this.serverSocket = serverSocket;
         }
 
         public void stop() {
@@ -126,31 +214,32 @@ public class ConnectionLoadBalanceServer {
 
         @Override
         public void run() {
+            try {
+                serverSocket.setSoTimeout(1000);
+            } catch (final Exception e) {
+                logger.error("Failed to set soTimeout on Server Socket for Load Balancing data across cluster", e);
+            }
+
             while (!stopped) {
                 try {
-                    final Socket socket = serverSocket.accept();
-                    executor.submit(() -> {
-                        try {
-                            socket.setSoTimeout(connectionTimeoutMillis);
-                            loadBalanceProtocol.receiveFlowFiles(socket);
-                        } catch (final Exception e) {
-                            logger.error("{} Failed to communicate with {} to receive FlowFiles", this, socket.getInetAddress(), e);
-                        } finally {
-                            try {
-                                socket.close();
-                            } catch (IOException e) {
-                                logger.warn("{} After communicating with {}, failed to properly close socket", this, socket.getInetAddress(), e);
-                            }
-                        }
-                    });
-                } catch (final Exception e) {
-                    if (stopped) {
-                        // don't bother logging the Exception because it's likely just generated by the server being stopped.
-                        return;
+                    final Socket socket;
+                    try {
+                        socket = serverSocket.accept();
+                    } catch (final SocketTimeoutException ste) {
+                        continue;
                     }
 
+                    socket.setSoTimeout(connectionTimeoutMillis);
+                    connectionQueue.offer(socket);
+                } catch (final Exception e) {
                     logger.error("{} Failed to accept connection from other node in cluster", ConnectionLoadBalanceServer.this, e);
                 }
+            }
+
+            try {
+                serverSocket.close();
+            } catch (final Exception e) {
+                logger.warn("Failed to properly shutdown Server Socket for Load Balancing", e);
             }
         }
     }

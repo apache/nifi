@@ -127,13 +127,13 @@ public class SwappablePriorityQueue {
     }
 
 
-    public QueueDiagnostics getQueueDiagnostics() {
+    public LocalQueuePartitionDiagnostics getQueueDiagnostics() {
         readLock.lock();
         try {
             final boolean anyPenalized = !activeQueue.isEmpty() && activeQueue.peek().isPenalized();
             final boolean allPenalized = anyPenalized && activeQueue.stream().anyMatch(FlowFileRecord::isPenalized);
 
-            return new StandardQueueDiagnostics(getFlowFileQueueSize(), anyPenalized, allPenalized);
+            return new StandardLocalQueuePartitionDiagnostics(getFlowFileQueueSize(), anyPenalized, allPenalized);
         } finally {
             readLock.unlock("getQueueDiagnostics");
         }
@@ -146,6 +146,10 @@ public class SwappablePriorityQueue {
         } finally {
             readLock.unlock("getActiveFlowFiles");
         }
+    }
+
+    public boolean isUnacknowledgedFlowFile() {
+        return getFlowFileQueueSize().getUnacknowledgedCount() > 0;
     }
 
     /**
@@ -925,7 +929,7 @@ public class SwappablePriorityQueue {
         return size.compareAndSet(expected, updated);
     }
 
-    protected FlowFileQueueSize getFlowFileQueueSize() {
+    public FlowFileQueueSize getFlowFileQueueSize() {
         return size.get();
     }
 

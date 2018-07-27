@@ -30,6 +30,7 @@ import org.apache.nifi.util.concurrency.TimedLock;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +75,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public boolean isActivelyLoadBalancing() {
+        return false;
+    }
+
+    @Override
     public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
         queue.setPriorities(newPriorities);
     }
@@ -90,7 +96,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     @Override
     public QueueDiagnostics getQueueDiagnostics() {
-        return queue.getQueueDiagnostics();
+        return new StandardQueueDiagnostics(queue.getQueueDiagnostics(), Collections.emptyList());
     }
 
     @Override
@@ -135,6 +141,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         queue.acknowledge(flowFiles);
 
         eventListener.triggerSourceEvent();
+    }
+
+    @Override
+    public boolean isUnacknowledgedFlowFile() {
+        return queue.isUnacknowledgedFlowFile();
     }
 
     @Override

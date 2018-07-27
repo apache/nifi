@@ -2,6 +2,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -53,10 +54,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.times;
-
+import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
-
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (clientDn, connection) -> {};
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;
@@ -109,10 +110,11 @@ public class TestStandardLoadBalanceProtocol {
         }).when(contentRepo).write(Mockito.any(ContentClaim.class));
 
         final Connection connection = Mockito.mock(Connection.class);
-        Mockito.when(flowController.getConnection(Mockito.anyString())).thenReturn(connection);
+        when(flowController.getConnection(Mockito.anyString())).thenReturn(connection);
 
         flowFileQueue = Mockito.mock(LoadBalancedFlowFileQueue.class);
-        Mockito.when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+        when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
+        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
         Mockito.doAnswer(new Answer<Void>() {
             @Override
@@ -145,15 +147,12 @@ public class TestStandardLoadBalanceProtocol {
                 return null;
             }
         }).when(provenanceRepo).registerEvents(anyCollection());
-
-
-
     }
 
 
     @Test
     public void testSimpleFlowFileTransaction() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -180,7 +179,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -199,7 +198,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testMultipleFlowFiles() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -240,16 +239,16 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
         assertEquals(CONFIRM_CHECKSUM, serverResponse[0]);
         assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[1]);
 
-        assertEquals(2, claimContents.size());
-        assertTrue( claimContents.values().stream().anyMatch(bytes -> Arrays.equals(bytes, "hello".getBytes())) );
-        assertTrue( claimContents.values().stream().anyMatch(bytes -> Arrays.equals(bytes, "greetings".getBytes())) );
+        assertEquals(1, claimContents.size());
+        final byte[] bytes = claimContents.values().iterator().next();
+        assertTrue(Arrays.equals("hellogreetings".getBytes(), bytes) || Arrays.equals("greetingshello".getBytes(), bytes));
 
         assertEquals(4, flowFileRepoUpdateRecords.size());
         assertEquals(4, provRepoUpdateRecords.size());
@@ -262,7 +261,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testEofExceptionMultipleFlowFiles() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -302,7 +301,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException eof) {
             // expected
@@ -311,9 +310,8 @@ public class TestStandardLoadBalanceProtocol {
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(0, serverResponse.length);
 
-        assertEquals(2, claimContents.size());
-        assertTrue( claimContents.values().stream().anyMatch(bytes -> Arrays.equals(bytes, "hello".getBytes())) );
-        assertTrue( claimContents.values().stream().anyMatch(bytes -> Arrays.equals(bytes, "greetings".getBytes())) );
+        assertEquals(1, claimContents.size());
+        assertArrayEquals("hellogreetings".getBytes(), claimContents.values().iterator().next());
 
         assertEquals(0, flowFileRepoUpdateRecords.size());
         assertEquals(0, provRepoUpdateRecords.size());
@@ -322,7 +320,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testBadChecksum() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -348,7 +346,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(COMPLETE_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -370,7 +368,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testEofWritingContent() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -398,7 +396,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException e) {
             // expected
@@ -419,7 +417,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testAbortAfterChecksumConfirmation() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -445,7 +443,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(ABORT_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -467,7 +465,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testFlowFileNoContent() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -492,14 +490,15 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
         assertEquals(CONFIRM_CHECKSUM, serverResponse[0]);
         assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[1]);
 
-        assertEquals(0, claimContents.size());
+        assertEquals(1, claimContents.size());
+        assertEquals(0, claimContents.values().iterator().next().length);
 
         Mockito.verify(flowFileRepo, times(1)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(1)).registerEvents(anyList());
@@ -508,20 +507,27 @@ public class TestStandardLoadBalanceProtocol {
     }
 
     private void writeAttributes(final Map<String, String> attributes, final DataOutputStream dos) throws IOException {
-        dos.writeInt(attributes.size());
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             final DataOutputStream out = new DataOutputStream(baos)) {
+            out.writeInt(attributes.size());
 
-        for (final Map.Entry<String, String>  entry : attributes.entrySet()) {
-            final byte[] key = entry.getKey().getBytes();
-            dos.writeInt(key.length);
-            dos.write(key);
+            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+                final byte[] key = entry.getKey().getBytes();
+                out.writeInt(key.length);
+                out.write(key);
 
-            final byte[] value = entry.getValue().getBytes();
-            dos.writeInt(value.length);
-            dos.write(value);
+                final byte[] value = entry.getValue().getBytes();
+                out.writeInt(value.length);
+                out.write(value);
+            }
+
+            out.writeLong(0L); // lineage start date
+            out.writeLong(0L); // entry date
+
+            dos.writeInt(baos.size());
+            baos.writeTo(dos);
         }
 
-        dos.writeLong(0L); // lineage start date
-        dos.writeLong(0L); // entry date
     }
 
     private void writeContent(final byte[] content, final DataOutputStream out) throws IOException {

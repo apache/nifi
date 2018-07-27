@@ -22,11 +22,13 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueSize;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.StandardLocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -97,6 +99,8 @@ public class TestWriteAheadFlowFileRepository {
     @Ignore("Intended only for local performance testing before/after making changes")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final FlowFileQueue queue = new FlowFileQueue() {
+            private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;
+
             @Override
             public void startLoadBalancing() {
             }
@@ -105,6 +109,10 @@ public class TestWriteAheadFlowFileRepository {
             public void stopLoadBalancing() {
             }
 
+            @Override
+            public boolean isActivelyLoadBalancing() {
+                return false;
+            }
 
             @Override
             public String getIdentifier() {
@@ -168,6 +176,11 @@ public class TestWriteAheadFlowFileRepository {
 
             @Override
             public void acknowledge(Collection<FlowFileRecord> flowFiles) {
+            }
+
+            @Override
+            public boolean isUnacknowledgedFlowFile() {
+                return false;
             }
 
             @Override
@@ -254,7 +267,7 @@ public class TestWriteAheadFlowFileRepository {
             @Override
             public QueueDiagnostics getQueueDiagnostics() {
                 final FlowFileQueueSize size = new FlowFileQueueSize(size().getObjectCount(), size().getByteCount(), 0, 0, 0, 0, 0);
-                return new StandardQueueDiagnostics(size, false, false);
+                return new StandardQueueDiagnostics(new StandardLocalQueuePartitionDiagnostics(size, false, false), Collections.emptyList());
             }
 
             @Override
@@ -272,6 +285,16 @@ public class TestWriteAheadFlowFileRepository {
             @Override
             public LoadBalanceStrategy getLoadBalanceStrategy() {
                 return null;
+            }
+
+            @Override
+            public void setLoadBalanceCompression(final LoadBalanceCompression compression) {
+                this.compression = compression;
+            }
+
+            @Override
+            public LoadBalanceCompression getLoadBalanceCompression() {
+                return compression;
             }
 
             @Override

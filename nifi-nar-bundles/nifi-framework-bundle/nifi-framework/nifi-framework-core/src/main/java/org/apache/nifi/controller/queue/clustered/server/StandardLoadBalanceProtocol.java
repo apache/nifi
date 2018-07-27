@@ -20,6 +20,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -28,6 +29,7 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -35,10 +37,16 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -47,17 +55,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
+import java.util.zip.GZIPInputStream;
 
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_PROTOCOL_NEGOTIATION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
@@ -75,20 +90,25 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     private static final Logger logger = LoggerFactory.getLogger(StandardLoadBalanceProtocol.class);
 
+    private static final int SOCKET_CLOSED = -1;
+    private static final int NO_DATA_AVAILABLE = 0;
+
     private final FlowFileRepository flowFileRepository;
     private final ContentRepository contentRepository;
     private final ProvenanceRepository provenanceRepository;
     private final FlowController flowController;
+    private final LoadBalanceAuthorizer authorizer;
 
     private final ThreadLocal<byte[]> dataBuffer = new ThreadLocal<>();
     private final AtomicLong lineageStartIndex = new AtomicLong(0L);
 
     public StandardLoadBalanceProtocol(final FlowFileRepository flowFileRepository, final ContentRepository contentRepository, final ProvenanceRepository provenanceRepository,
-                                       final FlowController flowController) {
+                                       final FlowController flowController, final LoadBalanceAuthorizer authorizer) {
         this.flowFileRepository = flowFileRepository;
         this.contentRepository = contentRepository;
         this.provenanceRepository = provenanceRepository;
         this.flowController = flowController;
+        this.authorizer = authorizer;
     }
 
 
@@ -97,16 +117,76 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final InputStream in = new BufferedInputStream(socket.getInputStream());
         final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
 
-        final String peerDescription = socket.getInetAddress().toString();
+        String peerDescription = socket.getInetAddress().toString();
         final int version = negotiateProtocolVersion(in, out, peerDescription);
-        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName());
+
+        if (version == SOCKET_CLOSED) {
+            socket.close();
+            return;
+        }
+        if (version == NO_DATA_AVAILABLE) {
+            logger.debug("No data is available from {}", socket.getRemoteSocketAddress());
+            return;
+        }
+
+        final Set<String> certIdentities;
+        if (socket instanceof SSLSocket) {
+            final SSLSession sslSession = ((SSLSocket) socket).getSession();
+
+            try {
+                certIdentities = getCertificateIdentities(sslSession);
+
+                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
+                peerDescription = CertificateUtils.extractUsername(dn);
+            } catch (final CertificateException e) {
+                throw new IOException("Failed to extract Client Certificate", e);
+            }
+        } else {
+            certIdentities = null;
+        }
+
+        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName(), certIdentities);
     }
+
+    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
+        final Certificate[] certs = sslSession.getPeerCertificates();
+        if (certs == null || certs.length == 0) {
+            throw new SSLPeerUnverifiedException("No certificates found");
+        }
+
+        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
+        cert.checkValidity();
+
+        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
+                .map(CertificateUtils::extractUsername)
+                .collect(Collectors.toSet());
+
+        return identities;
+    }
+
 
     protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription) throws IOException {
         final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
 
-        while (true) {
-            final int requestedVersion = in.read();
+        for (int i=0;; i++) {
+            final int requestedVersion;
+            try {
+                requestedVersion = in.read();
+            } catch (final SocketTimeoutException ste) {
+                // If first iteration, then just consider this to indicate "no data available". Otherwise, we were truly expecting data.
+                if (i == 0) {
+                    logger.debug("SocketTimeoutException thrown when trying to negotiate Protocol Version");
+                    return NO_DATA_AVAILABLE;
+                }
+
+                throw ste;
+            }
+
+            if (requestedVersion < 0) {
+                logger.debug("Encountered End-of-File when receiving the the recommended Protocol Version. Returning -1 for the protocol version");
+                return -1;
+            }
+
             final boolean supported = negotiator.isVersionSupported(requestedVersion);
             if (supported) {
                 logger.debug("Peer {} requested version {} of the Load Balance Protocol. Accepting version.", peerDescription, requestedVersion);
@@ -134,7 +214,9 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
     }
 
-    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion, final String nodeName) throws IOException {
+
+    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion,
+                                    final String nodeName, final Collection<String> clientIdentities) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);
         final long startTimestamp = System.currentTimeMillis();
 
@@ -148,13 +230,17 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        logger.debug("Transaction from peer {} is for Connection ID {}", peerDescription, connectionId);
-
         final Connection connection = flowController.getConnection(connectionId);
         if (connection == null) {
             logger.error("Attempted to receive FlowFiles from Peer {} for Connection with ID {} but no connection exists with that ID", peerDescription, connectionId);
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but no Connection exists with that ID");
         }
+
+        logger.debug("Transaction from peer {} is for Connection ID {}; will perform authorization against Client Identities '{}' and this Connection ID",
+                peerDescription, connectionId, clientIdentities);
+
+        authorizer.authorize(clientIdentities, connection);
+        logger.debug("Client Identities {} are authorized to transfer data to Connection with ID '{}'", clientIdentities, connectionId);
 
         final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
         if (!(flowFileQueue instanceof LoadBalancedFlowFileQueue)) {
@@ -162,11 +248,40 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     "not configured to allow for Load Balancing");
         }
 
+        final LoadBalanceCompression compression = connection.getFlowFileQueue().getLoadBalanceCompression();
+        logger.debug("Receiving FlowFiles from Peer {} for Connection {}; Compression = {}", peerDescription, connectionId, compression);
+
+        ContentClaim contentClaim = null;
         final List<RemoteFlowFileRecord> flowFilesReceived = new ArrayList<>();
+        OutputStream contentClaimOut = null;
+        long claimOffset = 0L;
+
         try {
-            while (isMoreFlowFiles(dataIn, protocolVersion)) {
-                final RemoteFlowFileRecord flowFile = receiveFlowFile(dataIn, protocolVersion, peerDescription);
-                flowFilesReceived.add(flowFile);
+            try {
+                while (isMoreFlowFiles(dataIn, protocolVersion)) {
+                    if (contentClaim == null) {
+                        contentClaim = contentRepository.create(false);
+                        contentClaimOut = contentRepository.write(contentClaim);
+                    } else {
+                        contentRepository.incrementClaimaintCount(contentClaim);
+                    }
+
+                    final RemoteFlowFileRecord flowFile;
+                    try {
+                        flowFile = receiveFlowFile(dataIn, contentClaimOut, contentClaim, claimOffset, protocolVersion, peerDescription, compression);
+                    } catch (final Exception e) {
+                        contentRepository.decrementClaimantCount(contentClaim);
+                        throw e;
+                    }
+
+                    flowFilesReceived.add(flowFile);
+
+                    claimOffset += flowFile.getFlowFile().getSize();
+                }
+            } finally {
+                if (contentClaimOut != null) {
+                    contentClaimOut.close();
+                }
             }
 
             verifyChecksum(checksum, in, out, peerDescription, flowFilesReceived.size());
@@ -175,8 +290,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             // If any Exception occurs, we need to decrement the claimant counts for the Content Claims that we wrote to because
             // they are no longer needed.
             for (final RemoteFlowFileRecord remoteFlowFile : flowFilesReceived) {
-                final ContentClaim contentClaim = remoteFlowFile.getFlowFile().getContentClaim();
-                contentRepository.decrementClaimantCount(contentClaim);
+                contentRepository.decrementClaimantCount(remoteFlowFile.getFlowFile().getContentClaim());
             }
 
             throw e;
@@ -274,7 +388,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     private byte[] getDataBuffer() {
         byte[] buffer = dataBuffer.get();
         if (buffer == null) {
-            buffer = new byte[65536];
+            buffer = new byte[65536 + 4096];
             dataBuffer.set(buffer);
         }
 
@@ -309,14 +423,23 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             + ") or 'No More FlowFiles' indicator (" + NO_MORE_FLOWFILES + ") but received invalid value of " + indicator);
     }
 
-    private RemoteFlowFileRecord receiveFlowFile(final DataInputStream in, final int protocolVersion, final String peerDescription) throws IOException {
-        final Map<String, String> attributes = readAttributes(in);
+    private RemoteFlowFileRecord receiveFlowFile(final DataInputStream dis, final OutputStream out, final ContentClaim contentClaim, final long claimOffset, final int protocolVersion,
+                                                 final String peerDescription, final LoadBalanceCompression compression) throws IOException {
+        final int metadataLength = dis.readInt();
+
+        DataInputStream metadataIn = new DataInputStream(new LimitingInputStream(dis, metadataLength));
+        if (compression != LoadBalanceCompression.DO_NOT_COMPRESS) {
+            metadataIn = new DataInputStream(new GZIPInputStream(metadataIn));
+        }
+
+        final Map<String, String> attributes = readAttributes(metadataIn);
+
         logger.debug("Received Attributes {} from Peer {}", attributes, peerDescription);
 
-        final long lineageStartDate = in.readLong();
-        final long entryDate = in.readLong();
+        final long lineageStartDate = metadataIn.readLong();
+        final long entryDate = metadataIn.readLong();
 
-        final ContentClaimTriple contentClaimTriple = consumeContent(in, peerDescription);
+        final ContentClaimTriple contentClaimTriple = consumeContent(dis, out, contentClaim, claimOffset, peerDescription, compression == LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(flowFileRepository.getNextFlowFileSequence())
@@ -353,10 +476,14 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    private ContentClaimTriple consumeContent(final DataInputStream in, final String peerDescription) throws IOException {
+    private ContentClaimTriple consumeContent(final DataInputStream in, final OutputStream out, final ContentClaim contentClaim, final long claimOffset,
+                                              final String peerDescription, final boolean compressed) throws IOException {
         logger.debug("Consuming content from Peer {}", peerDescription);
 
         int dataFrameIndicator = in.read();
+        if (dataFrameIndicator < 0) {
+            throw new EOFException("Encountered End-of-File when expecting to read Data Frame Indicator from Peer " + peerDescription);
+        }
         if (dataFrameIndicator == NO_DATA_FRAME) {
             logger.debug("Peer {} indicates that there is no Data Frame for the FlowFile", peerDescription);
             return new ContentClaimTriple(null, 0L, 0L);
@@ -373,40 +500,42 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         byte[] buffer = getDataBuffer();
 
-        // TODO: We can make this more efficient by grouping together multiple FlowFiles into the same
-        // content claim with offsets.
-        final ContentClaim contentClaim = contentRepository.create(false);
         long claimLength = 0;
-        try (final OutputStream out = contentRepository.write(contentClaim)) {
-            while (true) {
-                StreamUtils.read(in, buffer, dataFrameLength);
-                out.write(buffer, 0, dataFrameLength);
+        while (true) {
+            final InputStream limitedIn = new LimitedInputStream(in, dataFrameLength);
+            final ByteCountingInputStream bcis = new ByteCountingInputStream(limitedIn);
+            final InputStream contentIn = compressed ? new GZIPInputStream(bcis) : bcis;
+            final int decompressedSize = StreamUtils.fillBuffer(contentIn, buffer, false);
 
-                claimLength += dataFrameLength;
-
-                dataFrameIndicator = in.read();
-                if (dataFrameIndicator == NO_DATA_FRAME) {
-                    logger.debug("Peer {} indicated that no more data frames are available", peerDescription);
-                    break;
-                }
-                if (dataFrameIndicator == ABORT_TRANSACTION) {
-                    logger.debug("Peer {} requested that transaction be aborted by sending Data Frame Length of {}", peerDescription, dataFrameLength);
-                    throw new TransactionAbortedException("Peer " + peerDescription + " requested that transaction be aborted");
-                }
-                if (dataFrameIndicator != DATA_FRAME_FOLLOWS) {
-                    throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
-                }
-
-                dataFrameLength = in.readUnsignedShort();
-                logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
+            if (bcis.getBytesRead() < dataFrameLength) {
+                throw new EOFException("Expected to receive a Data Frame of length " + dataFrameLength + " bytes but received only " + bcis.getBytesRead() + " bytes");
             }
-        } catch (final Exception e) {
-            // Since we created the content claim here and we won't return it, we need to ensure that we decrement the claimant count.
-            contentRepository.decrementClaimantCount(contentClaim);
-            throw e;
+
+            out.write(buffer, 0, decompressedSize);
+
+            claimLength += decompressedSize;
+
+            dataFrameIndicator = in.read();
+            if (dataFrameIndicator < 0) {
+                throw new EOFException("Encountered End-of-File when expecting to receive a Data Frame Indicator");
+            }
+            if (dataFrameIndicator == NO_DATA_FRAME) {
+                logger.debug("Peer {} indicated that no more data frames are available", peerDescription);
+                break;
+            }
+            if (dataFrameIndicator == ABORT_TRANSACTION) {
+                logger.debug("Peer {} requested that transaction be aborted by sending Data Frame Length of {}", peerDescription, dataFrameLength);
+                throw new TransactionAbortedException("Peer " + peerDescription + " requested that transaction be aborted");
+            }
+            if (dataFrameIndicator != DATA_FRAME_FOLLOWS) {
+                throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
+            }
+
+            dataFrameLength = in.readUnsignedShort();
+            logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
         }
 
-        return new ContentClaimTriple(contentClaim, 0, claimLength);
+        return new ContentClaimTriple(contentClaim, claimOffset, claimLength);
     }
 
     private static class ContentClaimTriple {

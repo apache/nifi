@@ -98,7 +98,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public synchronized void start() {
+    public synchronized void start(final FlowFilePartitioner partitionerUsed) {
         stopped = false;
         rebalanceFromQueue();
     }
@@ -176,6 +176,8 @@ public class StandardRebalancingPartition implements RebalancingPartition {
             while (!stopped) {
                 final FlowFileRecord polled;
 
+                expiredRecords.clear();
+
                 // Wait up to #pollWaitMillis milliseconds to get a FlowFile. If none, then check if stopped
                 // and if not, poll again.
                 try {
@@ -186,6 +188,8 @@ public class StandardRebalancingPartition implements RebalancingPartition {
                 }
 
                 if (polled == null) {
+                    flowFileQueue.handleExpiredRecords(expiredRecords);
+
                     if (complete()) {
                         return;
                     } else {
@@ -199,6 +203,8 @@ public class StandardRebalancingPartition implements RebalancingPartition {
 
                 final List<FlowFileRecord> additionalRecords = queue.poll(999, expiredRecords, -1);
                 toDistribute.addAll(additionalRecords);
+
+                flowFileQueue.handleExpiredRecords(expiredRecords);
 
                 // Transfer all of the FlowFiles that we got back to the FlowFileQueue itself. This will cause the data to be
                 // re-partitioned and binned appropriately. We also then need to ensure that we acknowledge the data from our

@@ -313,9 +313,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
             throw new IllegalStateException("Cannot change destination of Connection because the current destination is running");
         }
 
-        // TODO: Should probably consider not moving the getUnacknowledgedQueueSize into QueueDiagnostics or creating an isUnacknowledgedFlowFile() method
-        // on FlowFileQueue or something... calling getQueueDiagnostics() here feels wrong.
-        if (getFlowFileQueue().getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount() > 0) {
+        if (getFlowFileQueue().isUnacknowledgedFlowFile()) {
             throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
         }
 
@@ -372,7 +370,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
 
     @Override
     public String toString() {
-        return "Connection[Source ID=" + id + ",Dest ID=" + getDestination().getIdentifier() + "]";
+        return "Connection[ID=" + getIdentifier() + ", Source ID=" + getSource().getIdentifier() + ", Dest ID=" + getDestination().getIdentifier() + "]";
     }
 
     /**

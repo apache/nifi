@@ -10,18 +10,23 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClient;
+import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientFactory;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientTask;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.QueuePartition;
 import org.apache.nifi.controller.queue.clustered.partition.RoundRobinPartitioner;
 import org.apache.nifi.controller.queue.clustered.server.ConnectionLoadBalanceServer;
+import org.apache.nifi.controller.queue.clustered.server.LoadBalanceAuthorizer;
 import org.apache.nifi.controller.queue.clustered.server.LoadBalanceProtocol;
+import org.apache.nifi.controller.queue.clustered.server.NotAuthorizedException;
 import org.apache.nifi.controller.queue.clustered.server.StandardLoadBalanceProtocol;
+import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -64,13 +69,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyString;
@@ -79,8 +84,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
-
-    // TODO: Test having server consume some of the bytes, then closing connection. Should be re-tried.
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (clientDn, connection) -> {};
+    private final LoadBalanceAuthorizer NEVER_AUTHORIZED = (clientDn, connection) -> {
+        throw new NotAuthorizedException("Intentional Unit Test Failure - Not Authorized");
+    };
 
     private final MockSwapManager flowFileSwapManager = new MockSwapManager();
     private final String queueId = "unit-test";
@@ -107,10 +114,15 @@ public class LoadBalancedQueueIT {
     private ConcurrentMap<ContentClaim, byte[]> serverClaimContents;
     private ContentRepository serverContentRepo;
 
+    private SSLContext sslContext;
+
     private final Set<ClusterTopologyEventListener> clusterEventListeners = Collections.synchronizedSet(new HashSet<>());
+    private final AtomicReference<LoadBalanceCompression> compressionReference = new AtomicReference<>();
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        compressionReference.set(LoadBalanceCompression.DO_NOT_COMPRESS);
+
         nodeIdentifiers = new HashSet<>();
 
         clusterCoordinator = mock(ClusterCoordinator.class);
@@ -134,6 +146,7 @@ public class LoadBalancedQueueIT {
 
         serverQueue = mock(LoadBalancedFlowFileQueue.class);
         when(connection.getFlowFileQueue()).thenReturn(serverQueue);
+        doAnswer(invocation -> compressionReference.get()).when(serverQueue).getLoadBalanceCompression();
 
         flowController = mock(FlowController.class);
         when(flowController.getConnection(anyString())).thenReturn(connection);
@@ -150,6 +163,15 @@ public class LoadBalancedQueueIT {
         clientContentRepo = createContentRepository(clientClaimContents);
         clientRepoRecords = Collections.synchronizedList(new ArrayList<>());
         clientFlowFileRepo = createFlowFileRepository(clientRepoRecords);
+
+        final String keystore = "src/test/resources/localhost-ks.jks";
+        final String keystorePass = "OI7kMpWzzVNVx/JGhTL/0uO4+PWpGJ46uZ/pfepbkwI";
+        final String keyPass = keystorePass;
+        final String truststore = "src/test/resources/localhost-ts.jks";
+        final String truststorePass = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
+        sslContext = SslContextFactory.createSslContext(keystore, keystorePass.toCharArray(), keyPass.toCharArray(), "JKS",
+                truststore, truststorePass.toCharArray(), "JKS",
+                SslContextFactory.ClientAuth.REQUIRED, "TLS");
     }
 
 
@@ -170,6 +192,11 @@ public class LoadBalancedQueueIT {
     }
 
 
+    private NioAsyncLoadBalanceClientFactory createClientFactory(final SSLContext sslContext) {
+        final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
+        return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec());
+    }
+
     @Test(timeout = 20_000)
     public void testNewNodeAdded() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
@@ -177,15 +204,16 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 1000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(8);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
         final SSLContext sslContext = null;
 
-        final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+        final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+        clientRegistry.start();
+
         final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
         when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
         when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-        final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
+        final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
         final Thread clientThread = new Thread(clientTask);
 
         final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
@@ -198,9 +226,10 @@ public class LoadBalancedQueueIT {
 
         try {
             flowFileQueue.startLoadBalancing();
+            clientThread.start();
 
             for (int i = 0; i < serverCount; i++) {
-                final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+                final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 8, loadBalanceProtocol, eventReporter, timeoutMillis);
                 servers[i] = server;
                 server.start();
 
@@ -210,11 +239,6 @@ public class LoadBalancedQueueIT {
                 final NodeIdentifier nodeId = new NodeIdentifier("unit-test-" + i, "localhost", 8090 + i, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
                 nodeIdentifiers.add(nodeId);
 
-                final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-                final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(nodeId, null, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-                client.start();
-
-                clientRegistry.addClient(client);
 
                 clusterEventListeners.forEach(listener -> listener.onNodeAdded(nodeId));
 
@@ -227,11 +251,9 @@ public class LoadBalancedQueueIT {
                 }
             }
 
-            clientThread.start();
-
             final int totalFlowFileCount = 6;
 
-            // Wait up to 30 seconds for the server's FlowFile Repository to be updated
+            // Wait up to 10 seconds for the server's FlowFile Repository to be updated
             final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
             while (serverRepoRecords.size() < totalFlowFileCount && System.currentTimeMillis() < endTime) {
                 Thread.sleep(10L);
@@ -262,8 +284,6 @@ public class LoadBalancedQueueIT {
 
             clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             Arrays.stream(servers).filter(Objects::nonNull).forEach(ConnectionLoadBalanceServer::stop);
-
-            serverThreadPool.shutdown();
         }
     }
 
@@ -274,11 +294,10 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 1000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
         final SSLContext sslContext = null;
 
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -294,21 +313,13 @@ public class LoadBalancedQueueIT {
             nodeIdentifiers.add(inaccessibleNodeId);
 
 
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final NioAsyncLoadBalanceClient availableClient = new NioAsyncLoadBalanceClient(availableNodeId, null, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            availableClient.start();
-            clientRegistry.addClient(availableClient);
-
-            final NioAsyncLoadBalanceClient inaccessibleClient = new NioAsyncLoadBalanceClient(inaccessibleNodeId, null, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            inaccessibleClient.start();
-            clientRegistry.addClient(inaccessibleClient);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -355,7 +366,7 @@ public class LoadBalancedQueueIT {
 
                     final ContentClaim serverContentClaim = serverFlowFile.getContentClaim();
                     final byte[] serverFlowFileContent = serverClaimContents.get(serverContentClaim);
-                    assertArrayEquals("hello".getBytes(), serverFlowFileContent);
+                    assertArrayEquals("hello".getBytes(), Arrays.copyOfRange(serverFlowFileContent, serverFlowFileContent.length - 5, serverFlowFileContent.length));
                 }
 
                 // We expect the client records to be numFlowFiles / 2 because half of the FlowFile will have gone to the other node
@@ -371,12 +382,10 @@ public class LoadBalancedQueueIT {
                 }
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                availableClient.stop();
-                inaccessibleClient.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
         }
     }
 
@@ -388,11 +397,10 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
         final SSLContext sslContext = null;
 
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -402,16 +410,13 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(remoteNodeId);
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-            final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(remoteNodeId, null, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            client.start();
-            clientRegistry.addClient(client);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -465,14 +470,262 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                client.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
         }
     }
 
+
+    @Test(timeout = 20_000)
+    public void testContentNotFound() throws IOException, InterruptedException {
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        nodeIdentifiers.add(localNodeId);
+
+        // Create the server
+        final int timeoutMillis = 30000;
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final SSLContext sslContext = null;
+
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
+        server.start();
+
+        try {
+            final int loadBalancePort = server.getPort();
+
+            // Create the Load Balanced FlowFile Queue
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            nodeIdentifiers.add(remoteNodeId);
+
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
+            final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
+            when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
+            when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
+
+            final Thread clientThread = new Thread(clientTask);
+            clientThread.setDaemon(true);
+            clientThread.start();
+
+            final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
+                clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+            flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
+
+            try {
+                final MockFlowFileRecord firstFlowFile = new MockFlowFileRecord(0L);
+                flowFileQueue.put(firstFlowFile);
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("integration", "test");
+                attributes.put("unit-test", "false");
+                attributes.put("integration-test", "true");
+
+                final ContentClaim contentClaim = createContentClaim("hello".getBytes());
+                this.clientClaimContents.remove(contentClaim); // cause ContentNotFoundException
+
+                final MockFlowFileRecord secondFlowFile = new MockFlowFileRecord(attributes, 5L, contentClaim);
+                flowFileQueue.put(secondFlowFile);
+
+                flowFileQueue.startLoadBalancing();
+
+                while (clientRepoRecords.size() == 0) {
+                    Thread.sleep(10L);
+                }
+
+                assertEquals(1, clientRepoRecords.size());
+                final RepositoryRecord clientRecord = clientRepoRecords.iterator().next();
+                assertEquals(RepositoryRecordType.CONTENTMISSING, clientRecord.getType());
+            } finally {
+                flowFileQueue.stopLoadBalancing();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+            }
+        } finally {
+            server.stop();
+        }
+    }
+
+
+    @Test(timeout = 20_000)
+    public void testTransferToRemoteNodeAttributeCompression() throws IOException, InterruptedException {
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        nodeIdentifiers.add(localNodeId);
+        compressionReference.set(LoadBalanceCompression.COMPRESS_ATTRIBUTES_ONLY);
+
+        // Create the server
+        final int timeoutMillis = 30000;
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final SSLContext sslContext = null;
+
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
+        server.start();
+
+        try {
+            final int loadBalancePort = server.getPort();
+
+            // Create the Load Balanced FlowFile Queue
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            nodeIdentifiers.add(remoteNodeId);
+
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
+            final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
+            when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
+            when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
+
+            final Thread clientThread = new Thread(clientTask);
+            clientThread.setDaemon(true);
+            clientThread.start();
+
+            final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
+                clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+            flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
+            flowFileQueue.setLoadBalanceCompression(LoadBalanceCompression.COMPRESS_ATTRIBUTES_ONLY);
+
+            try {
+                final MockFlowFileRecord firstFlowFile = new MockFlowFileRecord(0L);
+                flowFileQueue.put(firstFlowFile);
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("integration", "test");
+                attributes.put("unit-test", "false");
+                attributes.put("integration-test", "true");
+
+                final ContentClaim contentClaim = createContentClaim("hello".getBytes());
+                final MockFlowFileRecord secondFlowFile = new MockFlowFileRecord(attributes, 5L, contentClaim);
+                flowFileQueue.put(secondFlowFile);
+
+                flowFileQueue.startLoadBalancing();
+
+                // Wait up to 10 seconds for the server's FlowFile Repository to be updated
+                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
+                while (serverRepoRecords.isEmpty() && System.currentTimeMillis() < endTime) {
+                    Thread.sleep(10L);
+                }
+
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
+
+                assertEquals(1, serverRepoRecords.size());
+
+                final RepositoryRecord serverRecord = serverRepoRecords.iterator().next();
+                final FlowFileRecord serverFlowFile = serverRecord.getCurrent();
+                assertEquals("test", serverFlowFile.getAttribute("integration"));
+                assertEquals("false", serverFlowFile.getAttribute("unit-test"));
+                assertEquals("true", serverFlowFile.getAttribute("integration-test"));
+
+                final ContentClaim serverContentClaim = serverFlowFile.getContentClaim();
+                final byte[] serverFlowFileContent = serverClaimContents.get(serverContentClaim);
+                assertArrayEquals("hello".getBytes(), serverFlowFileContent);
+
+                while (clientRepoRecords.size() == 0) {
+                    Thread.sleep(10L);
+                }
+
+                assertEquals(1, clientRepoRecords.size());
+                final RepositoryRecord clientRecord = clientRepoRecords.iterator().next();
+                assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
+            } finally {
+                flowFileQueue.stopLoadBalancing();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+            }
+        } finally {
+            server.stop();
+        }
+    }
+
+
+    @Test(timeout = 20_000)
+    public void testTransferToRemoteNodeContentCompression() throws IOException, InterruptedException {
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        nodeIdentifiers.add(localNodeId);
+        compressionReference.set(LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
+
+        // Create the server
+        final int timeoutMillis = 30000;
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final SSLContext sslContext = null;
+
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
+        server.start();
+
+        try {
+            final int loadBalancePort = server.getPort();
+
+            // Create the Load Balanced FlowFile Queue
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            nodeIdentifiers.add(remoteNodeId);
+
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
+            final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
+            when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
+            when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
+
+            final Thread clientThread = new Thread(clientTask);
+            clientThread.setDaemon(true);
+            clientThread.start();
+
+            final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
+                clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+            flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
+            flowFileQueue.setLoadBalanceCompression(LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
+
+            try {
+                final MockFlowFileRecord firstFlowFile = new MockFlowFileRecord(0L);
+                flowFileQueue.put(firstFlowFile);
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("integration", "test");
+                attributes.put("unit-test", "false");
+                attributes.put("integration-test", "true");
+
+                final ContentClaim contentClaim = createContentClaim("hello".getBytes());
+                final MockFlowFileRecord secondFlowFile = new MockFlowFileRecord(attributes, 5L, contentClaim);
+                flowFileQueue.put(secondFlowFile);
+
+                flowFileQueue.startLoadBalancing();
+
+                // Wait up to 10 seconds for the server's FlowFile Repository to be updated
+                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
+                while (serverRepoRecords.isEmpty() && System.currentTimeMillis() < endTime) {
+                    Thread.sleep(10L);
+                }
+
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
+
+                assertEquals(1, serverRepoRecords.size());
+
+                final RepositoryRecord serverRecord = serverRepoRecords.iterator().next();
+                final FlowFileRecord serverFlowFile = serverRecord.getCurrent();
+                assertEquals("test", serverFlowFile.getAttribute("integration"));
+                assertEquals("false", serverFlowFile.getAttribute("unit-test"));
+                assertEquals("true", serverFlowFile.getAttribute("integration-test"));
+
+                final ContentClaim serverContentClaim = serverFlowFile.getContentClaim();
+                final byte[] serverFlowFileContent = serverClaimContents.get(serverContentClaim);
+                assertArrayEquals("hello".getBytes(), serverFlowFileContent);
+
+                while (clientRepoRecords.size() == 0) {
+                    Thread.sleep(10L);
+                }
+
+                assertEquals(1, clientRepoRecords.size());
+                final RepositoryRecord clientRecord = clientRepoRecords.iterator().next();
+                assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
+            } finally {
+                flowFileQueue.stopLoadBalancing();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+            }
+        } finally {
+            server.stop();
+        }
+    }
 
     @Test(timeout = 20_000)
     public void testWithSSLContext() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
@@ -481,19 +734,10 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
 
-        final String keystore = "src/test/resources/localhost-ks.jks";
-        final String keystorePass = "localtest";
-        final String keyPass = keystorePass;
-        final String truststore = "src/test/resources/localhost-ts.jks";
-        final String truststorePass = "localtest";
-        final SSLContext sslContext = SslContextFactory.createSslContext(keystore, keystorePass.toCharArray(), keyPass.toCharArray(), "JKS",
-                truststore, truststorePass.toCharArray(), "JKS",
-                SslContextFactory.ClientAuth.REQUIRED, "TLS");
 
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -503,16 +747,13 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(remoteNodeId);
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-            final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(remoteNodeId, sslContext, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            client.start();
-            clientRegistry.addClient(client);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -566,11 +807,10 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                client.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
         }
     }
 
@@ -582,19 +822,9 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
 
-        final String keystore = "src/test/resources/localhost-ks.jks";
-        final String keystorePass = "localtest";
-        final String keyPass = keystorePass;
-        final String truststore = "src/test/resources/localhost-ts.jks";
-        final String truststorePass = "localtest";
-        final SSLContext sslContext = SslContextFactory.createSslContext(keystore, keystorePass.toCharArray(), keyPass.toCharArray(), "JKS",
-                truststore, truststorePass.toCharArray(), "JKS",
-                SslContextFactory.ClientAuth.REQUIRED, "TLS");
-
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -604,16 +834,13 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(remoteNodeId);
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-            final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(remoteNodeId, sslContext, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            client.start();
-            clientRegistry.addClient(client);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -667,11 +894,10 @@ public class LoadBalancedQueueIT {
                 }
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                client.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
         }
     }
 
@@ -683,19 +909,9 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
 
-        final String keystore = "src/test/resources/localhost-ks.jks";
-        final String keystorePass = "localtest";
-        final String keyPass = keystorePass;
-        final String truststore = "src/test/resources/localhost-ts.jks";
-        final String truststorePass = "localtest";
-        final SSLContext sslContext = SslContextFactory.createSslContext(keystore, keystorePass.toCharArray(), keyPass.toCharArray(), "JKS",
-                truststore, truststorePass.toCharArray(), "JKS",
-                SslContextFactory.ClientAuth.REQUIRED, "TLS");
-
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -705,16 +921,13 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(remoteNodeId);
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-            final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(remoteNodeId, sslContext, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            client.start();
-            clientRegistry.addClient(client);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -771,11 +984,10 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                client.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
         }
     }
 
@@ -787,7 +999,7 @@ public class LoadBalancedQueueIT {
             int iterations = 0;
 
             @Override
-            public OutputStream answer(final InvocationOnMock invocation) throws Throwable {
+            public OutputStream answer(final InvocationOnMock invocation) {
                 if (iterations++ < 5) {
                     return new OutputStream() {
                         @Override
@@ -812,11 +1024,10 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController);
-        final ExecutorService serverThreadPool = Executors.newFixedThreadPool(2);
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
         final SSLContext sslContext = null;
 
-        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, serverThreadPool, loadBalanceProtocol, timeoutMillis);
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
         try {
@@ -826,16 +1037,13 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(remoteNodeId);
 
-            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry();
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
             final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
             when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
             when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
-            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator);
-
-            final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
-            final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(remoteNodeId, null, 30000, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
-            client.start();
-            clientRegistry.addClient(client);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
 
             final Thread clientThread = new Thread(clientTask);
             clientThread.setDaemon(true);
@@ -878,7 +1086,7 @@ public class LoadBalancedQueueIT {
                 flowFileQueue.startLoadBalancing();
 
                 // Wait up to 10 seconds for the server's FlowFile Repository to be updated
-                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
                 while (serverRepoRecords.isEmpty() && System.currentTimeMillis() < endTime) {
                     Thread.sleep(10L);
                 }
@@ -906,11 +1114,77 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                client.stop();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
-            serverThreadPool.shutdown();
+        }
+    }
+
+
+    @Test(timeout = 20_000)
+    public void testNotAuthorized() throws IOException, InterruptedException {
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        nodeIdentifiers.add(localNodeId);
+
+        // Create the server
+        final int timeoutMillis = 30000;
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, NEVER_AUTHORIZED);
+        final SSLContext sslContext = null;
+
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
+        server.start();
+
+        try {
+            final int loadBalancePort = server.getPort();
+
+            // Create the Load Balanced FlowFile Queue
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            nodeIdentifiers.add(remoteNodeId);
+
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
+            final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
+            when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
+            when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
+
+            final Thread clientThread = new Thread(clientTask);
+            clientThread.setDaemon(true);
+            clientThread.start();
+
+            final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
+                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+            flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
+
+            try {
+                final MockFlowFileRecord firstFlowFile = new MockFlowFileRecord(0L);
+                flowFileQueue.put(firstFlowFile);
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("integration", "test");
+                attributes.put("unit-test", "false");
+                attributes.put("integration-test", "true");
+
+                final ContentClaim contentClaim = createContentClaim("hello".getBytes());
+                final MockFlowFileRecord secondFlowFile = new MockFlowFileRecord(attributes, 5L, contentClaim);
+                flowFileQueue.put(secondFlowFile);
+
+                flowFileQueue.startLoadBalancing();
+
+                Thread.sleep(5000L);
+
+                assertTrue("Server's FlowFile Repo was updated", serverRepoRecords.isEmpty());
+                assertTrue(clientRepoRecords.isEmpty());
+
+                assertEquals(2, flowFileQueue.size().getObjectCount());
+            } finally {
+                flowFileQueue.stopLoadBalancing();
+                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+            }
+        } finally {
+            server.stop();
         }
     }
 
@@ -965,6 +1239,10 @@ public class LoadBalancedQueueIT {
                 }
 
                 final byte[] bytes = claimContents.get(contentClaim);
+                if (bytes == null) {
+                    throw new ContentNotFoundException(contentClaim);
+                }
+
                 return new ByteArrayInputStream(bytes);
             }
         }).when(contentRepo).read(any(ContentClaim.class));

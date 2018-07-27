@@ -17,18 +17,12 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.List;
+
 public interface QueueDiagnostics {
 
-    QueueSize getUnacknowledgedQueueSize();
+    LocalQueuePartitionDiagnostics getLocalQueuePartitionDiagnostics();
 
-    QueueSize getActiveQueueSize();
-
-    QueueSize getSwapQueueSize();
-
-    int getSwapFileCount();
-
-    boolean isAnyActiveFlowFilePenalized();
-
-    boolean isAllActiveFlowFilesPenalized();
+    List<RemoteQueuePartitionDiagnostics> getRemoteQueuePartitionDiagnostics();
 
 }

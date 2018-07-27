@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -24,6 +28,7 @@ import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
+import org.apache.nifi.cluster.coordination.node.state.NodeIdentifierDescriptor;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
@@ -50,8 +55,14 @@ import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
@@ -60,6 +71,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,6 +107,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final AtomicLong latestUpdateId = new AtomicLong(-1);
     private final FlowElection flowElection;
     private final NodeProtocolSender nodeProtocolSender;
+    private final StateManager stateManager;
 
     private volatile FlowService flowService;
     private volatile boolean connected;
@@ -107,8 +120,15 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final List<ClusterTopologyEventListener> eventListeners = new CopyOnWriteArrayList<>();
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
+                                  final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
+                                  final NodeProtocolSender nodeProtocolSender) throws IOException {
+        this(senderListener, eventReporter, leaderElectionManager, flowElection, firewall, revisionManager, nifiProperties, nodeProtocolSender,
+            StandardStateManagerProvider.create(nifiProperties, VariableRegistry.EMPTY_REGISTRY));
+    }
+
+    public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
             final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
-            final NodeProtocolSender nodeProtocolSender) {
+            final NodeProtocolSender nodeProtocolSender, final StateManagerProvider stateManagerProvider) throws IOException {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
@@ -118,9 +138,89 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.leaderElectionManager = leaderElectionManager;
         this.flowElection = flowElection;
         this.nodeProtocolSender = nodeProtocolSender;
+        this.stateManager = stateManagerProvider.getStateManager("Cluster Coordinator");
+
+        recoverState();
 
         senderListener.addHandler(this);
     }
+
+    private void recoverState() throws IOException {
+        final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+        if (stateMap == null) {
+            logger.debug("No state to restore");
+            return;
+        }
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonFactory jsonFactory = new JsonFactory();
+        jsonFactory.setCodec(mapper);
+
+        final Map<NodeIdentifier, NodeConnectionStatus> connectionStatusMap = new HashMap<>();
+        NodeIdentifier localNodeId = null;
+
+        final Map<String, String> state = stateMap.toMap();
+        for (final Map.Entry<String, String> entry : state.entrySet()) {
+            final String nodeUuid = entry.getKey();
+            final String nodeIdentifierJson = entry.getValue();
+            logger.debug("Recovering state for {} = {}", nodeUuid, nodeIdentifierJson);
+
+            try (final JsonParser jsonParser = jsonFactory.createParser(nodeIdentifierJson)) {
+                final NodeIdentifierDescriptor nodeIdDesc = jsonParser.readValueAs(NodeIdentifierDescriptor.class);
+                final NodeIdentifier nodeId = nodeIdDesc.toNodeIdentifier();
+
+                connectionStatusMap.put(nodeId, new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
+                if (nodeIdDesc.isLocalNodeIdentifier()) {
+                    if (localNodeId == null) {
+                        localNodeId = nodeId;
+                    } else {
+                        logger.warn("When recovering state, determined that tgwo Node Identifiers claim to be the local Node Identifier: {} and {}. Will ignore both of these and wait until " +
+                            "connecting to cluster to determine which Node Identiifer is the local Node Identifier", localNodeId, nodeId);
+                        localNodeId = null;
+                    }
+                }
+            }
+        }
+
+        if (!connectionStatusMap.isEmpty()) {
+            resetNodeStatuses(connectionStatusMap);
+        }
+
+        if (localNodeId != null) {
+            logger.debug("Recovered state indicating that Local Node Identifier is {}", localNodeId);
+            setLocalNodeIdentifier(localNodeId);
+        }
+    }
+
+    private void storeState() {
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonFactory jsonFactory = new JsonFactory();
+        jsonFactory.setCodec(mapper);
+
+        try {
+            final Map<String, String> stateMap = new HashMap<>();
+
+            final NodeIdentifier localNodeId = getLocalNodeIdentifier();
+            for (final NodeIdentifier nodeId : getNodeIdentifiers()) {
+                final boolean isLocalId = nodeId.equals(localNodeId);
+                final NodeIdentifierDescriptor descriptor = NodeIdentifierDescriptor.fromNodeIdentifier(nodeId, isLocalId);
+
+                try (final StringWriter writer = new StringWriter()) {
+                    final JsonGenerator jsonGenerator = jsonFactory.createGenerator(writer);
+                    jsonGenerator.writeObject(descriptor);
+
+                    final String serializedDescriptor = writer.toString();
+                    stateMap.put(nodeId.getId(), serializedDescriptor);
+                }
+            }
+
+            stateManager.setState(stateMap, Scope.LOCAL);
+            logger.debug("Stored the following state as the Cluster Topology: {}", stateMap);
+        } catch (final Exception e) {
+            logger.warn("Failed to store cluster topology to local State Manager. Upon restart of NiFi, the cluster topology may not be accurate until joining the cluster.", e);
+        }
+    }
+
 
     public void registerEventListener(final ClusterTopologyEventListener eventListener) {
         this.eventListeners.add(eventListener);
@@ -154,7 +254,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         this.nodeId = nodeId;
         nodeStatuses.computeIfAbsent(nodeId, id -> new NodeConnectionStatus(id, DisconnectionCode.NOT_YET_CONNECTED));
-        eventListeners.stream().forEach(listener -> listener.onLocalNodeIdentifierSet(nodeId));
+        eventListeners.forEach(listener -> listener.onLocalNodeIdentifierSet(nodeId));
     }
 
     @Override
@@ -187,7 +287,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return localNodeId;
     }
 
-    private String getElectedActiveCoordinatorAddress() throws IOException {
+    private String getElectedActiveCoordinatorAddress() {
         return leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
@@ -204,9 +304,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             if (proposedStatus.getState() == NodeConnectionState.REMOVED) {
                 removeNode(nodeId);
             } else {
-                updateNodeStatus(nodeId, proposedStatus);
+                updateNodeStatus(nodeId, proposedStatus, false);
             }
         }
+
+        storeState();
     }
 
     private NodeConnectionStatus removeNode(final NodeIdentifier nodeId) {
@@ -230,9 +332,13 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private NodeConnectionStatus updateNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus updatedStatus) {
+        return updateNodeStatus(nodeId, updatedStatus, true);
+    }
+
+    private NodeConnectionStatus updateNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus updatedStatus, final boolean storeState) {
         final NodeConnectionStatus evictedStatus = nodeStatuses.put(nodeId, updatedStatus);
         if (evictedStatus == null) {
-            onNodeAdded(nodeId);
+            onNodeAdded(nodeId, storeState);
         }
 
         return evictedStatus;
@@ -245,7 +351,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             updated = existingValue == null;
 
             if (updated) {
-                onNodeAdded(nodeId);
+                onNodeAdded(nodeId, true);
             }
         } else {
             updated = nodeStatuses.replace(nodeId, expectedStatus, updatedStatus);
@@ -297,7 +403,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         if (newStatus.getState() == NodeConnectionState.REMOVED) {
-            return removeNodeConditionally(nodeId, currentStatus);
+            if (removeNodeConditionally(nodeId, currentStatus)) {
+                storeState();
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return updateNodeStatusConditionally(nodeId, currentStatus, newStatus);
         }
@@ -411,13 +522,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         reportEvent(nodeId, Severity.INFO, "User " + userDn + " requested that node be removed from cluster");
         notifyOthersOfNodeStatusChange(new NodeConnectionStatus(nodeId, NodeConnectionState.REMOVED));
         removeNode(nodeId);
+
+        storeState();
     }
 
     private void onNodeRemoved(final NodeIdentifier nodeId) {
         eventListeners.stream().forEach(listener -> listener.onNodeRemoved(nodeId));
     }
 
-    private void onNodeAdded(final NodeIdentifier nodeId) {
+    private void onNodeAdded(final NodeIdentifier nodeId, final boolean storeState) {
+        if (storeState) {
+            storeState();
+        }
+
+
         eventListeners.stream().forEach(listener -> listener.onNodeAdded(nodeId));
     }
 
@@ -529,15 +647,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         } catch (final NoClusterCoordinatorException ncce) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
-        } catch (final IOException ioe) {
-            if (warnOnError) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator. There may be no coordinator currently: " + ioe);
-                if (logger.isDebugEnabled()) {
-                    logger.warn("", ioe);
-                }
-            }
-
-            return null;
         }
 
         if (electedNodeAddress == null) {
@@ -587,7 +696,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
                 final NodeConnectionStatus existingStatus = this.nodeStatuses.putIfAbsent(connectionStatus.getNodeIdentifier(), connectionStatus);
                 if (existingStatus == null) {
-                    onNodeAdded(connectionStatus.getNodeIdentifier());
+                    onNodeAdded(connectionStatus.getNodeIdentifier(), true);
                     return connectionStatus.getNodeIdentifier();
                 } else {
                     return existingStatus.getNodeIdentifier();
@@ -859,7 +968,9 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         // Either remove the value from the map or update the map depending on the connection state
         if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
-            removeNodeConditionally(nodeId, oldStatus);
+            if (removeNodeConditionally(nodeId, oldStatus)) {
+                storeState();
+            }
         } else {
             updateNodeStatus(nodeId, updatedStatus);
         }
@@ -907,7 +1018,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             // there is no node with that ID
             resolvedNodeId = proposedIdentifier;
             logger.debug("No existing node with ID {}; resolved node ID is as-proposed", proposedIdentifier.getId());
-            onNodeAdded(resolvedNodeId);
+            onNodeAdded(resolvedNodeId, true);
         } else if (existingStatus.getNodeIdentifier().logicallyEquals(proposedIdentifier)) {
             // there is a node with that ID but it's the same node.
             resolvedNodeId = proposedIdentifier;

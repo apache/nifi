@@ -607,6 +607,7 @@ public class FingerprintFactory {
 
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceStrategy"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "partitioningAttribute"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceCompression"));
 
         // relationships
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");

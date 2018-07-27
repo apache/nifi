@@ -110,6 +110,11 @@ public interface FlowFileQueue {
     void acknowledge(Collection<FlowFileRecord> flowFiles);
 
     /**
+     * @return <code>true</code> if at least one FlowFile is unacknowledged, <code>false</code> if all FlowFiles that have been dequeued have been acknowledged
+     */
+    boolean isUnacknowledgedFlowFile();
+
+    /**
      * @return true if maximum queue size has been reached or exceeded; false
      *         otherwise
      */
@@ -264,9 +269,18 @@ public interface FlowFileQueue {
 
     LoadBalanceStrategy getLoadBalanceStrategy();
 
+    void setLoadBalanceCompression(LoadBalanceCompression compression);
+
+    LoadBalanceCompression getLoadBalanceCompression();
+
     String getPartitioningAttribute();
 
     void startLoadBalancing();
 
     void stopLoadBalancing();
+
+    /**
+     * @return <code>true</code> if the queue is actively transferring data to another node, <code>false</code> otherwise
+     */
+    boolean isActivelyLoadBalancing();
 }

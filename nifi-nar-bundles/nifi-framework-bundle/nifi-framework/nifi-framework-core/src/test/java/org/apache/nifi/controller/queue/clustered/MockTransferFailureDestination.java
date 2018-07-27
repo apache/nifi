@@ -1,6 +1,7 @@
 package org.apache.nifi.controller.queue.clustered;
 
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ public class MockTransferFailureDestination implements TransferFailureDestinatio
     private List<String> swapFilesTransferred = new ArrayList<>();
 
     @Override
-    public void putAll(final Collection<FlowFileRecord> flowFiles) {
+    public void putAll(final Collection<FlowFileRecord> flowFiles, final FlowFilePartitioner partitionerUsed) {
         flowFilesTransferred.addAll(flowFiles);
     }
 
@@ -22,7 +23,7 @@ public class MockTransferFailureDestination implements TransferFailureDestinatio
     }
 
     @Override
-    public void putAll(final Function<String, FlowFileQueueContents> queueContents) {
+    public void putAll(final Function<String, FlowFileQueueContents> queueContents, final FlowFilePartitioner partitionerUsed) {
         final FlowFileQueueContents contents = queueContents.apply("unit-test");
         flowFilesTransferred.addAll(contents.getActiveFlowFiles());
         swapFilesTransferred.addAll(contents.getSwapLocations());

@@ -1,20 +1,20 @@
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -35,12 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_PROTOCOL_NEGOTIATION;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
-
-// TODO: Support SSL!!!
 public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private static final Logger logger = LoggerFactory.getLogger(NioAsyncLoadBalanceClient.class);
     private static final long PENALIZATION_MILLIS = TimeUnit.SECONDS.toMillis(1L);
@@ -50,6 +45,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final int timeoutMillis;
     private final FlowFileContentAccess flowFileContentAccess;
     private final LoadBalanceFlowFileCodec flowFileCodec;
+    private final EventReporter eventReporter;
 
     private volatile boolean running = false;
     private final AtomicLong penalizationEnd = new AtomicLong(0L);
@@ -63,16 +59,17 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private PeerChannel channel;
     private Selector selector;
     private SelectionKey selectionKey;
-    private ActiveTransaction activeTransaction = null;
+    private LoadBalanceSession loadBalanceSession = null;
 
 
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
-                                     final LoadBalanceFlowFileCodec flowFileCodec) {
+                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter) {
         this.nodeIdentifier = nodeIdentifier;
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
         this.flowFileContentAccess = flowFileContentAccess;
         this.flowFileCodec = flowFileCodec;
+        this.eventReporter = eventReporter;
     }
 
     @Override
@@ -81,13 +78,13 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     public synchronized void register(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
-                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback) {
+                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback, final LoadBalanceCompression compression) {
 
         if (registeredPartitions.containsKey(connectionId)) {
             throw new IllegalStateException("Connection with ID " + connectionId + " is already registered");
         }
 
-        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback);
+        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compression);
         registeredPartitions.put(connectionId, partition);
         partitionQueue.add(partition);
     }
@@ -102,12 +99,12 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
     public void start() {
         running = true;
-        logger.info("{} started", this);
+        logger.debug("{} started", this);
     }
 
     public void stop() {
         running = false;
-        logger.info("{} stopped", this);
+        logger.debug("{} stopped", this);
         close();
     }
 
@@ -157,6 +154,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         this.penalizationEnd.set(System.currentTimeMillis() + PENALIZATION_MILLIS);
     }
 
+
     public boolean communicate() throws IOException {
         if (!running) {
             return false;
@@ -195,7 +193,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 }
             }
 
-            final ActiveTransaction transaction = getActiveTransaction(readyPartition);
+            final LoadBalanceSession transaction = getActiveTransaction(readyPartition);
             if (transaction == null) {
                 penalize();
                 return false;
@@ -207,35 +205,34 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 return false;
             }
 
+            boolean anySuccess = false;
             boolean success;
-            try {
-                success = transaction.communicate();
-            } catch (final Exception e) {
-                logger.error("Failed to communicate with Peer {}", nodeIdentifier.toString(), e);
-                penalize();
-                transaction.getPartition().getFailureCallback().onTransactionFailed(transaction.getFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
-                close();
+            do {
+                try {
+                    success = transaction.communicate();
+                } catch (final Exception e) {
+                    logger.error("Failed to communicate with Peer {}", nodeIdentifier.toString(), e);
+                    eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to communicate with Peer " + nodeIdentifier + " when load balancing data for Connection with ID " +
+                        transaction.getPartition().getConnectionId() + " due to " + e);
 
-                return false;
-            }
+                    penalize();
+                    transaction.getPartition().getFailureCallback().onTransactionFailed(transaction.getFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
+                    close();
 
-            final boolean anySuccess = success;
+                    return false;
+                }
 
-            while (success) {
-                success = transaction.communicate();
-            }
+                anySuccess = anySuccess || success;
+            } while (success);
 
             if (transaction.isComplete()) {
                 transaction.getPartition().getSuccessCallback().onTransactionComplete(transaction.getFlowFilesSent());
-
-                // TODO: This is temporary until the server supports long-lived connections!
-                close();
             }
 
             return anySuccess;
         } catch (final Exception e) {
             close();
-            activeTransaction  = null;
+            loadBalanceSession = null;
             throw e;
         } finally {
             lock.unlock();
@@ -263,20 +260,20 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         }
     }
 
-    private synchronized ActiveTransaction getActiveTransaction(final RegisteredPartition partition) {
-        if (activeTransaction != null && !activeTransaction.isComplete()) {
-            return activeTransaction;
+    private synchronized LoadBalanceSession getActiveTransaction(final RegisteredPartition proposedPartition) {
+        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+            return loadBalanceSession;
         }
 
-        final RegisteredPartition readyPartition = partition == null ? getReadyPartition() : partition;
+        final RegisteredPartition readyPartition = proposedPartition == null ? getReadyPartition() : proposedPartition;
         if (readyPartition == null) {
             return null;
         }
 
-        activeTransaction = new ActiveTransaction(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis);
-        partitionQueue.offer(partition);
+        loadBalanceSession = new LoadBalanceSession(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis);
+        partitionQueue.offer(readyPartition);
 
-        return activeTransaction;
+        return loadBalanceSession;
     }
 
 
@@ -296,9 +293,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             channel = createPeerChannel(socketChannel, nodeIdentifier.toString());
             channel.performHandshake();
 
-            final int protocolVersion = negotiateProtocolVersion(channel, nodeIdentifier.toString());
             socketChannel.configureBlocking(false);
-
             selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
         } catch (Exception e) {
             logger.error("Unable to connect to {} for load balancing", nodeIdentifier, e);
@@ -345,53 +340,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         sslEngine.setNeedClientAuth(true);
 
         return new PeerChannel(channel, sslEngine, peerDescription);
-    }
-
-
-    // TODO: Make this part of the transaction
-    private int negotiateProtocolVersion(final PeerChannel channel, final String peerDescription) throws IOException {
-        final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
-
-        int recommendedVersion = 1;
-        while (true) {
-            logger.debug("Recommending to Peer {} that we use version {} of the Load Balance Protocol", peerDescription, recommendedVersion);
-            final boolean written = channel.write((byte) recommendedVersion);
-            if (!written) {
-                logger.error("Failed to write Recommended Protocol Version to Peer " + peerDescription);
-            }
-
-            final int response = channel.read().getAsInt();
-            if (response < 0) {
-                throw new EOFException("Requested that Peer " + peerDescription + " use version " + recommendedVersion
-                        + " of the Load Balance Protocol but encountered EOFException while waiting for a response");
-            }
-
-            if (response == VERSION_ACCEPTED) {
-                logger.debug("Peer {} accepted version {} of the Load Balance Protocol. Will use this version.", peerDescription, recommendedVersion);
-                return recommendedVersion;
-            } else if ( response == REQEUST_DIFFERENT_VERSION) {
-                final int requestedVersion = channel.read().getAsInt();
-                logger.debug("Peer {} requested that we use version {} of Load Balance Protocol instead of version {}", peerDescription, requestedVersion, recommendedVersion);
-
-                if (negotiator.isVersionSupported(requestedVersion)) {
-                    logger.debug("Accepting Version {}", requestedVersion);
-                    return requestedVersion;
-                } else {
-                    final Integer preferred = negotiator.getPreferredVersion(requestedVersion);
-                    if (preferred == null) {
-                        logger.debug("Peer {} requested version {} of the Load Balance Protocol. This version is not acceptable. Aborting communications.", peerDescription, requestedVersion);
-                        channel.write((byte) ABORT_PROTOCOL_NEGOTIATION);
-                    } else {
-                        recommendedVersion = preferred;
-                        logger.debug("Recommending version {} instead", recommendedVersion);
-                        continue;
-                    }
-                }
-            } else {
-                throw new IOException("Failed to negotiate Protocol Version with Peer " + peerDescription + ". Recommended version " + recommendedVersion + " but instead of an ACCEPT or REJECT " +
-                        "response got back a response of " + response);
-            }
-        }
     }
 
 

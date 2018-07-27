@@ -4,19 +4,24 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NioAsyncLoadBalanceClientTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(NioAsyncLoadBalanceClientTask.class);
+    private static final String EVENT_CATEGORY = "Load-Balanced Connection";
 
     private final NioAsyncLoadBalanceClientRegistry clientRegistry;
     private final ClusterCoordinator clusterCoordinator;
+    private final EventReporter eventReporter;
     private volatile boolean running = true;
 
-    public NioAsyncLoadBalanceClientTask(final NioAsyncLoadBalanceClientRegistry clientRegistry, final ClusterCoordinator clusterCoordinator) {
+    public NioAsyncLoadBalanceClientTask(final NioAsyncLoadBalanceClientRegistry clientRegistry, final ClusterCoordinator clusterCoordinator, final EventReporter eventReporter) {
         this.clientRegistry = clientRegistry;
         this.clusterCoordinator = clusterCoordinator;
+        this.eventReporter = eventReporter;
     }
 
     @Override
@@ -24,7 +29,6 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
         while (running) {
             try {
                 boolean success = false;
-                // TODO: Make getAllClients() more efficient by just keeping a set of them.
                 for (final NioAsyncLoadBalanceClient client : clientRegistry.getAllClients()) {
                     if (!client.isRunning()) {
                         logger.trace("Client {} is not running so will not communicate with it", client);
@@ -44,15 +48,14 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
                         continue;
                     }
 
-                    // TODO: Do to the nature of how this is used, we need to ensure that client.communicate() doesn't use a synchronized keyword
-                    // but instead uses a Lock with tryLock(). This way, we don't wait on another thread but instead just move on.
-                    // Continue communicating with the Peer until we block due to the socket buffer being full, waiting on response from Peer, etc.
                     try {
                         while (client.communicate()) {
                             success = true;
                             logger.trace("Client {} was able to make progress communicating with peer. Will continue to communicate with peer.", client);
                         }
                     } catch (final Exception e) {
+                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to communicate with Peer "
+                                + client.getNodeIdentifier() + " while trying to load balance data across the cluster due to " + e.toString());
                         logger.error("Failed to communicate with Peer {} while trying to load balance data across the cluster.", client.getNodeIdentifier(), e);
                     }
 
@@ -65,6 +68,7 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
                 }
             } catch (final Exception e) {
                 logger.error("Failed to communicate with peer while trying to load balance data across the cluster", e);
+                eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to comunicate with Peer while trying to load balance data across the cluster due to " + e);
             }
         }
     }

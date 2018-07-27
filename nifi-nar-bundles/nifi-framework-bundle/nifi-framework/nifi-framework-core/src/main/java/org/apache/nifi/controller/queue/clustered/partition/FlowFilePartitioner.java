@@ -42,4 +42,12 @@ public interface FlowFilePartitioner {
      * <code>false</code> if a failure should result in the FlowFiles remaining in same partition.
      */
     boolean isRebalanceOnFailure();
+
+    /**
+     * @return <code>true</code> if the return value of {@link #getPartition(FlowFileRecord, QueuePartition[], QueuePartition)} will be the same
+     * regardless of how many times it is called or which FlowFiles are passed.
+     */
+    default boolean isPartitionStatic() {
+        return false;
+    }
 }

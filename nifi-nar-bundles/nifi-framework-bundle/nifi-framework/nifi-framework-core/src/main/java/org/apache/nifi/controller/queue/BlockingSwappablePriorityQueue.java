@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.queue;
 
-import java.util.Collection;
-import java.util.Set;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.events.EventReporter;
+
+import java.util.Collection;
+import java.util.Set;
 
 public class BlockingSwappablePriorityQueue extends SwappablePriorityQueue {
     private final Object monitor = new Object();
@@ -63,7 +63,7 @@ public class BlockingSwappablePriorityQueue extends SwappablePriorityQueue {
                 }
 
                 monitor.wait(waitMillis);
-            } while (flowFile == null && System.currentTimeMillis() < maxTimestamp);
+            } while (System.currentTimeMillis() < maxTimestamp);
 
             return null;
         }

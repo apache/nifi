@@ -22,17 +22,21 @@ import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
-import org.apache.nifi.controller.queue.BlockingSwappablePriorityQueue;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
+import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner;
+import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalPartitionPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalQueuePartition;
@@ -46,14 +50,21 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.provenance.ProvenanceEventBuilder;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,17 +88,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// TODO: Need to reuse connections (most work needed is on server. client can just stop closing connections and should work.)
-// TODO: Use EventReporter when error occurs
-// TODO: When connecting to cluster, disconnected, need to handle stopping/starting, registering/unregistering.
-// TODO: Add to Versioned Connection, Difference Type, comparison, updateProcessGroup from VersionedConnection.
-// TODO: Consider what to do if a node is disconnected. Should it continue sending its queue to rest of cluster? Can't just transfer FlowFiles to local partition because of correlation attributes.
-// Do we continue sending to a disconnected node, or stop sending to it?? Current thought is disconnected node keeps sending to cluster, but we don't send to the disconnected node.
-// TODO: Add a bunch of DEBUG logging
-// TODO: Update Cluster Coordinator (?) to maintain state about cluster topology
-// TODO: Update Diagnostics DTO
-// TODO: Consider exactly-once semantics. What if we fail? Should we remember a transaction id and what was involved in it and persist that before sending?
-// TODO: Allow compression? Perhaps even allow 'compress attributes', 'compress attributes and content', 'no compression'
+// TODO: We look at DN and Subject Alternative Names, but we don't account for wildcard certs....
 public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue implements LoadBalancedFlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(SocketLoadBalancedFlowFileQueue.class);
     private static final int NODE_SWAP_THRESHOLD = 1000;
@@ -116,8 +117,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
 
     public SocketLoadBalancedFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
-                                           final ProvenanceEventRepository provRepo, final ContentRepository contentRepo, final ResourceClaimManager resourceClaimManager, final ClusterCoordinator clusterCoordinator,
-                                           final AsyncLoadBalanceClientRegistry clientRegistry, final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter) {
+                                           final ProvenanceEventRepository provRepo, final ContentRepository contentRepo, final ResourceClaimManager resourceClaimManager,
+                                           final ClusterCoordinator clusterCoordinator, final AsyncLoadBalanceClientRegistry clientRegistry, final FlowFileSwapManager swapManager,
+                                           final int swapThreshold, final EventReporter eventReporter) {
 
         super(identifier, scheduler, flowFileRepo, provRepo, resourceClaimManager);
         this.eventListener = eventListener;
@@ -160,7 +162,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             clusterCoordinator.registerEventListener(new ClusterEventListener());
         }
 
-        rebalancingPartition.start();
+        rebalancingPartition.start(partitioner);
     }
 
 
@@ -183,12 +185,21 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         // We are already load balancing but are changing how we are load balancing.
         final FlowFilePartitioner partitioner;
-        if (strategy == LoadBalanceStrategy.DO_NOT_LOAD_BALANCE) {
-            partitioner = new LocalPartitionPartitioner();
-        } else if (strategy == LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE) {
-            partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
-        } else {
-            partitioner = new RoundRobinPartitioner();
+        switch (strategy) {
+            case DO_NOT_LOAD_BALANCE:
+                partitioner = new LocalPartitionPartitioner();
+                break;
+            case PARTITION_BY_ATTRIBUTE:
+                partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
+                break;
+            case ROUND_ROBIN:
+                partitioner = new RoundRobinPartitioner();
+                break;
+            case SINGLE_NODE:
+                partitioner = new FirstNodePartitioner();
+                break;
+            default:
+                throw new IllegalArgumentException();
         }
 
         setFlowFilePartitioner(partitioner);
@@ -205,10 +216,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         partitionReadLock.lock();
         try {
-            rebalancingPartition.start();
+            rebalancingPartition.start(partitioner);
 
             for (final QueuePartition queuePartition : queuePartitions) {
-                queuePartition.start();
+                queuePartition.start(partitioner);
             }
         } finally {
             partitionReadLock.unlock();
@@ -235,36 +246,57 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
     }
 
+    @Override
+    public boolean isActivelyLoadBalancing() {
+        final QueueSize size = size();
+        if (size.getObjectCount() == 0) {
+            return false;
+        }
+
+        final int localObjectCount = localPartition.size().getObjectCount();
+        return (size.getObjectCount() > localObjectCount);
+    }
+
     private QueuePartition createRemotePartition(final NodeIdentifier nodeId) {
-        final BlockingSwappablePriorityQueue partitionQueue = new BlockingSwappablePriorityQueue(swapManager, NODE_SWAP_THRESHOLD, eventReporter, this, this::drop, nodeId.getId());
+        final SwappablePriorityQueue partitionQueue = new SwappablePriorityQueue(swapManager, NODE_SWAP_THRESHOLD, eventReporter, this, this::drop, nodeId.getId());
 
         final TransferFailureDestination failureDestination = new TransferFailureDestination() {
             @Override
-            public void putAll(final Collection<FlowFileRecord> flowFiles) {
+            public void putAll(final Collection<FlowFileRecord> flowFiles, final FlowFilePartitioner partitionerUsed) {
                 if (flowFiles.isEmpty()) {
                     return;
                 }
 
-                if (partitioner.isRebalanceOnFailure()) {
-                    logger.debug("Transferring {} FlowFiles to Rebalancing Partition from node {}", flowFiles.size(), nodeId);
-                    rebalancingPartition.rebalance(flowFiles);
-                } else {
-                    logger.debug("Returning {} FlowFiles to their queue for node {} because Partitioner {} indicates that the FlowFiles should stay where they are", flowFiles.size(), nodeId,
+                partitionReadLock.lock();
+                try {
+                    if (!partitionerUsed.equals(partitioner) || partitioner.isRebalanceOnFailure()) {
+                        logger.debug("Transferring {} FlowFiles to Rebalancing Partition from node {}", flowFiles.size(), nodeId);
+                        rebalancingPartition.rebalance(flowFiles);
+                    } else {
+                        logger.debug("Returning {} FlowFiles to their queue for node {} because Partitioner {} indicates that the FlowFiles should stay where they are", flowFiles.size(), nodeId,
                             partitioner);
-                    partitionQueue.putAll(flowFiles);
+                        partitionQueue.putAll(flowFiles);
+                    }
+                } finally {
+                    partitionReadLock.unlock();
                 }
             }
 
             @Override
-            public void putAll(final Function<String, FlowFileQueueContents> queueContentsFunction) {
-                if (partitioner.isRebalanceOnFailure()) {
-                    final FlowFileQueueContents contents = queueContentsFunction.apply(rebalancingPartition.getSwapPartitionName());
-                    rebalancingPartition.rebalance(contents);
-                    logger.debug("Transferring all {} FlowFiles and {} Swap Files queued for node {} to Rebalancing Partition",
+            public void putAll(final Function<String, FlowFileQueueContents> queueContentsFunction, final FlowFilePartitioner partitionerUsed) {
+                partitionReadLock.lock();
+                try {
+                    if (!partitionerUsed.equals(partitioner) || partitioner.isRebalanceOnFailure()) {
+                        final FlowFileQueueContents contents = queueContentsFunction.apply(rebalancingPartition.getSwapPartitionName());
+                        rebalancingPartition.rebalance(contents);
+                        logger.debug("Transferring all {} FlowFiles and {} Swap Files queued for node {} to Rebalancing Partition",
                             contents.getActiveFlowFiles().size(), contents.getSwapLocations().size(), nodeId);
-                } else {
-                    logger.debug("Will not transfer FlowFiles queued for node {} to Rebalancing Partition because Partitioner {} indicates that the FlowFiles should stay where they are", nodeId,
+                    } else {
+                        logger.debug("Will not transfer FlowFiles queued for node {} to Rebalancing Partition because Partitioner {} indicates that the FlowFiles should stay where they are", nodeId,
                             partitioner);
+                    }
+                } finally {
+                    partitionReadLock.unlock();
                 }
             }
         };
@@ -272,7 +304,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         final QueuePartition partition = new RemoteQueuePartition(nodeId, partitionQueue, failureDestination, flowFileRepo, provRepo, contentRepo, clientRegistry, this);
 
         if (!stopped) {
-            partition.start();
+            partition.start(partitioner);
         }
 
         return partition;
@@ -415,8 +447,24 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public QueueDiagnostics getQueueDiagnostics() {
-        // TODO: Need to return a LoadBalancedQueueDiagnostics and update the DTO to have the fields we care about
-        return localPartition.getQueueDiagnostics();
+        partitionReadLock.lock();
+        try {
+            final LocalQueuePartitionDiagnostics localDiagnostics = localPartition.getQueueDiagnostics();
+
+            final List<RemoteQueuePartitionDiagnostics> remoteDiagnostics = new ArrayList<>(queuePartitions.length - 1);
+
+            for (final QueuePartition partition : queuePartitions) {
+                if (partition instanceof RemoteQueuePartition) {
+                    final RemoteQueuePartition queuePartition = (RemoteQueuePartition) partition;
+                    final RemoteQueuePartitionDiagnostics diagnostics = queuePartition.getDiagnostics();
+                    remoteDiagnostics.add(diagnostics);
+                }
+            }
+
+            return new StandardQueueDiagnostics(localDiagnostics, remoteDiagnostics);
+        } finally {
+            partitionReadLock.unlock();
+        }
     }
 
     protected LocalQueuePartition getLocalPartition() {
@@ -459,6 +507,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     public void onAbort(final Collection<FlowFileRecord> flowFiles) {
+        if (flowFiles == null || flowFiles.isEmpty()) {
+            return;
+        }
+
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
     }
 
@@ -563,7 +615,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             logger.debug("{} Restarting the {} queue partitions now that node identifiers have been updated", this, queuePartitions.length);
             if (!stopped) {
                 for (final QueuePartition queuePartition : updatedQueuePartitions) {
-                    queuePartition.start();
+                    queuePartition.start(partitioner);
                 }
             }
         } finally {
@@ -646,13 +698,27 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     public Map<QueuePartition, List<FlowFileRecord>> distributeToPartitionsAndGet(final Collection<FlowFileRecord> flowFiles) {
+        if (flowFiles == null || flowFiles.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
         final Map<QueuePartition, List<FlowFileRecord>> partitionMap;
 
         partitionReadLock.lock();
         try {
-            // TODO: Should make this more efficient for the most common case (no load balancing) so that we don't need a Map
-            // and instead have some sort of method like `boolean isStaticPartitioner` and if so will just call getPartition() for the first FlowFile
+            // Optimize for the most common case (no load balancing) so that we will just call getPartition() for the first FlowFile
             // in the Collection and then put all FlowFiles into that QueuePartition. Is fairly expensive to call stream().collect(#groupingBy).
+            if (partitioner.isPartitionStatic()) {
+                final QueuePartition partition = getPartition(flowFiles.iterator().next());
+                partition.putAll(flowFiles);
+
+                final List<FlowFileRecord> flowFileList = (flowFiles instanceof List) ? (List<FlowFileRecord>) flowFiles : new ArrayList<>(flowFiles);
+                partitionMap = Collections.singletonMap(partition, flowFileList);
+
+                logger.debug("Partitioner is static so Partitioned FlowFiles as: {}", partitionMap);
+                return partitionMap;
+            }
+
             partitionMap = flowFiles.stream().collect(Collectors.groupingBy(this::getPartition));
             logger.debug("Partitioned FlowFiles as: {}", partitionMap);
 
@@ -672,11 +738,13 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     protected void setFlowFilePartitioner(final FlowFilePartitioner partitioner) {
         partitionWriteLock.lock();
         try {
+            if (this.partitioner.equals(partitioner)) {
+                return;
+            }
+
             this.partitioner = partitioner;
 
             for (final QueuePartition partition : this.queuePartitions) {
-                // TODO: What if we go from load balanced to Non-Load Balanced, and while that happens we are sending data,
-                // to a peer... and then that transfer is aborted? At that point, we need to rebalance the data that was 'in-flight'.
                 rebalance(partition);
             }
         } finally {
@@ -686,17 +754,23 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
-        return localPartition.poll(expiredRecords);
+        final FlowFileRecord flowFile = localPartition.poll(expiredRecords);
+        onAbort(expiredRecords);
+        return flowFile;
     }
 
     @Override
     public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
-        return localPartition.poll(maxResults, expiredRecords);
+        final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords);
+        onAbort(flowFiles);
+        return flowFiles;
     }
 
     @Override
     public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
-        return localPartition.poll(filter, expiredRecords);
+        final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords);
+        onAbort(expiredRecords);
+        return flowFiles;
     }
 
     @Override
@@ -720,9 +794,71 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
+    public boolean isUnacknowledgedFlowFile() {
+        return localPartition.isUnacknowledgedFlowFile();
+    }
+
+    @Override
     public FlowFileRecord getFlowFile(final String flowFileUuid) throws IOException {
         return localPartition.getFlowFile(flowFileUuid);
     }
+
+    @Override
+    public void handleExpiredRecords(final Collection<FlowFileRecord> expired) {
+        if (expired == null || expired.isEmpty()) {
+            return;
+        }
+
+        logger.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, expired.size()});
+        final List<RepositoryRecord> expiredRecords = new ArrayList<>(expired.size());
+        final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(expired.size());
+
+        for (final FlowFileRecord flowFile : expired) {
+            final StandardRepositoryRecord record = new StandardRepositoryRecord(this, flowFile);
+            record.markForDelete();
+            expiredRecords.add(record);
+
+            final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder()
+                    .fromFlowFile(flowFile)
+                    .setEventType(ProvenanceEventType.EXPIRE)
+                    .setDetails("Expiration Threshold = " + getFlowFileExpiration())
+                    .setComponentType("Load-Balanced Connection")
+                    .setComponentId(getIdentifier())
+                    .setEventTime(System.currentTimeMillis());
+
+            final ContentClaim contentClaim = flowFile.getContentClaim();
+            if (contentClaim != null) {
+                final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+                builder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                        contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
+
+                builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                        contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
+            }
+
+            final ProvenanceEventRecord provenanceEvent = builder.build();
+            provenanceEvents.add(provenanceEvent);
+
+            final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
+            logger.info("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
+        }
+
+        try {
+            flowFileRepo.updateRepository(expiredRecords);
+
+            for (final RepositoryRecord expiredRecord : expiredRecords) {
+                contentRepo.decrementClaimantCount(expiredRecord.getCurrentClaim());
+            }
+
+            provRepo.registerEvents(provenanceEvents);
+
+            adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
+        } catch (IOException e) {
+            logger.warn("Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at " +
+                    "that point.", expiredRecords.size(), e);
+        }
+    }
+
 
     @Override
     protected List<FlowFileRecord> getListableFlowFiles() {

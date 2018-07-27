@@ -298,6 +298,7 @@ public class FlowFromDOMFactory {
 
         dto.setLoadBalanceStrategy(getString(element, "loadBalanceStrategy"));
         dto.setLoadBalancePartitionAttribute(getString(element, "partitioningAttribute"));
+        dto.setLoadBalanceCompression(getString(element, "loadBalanceCompression"));
 
         return dto;
     }

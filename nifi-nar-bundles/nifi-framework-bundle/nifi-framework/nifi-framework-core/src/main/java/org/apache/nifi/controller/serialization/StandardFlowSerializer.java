@@ -557,6 +557,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
         addTextElement(element, "loadBalanceStrategy", connection.getFlowFileQueue().getLoadBalanceStrategy().name());
         addTextElement(element, "partitioningAttribute", connection.getFlowFileQueue().getPartitioningAttribute());
+        addTextElement(element, "loadBalanceCompression", connection.getFlowFileQueue().getLoadBalanceCompression().name());
 
         parentElement.appendChild(element);
     }

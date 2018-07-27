@@ -22,7 +22,7 @@ import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
-import org.apache.nifi.controller.queue.QueueDiagnostics;
+import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -39,6 +39,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * A Local Queue Partition that whose implementation is based on the use of a {@link SwappablePriorityQueue}.
+ */
 public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition {
     private static final String SWAP_PARTITION_NAME = "local";
 
@@ -61,6 +64,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     @Override
     public QueueSize size() {
         return priorityQueue.size();
+    }
+
+    @Override
+    public boolean isUnacknowledgedFlowFile() {
+        return priorityQueue.isUnacknowledgedFlowFile();
     }
 
     @Override
@@ -138,7 +146,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public QueueDiagnostics getQueueDiagnostics() {
+    public LocalQueuePartitionDiagnostics getQueueDiagnostics() {
         return priorityQueue.getQueueDiagnostics();
     }
 
@@ -148,7 +156,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public void start() {
+    public void start(final FlowFilePartitioner partitionerUsed) {
     }
 
     @Override

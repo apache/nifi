@@ -18,15 +18,18 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.queue.BlockingSwappablePriorityQueue;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.StandardRemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.TransferFailureDestination;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -45,7 +48,6 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,11 +58,14 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * A Queue Partition that is responsible for transferring FlowFiles to another node in the cluster
+ */
 public class RemoteQueuePartition implements QueuePartition {
     private static final Logger logger = LoggerFactory.getLogger(RemoteQueuePartition.class);
 
     private final NodeIdentifier nodeIdentifier;
-    private final BlockingSwappablePriorityQueue priorityQueue;
+    private final SwappablePriorityQueue priorityQueue;
     private final LoadBalancedFlowFileQueue flowFileQueue;
     private final TransferFailureDestination failureDestination;
 
@@ -72,7 +77,7 @@ public class RemoteQueuePartition implements QueuePartition {
     private boolean running = false;
     private final String description;
 
-    public RemoteQueuePartition(final NodeIdentifier nodeId, final BlockingSwappablePriorityQueue priorityQueue, final TransferFailureDestination failureDestination,
+    public RemoteQueuePartition(final NodeIdentifier nodeId, final SwappablePriorityQueue priorityQueue, final TransferFailureDestination failureDestination,
                                 final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo, final ContentRepository contentRepository,
                                 final AsyncLoadBalanceClientRegistry clientRegistry, final LoadBalancedFlowFileQueue flowFileQueue) {
 
@@ -132,67 +137,15 @@ public class RemoteQueuePartition implements QueuePartition {
         priorityQueue.setPriorities(newPriorities);
     }
 
-    // TODO: Test Expired FlowFiles
-    private void handleExpired(final Set<FlowFileRecord> expired) {
-        if (expired.isEmpty()) {
-            return;
-        }
-
-        logger.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, expired.size()});
-        final List<RepositoryRecord> expiredRecords = new ArrayList<>(expired.size());
-        final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(expired.size());
-
-        for (final FlowFileRecord flowFile : expired) {
-            final StandardRepositoryRecord record = new StandardRepositoryRecord(flowFileQueue, flowFile);
-            record.markForDelete();
-            expiredRecords.add(record);
-
-            final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder()
-                    .fromFlowFile(flowFile)
-                    .setEventType(ProvenanceEventType.EXPIRE)
-                    .setDetails("Expiration Threshold = " + flowFileQueue.getFlowFileExpiration())
-                    .setEventTime(System.currentTimeMillis());
-
-            final ContentClaim contentClaim = flowFile.getContentClaim();
-            if (contentClaim != null) {
-                final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
-                builder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
-                        contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
-
-                builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
-                        contentClaim.getOffset() + flowFile.getContentClaimOffset(), flowFile.getSize());
-            }
-
-            final ProvenanceEventRecord provenanceEvent = builder.build();
-            provenanceEvents.add(provenanceEvent);
-
-            final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            logger.info("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
-        }
-
-        try {
-            flowFileRepo.updateRepository(expiredRecords);
-
-            for (final RepositoryRecord expiredRecord : expiredRecords) {
-                contentRepo.decrementClaimantCount(expiredRecord.getCurrentClaim());
-            }
-
-            provRepo.registerEvents(provenanceEvents);
-        } catch (IOException e) {
-            logger.warn("Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at " +
-                    "that point.", expiredRecords.size(), e);
-        }
-    }
-
     private FlowFileRecord getFlowFile() {
         final Set<FlowFileRecord> expired = new HashSet<>();
         final FlowFileRecord flowFile = priorityQueue.poll(expired, flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS));
-        handleExpired(expired);
+        flowFileQueue.handleExpiredRecords(expired);
         return flowFile;
     }
 
     @Override
-    public synchronized void start() {
+    public synchronized void start(final FlowFilePartitioner partitioner) {
         if (running) {
             return;
         }
@@ -200,10 +153,40 @@ public class RemoteQueuePartition implements QueuePartition {
         final TransactionFailureCallback failureCallback = new TransactionFailureCallback() {
             @Override
             public void onTransactionFailed(final List<FlowFileRecord> flowFiles, final Exception cause, final TransactionPhase phase) {
+                if (cause instanceof ContentNotFoundException) {
+                    // Handle ContentNotFound by creating a RepositoryRecord for the FlowFile and marking as aborted, then updating the
+                    // FlowFiles and Provenance Repositories accordingly. This follows the same pattern as StandardProcessSession so that
+                    // we have a consistent way of handling this case.
+                    final Optional<FlowFileRecord> optionalFlowFile = ((ContentNotFoundException) cause).getFlowFile();
+                    if (optionalFlowFile.isPresent()) {
+                        final List<FlowFileRecord> successfulFlowFiles = new ArrayList<>(flowFiles);
+
+                        final FlowFileRecord flowFile = optionalFlowFile.get();
+                        successfulFlowFiles.remove(flowFile);
+
+                        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(flowFileQueue, flowFile);
+                        repoRecord.markForAbort();
+
+                        updateRepositories(Collections.emptyList(), Collections.singleton(repoRecord));
+
+                        // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
+                        // Otherwise, transfer just those FlowFiles that we failed to send.
+                        if (phase == TransactionPhase.CONNECTING) {
+                            failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
+                        } else {
+                            failureDestination.putAll(successfulFlowFiles, partitioner);
+                        }
+
+                        return;
+                    }
+                }
+
+                // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
+                // Otherwise, transfer just those FlowFiles that we failed to send.
                 if (phase == TransactionPhase.CONNECTING) {
-                    failureDestination.putAll(priorityQueue::packageForRebalance);
+                    failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
                 } else {
-                    failureDestination.putAll(flowFiles);
+                    failureDestination.putAll(flowFiles, partitioner);
                 }
             }
         };
@@ -213,15 +196,14 @@ public class RemoteQueuePartition implements QueuePartition {
             public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent) {
                 // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
                 // with the queue so that its size remains accurate.
-                // TODO: Handle FlowFiles with ContentNotFound / "aborted records"!!
                 updateRepositories(flowFilesSent, Collections.emptyList());
                 priorityQueue.acknowledge(flowFilesSent);
                 flowFileQueue.onTransfer(flowFilesSent);
             }
         };
 
-        // TODO: Need to cleanup some stuff.... do we even need a BlockingSwappablePriorityQueue with this approach??
-        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, priorityQueue::isEmpty, this::getFlowFile, failureCallback, successCallback);
+        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, priorityQueue::isEmpty, this::getFlowFile,
+            failureCallback, successCallback, flowFileQueue.getLoadBalanceCompression());
 
         running = true;
     }
@@ -245,8 +227,6 @@ public class RemoteQueuePartition implements QueuePartition {
         // are ever created.
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFilesSent.size() * 2 + abortedRecords.size());
         for (final FlowFileRecord sent : flowFilesSent) {
-            // TODO: Should discuss with others -- do we want SEND/DROP event for each FlowFile here? Or a "TRANSFER" event? Or nothing because
-            // it is staying within the comfy confines of a NiFi cluster??
             provenanceEvents.add(createSendEvent(sent));
             provenanceEvents.add(createDropEvent(sent));
         }
@@ -344,6 +324,10 @@ public class RemoteQueuePartition implements QueuePartition {
     public synchronized void stop() {
         running = false;
         clientRegistry.unregister(flowFileQueue.getIdentifier(), nodeIdentifier);
+    }
+
+    public RemoteQueuePartitionDiagnostics getDiagnostics() {
+        return new StandardRemoteQueuePartitionDiagnostics(nodeIdentifier.toString(), priorityQueue.getFlowFileQueueSize());
     }
 
     @Override

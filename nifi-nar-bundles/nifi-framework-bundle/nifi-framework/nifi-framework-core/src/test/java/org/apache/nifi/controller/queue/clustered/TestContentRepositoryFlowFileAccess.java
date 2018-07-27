@@ -91,7 +91,8 @@ public class TestContentRepositoryFlowFileAccess {
             flowAccess.read(flowFile);
             Assert.fail("Expected ContentNotFoundException but it did not happen");
         } catch (final ContentNotFoundException thrown) {
-            assertEquals(cnfe, thrown);
+            // expected
+            thrown.getFlowFile().orElseThrow(() -> new AssertionError("Expected FlowFile to be provided"));
         }
     }
 

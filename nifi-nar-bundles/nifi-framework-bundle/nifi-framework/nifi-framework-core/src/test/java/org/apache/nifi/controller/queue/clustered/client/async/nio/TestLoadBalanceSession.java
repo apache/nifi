@@ -1,6 +1,7 @@
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.controller.MockFlowFileRecord;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class TestActiveTransaction {
+public class TestLoadBalanceSession {
 
     private ByteArrayOutputStream received;
     private ServerSocket serverSocket;
@@ -52,6 +53,7 @@ public class TestActiveTransaction {
                     final InputStream in = socket.getInputStream();
                     int data;
 
+                    socket.getOutputStream().write(LoadBalanceProtocolConstants.VERSION_ACCEPTED);
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_CHECKSUM);
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION);
 
@@ -87,13 +89,14 @@ public class TestActiveTransaction {
 
         final FlowFileContentAccess contentAccess = contentMap::get;
 
-        final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false, flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {});
+        final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
+            flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {}, LoadBalanceCompression.DO_NOT_COMPRESS);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
-        final ActiveTransaction transaction = new ActiveTransaction(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
+        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
 
         Thread.sleep(100L);
 
@@ -105,11 +108,13 @@ public class TestActiveTransaction {
 
         final Checksum expectedChecksum = new CRC32();
         final ByteArrayOutputStream expectedOut = new ByteArrayOutputStream();
-        final DataOutputStream expectedDos = new DataOutputStream(new CheckedOutputStream(expectedOut, expectedChecksum));
+        expectedOut.write(1); // Protocol Version
 
+        final DataOutputStream expectedDos = new DataOutputStream(new CheckedOutputStream(expectedOut, expectedChecksum));
         expectedDos.writeUTF("unit-test-connection");
 
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
+        expectedDos.writeInt(68); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -123,6 +128,7 @@ public class TestActiveTransaction {
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
+        expectedDos.writeInt(68); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -168,13 +174,14 @@ public class TestActiveTransaction {
 
         final FlowFileContentAccess contentAccess = contentMap::get;
 
-        final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false, flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {});
+        final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
+            flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {}, LoadBalanceCompression.DO_NOT_COMPRESS);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
-        final ActiveTransaction transaction = new ActiveTransaction(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
+        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
 
         Thread.sleep(100L);
 
@@ -185,11 +192,14 @@ public class TestActiveTransaction {
 
         final Checksum expectedChecksum = new CRC32();
         final ByteArrayOutputStream expectedOut = new ByteArrayOutputStream();
+        expectedOut.write(1); // Protocol Version
+
         final DataOutputStream expectedDos = new DataOutputStream(new CheckedOutputStream(expectedOut, expectedChecksum));
 
         expectedDos.writeUTF("unit-test-connection");
 
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
+        expectedDos.writeInt(68); // metadata length
         expectedDos.writeInt(1); // 1 attribute
         expectedDos.writeInt(4); // length of attribute
         expectedDos.write("uuid".getBytes());
@@ -200,13 +210,13 @@ public class TestActiveTransaction {
 
         // first data frame
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(ActiveTransaction.MAX_DATA_FRAME_SIZE);
-        expectedDos.write(Arrays.copyOfRange(content, 0, ActiveTransaction.MAX_DATA_FRAME_SIZE));
+        expectedDos.writeShort(LoadBalanceSession.MAX_DATA_FRAME_SIZE);
+        expectedDos.write(Arrays.copyOfRange(content, 0, LoadBalanceSession.MAX_DATA_FRAME_SIZE));
 
         // second data frame
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(content.length - ActiveTransaction.MAX_DATA_FRAME_SIZE);
-        expectedDos.write(Arrays.copyOfRange(content, ActiveTransaction.MAX_DATA_FRAME_SIZE, content.length));
+        expectedDos.writeShort(content.length - LoadBalanceSession.MAX_DATA_FRAME_SIZE);
+        expectedDos.write(Arrays.copyOfRange(content, LoadBalanceSession.MAX_DATA_FRAME_SIZE, content.length));
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 
         expectedDos.write(LoadBalanceProtocolConstants.NO_MORE_FLOWFILES);

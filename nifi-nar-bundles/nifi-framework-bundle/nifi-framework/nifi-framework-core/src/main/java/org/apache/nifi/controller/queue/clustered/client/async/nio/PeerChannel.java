@@ -282,7 +282,7 @@ public class PeerChannel implements Closeable {
             switch (handshakeStatus) {
                 case FINISHED:
                 case NOT_HANDSHAKING:
-                    streamBuffer.clear(); // TODO: Shoudl we be compacting this instead??? It seems like we should but then we get a failure in the IT...
+                    streamBuffer.clear();
                     destinationBuffer.clear();
                     logger.debug("Completed SSL Handshake with Peer {}", peerDescription);
                     return;

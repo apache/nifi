@@ -22,10 +22,24 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 
 import java.util.Collection;
 
+/**
+ * A partition whose sole job it is to redistribute FlowFiles to the appropriate partitions.
+ */
 public interface RebalancingPartition extends QueuePartition {
 
+    /**
+     * Inherits all of the FlowFiles, including FlowFiles that have been swaped out, in order to
+     * redistribute them across the cluster
+     *
+     * @param queueContents the contents of a FlowFileQueue (or partition)
+     */
     void rebalance(FlowFileQueueContents queueContents);
 
+    /**
+     * Inherits all of the givne FlowFiles in order to redistribute them across the cluster
+     *
+     * @param flowFiles the FlowFiles to redistribute
+     */
     void rebalance(Collection<FlowFileRecord> flowFiles);
 
 }

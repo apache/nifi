@@ -17,44 +17,24 @@
 
 package org.apache.nifi.controller.queue;
 
+import java.util.List;
+
 public class StandardQueueDiagnostics implements QueueDiagnostics {
-    private final FlowFileQueueSize queueSize;
-    private final boolean anyPenalized;
-    private final boolean allPenalized;
+    final LocalQueuePartitionDiagnostics localQueuePartitionDiagnostics;
+    final List<RemoteQueuePartitionDiagnostics> remoteQueuePartitionDiagnostics;
 
-    public StandardQueueDiagnostics(final FlowFileQueueSize queueSize, final boolean anyPenalized, final boolean allPenalized) {
-        this.queueSize = queueSize;
-        this.anyPenalized = anyPenalized;
-        this.allPenalized = allPenalized;
+    public StandardQueueDiagnostics(final LocalQueuePartitionDiagnostics localQueuePartitionDiagnostics, final List<RemoteQueuePartitionDiagnostics> remoteQueuePartitionDiagnostics) {
+        this.localQueuePartitionDiagnostics = localQueuePartitionDiagnostics;
+        this.remoteQueuePartitionDiagnostics = remoteQueuePartitionDiagnostics;
     }
 
     @Override
-    public QueueSize getUnacknowledgedQueueSize() {
-        return new QueueSize(queueSize.getUnacknowledgedCount(), queueSize.getUnacknowledgedCount());
+    public LocalQueuePartitionDiagnostics getLocalQueuePartitionDiagnostics() {
+        return localQueuePartitionDiagnostics;
     }
 
     @Override
-    public QueueSize getActiveQueueSize() {
-        return new QueueSize(queueSize.getActiveCount(), queueSize.getActiveBytes());
-    }
-
-    @Override
-    public QueueSize getSwapQueueSize() {
-        return new QueueSize(queueSize.getSwappedCount(), queueSize.getSwappedBytes());
-    }
-
-    @Override
-    public int getSwapFileCount() {
-        return queueSize.getSwapFileCount();
-    }
-
-    @Override
-    public boolean isAnyActiveFlowFilePenalized() {
-        return anyPenalized;
-    }
-
-    @Override
-    public boolean isAllActiveFlowFilesPenalized() {
-        return allPenalized;
+    public List<RemoteQueuePartitionDiagnostics> getRemoteQueuePartitionDiagnostics() {
+        return remoteQueuePartitionDiagnostics;
     }
 }

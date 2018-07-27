@@ -62,6 +62,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.DO_NOT_LOAD_BALANCE;
     private String partitioningAttribute = null;
 
+    private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;
+
 
     public AbstractFlowFileQueue(final String identifier, final ProcessScheduler scheduler,
             final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo, final ResourceClaimManager resourceClaimManager) {
@@ -202,7 +204,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
                 listRequest.setState(ListFlowFileState.CALCULATING_LIST);
 
                 // sort the FlowFileRecords so that we have the list in the same order as on the queue.
-                Collections.sort(allFlowFiles, prioritizer);
+                allFlowFiles.sort(prioritizer);
 
                 for (final FlowFileRecord flowFile : allFlowFiles) {
                     summaries.add(summarize(flowFile, ++position));
@@ -444,5 +446,15 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     @Override
     public synchronized LoadBalanceStrategy getLoadBalanceStrategy() {
         return loadBalanceStrategy;
+    }
+
+    @Override
+    public synchronized void setLoadBalanceCompression(final LoadBalanceCompression compression) {
+        this.compression = compression;
+    }
+
+    @Override
+    public synchronized LoadBalanceCompression getLoadBalanceCompression() {
+        return compression;
     }
 }

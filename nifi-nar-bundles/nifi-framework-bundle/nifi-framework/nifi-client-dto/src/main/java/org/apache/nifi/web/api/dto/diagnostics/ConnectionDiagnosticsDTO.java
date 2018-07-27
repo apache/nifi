@@ -17,26 +17,19 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 @XmlType(name = "connectionDiagnostics")
 public class ConnectionDiagnosticsDTO {
     private ConnectionDTO connection;
     private int totalFlowFileCount;
     private long totalByteCount;
-    private int activeQueueFlowFileCount;
-    private long activeQueueByteCount;
-    private int swapFlowFileCount;
-    private long swapByteCount;
-    private int swapFiles;
-    private int inFlightFlowFileCount;
-    private long inFlightByteCount;
-    private Boolean allActiveQueueFlowFilesPenalized;
-    private Boolean anyActiveQueueFlowFilesPenalized;
+    private LocalQueuePartitionDTO localQueuePartition;
+    private List<RemoteQueuePartitionDTO> remoteQueuePartitions;
 
     @ApiModelProperty("Information about the Connection")
     public ConnectionDTO getConnection() {
@@ -65,84 +58,20 @@ public class ConnectionDiagnosticsDTO {
         this.totalByteCount = totalByteCount;
     }
 
-    @ApiModelProperty("Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
-    public int getActiveQueueFlowFileCount() {
-        return activeQueueFlowFileCount;
+    @ApiModelProperty("The local queue partition, from which components can pull FlowFiles on this node.")
+    public LocalQueuePartitionDTO getLocalQueuePartition() {
+        return localQueuePartition;
     }
 
-    public void setActiveQueueFlowFileCount(int activeQueueFlowFileCount) {
-        this.activeQueueFlowFileCount = activeQueueFlowFileCount;
+    public void setLocalQueuePartition(LocalQueuePartitionDTO localQueuePartition) {
+        this.localQueuePartition = localQueuePartition;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
-    public long getActiveQueueByteCount() {
-        return activeQueueByteCount;
+    public List<RemoteQueuePartitionDTO> getRemoteQueuePartitions() {
+        return remoteQueuePartitions;
     }
 
-    public void setActiveQueueByteCount(long activeQueueByteCount) {
-        this.activeQueueByteCount = activeQueueByteCount;
-    }
-
-    @ApiModelProperty("The total number of FlowFiles that are swapped out for this Connection")
-    public int getSwapFlowFileCount() {
-        return swapFlowFileCount;
-    }
-
-    public void setSwapFlowFileCount(int swapFlowFileCount) {
-        this.swapFlowFileCount = swapFlowFileCount;
-    }
-
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
-    public long getSwapByteCount() {
-        return swapByteCount;
-    }
-
-    public void setSwapByteCount(long swapByteCount) {
-        this.swapByteCount = swapByteCount;
-    }
-
-    @ApiModelProperty("The number of Swap Files that exist for this Connection")
-    public int getSwapFiles() {
-        return swapFiles;
-    }
-
-    public void setSwapFiles(int swapFiles) {
-        this.swapFiles = swapFiles;
-    }
-
-    @ApiModelProperty("The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
-    public int getInFlightFlowFileCount() {
-        return inFlightFlowFileCount;
-    }
-
-    public void setInFlightFlowFileCount(int inFlightFlowFileCount) {
-        this.inFlightFlowFileCount = inFlightFlowFileCount;
-    }
-
-    @ApiModelProperty("The number bytes that make up the content of the FlowFiles that are In-Flight")
-    public long getInFlightByteCount() {
-        return inFlightByteCount;
-    }
-
-    public void setInFlightByteCount(long inFlightByteCount) {
-        this.inFlightByteCount = inFlightByteCount;
-    }
-
-    @ApiModelProperty("Whether or not all of the FlowFiles in the Active Queue are penalized")
-    public Boolean getAllActiveQueueFlowFilesPenalized() {
-        return allActiveQueueFlowFilesPenalized;
-    }
-
-    public void setAllActiveQueueFlowFilesPenalized(Boolean allFlowFilesPenalized) {
-        this.allActiveQueueFlowFilesPenalized = allFlowFilesPenalized;
-    }
-
-    @ApiModelProperty("Whether or not any of the FlowFiles in the Active Queue are penalized")
-    public Boolean getAnyActiveQueueFlowFilesPenalized() {
-        return anyActiveQueueFlowFilesPenalized;
-    }
-
-    public void setAnyActiveQueueFlowFilesPenalized(Boolean anyFlowFilesPenalized) {
-        this.anyActiveQueueFlowFilesPenalized = anyFlowFilesPenalized;
+    public void setRemoteQueuePartitions(List<RemoteQueuePartitionDTO> remoteQueuePartitions) {
+        this.remoteQueuePartitions = remoteQueuePartitions;
     }
 }

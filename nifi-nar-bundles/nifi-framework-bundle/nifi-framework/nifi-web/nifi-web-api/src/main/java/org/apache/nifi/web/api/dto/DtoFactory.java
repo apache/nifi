@@ -88,8 +88,11 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -174,7 +177,9 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.LocalQueuePartitionDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.RemoteQueuePartitionDTO;
 import org.apache.nifi.web.api.dto.diagnostics.RepositoryUsageDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ThreadDumpDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
@@ -670,11 +675,13 @@ public final class DtoFactory {
         dto.setDestination(createConnectableDto(connection.getDestination()));
         dto.setVersionedComponentId(connection.getVersionedComponentId().orElse(null));
 
-        dto.setBackPressureObjectThreshold(connection.getFlowFileQueue().getBackPressureObjectThreshold());
-        dto.setBackPressureDataSizeThreshold(connection.getFlowFileQueue().getBackPressureDataSizeThreshold());
-        dto.setFlowFileExpiration(connection.getFlowFileQueue().getFlowFileExpiration());
+        final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
+
+        dto.setBackPressureObjectThreshold(flowFileQueue.getBackPressureObjectThreshold());
+        dto.setBackPressureDataSizeThreshold(flowFileQueue.getBackPressureDataSizeThreshold());
+        dto.setFlowFileExpiration(flowFileQueue.getFlowFileExpiration());
         dto.setPrioritizers(new ArrayList<String>());
-        for (final FlowFilePrioritizer comparator : connection.getFlowFileQueue().getPriorities()) {
+        for (final FlowFilePrioritizer comparator : flowFileQueue.getPriorities()) {
             dto.getPrioritizers().add(comparator.getClass().getCanonicalName());
         }
 
@@ -700,8 +707,18 @@ public final class DtoFactory {
             }
         }
 
-        dto.setLoadBalancePartitionAttribute(connection.getFlowFileQueue().getPartitioningAttribute());
-        dto.setLoadBalanceStrategy(connection.getFlowFileQueue().getLoadBalanceStrategy().name());
+        final LoadBalanceStrategy loadBalanceStrategy = flowFileQueue.getLoadBalanceStrategy();
+        dto.setLoadBalancePartitionAttribute(flowFileQueue.getPartitioningAttribute());
+        dto.setLoadBalanceStrategy(loadBalanceStrategy.name());
+        dto.setLoadBalanceCompression(flowFileQueue.getLoadBalanceCompression().name());
+
+        if (loadBalanceStrategy == LoadBalanceStrategy.DO_NOT_LOAD_BALANCE) {
+            dto.setLoadBalanceStatus(ConnectionDTO.LOAD_BALANCE_NOT_CONFIGURED);
+        } else if (flowFileQueue.isActivelyLoadBalancing()) {
+            dto.setLoadBalanceStatus(ConnectionDTO.LOAD_BALANCE_ACTIVE);
+        } else {
+            dto.setLoadBalanceStatus(ConnectionDTO.LOAD_BALANCE_INACTIVE);
+        }
 
         return dto;
     }
@@ -3350,6 +3367,24 @@ public final class DtoFactory {
         dto.setTotalByteCount(totalSize.getByteCount());
         dto.setTotalFlowFileCount(totalSize.getObjectCount());
 
+        final LocalQueuePartitionDiagnostics localDiagnostics = queueDiagnostics.getLocalQueuePartitionDiagnostics();
+        dto.setLocalQueuePartition(createLocalQueuePartitionDto(localDiagnostics));
+
+        final List<RemoteQueuePartitionDiagnostics> remoteDiagnostics = queueDiagnostics.getRemoteQueuePartitionDiagnostics();
+        if (remoteDiagnostics != null) {
+            final List<RemoteQueuePartitionDTO> remoteDiagnosticsDtos = remoteDiagnostics.stream()
+                .map(this::createRemoteQueuePartitionDto)
+                .collect(Collectors.toList());
+
+            dto.setRemoteQueuePartitions(remoteDiagnosticsDtos);
+        }
+
+        return dto;
+    }
+
+    private LocalQueuePartitionDTO createLocalQueuePartitionDto(final LocalQueuePartitionDiagnostics queueDiagnostics) {
+        final LocalQueuePartitionDTO dto = new LocalQueuePartitionDTO();
+
         final QueueSize activeSize = queueDiagnostics.getActiveQueueSize();
         dto.setActiveQueueByteCount(activeSize.getByteCount());
         dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
@@ -3361,10 +3396,31 @@ public final class DtoFactory {
         final QueueSize swapSize = queueDiagnostics.getSwapQueueSize();
         dto.setSwapByteCount(swapSize.getByteCount());
         dto.setSwapFlowFileCount(swapSize.getObjectCount());
-
         dto.setSwapFiles(queueDiagnostics.getSwapFileCount());
+
         dto.setAllActiveQueueFlowFilesPenalized(queueDiagnostics.isAllActiveFlowFilesPenalized());
         dto.setAnyActiveQueueFlowFilesPenalized(queueDiagnostics.isAnyActiveFlowFilePenalized());
+
+        return dto;
+    }
+
+    private RemoteQueuePartitionDTO createRemoteQueuePartitionDto(final RemoteQueuePartitionDiagnostics queueDiagnostics) {
+        final RemoteQueuePartitionDTO dto = new RemoteQueuePartitionDTO();
+
+        dto.setNodeIdentifier(queueDiagnostics.getNodeIdentifier());
+
+        final QueueSize activeSize = queueDiagnostics.getActiveQueueSize();
+        dto.setActiveQueueByteCount(activeSize.getByteCount());
+        dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
+
+        final QueueSize inFlightSize = queueDiagnostics.getUnacknowledgedQueueSize();
+        dto.setInFlightByteCount(inFlightSize.getByteCount());
+        dto.setInFlightFlowFileCount(inFlightSize.getObjectCount());
+
+        final QueueSize swapSize = queueDiagnostics.getSwapQueueSize();
+        dto.setSwapByteCount(swapSize.getByteCount());
+        dto.setSwapFlowFileCount(swapSize.getObjectCount());
+        dto.setSwapFiles(queueDiagnostics.getSwapFileCount());
 
         return dto;
     }
@@ -3841,6 +3897,10 @@ public final class DtoFactory {
         copy.setzIndex(original.getzIndex());
         copy.setLabelIndex(original.getLabelIndex());
         copy.setBends(copy(original.getBends()));
+        copy.setLoadBalancePartitionAttribute(original.getLoadBalancePartitionAttribute());
+        copy.setLoadBalanceStrategy(original.getLoadBalanceStrategy());
+        copy.setLoadBalanceCompression(original.getLoadBalanceCompression());
+        copy.setLoadBalanceStatus(original.getLoadBalanceStatus());
         copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;

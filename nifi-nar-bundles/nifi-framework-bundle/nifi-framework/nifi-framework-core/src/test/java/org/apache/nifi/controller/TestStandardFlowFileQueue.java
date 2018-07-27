@@ -127,11 +127,11 @@ public class TestStandardFlowFileQueue {
         assertNull(pulled);
         assertEquals(100, expiredRecords.size());
 
-        final QueueSize activeSize = queue.getQueueDiagnostics().getActiveQueueSize();
+        final QueueSize activeSize = queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize();
         assertEquals(0, activeSize.getObjectCount());
         assertEquals(0L, activeSize.getByteCount());
 
-        final QueueSize unackSize = queue.getQueueDiagnostics().getUnacknowledgedQueueSize();
+        final QueueSize unackSize = queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize();
         assertEquals(0, unackSize.getObjectCount());
         assertEquals(0L, unackSize.getByteCount());
     }
@@ -311,7 +311,7 @@ public class TestStandardFlowFileQueue {
         assertEquals(20000, queue.size().getObjectCount());
         assertEquals(20999, queue.size().getByteCount());
 
-        assertEquals(10000, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(10000, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
     }
 
     @Test
@@ -328,7 +328,7 @@ public class TestStandardFlowFileQueue {
         assertEquals(1, swapManager.swapOutCalledCount);
         assertEquals(20000, queue.size().getObjectCount());
 
-        assertEquals(10000, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(10000, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
         final List<FlowFileRecord> flowFiles = queue.poll(Integer.MAX_VALUE, new HashSet<FlowFileRecord>());
         assertEquals(10000, flowFiles.size());
         for (int i = 0; i < 10000; i++) {
@@ -350,26 +350,26 @@ public class TestStandardFlowFileQueue {
         for (int i = 0; i < 9999; i++) {
             final FlowFileRecord flowFile = queue.poll(exp);
             assertNotNull(flowFile);
-            assertEquals(1, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
-            assertEquals(1, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getByteCount());
+            assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getByteCount());
 
             queue.acknowledge(Collections.singleton(flowFile));
-            assertEquals(0, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
-            assertEquals(0, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getByteCount());
+            assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getByteCount());
         }
 
         assertEquals(0, swapManager.swapInCalledCount);
-        assertEquals(1, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
         assertNotNull(queue.poll(exp));
 
         assertEquals(0, swapManager.swapInCalledCount);
-        assertEquals(0, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
         assertEquals(1, swapManager.swapOutCalledCount);
 
         assertNotNull(queue.poll(exp)); // this should trigger a swap-in of 10,000 records, and then pull 1 off the top.
         assertEquals(1, swapManager.swapInCalledCount);
-        assertEquals(9999, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(9999, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
         assertTrue(swapManager.swappedOut.isEmpty());
 
@@ -399,26 +399,26 @@ public class TestStandardFlowFileQueue {
         for (int i = 0; i < 999; i++) { //
             final FlowFileRecord flowFile = queue.poll(exp);
             assertNotNull(flowFile);
-            assertEquals(1, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
-            assertEquals(1, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getByteCount());
+            assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getByteCount());
 
             queue.acknowledge(Collections.singleton(flowFile));
-            assertEquals(0, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
-            assertEquals(0, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getByteCount());
+            assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
+            assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getByteCount());
         }
 
         assertEquals(0, swapManager.swapInCalledCount);
-        assertEquals(1, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
         assertNotNull(queue.poll(exp));
 
         assertEquals(0, swapManager.swapInCalledCount);
-        assertEquals(0, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
         assertEquals(1, swapManager.swapOutCalledCount);
 
         assertNotNull(queue.poll(exp)); // this should trigger a swap-in of 10,000 records, and then pull 1 off the top.
         assertEquals(1, swapManager.swapInCalledCount);
-        assertEquals(9999, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(9999, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
         assertTrue(swapManager.swappedOut.isEmpty());
 
@@ -620,7 +620,7 @@ public class TestStandardFlowFileQueue {
 
         queue.acknowledge(flowFiles);
         assertNull(queue.poll(expiredRecords));
-        assertEquals(0, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
         assertEquals(0, queue.size().getObjectCount());
 
         assertTrue(swapManager.swappedOut.isEmpty());

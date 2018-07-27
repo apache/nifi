@@ -296,6 +296,7 @@
 
             <xs:element name="loadBalanceStrategy" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="partitioningAttribute" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="loadBalanceCompression" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 
