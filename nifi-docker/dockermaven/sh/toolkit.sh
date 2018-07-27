@@ -1,4 +1,5 @@
 #!/bin/sh -e
+
 #    Licensed to the Apache Software Foundation (ASF) under one or more
 #    contributor license agreements.  See the NOTICE file distributed with
 #    this work for additional information regarding copyright ownership.
@@ -14,16 +15,18 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-# 1 - value to search for
-# 2 - value to replace
-# 3 - file to perform replacement inline
-prop_replace () {
-  target_file=${3:-${nifi_props_file}}
-  echo 'replacing target file ' ${target_file}
-  sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}
-}
+cat <<EOT > ${nifi_toolkit_props_file}
+baseUrl=
+keystore=
+keystoreType=
+keystorePasswd=
+keyPasswd=
+truststore=
+truststoreType=
+truststorePasswd=
+proxiedEntity=
+EOT
 
-# NIFI_HOME is defined by an ENV command in the backing Dockerfile
-export nifi_props_file=${NIFI_HOME}/conf/nifi.properties
-export nifi_toolkit_props_file=${HOME}/.nifi-cli.nifi.properties
-export hostname=$(hostname)
+cat <<EOT > ${HOME}/.nifi-cli.config
+nifi.props=${nifi_toolkit_props_file}
+EOT
