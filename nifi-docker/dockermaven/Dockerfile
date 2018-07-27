@@ -16,13 +16,12 @@
 # under the License.
 #
 
-FROM openjdk:8-jre
+FROM openjdk:8-jre AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
-ARG UID=1000
-ARG GID=1000
 ARG NIFI_VERSION
 ARG NIFI_BINARY
+ARG NIFI_TOOLKIT_BINARY
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
@@ -31,21 +30,43 @@ ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
 ADD sh/ ${NIFI_BASE_DIR}/scripts/
 
-ADD $NIFI_BINARY $NIFI_BASE_DIR
+COPY $NIFI_BINARY $NIFI_BASE_DIR
+RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
+    && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip
 
-# Setup NiFi user and create necessary directories
-RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
-    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
-    && mkdir -p ${NIFI_HOME}/conf \
+COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
+RUN unzip ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
+    && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip
+
+# Create necessary directories
+RUN mkdir -p ${NIFI_HOME}/conf \
     && mkdir -p ${NIFI_HOME}/database_repository \
     && mkdir -p ${NIFI_HOME}/flowfile_repository \
     && mkdir -p ${NIFI_HOME}/content_repository \
     && mkdir -p ${NIFI_HOME}/provenance_repository \
     && mkdir -p ${NIFI_HOME}/state \
-    && mkdir -p ${NIFI_LOG_DIR} \
-    && chown -R nifi:nifi ${NIFI_BASE_DIR} \
+    && mkdir -p ${NIFI_LOG_DIR}
+
+FROM openjdk:8-jre
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+
+ARG UID=1000
+ARG GID=1000
+
+ARG NIFI_VERSION
+
+ENV NIFI_BASE_DIR /opt/nifi
+ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
+ENV NIFI_PID_DIR=${NIFI_HOME}/run
+ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
+
+# Setup NiFi user and create necessary directories
+RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && apt-get update \
     && apt-get install -y jq xmlstarlet procps
+
+COPY --chown=nifi:nifi --from=artifactbase $NIFI_BASE_DIR $NIFI_BASE_DIR
 
 VOLUME ${NIFI_LOG_DIR} \
        ${NIFI_HOME}/conf \

@@ -39,7 +39,7 @@
                                     <buildArgs>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
-                                        <NIFI_VERSION>1.6.0</NIFI_VERSION>
+                                        <NIFI_VERSION>1.7.0</NIFI_VERSION>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
                                     <!-- Right now we can only test against the latest released NiFi version to check our Dockerfile -->
@@ -61,7 +61,7 @@
                                 <configuration>
                                     <arguments>
                                         <argument>${project.version}-dockerhub</argument>
-                                        <argument>1.6.0</argument>
+                                        <argument>1.7.0</argument>
                                     </arguments>
                                     <executable>${project.basedir}/../dockermaven/integration-test.sh</executable>
                                 </configuration>
