@@ -21,11 +21,11 @@ MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
 ARG UID=1000
 ARG GID=50
-ARG MINIFI_C2_VERSION=0.2.0
+ARG MINIFI_C2_VERSION=0.6.0
 
 ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
 ENV MINIFI_C2_HOME $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION
-ENV MINIFI_C2_BINARY_URL https://archive.apache.org/dist/minifi/$MINIFI_C2_VERSION/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz
+ENV MINIFI_C2_BINARY_URL https://archive.apache.org/dist/nifi/minifi/$MINIFI_C2_VERSION/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz
 
 # Setup MiNiFi user
 RUN addgroup -g $GID c2 || groupmod -n c2 `getent group $GID | cut -d: -f1`
@@ -33,7 +33,8 @@ RUN adduser -S -H -G c2 c2
 RUN mkdir -p $MINIFI_C2_HOME
 
 # Download, validate, and expand Apache MiNiFi C2 binary.
-RUN curl -fSL $MINIFI_C2_BINARY_URL -o $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz \
+RUN apk add curl \
+    && curl -fSL $MINIFI_C2_BINARY_URL -o $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz \
 	&& echo "$(curl $MINIFI_C2_BINARY_URL.sha256) *$MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz" | sha256sum -c - \
 	&& tar -xvzf $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz -C $MINIFI_C2_BASE_DIR \
 	&& rm $MINIFI_C2_BASE_DIR/minifi-c2-$MINIFI_C2_VERSION-bin.tar.gz
