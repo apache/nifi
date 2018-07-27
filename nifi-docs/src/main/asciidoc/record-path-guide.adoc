@@ -629,7 +629,7 @@ The following record path expression would re-format the date String:
 
 === base64Encode
 
-Converts a String using Base64 encoding, using the UTF-8 character set.  For example, given a schema such as:
+Converts a String or byte[] using Base64 encoding, using the UTF-8 character set.  For example, given a schema such as:
 
 ----
 {
@@ -658,7 +658,7 @@ The following record path expression would encode the String using Base64:
 
 === base64Decode
 
-Decodes a Base64-encoded String.  For example, given a schema such as:
+Decodes a Base64-encoded String or byte[].  For example, given a schema such as:
 
 ----
 {
@@ -678,7 +678,7 @@ and a record such as:
 }
 ----
 
-The following record path expression would encode the String using Base64:
+The following record path expression would decode the String using Base64:
 
 |==========================================================
 | RecordPath | Return value

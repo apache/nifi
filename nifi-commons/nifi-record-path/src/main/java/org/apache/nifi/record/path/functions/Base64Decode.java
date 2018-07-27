@@ -22,6 +22,7 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.stream.Stream;
 
@@ -39,11 +40,14 @@ public class Base64Decode extends RecordPathSegment {
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
 
-                    if (!(fv.getValue() instanceof String)) {
-                        throw new IllegalArgumentException("Argument supplied to base64Encode must be a String");
+                    Object value = fv.getValue();
+                    if (value instanceof String) {
+                        return new StandardFieldValue(new String(Base64.getDecoder().decode(fv.getValue().toString()), StandardCharsets.UTF_8), fv.getField(), fv.getParent().orElse(null));
+                    } else if (value instanceof byte[]) {
+                        return new StandardFieldValue(Base64.getDecoder().decode((byte[]) value), fv.getField(), fv.getParent().orElse(null));
+                    } else {
+                        throw new IllegalArgumentException("Argument supplied to base64Decode must be a String or byte[]");
                     }
-
-                    return new StandardFieldValue(Base64.getDecoder().decode(fv.getValue().toString()), fv.getField(), fv.getParent().orElse(null));
                 });
     }
 

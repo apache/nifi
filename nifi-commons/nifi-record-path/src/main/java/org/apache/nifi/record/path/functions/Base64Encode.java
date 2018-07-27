@@ -40,14 +40,17 @@ public class Base64Encode extends RecordPathSegment {
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
 
-                    if (!(fv.getValue() instanceof String)) {
-                        throw new IllegalArgumentException("Argument supplied to base64Encode must be a String");
-                    }
-
-                    try {
-                        return new StandardFieldValue(Base64.getEncoder().encodeToString(fv.getValue().toString().getBytes("UTF-8")), fv.getField(), fv.getParent().orElse(null));
-                    } catch (final UnsupportedEncodingException e) {
-                        return null;    // won't happen.
+                    Object value = fv.getValue();
+                    if (value instanceof String) {
+                        try {
+                            return new StandardFieldValue(Base64.getEncoder().encodeToString(value.toString().getBytes("UTF-8")), fv.getField(), fv.getParent().orElse(null));
+                        } catch (final UnsupportedEncodingException e) {
+                            return null;    // won't happen.
+                        }
+                    } else if (value instanceof byte[]) {
+                        return new StandardFieldValue(Base64.getEncoder().encode((byte[]) value), fv.getField(), fv.getParent().orElse(null));
+                    } else {
+                        throw new IllegalArgumentException("Argument supplied to base64Encode must be a String or byte[]");
                     }
                 });
     }
