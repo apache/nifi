@@ -24,6 +24,7 @@ import com.marklogic.client.document.ServerTransform;
 import com.marklogic.client.io.BytesHandle;
 import com.marklogic.client.io.DocumentMetadataHandle;
 import com.marklogic.client.io.Format;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -61,6 +62,10 @@ import java.util.Set;
 @CapabilityDescription("Write batches of FlowFiles as documents to a MarkLogic server using the " +
     "MarkLogic Data Movement SDK (DMSDK)")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@DynamicProperty(name = "Server transform parameter name", value = "Value of the server transform parameter",
+    description = "Adds server transform parameters to be passed to the server transform specified. "
+    + "Server transform parameter name should start with the string 'trans:'.")
+
 @TriggerWhenEmpty
 public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
@@ -187,6 +192,16 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
     private volatile boolean shouldFlushIfEmpty = true;
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+            .name(propertyDescriptorName)
+            .addValidator(Validator.VALID)
+            .dynamic(true)
+            .required(false)
+            .build();
+    }
+
+    @Override
     public void init(ProcessorInitializationContext context) {
         super.init(context);
 
@@ -221,7 +236,13 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
         final String transform = context.getProperty(TRANSFORM).getValue();
         if (transform != null) {
-            writeBatcher.withTransform(new ServerTransform(transform));
+            ServerTransform serverTransform = new ServerTransform(transform);
+            final String transformPrefix = "trans:";
+            for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+                if (!descriptor.isDynamic() && !descriptor.getName().startsWith(transformPrefix)) continue;
+                serverTransform.addParameter(descriptor.getName().substring(transformPrefix.length()), context.getProperty(descriptor).getValue());
+            }
+            writeBatcher.withTransform(serverTransform);
         }
         Integer threadCount = context.getProperty(THREAD_COUNT).asInteger();
         if(threadCount != null) {
