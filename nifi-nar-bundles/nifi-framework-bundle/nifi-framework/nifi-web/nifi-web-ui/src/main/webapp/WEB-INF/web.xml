@@ -150,14 +150,6 @@
     <filter>
         <filter-name>SanitizeContextPathFilter</filter-name>
         <filter-class>org.apache.nifi.web.filter.SanitizeContextPathFilter</filter-class>
-        <init-param>
-            <param-name>displayPath</param-name>
-            <param-value>message-page.jsp</param-value>
-        </init-param>
-        <init-param>
-            <param-name>forwardPath</param-name>
-            <param-value>/message-page.jsp</param-value>
-        </init-param>
     </filter>
     <filter-mapping>
         <filter-name>SanitizeContextPathFilter</filter-name>
