@@ -77,9 +77,9 @@ public class TestParseNetflowv5 {
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
         for (int i = 0; i < 3; i++) {
             final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).get(i);
-            mff.assertAttributeEquals("netflowv5.record.srcaddr", "167772162");
-            mff.assertAttributeEquals("netflowv5.record.dstaddr", "167772163");
-            mff.assertAttributeEquals("netflowv5.record.nexthop", "0");
+            mff.assertAttributeEquals("netflowv5.record.srcaddr", "10.0.0.2");
+            mff.assertAttributeEquals("netflowv5.record.dstaddr", "10.0.0.3");
+            mff.assertAttributeEquals("netflowv5.record.nexthop", "0.0.0.0");
             mff.assertAttributeEquals("netflowv5.record.input", "3");
             mff.assertAttributeEquals("netflowv5.record.pad2", String.valueOf(i));
         }

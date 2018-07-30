@@ -15,9 +15,27 @@
 package org.apache.nifi.processors.network.parser.util;
 
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 
 public final class ConversionUtil {
+    public static final String toIPV4(final byte[] buffer, final int offset, final int length) {
+        try {
+            return InetAddress.getByAddress(Arrays.copyOfRange(buffer, offset, offset + length)).getHostAddress();
+        } catch (UnknownHostException e) {
+            return String.valueOf(toInt(buffer, offset, length));
+        }
+    }
+
+    public static final String toIPV6(final byte[] buffer, final int offset, final int length) {
+        try {
+            return InetAddress.getByAddress(Arrays.copyOfRange(buffer, offset, offset + length)).getHostAddress();
+        } catch (UnknownHostException e) {
+            return String.valueOf(toLong(buffer, offset, length));
+        }
+    }
+
     public static final BigInteger toBigInteger(final byte[] buffer, final int offset, final int length) {
         return new BigInteger(Arrays.copyOfRange(buffer, offset, offset + length));
     }

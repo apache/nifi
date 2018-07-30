@@ -16,7 +16,10 @@ package org.apache.nifi.processors.network.parser;
 
 import java.util.OptionalInt;
 
-import org.apache.nifi.processors.network.parser.util.ConversionUtil;
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toShort;
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toInt;
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toLong;
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toIPV4;
 
 /**
  * Networkv5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
@@ -29,6 +32,7 @@ public final class Netflowv5Parser {
     private static final int SHORT_TYPE = 0;
     private static final int INTEGER_TYPE = 1;
     private static final int LONG_TYPE = 2;
+    private static final int IPV4_TYPE = 3;
 
     private static final String headerField[] = { "version", "count", "sys_uptime", "unix_secs", "unix_nsecs", "flow_sequence", "engine_type", "engine_id", "sampling_interval" };
     private static final String recordField[] = { "srcaddr", "dstaddr", "nexthop", "input", "output", "dPkts", "dOctets", "first", "last", "srcport", "dstport", "pad1", "tcp_flags", "prot", "tos",
@@ -44,9 +48,9 @@ public final class Netflowv5Parser {
     }
 
     public final int parse(final byte[] buffer) throws Throwable {
-        final int version = ConversionUtil.toInt(buffer, 0, 2);
+        final int version = toInt(buffer, 0, 2);
         assert version == 5 : "Version mismatch";
-        final int count = ConversionUtil.toInt(buffer, 2, 2);
+        final int count = toInt(buffer, 2, 2);
 
         headerData = new Object[headerField.length];
         headerData[0] = version;
@@ -63,9 +67,9 @@ public final class Netflowv5Parser {
         recordData = new Object[count][recordField.length];
         for (int counter = 0; counter < count; counter++) {
             offset = HEADER_SIZE + (counter * RECORD_SIZE);
-            recordData[counter][0] = parseField(buffer, offset, 4, LONG_TYPE);
-            recordData[counter][1] = parseField(buffer, offset + 4, 4, LONG_TYPE);
-            recordData[counter][2] = parseField(buffer, offset + 8, 4, LONG_TYPE);
+            recordData[counter][0] = parseField(buffer, offset, 4, IPV4_TYPE);
+            recordData[counter][1] = parseField(buffer, offset + 4, 4, IPV4_TYPE);
+            recordData[counter][2] = parseField(buffer, offset + 8, 4, IPV4_TYPE);
             recordData[counter][3] = parseField(buffer, offset + 12, 2, INTEGER_TYPE);
             recordData[counter][4] = parseField(buffer, offset + 14, 2, INTEGER_TYPE);
             recordData[counter][5] = parseField(buffer, offset + 16, 4, LONG_TYPE);
@@ -91,13 +95,16 @@ public final class Netflowv5Parser {
         Object value = null;
         switch (type) {
         case SHORT_TYPE:
-            value = ConversionUtil.toShort(buffer, startOffset, length);
+            value = toShort(buffer, startOffset, length);
             break;
         case INTEGER_TYPE:
-            value = ConversionUtil.toInt(buffer, startOffset, length);
+            value = toInt(buffer, startOffset, length);
             break;
         case LONG_TYPE:
-            value = ConversionUtil.toLong(buffer, startOffset, length);
+            value = toLong(buffer, startOffset, length);
+            break;
+        case IPV4_TYPE:
+            value = toIPV4(buffer, startOffset, length);
             break;
         default:
             break;

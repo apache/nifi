@@ -29,7 +29,7 @@
 	<modules>
 		<module>nifi-network-utils</module>
 		<module>nifi-network-processors</module>
-		<module>nifi-network-nar</module>
+		<module>nifi-network-processors-nar</module>
 	</modules>
 
 </project>

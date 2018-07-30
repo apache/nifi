@@ -57,9 +57,9 @@ public class TestNetflowv5Parser {
         Assert.assertEquals(sample2RecordCount, parsedRecords);
         final Object[][] data = parser.getRecordData();
         for (int i = 0; i < 3; i++) {
-            Assert.assertEquals(Long.valueOf(167772162), data[i][0]);
-            Assert.assertEquals(Long.valueOf(167772163), data[i][1]);
-            Assert.assertEquals(Long.valueOf(0), data[i][2]);
+            Assert.assertEquals("10.0.0.2", data[i][0]);
+            Assert.assertEquals("10.0.0.3", data[i][1]);
+            Assert.assertEquals("0.0.0.0", data[i][2]);
             Assert.assertEquals(3, data[i][3]);
             Assert.assertEquals(i, data[i][19]);
         }
