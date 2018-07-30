@@ -93,7 +93,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
                     + "A value of 0 means no timeout. NOTE: Non-zero values may not be supported by the driver.")
             .defaultValue("0")
             .required(true)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
