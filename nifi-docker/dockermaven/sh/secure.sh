@@ -41,16 +41,18 @@ fi
 prop_replace 'nifi.security.keystore'           "${KEYSTORE_PATH}"
 prop_replace 'nifi.security.keystoreType'       "${KEYSTORE_TYPE}"
 prop_replace 'nifi.security.keystorePasswd'     "${KEYSTORE_PASSWORD}"
+prop_replace 'nifi.security.keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
 prop_replace 'nifi.security.truststore'         "${TRUSTSTORE_PATH}"
 prop_replace 'nifi.security.truststoreType'     "${TRUSTSTORE_TYPE}"
 prop_replace 'nifi.security.truststorePasswd'   "${TRUSTSTORE_PASSWORD}"
 
-prop_replace 'keystore'           "${KEYSTORE_PATH}"        ${nifi_toolkit_props_file}
-prop_replace 'keystoreType'       "${KEYSTORE_TYPE}"        ${nifi_toolkit_props_file}
-prop_replace 'keystorePasswd'     "${KEYSTORE_PASSWORD}"    ${nifi_toolkit_props_file}
-prop_replace 'truststore'         "${TRUSTSTORE_PATH}"      ${nifi_toolkit_props_file}
-prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"      ${nifi_toolkit_props_file}
-prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"  ${nifi_toolkit_props_file}
+prop_replace 'keystore'           "${KEYSTORE_PATH}"                    ${nifi_toolkit_props_file}
+prop_replace 'keystoreType'       "${KEYSTORE_TYPE}"                    ${nifi_toolkit_props_file}
+prop_replace 'keystorePasswd'     "${KEYSTORE_PASSWORD}"                ${nifi_toolkit_props_file}
+prop_replace 'keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" ${nifi_toolkit_props_file}
+prop_replace 'truststore'         "${TRUSTSTORE_PATH}"                  ${nifi_toolkit_props_file}
+prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"                  ${nifi_toolkit_props_file}
+prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              ${nifi_toolkit_props_file}
 
 # Disable HTTP and enable HTTPS
 prop_replace 'nifi.web.http.port'   ''
