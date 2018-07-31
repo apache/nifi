@@ -88,4 +88,9 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
         return query.toString();
     }
+
+    @Override
+    public String getTableAliasClause(String tableName) {
+        return tableName;
+    }
 }
