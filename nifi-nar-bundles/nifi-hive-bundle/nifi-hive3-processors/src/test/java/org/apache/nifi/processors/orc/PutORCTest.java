@@ -25,9 +25,9 @@ import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
 import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.RecordReader;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
+import org.apache.hadoop.hive.serde2.io.DateWritableV2;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -246,8 +246,8 @@ public class PutORCTest {
         verifyORCUsers(orcFile, 10, (x, currUser) -> {
                     assertEquals((int) currUser, ((IntWritable) x.get(0)).get());
                     assertEquals(timeMillis, ((IntWritable) x.get(1)).get());
-                    assertEquals(timestampMillis, ((TimestampWritable) x.get(2)).getTimestamp());
-                    assertEquals(dt, ((DateWritable) x.get(3)).get());
+                    assertEquals(timestampMillis, ((TimestampWritableV2) x.get(2)).getTimestamp().toSqlTimestamp());
+                    assertEquals(dt.toLocalDate().toEpochDay(), ((DateWritableV2) x.get(3)).get().toEpochDay());
                     assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
                     return null;
                 }
