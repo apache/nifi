@@ -166,7 +166,7 @@ In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` c
 
 Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.apache.org` being assigned the same certificate with a CN or SAN entry of +*.nifi.apache.org+) are *not officially supported* and *not recommended*. There are numerous disadvantages to using wildcard certificates, and a cluster working with wildcard certificates has occurred in previous versions out of lucky accidents, not intentional support. Wildcard SAN entries are acceptable *if* each cert maintains an additional unique SAN entry and CN entry. 
 
-Potential issues with wildcard certificates:
+==== Potential issues with wildcard certificates
 
 * In many places throughout the codebase, cluster communications use certificate identities many times to identify a node, and if the certificate simply presents a wildcard DN, that doesn’t resolve to a specific node
 * Admins may need to provide a custom node identity in `authorizers.xml` for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see <<user_authentication>>)
@@ -280,6 +280,278 @@ You can use the following command line options with the `tls-toolkit` in client 
 After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
+
+==== Using An Existing Intermediate Certificate Authority (CA)
+
+In some enterprise scenarios, a security/IT team may provide a signing certificate that has already been signed by the organization's certificate authority (CA). This *intermediate CA* can be used to sign the *node* (sometimes referred to as *leaf*) certificates that will be installed on each NiFi node, or the *client certificates* used to identify users. In order to inject the existing signing certificate into the toolkit process, follow these steps:
+
+. Generate or obtain the signed intermediate CA keys in the following format (see additional commands below):
+  * Public certificate in PEM format: `nifi-cert.pem`
+  * Private key in PEM format: `nifi-key.key`
+. Place the files in the *toolkit directory*. This is the directory where the tool binary (usually called via the invoking script `tls-toolkit.sh` or `tls-toolkit.bat`) is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*. 
+  * For example, given the following scenario, the toolkit command can be run from its location as long as the output directory `-o` is `../hardcoded/`, and the existing `nifi-cert.pem` and `nifi-key.key` will be used.  
+  ** e.g. `$ ./toolkit/bin/tls-toolkit.sh standalone -o ./hardcoded/ -n 'node4.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` will result in a new directory at `./hardcoded/node4.nifi.apache.org` with a keystore and truststore containing a certificate signed by `./hardcoded/nifi-key.key`  
+  * If the `-o` argument is not provided, the default working directory (`.`) must contain `nifi-cert.pem` and `nifi-key.key`
+  ** e.g. `$ cd ./hardcoded/ && ../toolkit/bin/tls-toolkit.sh standalone -n 'node5.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` 
+
+```
+# Example directory structure *before* commands above are run
+
+🔓 0s @ 18:07:58 $ tree -L 2
+.
+├── hardcoded
+│   ├── CN=myusername.hardcoded_OU=NiFi.p12
+│   ├── CN=myusername.hardcoded_OU=NiFi.password
+│   ├── nifi-cert.pem
+│   ├── nifi-key.key
+│   ├── node1.nifi.apache.org
+│   ├── node2.nifi.apache.org
+│   └── node3.nifi.apache.org
+└── toolkit
+    ├── LICENSE
+    ├── NOTICE
+    ├── README
+    ├── bin
+    ├── conf
+    ├── docs
+    └── lib
+```
+
+===== Additional Commands
+
+The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
+
+====== nifi-cert.pem
+
+```
+# The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
+
+.../certs $ more nifi-cert.pem
+-----BEGIN CERTIFICATE-----
+MIIDZTCCAk2gAwIBAgIKAWTeM3kDAAAAADANBgkqhkiG9w0BAQsFADAxMQ0wCwYD
+VQQLDAROSUZJMSAwHgYDVQQDDBduaWZpLWNhLm5pZmkuYXBhY2hlLm9yZzAeFw0x
+ODA3MjgwMDA0MzJaFw0yMTA3MjcwMDA0MzJaMDExDTALBgNVBAsMBE5JRkkxIDAe
+BgNVBAMMF25pZmktY2EubmlmaS5hcGFjaGUub3JnMIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAqkVrrC+AkFbjnCpupSy84tTFDsRVUIWYj/k2pVwC145M
+3bpr0pRCzLuzovAjFCmT5L+isTvNjhionsqif07Ebd/M2psYE/Rih2MULsX6KgRe
+1nRUiBeKF08hlmSBMGDFPj39yDzE/V9edxV/KGjRqVgw/Qy0vwaS5uWdXnLDhzoV
+4/Mz7lGmYoMasZ1uexlH93jjBl1+EFL2Xoa06oLbEojJ9TKaWhpG8ietEedf7WM0
+zqBEz2kHo9ddFk9yxiCkT4SUKnDWkhwc/o6us1vEXoSw+tmufHY/A3gVihjWPIGz
+qyLFl9JuN7CyJepkVVqTdskBG7S85G/kBlizUj5jOwIDAQABo38wfTAOBgNVHQ8B
+Af8EBAMCAf4wDAYDVR0TBAUwAwEB/zAdBgNVHQ4EFgQUKiWBKbMMQ1zUabD4gI7L
+VOWOcy0wHwYDVR0jBBgwFoAUKiWBKbMMQ1zUabD4gI7LVOWOcy0wHQYDVR0lBBYw
+FAYIKwYBBQUHAwIGCCsGAQUFBwMBMA0GCSqGSIb3DQEBCwUAA4IBAQAxfHFIZLOw
+mwIqnSI/ir8f/uzDMq06APHGdhdeIKV0HR74BtK95KFg42zeXxAEFeic98PC/FPV
+tKpm2WUa1slMB+oP27cRx5Znr2+pktaqnM7f2JgMeJ8bduNH3RUkr9jwgkcJRwyC
+I4fwHC9k18aizNdOf2q2UgQXxNXaLYPe17deuNVwwrflMgeFfVrwbT2uPJTMRi1D
+FQyc6haF4vsOSSRzE6OyDoc+/1PpyPW75OeSXeVCbc3AEAvRuTZMBQvBQUqVM51e
+MDG+K3rCeieSBPOnGNrEC/PiA/CvaMXBEog+xPAw1SgYfuCz4rlM3BdRa54z3+oO
+lc8xbzd7w8Q3
+-----END CERTIFICATE-----
+.../certs $ openssl x509 -in nifi-cert.pem -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            01:64:de:33:79:03:00:00:00:00
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: OU=NIFI, CN=nifi-ca.nifi.apache.org
+        Validity
+            Not Before: Jul 28 00:04:32 2018 GMT
+            Not After : Jul 27 00:04:32 2021 GMT
+        Subject: OU=NIFI, CN=nifi-ca.nifi.apache.org
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:aa:45:6b:ac:2f:80:90:56:e3:9c:2a:6e:a5:2c:
+                    bc:e2:d4:c5:0e:c4:55:50:85:98:8f:f9:36:a5:5c:
+                    02:d7:8e:4c:dd:ba:6b:d2:94:42:cc:bb:b3:a2:f0:
+                    23:14:29:93:e4:bf:a2:b1:3b:cd:8e:18:a8:9e:ca:
+                    a2:7f:4e:c4:6d:df:cc:da:9b:18:13:f4:62:87:63:
+                    14:2e:c5:fa:2a:04:5e:d6:74:54:88:17:8a:17:4f:
+                    21:96:64:81:30:60:c5:3e:3d:fd:c8:3c:c4:fd:5f:
+                    5e:77:15:7f:28:68:d1:a9:58:30:fd:0c:b4:bf:06:
+                    92:e6:e5:9d:5e:72:c3:87:3a:15:e3:f3:33:ee:51:
+                    a6:62:83:1a:b1:9d:6e:7b:19:47:f7:78:e3:06:5d:
+                    7e:10:52:f6:5e:86:b4:ea:82:db:12:88:c9:f5:32:
+                    9a:5a:1a:46:f2:27:ad:11:e7:5f:ed:63:34:ce:a0:
+                    44:cf:69:07:a3:d7:5d:16:4f:72:c6:20:a4:4f:84:
+                    94:2a:70:d6:92:1c:1c:fe:8e:ae:b3:5b:c4:5e:84:
+                    b0:fa:d9:ae:7c:76:3f:03:78:15:8a:18:d6:3c:81:
+                    b3:ab:22:c5:97:d2:6e:37:b0:b2:25:ea:64:55:5a:
+                    93:76:c9:01:1b:b4:bc:e4:6f:e4:06:58:b3:52:3e:
+                    63:3b
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature, Non Repudiation, Key Encipherment, Data Encipherment, Key Agreement, Certificate Sign, CRL Sign
+            X509v3 Basic Constraints:
+                CA:TRUE
+            X509v3 Subject Key Identifier:
+                2A:25:81:29:B3:0C:43:5C:D4:69:B0:F8:80:8E:CB:54:E5:8E:73:2D
+            X509v3 Authority Key Identifier:
+                keyid:2A:25:81:29:B3:0C:43:5C:D4:69:B0:F8:80:8E:CB:54:E5:8E:73:2D
+
+            X509v3 Extended Key Usage:
+                TLS Web Client Authentication, TLS Web Server Authentication
+    Signature Algorithm: sha256WithRSAEncryption
+         31:7c:71:48:64:b3:b0:9b:02:2a:9d:22:3f:8a:bf:1f:fe:ec:
+         c3:32:ad:3a:00:f1:c6:76:17:5e:20:a5:74:1d:1e:f8:06:d2:
+         bd:e4:a1:60:e3:6c:de:5f:10:04:15:e8:9c:f7:c3:c2:fc:53:
+         d5:b4:aa:66:d9:65:1a:d6:c9:4c:07:ea:0f:db:b7:11:c7:96:
+         67:af:6f:a9:92:d6:aa:9c:ce:df:d8:98:0c:78:9f:1b:76:e3:
+         47:dd:15:24:af:d8:f0:82:47:09:47:0c:82:23:87:f0:1c:2f:
+         64:d7:c6:a2:cc:d7:4e:7f:6a:b6:52:04:17:c4:d5:da:2d:83:
+         de:d7:b7:5e:b8:d5:70:c2:b7:e5:32:07:85:7d:5a:f0:6d:3d:
+         ae:3c:94:cc:46:2d:43:15:0c:9c:ea:16:85:e2:fb:0e:49:24:
+         73:13:a3:b2:0e:87:3e:ff:53:e9:c8:f5:bb:e4:e7:92:5d:e5:
+         42:6d:cd:c0:10:0b:d1:b9:36:4c:05:0b:c1:41:4a:95:33:9d:
+         5e:30:31:be:2b:7a:c2:7a:27:92:04:f3:a7:18:da:c4:0b:f3:
+         e2:03:f0:af:68:c5:c1:12:88:3e:c4:f0:30:d5:28:18:7e:e0:
+         b3:e2:b9:4c:dc:17:51:6b:9e:33:df:ea:0e:95:cf:31:6f:37:
+         7b:c3:c4:37
+```
+
+====== nifi-key.key
+
+```
+# The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
+
+.../certs $ more nifi-key.key
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAqkVrrC+AkFbjnCpupSy84tTFDsRVUIWYj/k2pVwC145M3bpr
+0pRCzLuzovAjFCmT5L+isTvNjhionsqif07Ebd/M2psYE/Rih2MULsX6KgRe1nRU
+iBeKF08hlmSBMGDFPj39yDzE/V9edxV/KGjRqVgw/Qy0vwaS5uWdXnLDhzoV4/Mz
+7lGmYoMasZ1uexlH93jjBl1+EFL2Xoa06oLbEojJ9TKaWhpG8ietEedf7WM0zqBE
+z2kHo9ddFk9yxiCkT4SUKnDWkhwc/o6us1vEXoSw+tmufHY/A3gVihjWPIGzqyLF
+l9JuN7CyJepkVVqTdskBG7S85G/kBlizUj5jOwIDAQABAoIBAAdWRnV89oVBuT0Z
+dvsXGmyLzpH8U9DMcO6DRp+Jf3XaY+WKCutgCCDaVbtHrbtIr17EAzav5QOifGGb
+SbVCp6Q0aJdi5360oSpEUrJRRZ5Z4dxL1vimSwUGG+RnIEn9YYJ1GWJve+2PFnr7
+KieLnL03V6UPzxoMJnhcnJNdTp+dBwzSazVQwye2csSJlVMk49t2lxBwce7ohuh+
+9fL7G3HU5S9d08QT1brknMHahcw1SYyJd0KSjRJCB6wAxnAZmJYJ1jQCI8YICq0j
+RX2rhxEXuEMXQcaiFQXzCrmQEXreKUISDvNeu/h7YU9UvJWPZSFGnEGgnMP2XvQm
+EjK3rQECgYEA5+OkpLsiLNMHGzj72PiBkq82sTLQJ2+8udYp6PheOGkhjjXoBse5
+YynyHlQt6CnVpJQ33mQUkJ+3ils0SMFtmI3rz3udzleek1so2L2J3+CI4kt7fFCb
+FFbVXv+dLNrm+tOw68J48asyad8kEnHYq9Us+/3MLDmFJYTthkgzCpECgYEAu/ml
+lQaWaZAQcQ8UuVeasxMYoN8zMmzfrkxc8AfNwKxF9nc44ywo4nJr+u/UVRGYpRgM
+rdll5vz0Iq68qk03spaW7vDJn8hJQhkReQw1it9Fp/51r9MHzGTVarORJGa2oZ0g
+iNe8LNizD3bQ19hEvju9mn0x9Q62Q7dapVpffwsCgYEAtC1TPpQQ59dIjERom5vr
+wffWfTTIO/w8HgFkKxrgyuAVLJSCJtKFH6H1+M7bpKrsz6ZDCs+kkwMm76ASLf3t
+lD2h3mNkqHG4SzLnuBD90jB666pO1rci6FjYDap7i+DC3F4j9+vxYYXt9Aln09UV
+z94hx+LaA/rlk9OHY3EyB6ECgYBA/cCtNNjeaKv2mxM8PbjD/289d85YueHgfpCH
+gPs3iZiq7W+iw8ri+FKzMSaFvw66zgTcOtULtxulviqG6ym9umk29dOQRgxmKQqs
+gnckq6uGuOjxwJHqrlZHjQw6vLSaThxIk+aAzu+iAh+U8TZbW4ZjmrOiGdMUuJlD
+oGpyHwKBgQCRjfqQjRelYVtU7j6BD9BDbCfmipwaRNP0CuAGOVtS+UnJuaIhsXFQ
+QGEBuOnfFijIvb7YcXRL4plRYPMvDqYRNObuI6A+1xNtr000nxa/HUfzKVeI9Tsn
+9AKMWnXS8ZcfStsVf3oDFffXYRqCaWeuhpMmg9TwdXoAuwfpE5GCmw==
+-----END RSA PRIVATE KEY-----
+.../certs $ openssl rsa -in nifi-key.key -text -noout
+Private-Key: (2048 bit)
+modulus:
+    00:aa:45:6b:ac:2f:80:90:56:e3:9c:2a:6e:a5:2c:
+    bc:e2:d4:c5:0e:c4:55:50:85:98:8f:f9:36:a5:5c:
+    02:d7:8e:4c:dd:ba:6b:d2:94:42:cc:bb:b3:a2:f0:
+    23:14:29:93:e4:bf:a2:b1:3b:cd:8e:18:a8:9e:ca:
+    a2:7f:4e:c4:6d:df:cc:da:9b:18:13:f4:62:87:63:
+    14:2e:c5:fa:2a:04:5e:d6:74:54:88:17:8a:17:4f:
+    21:96:64:81:30:60:c5:3e:3d:fd:c8:3c:c4:fd:5f:
+    5e:77:15:7f:28:68:d1:a9:58:30:fd:0c:b4:bf:06:
+    92:e6:e5:9d:5e:72:c3:87:3a:15:e3:f3:33:ee:51:
+    a6:62:83:1a:b1:9d:6e:7b:19:47:f7:78:e3:06:5d:
+    7e:10:52:f6:5e:86:b4:ea:82:db:12:88:c9:f5:32:
+    9a:5a:1a:46:f2:27:ad:11:e7:5f:ed:63:34:ce:a0:
+    44:cf:69:07:a3:d7:5d:16:4f:72:c6:20:a4:4f:84:
+    94:2a:70:d6:92:1c:1c:fe:8e:ae:b3:5b:c4:5e:84:
+    b0:fa:d9:ae:7c:76:3f:03:78:15:8a:18:d6:3c:81:
+    b3:ab:22:c5:97:d2:6e:37:b0:b2:25:ea:64:55:5a:
+    93:76:c9:01:1b:b4:bc:e4:6f:e4:06:58:b3:52:3e:
+    63:3b
+publicExponent: 65537 (0x10001)
+privateExponent:
+    07:56:46:75:7c:f6:85:41:b9:3d:19:76:fb:17:1a:
+    6c:8b:ce:91:fc:53:d0:cc:70:ee:83:46:9f:89:7f:
+    75:da:63:e5:8a:0a:eb:60:08:20:da:55:bb:47:ad:
+    bb:48:af:5e:c4:03:36:af:e5:03:a2:7c:61:9b:49:
+    b5:42:a7:a4:34:68:97:62:e7:7e:b4:a1:2a:44:52:
+    b2:51:45:9e:59:e1:dc:4b:d6:f8:a6:4b:05:06:1b:
+    e4:67:20:49:fd:61:82:75:19:62:6f:7b:ed:8f:16:
+    7a:fb:2a:27:8b:9c:bd:37:57:a5:0f:cf:1a:0c:26:
+    78:5c:9c:93:5d:4e:9f:9d:07:0c:d2:6b:35:50:c3:
+    27:b6:72:c4:89:95:53:24:e3:db:76:97:10:70:71:
+    ee:e8:86:e8:7e:f5:f2:fb:1b:71:d4:e5:2f:5d:d3:
+    c4:13:d5:ba:e4:9c:c1:da:85:cc:35:49:8c:89:77:
+    42:92:8d:12:42:07:ac:00:c6:70:19:98:96:09:d6:
+    34:02:23:c6:08:0a:ad:23:45:7d:ab:87:11:17:b8:
+    43:17:41:c6:a2:15:05:f3:0a:b9:90:11:7a:de:29:
+    42:12:0e:f3:5e:bb:f8:7b:61:4f:54:bc:95:8f:65:
+    21:46:9c:41:a0:9c:c3:f6:5e:f4:26:12:32:b7:ad:
+    01
+prime1:
+    00:e7:e3:a4:a4:bb:22:2c:d3:07:1b:38:fb:d8:f8:
+    81:92:af:36:b1:32:d0:27:6f:bc:b9:d6:29:e8:f8:
+    5e:38:69:21:8e:35:e8:06:c7:b9:63:29:f2:1e:54:
+    2d:e8:29:d5:a4:94:37:de:64:14:90:9f:b7:8a:5b:
+    34:48:c1:6d:98:8d:eb:cf:7b:9d:ce:57:9e:93:5b:
+    28:d8:bd:89:df:e0:88:e2:4b:7b:7c:50:9b:14:56:
+    d5:5e:ff:9d:2c:da:e6:fa:d3:b0:eb:c2:78:f1:ab:
+    32:69:df:24:12:71:d8:ab:d5:2c:fb:fd:cc:2c:39:
+    85:25:84:ed:86:48:33:0a:91
+prime2:
+    00:bb:f9:a5:95:06:96:69:90:10:71:0f:14:b9:57:
+    9a:b3:13:18:a0:df:33:32:6c:df:ae:4c:5c:f0:07:
+    cd:c0:ac:45:f6:77:38:e3:2c:28:e2:72:6b:fa:ef:
+    d4:55:11:98:a5:18:0c:ad:d9:65:e6:fc:f4:22:ae:
+    bc:aa:4d:37:b2:96:96:ee:f0:c9:9f:c8:49:42:19:
+    11:79:0c:35:8a:df:45:a7:fe:75:af:d3:07:cc:64:
+    d5:6a:b3:91:24:66:b6:a1:9d:20:88:d7:bc:2c:d8:
+    b3:0f:76:d0:d7:d8:44:be:3b:bd:9a:7d:31:f5:0e:
+    b6:43:b7:5a:a5:5a:5f:7f:0b
+exponent1:
+    00:b4:2d:53:3e:94:10:e7:d7:48:8c:44:68:9b:9b:
+    eb:c1:f7:d6:7d:34:c8:3b:fc:3c:1e:01:64:2b:1a:
+    e0:ca:e0:15:2c:94:82:26:d2:85:1f:a1:f5:f8:ce:
+    db:a4:aa:ec:cf:a6:43:0a:cf:a4:93:03:26:ef:a0:
+    12:2d:fd:ed:94:3d:a1:de:63:64:a8:71:b8:4b:32:
+    e7:b8:10:fd:d2:30:7a:eb:aa:4e:d6:b7:22:e8:58:
+    d8:0d:aa:7b:8b:e0:c2:dc:5e:23:f7:eb:f1:61:85:
+    ed:f4:09:67:d3:d5:15:cf:de:21:c7:e2:da:03:fa:
+    e5:93:d3:87:63:71:32:07:a1
+exponent2:
+    40:fd:c0:ad:34:d8:de:68:ab:f6:9b:13:3c:3d:b8:
+    c3:ff:6f:3d:77:ce:58:b9:e1:e0:7e:90:87:80:fb:
+    37:89:98:aa:ed:6f:a2:c3:ca:e2:f8:52:b3:31:26:
+    85:bf:0e:ba:ce:04:dc:3a:d5:0b:b7:1b:a5:be:2a:
+    86:eb:29:bd:ba:69:36:f5:d3:90:46:0c:66:29:0a:
+    ac:82:77:24:ab:ab:86:b8:e8:f1:c0:91:ea:ae:56:
+    47:8d:0c:3a:bc:b4:9a:4e:1c:48:93:e6:80:ce:ef:
+    a2:02:1f:94:f1:36:5b:5b:86:63:9a:b3:a2:19:d3:
+    14:b8:99:43:a0:6a:72:1f
+coefficient:
+    00:91:8d:fa:90:8d:17:a5:61:5b:54:ee:3e:81:0f:
+    d0:43:6c:27:e6:8a:9c:1a:44:d3:f4:0a:e0:06:39:
+    5b:52:f9:49:c9:b9:a2:21:b1:71:50:40:61:01:b8:
+    e9:df:16:28:c8:bd:be:d8:71:74:4b:e2:99:51:60:
+    f3:2f:0e:a6:11:34:e6:ee:23:a0:3e:d7:13:6d:af:
+    4d:34:9f:16:bf:1d:47:f3:29:57:88:f5:3b:27:f4:
+    02:8c:5a:75:d2:f1:97:1f:4a:db:15:7f:7a:03:15:
+    f7:d7:61:1a:82:69:67:ae:86:93:26:83:d4:f0:75:
+    7a:00:bb:07:e9:13:91:82:9b
+```
+
+. To convert from DER encoded public certificate (`cert.der`) to PEM encoded (`cert.pem`):
+  * If the DER file contains both the public certificate and private key, remove the private key with this command:
+  ** `perl -pe 'BEGIN{undef $/;} s|-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----|Removed private key|gs' cert.der > cert.pem`
+  * If the DER file only contains the public certificate, use this command:
+  ** `openssl x509 -inform der -in cert.der -out cert.pem`
+. To convert from a PKCS12 keystore (`keystore.p12`) containing both the public certificate and private key into PEM encoded files (`$PASSWORD` is the keystore password):
+  * `openssl pkcs12 -in keystore.p12 -out cert.der -nodes -password "pass:$PASSWORD"`
+  * `openssl pkcs12 -in keystore.p12 -nodes -nocerts -out key.key -password "pass:$PASSWORD"`
+  * Follow the steps above to convert `cert.der` to `cert.pem`
+. To convert from a Java Keystore (`keystore.jks`) containing private key into PEM encoded files (`$P12_PASSWORD` is the PKCS12 keystore password, `$JKS_PASSWORD` is the Java keystore password you want to set, and `$ALIAS` can be any value -- the NiFi default is `nifi-key`):
+  * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
+  * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
+
 
 [[user_authentication]]
 == User Authentication

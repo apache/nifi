@@ -65,6 +65,7 @@
                         <imagesdir>./images</imagesdir>
                         <icons>font</icons>
                         <toc>true</toc>
+                        <toclevels>3</toclevels>
                         <docVersion>${project.version}</docVersion>
                         <sectanchors>true</sectanchors>
                         <idprefix />
