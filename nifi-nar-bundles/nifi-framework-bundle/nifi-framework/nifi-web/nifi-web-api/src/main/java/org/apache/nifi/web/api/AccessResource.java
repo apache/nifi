@@ -29,7 +29,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import java.io.IOException;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
@@ -59,9 +58,7 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
@@ -83,7 +80,6 @@ import org.apache.nifi.web.security.token.OtpAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -808,33 +804,9 @@ public class AccessResource extends ApplicationResource {
     private void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
         httpServletRequest.setAttribute("title", OIDC_ERROR_TITLE);
         httpServletRequest.setAttribute("messages", message);
-        // Capture the provided context path headers and sanitize them before using in the response
-        String contextPath = WebUtils.sanitizeContextPath(httpServletRequest, getWhitelistedContextPaths(), "message-page.jsp");
-        httpServletRequest.setAttribute("contextPath", contextPath);
 
         final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
         uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
-    }
-
-    /**
-     * Returns the whitelisted context paths for the resource. If the field hasn't been set, it will
-     * retrieve {@link NiFiProperties#getWhitelistedContextPaths()} from {@code nifi.properties} and
-     * store it locally.
-     *
-     * @return the whitelisted context paths
-     */
-    private String getWhitelistedContextPaths() {
-        if (!contextPathsSet) {
-            try {
-                NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap();
-                whitelistedContextPaths = niFiProperties.getWhitelistedContextPaths();
-            } catch (IOException e) {
-                // If an exception is thrown, log it, and then an empty string will be returned and the flag will be set to true anyway
-                logger.error("Encountered an error loading whitelisted context paths from properties: ", e);
-            }
-            contextPathsSet = true;
-        }
-        return whitelistedContextPaths;
     }
 
     // setters

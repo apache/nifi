@@ -154,6 +154,11 @@
     <filter-mapping>
         <filter-name>SanitizeContextPathFilter</filter-name>
         <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+        <dispatcher>ASYNC</dispatcher>
     </filter-mapping>
 
     <welcome-file-list>
