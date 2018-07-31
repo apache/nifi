@@ -461,7 +461,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         if (StringUtils.isEmpty(sqlQuery)) {
             query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
         } else {
-            query = getWrappedQuery(sqlQuery, tableName);
+            query = getWrappedQuery(dbAdapter, sqlQuery, tableName);
         }
 
         List<String> whereClauses = new ArrayList<>();
