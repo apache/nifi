@@ -2697,6 +2697,35 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         allProcessors.remove(identifier);
     }
 
+    public Connectable findLocalConnectable(final String id) {
+        final ProcessorNode procNode = getProcessorNode(id);
+        if (procNode != null) {
+            return procNode;
+        }
+
+        final Port inPort = getInputPort(id);
+        if (inPort != null) {
+            return inPort;
+        }
+
+        final Port outPort = getOutputPort(id);
+        if (outPort != null) {
+            return outPort;
+        }
+
+        final Funnel funnel = getFunnel(id);
+        if (funnel != null) {
+            return funnel;
+        }
+
+        final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(id);
+        if (remoteGroupPort != null) {
+            return remoteGroupPort;
+        }
+
+        return null;
+    }
+
     public ProcessorNode getProcessorNode(final String id) {
         return allProcessors.get(id);
     }
@@ -4933,7 +4962,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
+            final Connectable connectable = findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);
@@ -4980,7 +5009,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new ProvenanceDataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
+            final Connectable connectable = findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);

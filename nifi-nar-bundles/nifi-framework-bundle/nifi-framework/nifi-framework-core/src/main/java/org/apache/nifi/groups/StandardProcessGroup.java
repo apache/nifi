@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -144,6 +119,31 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -1696,80 +1696,34 @@ public final class StandardProcessGroup implements ProcessGroup {
         return allNodes;
     }
 
-    @Override
-    public Connectable findLocalConnectable(final String identifier) {
-        return findLocalConnectable(identifier, this);
-    }
-
-    private static Connectable findLocalConnectable(final String identifier, final ProcessGroup group) {
-        final ProcessorNode procNode = group.getProcessor(identifier);
-        if (procNode != null) {
-            return procNode;
-        }
-
-        final Port inPort = group.getInputPort(identifier);
-        if (inPort != null) {
-            return inPort;
-        }
-
-        final Port outPort = group.getOutputPort(identifier);
-        if (outPort != null) {
-            return outPort;
-        }
-
-        final Funnel funnel = group.getFunnel(identifier);
-        if (funnel != null) {
-            return funnel;
-        }
-
-        for (final RemoteProcessGroup remoteProcessGroup : group.getRemoteProcessGroups()) {
-            final RemoteGroupPort remoteInputPort = remoteProcessGroup.getInputPort(identifier);
-            if (remoteInputPort != null) {
-                return remoteInputPort;
-            }
-
-            final RemoteGroupPort remoteOutputPort = remoteProcessGroup.getOutputPort(identifier);
-            if (remoteOutputPort != null) {
-                return remoteOutputPort;
-            }
-        }
-
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final Connectable childGroupConnectable = findLocalConnectable(identifier, childGroup);
-            if (childGroupConnectable != null) {
-                return childGroupConnectable;
-            }
-        }
-
-        return null;
-    }
 
     @Override
     public RemoteGroupPort findRemoteGroupPort(final String identifier) {
-        return findRemoteGroupPort(identifier, this);
-    }
+        readLock.lock();
+        try {
+            for (final RemoteProcessGroup remoteGroup : remoteGroups.values()) {
+                final RemoteGroupPort remoteInPort = remoteGroup.getInputPort(identifier);
+                if (remoteInPort != null) {
+                    return remoteInPort;
+                }
 
-    private static RemoteGroupPort findRemoteGroupPort(final String identifier, final ProcessGroup group) {
-        for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
-            final RemoteGroupPort remoteInPort = remoteGroup.getInputPort(identifier);
-            if (remoteInPort != null) {
-                return remoteInPort;
+                final RemoteGroupPort remoteOutPort = remoteGroup.getOutputPort(identifier);
+                if (remoteOutPort != null) {
+                    return remoteOutPort;
+                }
             }
 
-            final RemoteGroupPort remoteOutPort = remoteGroup.getOutputPort(identifier);
-            if (remoteOutPort != null) {
-                return remoteOutPort;
+            for (final ProcessGroup childGroup : processGroups.values()) {
+                final RemoteGroupPort childGroupRemoteGroupPort = childGroup.findRemoteGroupPort(identifier);
+                if (childGroupRemoteGroupPort != null) {
+                    return childGroupRemoteGroupPort;
+                }
             }
+
+            return null;
+        } finally {
+            readLock.unlock();
         }
-
-        for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final RemoteGroupPort childGroupRemoteGroupPort = findRemoteGroupPort(identifier, childGroup);
-            if (childGroupRemoteGroupPort != null) {
-                return childGroupRemoteGroupPort;
-            }
-        }
-
-        return null;
     }
 
     @Override

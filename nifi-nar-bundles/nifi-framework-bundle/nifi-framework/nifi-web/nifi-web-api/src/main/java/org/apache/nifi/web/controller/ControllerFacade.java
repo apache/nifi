@@ -166,6 +166,10 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
+    public Connectable findLocalConnectable(String componentId) {
+        return flowController.findLocalConnectable(componentId);
+    }
+
     public ControllerServiceProvider getControllerServiceProvider() {
         return flowController;
     }
@@ -1527,7 +1531,7 @@ public class ControllerFacade implements Authorizable {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
-        final Connectable connectable = root.findLocalConnectable(dto.getComponentId());
+        final Connectable connectable = findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
             dto.setGroupId(connectable.getProcessGroup().getIdentifier());
 
