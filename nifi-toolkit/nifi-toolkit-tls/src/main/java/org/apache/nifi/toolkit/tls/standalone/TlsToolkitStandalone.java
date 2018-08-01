@@ -43,6 +43,7 @@ import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigW
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -66,6 +67,7 @@ public class TlsToolkitStandalone {
     }
 
     public void createNifiKeystoresAndTrustStores(StandaloneConfig standaloneConfig) throws GeneralSecurityException, IOException {
+        // TODO: This 200 line method should be refactored, as it is difficult to test the various validations separately from the filesystem interaction and generation logic
         File baseDir = standaloneConfig.getBaseDir();
         if (!baseDir.exists() && !baseDir.mkdirs()) {
             throw new IOException(baseDir + " doesn't exist and unable to create it.");
@@ -100,9 +102,23 @@ public class TlsToolkitStandalone {
                 caKeyPair = TlsHelper.parseKeyPair(pemEncodedKeyPair);
             }
 
-            // TODO: Load additional signing certificates from config
             // TODO: Do same in client/server
+            // Load additional signing certificates from config
             List<X509Certificate> signingCertificates = new ArrayList<>();
+
+            // Read the provided additional CA certificate if it exists and extract the certificate
+            if (!StringUtils.isBlank(standaloneConfig.getAdditionalCACertificate())) {
+                X509Certificate signingCertificate;
+                final File additionalCACertFile = new File(standaloneConfig.getAdditionalCACertificate());
+                if (!additionalCACertFile.exists()) {
+                    throw new IOException("The additional CA certificate does not exist at " + additionalCACertFile.getPath());
+                }
+                try (FileReader pemEncodedCACertificate = new FileReader(additionalCACertFile)) {
+                    signingCertificate = TlsHelper.parseCertificate(pemEncodedCACertificate);
+                }
+                signingCertificates.add(signingCertificate);
+            }
+
             // Support self-signed CA certificates
             signingCertificates.add(certificate);
 
