@@ -187,6 +187,7 @@ Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which
 You can use the following command line options with the `tls-toolkit` in standalone mode:
 
 * `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
+* `--additionalCACertificate <arg>`             Path to additional CA certificate (used to sign toolkit CA certificate) in PEM format if necessary
 * `-B`,`--clientCertPassword <arg>`             Password for client certificate. Must either be one value or one for each client DN (auto-generate if not specified)
 * `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
 * `-C`,`--clientCertDn <arg>`                   Generate client certificate suitable for use in browser with specified DN (Can be specified multiple times)
@@ -230,7 +231,6 @@ Create 2 sets of keystore, truststore, nifi.properties for 10 NiFi hostnames in 
 ----
 bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
 ----
-
 
 ==== Client/Server
 Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
@@ -279,7 +279,7 @@ You can use the following command line options with the `tls-toolkit` in client 
 
 After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
 
-For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
+For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`. 
 
 ==== Using An Existing Intermediate Certificate Authority (CA)
 
@@ -288,7 +288,7 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
 . Generate or obtain the signed intermediate CA keys in the following format (see additional commands below):
   * Public certificate in PEM format: `nifi-cert.pem`
   * Private key in PEM format: `nifi-key.key`
-. Place the files in the *toolkit directory*. This is the directory where the tool binary (usually called via the invoking script `tls-toolkit.sh` or `tls-toolkit.bat`) is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*. 
+. Place the files in the *toolkit working directory*. This is the directory where the tool is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*. 
   * For example, given the following scenario, the toolkit command can be run from its location as long as the output directory `-o` is `../hardcoded/`, and the existing `nifi-cert.pem` and `nifi-key.key` will be used.  
   ** e.g. `$ ./toolkit/bin/tls-toolkit.sh standalone -o ./hardcoded/ -n 'node4.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` will result in a new directory at `./hardcoded/node4.nifi.apache.org` with a keystore and truststore containing a certificate signed by `./hardcoded/nifi-key.key`  
   * If the `-o` argument is not provided, the default working directory (`.`) must contain `nifi-cert.pem` and `nifi-key.key`
@@ -551,7 +551,59 @@ coefficient:
 . To convert from a Java Keystore (`keystore.jks`) containing private key into PEM encoded files (`$P12_PASSWORD` is the PKCS12 keystore password, `$JKS_PASSWORD` is the Java keystore password you want to set, and `$ALIAS` can be any value -- the NiFi default is `nifi-key`):
   * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
   * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
+. To convert from PKCS #8 PEM format to PKCS #1 PEM format:
+  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`: 
+  ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
 
+===== Signing with Externally-signed CA Certificates
+
+To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.). 
+
+To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional-commands>> above):
+
+* `nifi-cert.pem` -- the public certificate of the *intermediate CA* in PEM format
+* `nifi-key.key` -- the Base64-encoded private key of the *intermediate CA* in PKCS #1 PEM format
+
+If the *intermediate CA* was the *root CA*, it would be *self-signed* -- the signature over the certificate would be issued from the same key. In that case (the same as a toolkit-generated CA), no additional arguments are necessary. However, because the *intermediate CA* is signed by the *root CA*, the public certificate of the *root CA* needs to be provided as well to validate the signature. The `--additionalCACertificate` parameter is used to specify the path to the signing public certificate. The value should be the absolute path to the *root CA* public certificate. 
+
+Example:
+
+```
+# Generate cert signed by intermediate CA (which is signed by root CA) -- WILL FAIL
+
+$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
+-P passwordpassword \
+-S passwordpassword \
+-o /opt/certs/externalCA \
+-O
+
+2018/08/02 18:48:11 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
+2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=Certificate Authority
+2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
+2018/08/02 18:48:12 WARN [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority not signed by CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority [certificate does not verify with supplied key]
+Error generating TLS configuration. (The signing certificate was not signed by any known certificates)
+
+# Provide additional CA certificate path for signature verification of intermediate CA
+
+$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
+-P passwordpassword \
+-S passwordpassword \
+-o /opt/certs/externalCA \
+--additionalCACertificate /opt/certs/externalCA/root.pem \
+-O
+
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=ca.large.org, OU=Certificate Authority
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.large.org, OU=Certificate Authority
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate /opt/certs/externalCA/nifi-cert.pem and key /opt/certs/externalCA/nifi-key.key
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to /opt/certs/externalCA/node1.nifi.apache.org
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for node1.nifi.apache.org 1 in /opt/certs/externalCA/node1.nifi.apache.org
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
+```
 
 [[user_authentication]]
 == User Authentication
