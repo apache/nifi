@@ -43,6 +43,7 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -104,13 +105,18 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public void verifyScheduleComponents(final String groupId, final ScheduledState state,final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
+        final Set<ProcessGroup> validGroups = new HashSet<>();
+        validGroups.add(group);
+        validGroups.addAll(group.findAllProcessGroups());
+
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findLocalConnectable(componentId);
+            final Connectable connectable = findConnectable(componentId, groupId, validGroups);
             if (connectable == null) {
-                final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
-                if (remotePort == null) {
-                    throw new ResourceNotFoundException("Unable to find component with id " + componentId);
-                }
+                throw new ResourceNotFoundException("Unable to find component with id " + componentId);
+            }
+
+            if (connectable  instanceof RemoteGroupPort) {
+                final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
 
                 if (ScheduledState.RUNNING.equals(state)) {
                     remotePort.verifyCanStart();
@@ -134,8 +140,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public void verifyEnableComponents(String groupId, ScheduledState state, Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
+        final Set<ProcessGroup> validGroups = new HashSet<>();
+        validGroups.add(group);
+        validGroups.addAll(group.findAllProcessGroups());
+
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findLocalConnectable(componentId);
+            final Connectable connectable = findConnectable(componentId, groupId, validGroups);
             if (ScheduledState.STOPPED.equals(state)) {
                 connectable.verifyCanEnable();
             } else if (ScheduledState.DISABLED.equals(state)) {
@@ -159,14 +169,37 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
     }
 
+    private Connectable findConnectable(final String componentId, final String groupId, final Set<ProcessGroup> validProcessGroups) {
+        // Get the component with the given ID and ensure that it belongs to the group that we are looking for.
+        // We do this, rather than calling ProcessGroup.findLocalConnectable because for any component that is buried several
+        // layers of Process Groups deep, that method becomes quite a bit more expensive than this method, due to all of the
+        // Read Locks that must be obtained while recursing through the Process Group's descendant groups.
+        final Connectable connectable = flowController.findLocalConnectable(componentId);
+        if (connectable == null) {
+            throw new ResourceNotFoundException("Could not find Component with ID " + componentId);
+        }
+
+        final ProcessGroup connectableGroup = connectable.getProcessGroup();
+        if (!validProcessGroups.contains(connectableGroup)) {
+            throw new ResourceNotFoundException("Component with ID " + componentId + " does not belong to Process Group " + groupId + " or any of its descendent groups");
+        }
+
+        return connectable;
+    }
+
     @Override
     public Future<Void> scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
 
+        final Set<ProcessGroup> validGroups = new HashSet<>();
+        validGroups.add(group);
+        validGroups.addAll(group.findAllProcessGroups());
+
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findLocalConnectable(componentId);
+            final Connectable connectable = findConnectable(componentId, groupId, validGroups);
+
             if (ScheduledState.RUNNING.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
@@ -181,7 +214,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         break;
                     case REMOTE_INPUT_PORT:
                     case REMOTE_OUTPUT_PORT:
-                        final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
+                        final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
                         remotePort.getRemoteProcessGroup().startTransmitting(remotePort);
                         break;
                 }
@@ -199,7 +232,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         break;
                     case REMOTE_INPUT_PORT:
                     case REMOTE_OUTPUT_PORT:
-                        final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
+                        final RemoteGroupPort remotePort = (RemoteGroupPort) connectable;
                         remotePort.getRemoteProcessGroup().stopTransmitting(remotePort);
                         break;
                 }
@@ -213,8 +246,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public void enableComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
+        final Set<ProcessGroup> validGroups = new HashSet<>();
+        validGroups.add(group);
+        validGroups.addAll(group.findAllProcessGroups());
+
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findLocalConnectable(componentId);
+            final Connectable connectable = findConnectable(componentId, groupId, validGroups);
+
             if (ScheduledState.STOPPED.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
