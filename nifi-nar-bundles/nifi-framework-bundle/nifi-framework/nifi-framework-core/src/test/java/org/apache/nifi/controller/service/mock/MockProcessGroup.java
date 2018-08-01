@@ -528,11 +528,6 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Connectable findLocalConnectable(final String identifier) {
-        return null;
-    }
-
-    @Override
     public RemoteGroupPort findRemoteGroupPort(String identifier) {
         return null;
     }
