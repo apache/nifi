@@ -395,7 +395,16 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final Set<FileStatus> statusSet = new HashSet<>();
 
         getLogger().debug("Fetching listing for {}", new Object[] {path});
-        final FileStatus[] statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path, filter));
+        final FileStatus[] statuses;
+        if (recursive) {
+            // For a proper recursive listing, due to the filter given to listStatus applying to both directory and
+            // file names, the filter can not be used when calling listStatus. Filtering will have to be performed
+            // client-side after the FileStatus objects have been retrieved.
+            statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path));
+        } else {
+            // The listing is not recursive, the filter can be used by listStatus directly
+            statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path, filter));
+        }
 
         for ( final FileStatus status : statuses ) {
             if ( status.isDirectory() ) {
@@ -407,7 +416,18 @@ public class ListHDFS extends AbstractHadoopProcessor {
                     }
                 }
             } else {
-                statusSet.add(status);
+                // this FileStatus represents a file
+                if (recursive) {
+                    // getStatuses called with recursive = true, the filter was not applied when calling listStatus
+                    // need to apply the given filter client-side
+                    if (filter.accept(status.getPath())) {
+                        statusSet.add(status);
+                    }
+                } else {
+                    // getStatuses called with recursive = false, the filter was applied by listStatus
+                    // this FileStatus can be added to the results
+                    statusSet.add(status);
+                }
             }
         }
 
