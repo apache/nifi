@@ -19,17 +19,25 @@ package org.apache.nifi.toolkit.admin.client
 import org.apache.commons.lang3.StringUtils
 import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.apache.nifi.util.NiFiProperties
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.ClientBuilder
-import java.security.*
+import java.security.KeyManagementException
+import java.security.KeyStore
+import java.security.KeyStoreException
+import java.security.NoSuchAlgorithmException
+import java.security.SecureRandom
+import java.security.UnrecoverableKeyException
 import java.security.cert.CertificateException
 
 class NiFiClientFactory implements ClientFactory{
 
+    private static final Logger logger = LoggerFactory.getLogger(NiFiClientFactory.class)
     static enum NiFiAuthType{ NONE, SSL }
 
     public Client getClient(NiFiProperties niFiProperties, String nifiInstallDir) throws Exception {
@@ -103,4 +111,7 @@ class NiFiClientFactory implements ClientFactory{
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
         return sslContext;
     }
+
+
+
 }
