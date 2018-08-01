@@ -30,15 +30,14 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -72,6 +71,7 @@ public class TlsHelper {
     public static final String JCE_URL = "http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html";
     public static final String ILLEGAL_KEY_SIZE = "illegal key size";
     private static boolean isUnlimitedStrengthCryptographyEnabled;
+    private static boolean isVerbose = true;
 
     // Evaluate an unlimited strength algorithm to determine if we support the capability we have on the system
     static {
@@ -249,6 +249,44 @@ public class TlsHelper {
      */
     public static final String escapeFilename(String filename) {
         return filename.replaceAll("[^\\w\\.\\-\\=]+", "_");
+    }
+
+    public static boolean verifyCertificateSignature(X509Certificate certificate, List<X509Certificate> signingCertificates) throws CertificateException, SignatureException {
+        String certificateDisplayInfo = getCertificateDisplayInfo(certificate);
+        if (isVerbose()) {
+            logger.info("Verifying the certificate signature for " + certificateDisplayInfo);
+        }
+        boolean signatureMatches = false;
+        for (X509Certificate signingCert : signingCertificates) {
+            final String signingCertDisplayInfo = getCertificateDisplayInfo(signingCert);
+            try {
+                if (isVerbose()) {
+                    logger.info("Attempting to verify certificate " + certificateDisplayInfo + " signature with " + signingCertDisplayInfo);
+                }
+                PublicKey pub = signingCert.getPublicKey();
+                certificate.verify(pub);
+                if (isVerbose()) {
+                    logger.info("Certificate was signed by " + signingCertDisplayInfo);
+                }
+                signatureMatches = true;
+                break;
+            } catch (Exception e) {
+                // Expected if the signature does not match
+                if (isVerbose()) {
+                    logger.warn("Certificate " + certificateDisplayInfo + " not signed by " + signingCertDisplayInfo + " [" + e.getLocalizedMessage() + "]");
+                }
+            }
+        }
+        return signatureMatches;
+    }
+
+    private static String getCertificateDisplayInfo(X509Certificate certificate) {
+        return certificate.getSubjectX500Principal().getName();
+    }
+
+    private static boolean isVerbose() {
+        // TODO: When verbose mode is enabled via command-line flag, this will read the variable
+        return isVerbose;
     }
 
 }

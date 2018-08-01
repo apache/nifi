@@ -29,7 +29,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -123,7 +122,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         try {
             new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
         } catch (Exception e) {
-            tlsToolkitStandaloneCommandLine.printUsage("Error creating generating tls configuration. (" + e.getMessage() + ")");
+            tlsToolkitStandaloneCommandLine.printUsage("Error generating TLS configuration. (" + e.getMessage() + ")");
             System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
         }
         System.exit(ExitCode.SUCCESS.ordinal());

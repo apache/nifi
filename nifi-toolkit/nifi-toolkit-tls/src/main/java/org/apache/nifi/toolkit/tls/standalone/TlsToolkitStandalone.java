@@ -17,9 +17,23 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.SignatureException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
@@ -34,19 +48,6 @@ import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.List;
 
 public class TlsToolkitStandalone {
     public static final String NIFI_KEY = "nifi-key";
@@ -99,7 +100,18 @@ public class TlsToolkitStandalone {
                 caKeyPair = TlsHelper.parseKeyPair(pemEncodedKeyPair);
             }
 
-            certificate.verify(caKeyPair.getPublic());
+            // TODO: Load additional signing certificates from config
+            // TODO: Do same in client/server
+            List<X509Certificate> signingCertificates = new ArrayList<>();
+            // Support self-signed CA certificates
+            signingCertificates.add(certificate);
+
+            boolean signatureValid = TlsHelper.verifyCertificateSignature(certificate, signingCertificates);
+
+            if (!signatureValid) {
+                throw new SignatureException("The signing certificate was not signed by any known certificates");
+            }
+
             if (!caKeyPair.getPublic().equals(certificate.getPublicKey())) {
                 throw new IOException("Expected " + nifiKey + " to correspond to CA certificate at " + nifiCert);
             }
