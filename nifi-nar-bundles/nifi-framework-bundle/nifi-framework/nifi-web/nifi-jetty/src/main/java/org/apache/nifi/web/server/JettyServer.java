@@ -384,7 +384,7 @@ public class JettyServer implements NiFiServer {
         // consider each nar working directory
         bundles.forEach(bundle -> {
             final BundleDetails details = bundle.getBundleDetails();
-            final File narDependencies = new File(details.getWorkingDirectory(), "META-INF/bundled-dependencies");
+            final File narDependencies = new File(details.getWorkingDirectory(), "NAR-INF/bundled-dependencies");
             if (narDependencies.isDirectory()) {
                 // list the wars from this nar
                 final File[] narDependencyDirs = narDependencies.listFiles(WAR_FILTER);
