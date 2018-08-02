@@ -20,6 +20,7 @@ import java.util.List;
 
 public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
 
+    private final IndexableMetric indexableMetric;
     private final String field;
     private final String label;
     private final String description;
@@ -27,18 +28,25 @@ public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
     private final ValueMapper<T> valueMapper;
     private final ValueReducer<StatusSnapshot, Long> reducer;
 
-    public StandardMetricDescriptor(final String field, final String label, final String description, final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
-        this(field, label, description, formatter, valueFunction, null);
+    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
+                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
+        this(indexableMetric, field, label, description, formatter, valueFunction, null);
     }
 
-    public StandardMetricDescriptor(final String field, final String label, final String description,
-            final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
+    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
+                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
+        this.indexableMetric = indexableMetric;
         this.field = field;
         this.label = label;
         this.description = description;
         this.formatter = formatter;
         this.valueMapper = valueFunction;
         this.reducer = reducer == null ? new SumReducer() : reducer;
+    }
+
+    @Override
+    public int getMetricIdentifier() {
+        return indexableMetric.getIndex();
     }
 
     @Override
@@ -100,7 +108,7 @@ public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
         public Long reduce(final List<StatusSnapshot> values) {
             long sum = 0;
             for (final StatusSnapshot snapshot : values) {
-                sum += snapshot.getStatusMetrics().get(StandardMetricDescriptor.this);
+                sum += snapshot.getStatusMetric(StandardMetricDescriptor.this);
             }
 
             return sum;

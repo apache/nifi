@@ -41,6 +41,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -156,7 +157,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
                         return counters.getOrDefault(descriptorDto.getField(), 0L);
                     };
 
-                    final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(descriptorDto.getField(),
+                    final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(() -> 0, descriptorDto.getField(),
                         descriptorDto.getLabel(), descriptorDto.getDescription(), Formatter.COUNT, valueMapper);
 
                     metricDescriptors.put(fieldName, metricDescriptor);
@@ -197,11 +198,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
                 final StatusSnapshot snapshot = createSnapshot(snapshotDto, metricDescriptors);
                 final Date normalizedDate = normalizeStatusSnapshotDate(snapshot.getTimestamp(), componentStatusSnapshotMillis);
 
-                Map<String, StatusSnapshot> nodeToSnapshotMap = dateToNodeSnapshots.get(normalizedDate);
-                if (nodeToSnapshotMap == null) {
-                    nodeToSnapshotMap = new HashMap<>();
-                    dateToNodeSnapshots.put(normalizedDate, nodeToSnapshotMap);
-                }
+                Map<String, StatusSnapshot> nodeToSnapshotMap = dateToNodeSnapshots.computeIfAbsent(normalizedDate, k -> new HashMap<>());
                 nodeToSnapshotMap.put(nodeStatusSnapshot.getNodeId(), snapshot);
             }
         }
@@ -220,7 +217,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     }
 
     private StatusSnapshot createSnapshot(final StatusSnapshotDTO snapshotDto, final Map<String, MetricDescriptor<?>> metricDescriptors) {
-        final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
+        final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(new HashSet<>(metricDescriptors.values()));
         snapshot.setTimestamp(snapshotDto.getTimestamp());
 
         // Default all metrics to 0 so that if a counter has not yet been registered, it will have a value of 0 instead

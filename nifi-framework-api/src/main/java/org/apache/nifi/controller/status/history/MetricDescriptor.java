@@ -23,12 +23,13 @@ package org.apache.nifi.controller.status.history;
  */
 public interface MetricDescriptor<T> {
 
-    public enum Formatter {
-
+    enum Formatter {
         COUNT,
         DURATION,
         DATA_SIZE
     };
+
+    int getMetricIdentifier();
 
     /**
      * Specifies how the values should be formatted

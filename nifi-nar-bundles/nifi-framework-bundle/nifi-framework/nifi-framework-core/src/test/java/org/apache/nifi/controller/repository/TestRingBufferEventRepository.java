@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
-import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.junit.Test;
+import org.testng.Assert;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-import org.testng.Assert;
 
 public class TestRingBufferEventRepository {
 
@@ -34,15 +32,15 @@ public class TestRingBufferEventRepository {
         final RingBufferEventRepository repo = new RingBufferEventRepository(5);
         long insertNanos = 0L;
         for (int i = 0; i < 1000000; i++) {
-            final FlowFileEvent event = generateEvent("ABC");
+            final FlowFileEvent event = generateEvent();
 
             final long insertStart = System.nanoTime();
-            repo.updateRepository(event);
+            repo.updateRepository(event, "ABC");
             insertNanos += System.nanoTime() - insertStart;
         }
 
         final long queryStart = System.nanoTime();
-        final StandardRepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        final StandardRepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
         final long queryNanos = System.nanoTime() - queryStart;
         System.out.println(report);
         System.out.println("Insert: " + TimeUnit.MILLISECONDS.convert(insertNanos, TimeUnit.NANOSECONDS));
@@ -55,36 +53,31 @@ public class TestRingBufferEventRepository {
         final FlowFileEventRepository repo = new RingBufferEventRepository(5);
         String id1 = "component1";
         String id2 = "component2";
-        repo.updateRepository(generateEvent(id1));
-        repo.updateRepository(generateEvent(id2));
-        RepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        repo.updateRepository(generateEvent(), id1);
+        repo.updateRepository(generateEvent(), id2);
+        RepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
         FlowFileEvent entry = report.getReportEntry(id1);
         Assert.assertNotNull(entry);
         entry = report.getReportEntry(id2);
         Assert.assertNotNull(entry);
 
         repo.purgeTransferEvents(id1);
-        report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        report = repo.reportTransferEvents(System.currentTimeMillis());
         entry = report.getReportEntry(id1);
         Assert.assertNull(entry);
         entry = report.getReportEntry(id2);
         Assert.assertNotNull(entry);
 
         repo.purgeTransferEvents(id2);
-        report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        report = repo.reportTransferEvents(System.currentTimeMillis());
         entry = report.getReportEntry(id2);
         Assert.assertNull(entry);
 
         repo.close();
     }
 
-    private FlowFileEvent generateEvent(final String id) {
+    private FlowFileEvent generateEvent() {
         return new FlowFileEvent() {
-            @Override
-            public String getComponentIdentifier() {
-                return id;
-            }
-
             @Override
             public int getFlowFilesIn() {
                 return 1;
