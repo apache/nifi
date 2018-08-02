@@ -528,7 +528,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         try {
             // update event repository
             final Connectable connectable = context.getConnectable();
-            final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+            final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
             flowFileEvent.setBytesRead(checkpoint.bytesRead);
             flowFileEvent.setBytesWritten(checkpoint.bytesWritten);
             flowFileEvent.setContentSizeIn(checkpoint.contentSizeIn);
@@ -553,10 +553,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
             flowFileEvent.setCounters(counters);
 
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
 
-            for (final FlowFileEvent connectionEvent : checkpoint.connectionCounts.values()) {
-                context.getFlowFileEventRepository().updateRepository(connectionEvent);
+            for (final Map.Entry<String, StandardFlowFileEvent> entry : checkpoint.connectionCounts.entrySet()) {
+                context.getFlowFileEventRepository().updateRepository(entry.getValue(), entry.getKey());
             }
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
@@ -1052,14 +1052,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         final Connectable connectable = context.getConnectable();
-        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
         flowFileEvent.setBytesRead(bytesRead);
         flowFileEvent.setBytesWritten(bytesWritten);
         flowFileEvent.setCounters(immediateCounters);
 
         // update event repository
         try {
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
         } catch (final Exception e) {
             LOG.error("Failed to update FlowFileEvent Repository due to " + e);
             if (LOG.isDebugEnabled()) {
@@ -1458,7 +1458,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void incrementConnectionInputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent(id));
+        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
         connectionEvent.setContentSizeIn(connectionEvent.getContentSizeIn() + bytes);
         connectionEvent.setFlowFilesIn(connectionEvent.getFlowFilesIn() + flowFileCount);
     }
@@ -1468,7 +1468,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void incrementConnectionOutputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent(id));
+        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
         connectionEvent.setContentSizeOut(connectionEvent.getContentSizeOut() + bytes);
         connectionEvent.setFlowFilesOut(connectionEvent.getFlowFilesOut() + flowFileCount);
     }

@@ -25,15 +25,16 @@ public interface FlowFileEventRepository extends Closeable {
      * Updates the repository to include a new FlowFile processing event
      *
      * @param event new event
+     * @param  componentIdentifier the ID of the component that the event belongs to
      * @throws java.io.IOException ioe
      */
-    void updateRepository(FlowFileEvent event) throws IOException;
+    void updateRepository(FlowFileEvent event, String componentIdentifier) throws IOException;
 
     /**
-     * @param sinceEpochMillis age of report
+     * @param now the current time
      * @return a report of processing activity since the given time
      */
-    RepositoryStatusReport reportTransferEvents(long sinceEpochMillis);
+    RepositoryStatusReport reportTransferEvents(long now);
 
     /**
      * Causes any flow file events of the given entry age in epoch milliseconds

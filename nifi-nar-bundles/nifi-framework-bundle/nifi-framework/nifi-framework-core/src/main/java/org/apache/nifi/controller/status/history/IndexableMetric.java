@@ -14,15 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
+package org.apache.nifi.controller.status.history;
 
-import java.util.Map;
-
-public interface RepositoryStatusReport {
-
-    void addReportEntry(FlowFileEvent entry, String componentId);
-
-    Map<String, FlowFileEvent> getReportEntries();
-
-    FlowFileEvent getReportEntry(String componentId);
+public interface IndexableMetric {
+    int getIndex();
 }

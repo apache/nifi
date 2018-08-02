@@ -20,8 +20,6 @@ import java.util.Map;
 
 public interface FlowFileEvent {
 
-    String getComponentIdentifier();
-
     int getFlowFilesIn();
 
     int getFlowFilesOut();

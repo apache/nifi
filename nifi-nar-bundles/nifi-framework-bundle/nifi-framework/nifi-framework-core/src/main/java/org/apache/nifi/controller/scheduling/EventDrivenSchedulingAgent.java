@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -53,6 +46,13 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
@@ -255,10 +255,10 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                             }
                             try {
                                 final long processingNanos = System.nanoTime() - startNanos;
-                                final StandardFlowFileEvent procEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+                                final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
                                 procEvent.setProcessingNanos(processingNanos);
                                 procEvent.setInvocations(invocationCount);
-                                context.getFlowFileEventRepository().updateRepository(procEvent);
+                                context.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
                             } catch (final IOException e) {
                                 logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable, e.toString());
                                 logger.error("", e);

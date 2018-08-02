@@ -957,7 +957,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public Collection<ProcessorNode> getProcessors() {
         readLock.lock();
         try {
-            return processors.values();
+            return new HashSet<>(processors.values());
         } finally {
             readLock.unlock();
         }
