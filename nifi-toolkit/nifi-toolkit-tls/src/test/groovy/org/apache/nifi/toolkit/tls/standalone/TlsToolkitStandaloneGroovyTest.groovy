@@ -141,10 +141,8 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
         logger.info("Wrote intermediate CA cert to ${intermediateCertFile.path}")
 
         // Write the private key of the intermediate cert to nifi-key.key
-        File intermediateKeyFile = new File(baseDir, "nifi-key.key")
-        PemWriter pemWriter = new PemWriter(new FileWriter(intermediateKeyFile))
-        pemWriter.writeObject(new JcaMiscPEMGenerator(intermediateKeyPair))
-        pemWriter.close()
+        File intermediateKeyFile = writePrivateKeyToFile(intermediateKeyPair, "${baseDir}/nifi-key.key")
+        logger.info("Wrote intermediate private key to ${intermediateKeyFile.path}")
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -184,10 +182,8 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
         logger.info("Wrote intermediate CA cert to ${intermediateCertFile.path}")
 
         // Write the private key of the intermediate cert to nifi-key.key
-        File intermediateKeyFile = new File(baseDir, "nifi-key.key")
-        PemWriter pemWriter = new PemWriter(new FileWriter(intermediateKeyFile))
-        pemWriter.writeObject(new JcaMiscPEMGenerator(intermediateKeyPair))
-        pemWriter.close()
+        File intermediateKeyFile = writePrivateKeyToFile(intermediateKeyPair, "${baseDir.path}/nifi-key.key")
+        logger.info("Wrote intermediate private key to ${intermediateKeyFile.path}")
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -200,12 +196,20 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(SignatureException) {
-        standalone.createNifiKeystoresAndTrustStores(standaloneConfig)
+            standalone.createNifiKeystoresAndTrustStores(standaloneConfig)
         }
         logger.expected(msg)
 
         // Assert
         assert msg =~ 'The signing certificate was not signed by any known certificates'
+    }
+
+    private static File writePrivateKeyToFile(KeyPair intermediateKeyPair, String destination) {
+        File intermediateKeyFile = new File(destination)
+        PemWriter pemWriter = new PemWriter(new FileWriter(intermediateKeyFile))
+        pemWriter.writeObject(new JcaMiscPEMGenerator(intermediateKeyPair))
+        pemWriter.close()
+        intermediateKeyFile
     }
 
     private File createBaseDirAndPopulateWithCAFiles() {
