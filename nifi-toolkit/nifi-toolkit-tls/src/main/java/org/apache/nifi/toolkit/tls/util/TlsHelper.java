@@ -38,15 +38,21 @@ import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -185,14 +191,37 @@ public class TlsHelper {
     }
 
     public static KeyPair parseKeyPair(Reader pemEncodedKeyPair) throws IOException {
-        return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(parsePem(PEMKeyPair.class, pemEncodedKeyPair));
+        try (PEMParser pemParser = new PEMParser(pemEncodedKeyPair)) {
+            Object parsedObject = pemParser.readObject();
+            if (PrivateKeyInfo.class.isInstance(parsedObject)) {
+
+                ASN1Encodable privateKeyPKCS1ASN1Encodable = ((PrivateKeyInfo)parsedObject).parsePrivateKey();
+
+                org.bouncycastle.asn1.pkcs.RSAPrivateKey keyStruct = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(
+                    privateKeyPKCS1ASN1Encodable
+                );
+
+                RSAPublicKey pubSpec = new RSAPublicKey(
+                    keyStruct.getModulus(), keyStruct.getPublicExponent());
+
+                AlgorithmIdentifier algId = new AlgorithmIdentifier(PKCSObjectIdentifiers.rsaEncryption, DERNull.INSTANCE);
+
+                PEMKeyPair keyPair = new PEMKeyPair(new SubjectPublicKeyInfo(algId, pubSpec), new PrivateKeyInfo(algId, keyStruct));
+                return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(keyPair);
+            } else if (PEMKeyPair.class.isInstance(parsedObject)) {
+                return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair((PEMKeyPair)parsedObject);
+            } else {
+                logger.warn("Expected one of %s or %s but got %s", PrivateKeyInfo.class, PEMKeyPair.class, parsedObject.getClass());
+                throw new IOException("Expected private key in PKCS #1 or PKCS #8 unencrypted format");
+            }
+        }
     }
 
     public static <T> T parsePem(Class<T> clazz, Reader pemReader) throws IOException {
         try (PEMParser pemParser = new PEMParser(pemReader)) {
             Object object = pemParser.readObject();
             if (!clazz.isInstance(object)) {
-                throw new IOException("Expected " + clazz);
+                throw new IOException("Expected " + clazz + " but got " + object.getClass());
             }
             return (T) object;
         }

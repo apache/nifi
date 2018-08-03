@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory
 
 import javax.security.auth.x500.X500Principal
 import java.security.Security
+import java.security.KeyPair
 import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
@@ -118,5 +119,15 @@ class TlsHelperGroovyTest extends GroovyTestCase {
 
         // Assert
         assert !isCertificateSigned
+    }
+
+    @Test
+    void testShouldParsePKCS8PrivateKey() {
+        // Arrange
+        File keyFile = new File("src/test/resources/rootCert-pkcs8.key")
+        FileReader keyReader = new FileReader(keyFile)
+        KeyPair keyPair = TlsHelper.parseKeyPair(keyReader)
+
+        logger.info("Successfully read PKCS 8 unencrypted key from ${keyFile.path}")
     }
 }
