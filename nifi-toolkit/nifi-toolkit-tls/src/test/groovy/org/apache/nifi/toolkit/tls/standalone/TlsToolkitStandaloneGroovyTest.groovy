@@ -262,9 +262,6 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
      */
     private static File writeCertificateToPEMFile(X509Certificate certificate, String destination) {
         File certificateFile = new File(destination)
-//        if (certificateFile.exists() || !certificateFile.canWrite()) {
-//            throw new IOException("Can't write certificate to ${destination}")
-//        }
         PemWriter pemWriter = new PemWriter(new FileWriter(certificateFile))
         pemWriter.writeObject(new JcaMiscPEMGenerator(certificate))
         pemWriter.close()

@@ -99,7 +99,7 @@ public class TlsToolkitStandalone {
                 certificate = TlsHelper.parseCertificate(pemEncodedCertificate);
             }
             try (FileReader pemEncodedKeyPair = new FileReader(nifiKey)) {
-                caKeyPair = TlsHelper.parseKeyPair(pemEncodedKeyPair);
+                caKeyPair = TlsHelper.parseKeyPairFromReader(pemEncodedKeyPair);
             }
 
             // TODO: Do same in client/server
