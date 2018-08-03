@@ -251,7 +251,9 @@ public class TlsHelper {
     }
 
     /**
-     * Returns true if the {@code certificate} is signed by one of the {@code signingCertificates}. The list should include the certificate itself to allow for self-signed certificates. If it does not, a self-signed certificate will return {@code false}.
+     * Returns true if the {@code certificate} is signed by one of the {@code signingCertificates}. The list should
+     * include the certificate itself to allow for self-signed certificates. If it does not, a self-signed certificate
+     * will return {@code false}.
      *
      * @param certificate the certificate containing the signature being verified
      * @param signingCertificates a list of certificates which may have signed the certificate
