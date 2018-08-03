@@ -111,7 +111,7 @@ public class TlsToolkitStandalone {
                 X509Certificate signingCertificate;
                 final File additionalCACertFile = new File(standaloneConfig.getAdditionalCACertificate());
                 if (!additionalCACertFile.exists()) {
-                    throw new IOException("The additional CA certificate does not exist at " + additionalCACertFile.getPath());
+                    throw new IOException("The additional CA certificate does not exist at " + additionalCACertFile.getAbsolutePath());
                 }
                 try (FileReader pemEncodedCACertificate = new FileReader(additionalCACertFile)) {
                     signingCertificate = TlsHelper.parseCertificate(pemEncodedCACertificate);
