@@ -19,6 +19,7 @@ package org.apache.nifi.processors.hive;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.common.util.ShutdownHookManager;
 import org.apache.hive.streaming.ConnectionError;
@@ -81,7 +82,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
@@ -115,12 +115,12 @@ public class PutHive3Streaming extends AbstractProcessor {
     static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
             .name("hive3-stream-metastore-uri")
             .displayName("Hive Metastore URI")
-            .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
-                    + "Hive metastore is 9043.")
-            .required(true)
+            .description("The URI location(s) for the Hive metastore. This is a comma-separated list of Hive metastore URIs; note that this is not the location of the Hive Server. "
+                    + "The default port for the Hive metastore is 9043. If this field is not set, then the 'hive.metastore.uris' property from any provided configuration resources "
+                    + "will be used, and if none are provided, then the default value from a default hive-site.xml will be used (usually thrift://localhost:9083).")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.URI_VALIDATOR)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
+            .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .build();
 
     static final PropertyDescriptor HIVE_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -354,13 +354,26 @@ public class PutHive3Streaming extends AbstractProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final ComponentLog log = getLogger();
-        final String metastoreUri = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
+        String metastoreURIs = null;
+        if (context.getProperty(METASTORE_URI).isSet()) {
+            metastoreURIs = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
+            if (StringUtils.isEmpty(metastoreURIs)) {
+                // Shouldn't be empty at this point, log an error, penalize the flow file, and return
+                log.error("The '" + METASTORE_URI.getDisplayName() + "' property evaluated to null or empty, penalizing flow file, routing to failure");
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+            }
+        }
 
         final String partitionValuesString = context.getProperty(PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
         final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
         final boolean disableStreamingOptimizations = context.getProperty(DISABLE_STREAMING_OPTIMIZATIONS).asBoolean();
 
-        HiveOptions o = new HiveOptions(metastoreUri, dbName, tableName)
+        // Override the Hive Metastore URIs in the config if set by the user
+        if (metastoreURIs != null) {
+           hiveConfig.set(MetastoreConf.ConfVars.THRIFT_URIS.getHiveName(), metastoreURIs);
+        }
+
+        HiveOptions o = new HiveOptions(metastoreURIs, dbName, tableName)
                 .withHiveConf(hiveConfig)
                 .withAutoCreatePartitions(autoCreatePartitions)
                 .withCallTimeout(callTimeout)
