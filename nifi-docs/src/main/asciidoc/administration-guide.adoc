@@ -559,7 +559,7 @@ coefficient:
 
 To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.). 
 
-To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional_commands>> above):
+To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional-commands>> above):
 
 * `nifi-cert.pem` -- the public certificate of the *intermediate CA* in PEM format
 * `nifi-key.key` -- the Base64-encoded private key of the *intermediate CA* in PKCS #1 PEM format
@@ -571,7 +571,7 @@ Example:
 ```
 # Generate cert signed by intermediate CA (which is signed by root CA) -- WILL FAIL
 
-./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
+$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
 -P passwordpassword \
 -S passwordpassword \
 -o /opt/certs/externalCA \
@@ -580,13 +580,13 @@ Example:
 2018/08/02 18:48:11 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
 2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
 2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=Certificate Authority signature with CN=nifi_ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:12 WARN [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate CN=nifi_ca.large.org, OU=Certificate Authority not signed by CN=nifi_ca.large.org, OU=Certificate Authority [certificate does not verify with supplied key]
+2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
+2018/08/02 18:48:12 WARN [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority not signed by CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority [certificate does not verify with supplied key]
 Error generating TLS configuration. (The signing certificate was not signed by any known certificates)
 
 # Provide additional CA certificate path for signature verification of intermediate CA
 
-./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
+$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
 -P passwordpassword \
 -S passwordpassword \
 -o /opt/certs/externalCA \
@@ -595,8 +595,8 @@ Error generating TLS configuration. (The signing certificate was not signed by a
 
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=Certificate Authority signature with CN=ca.large.org, OU=Certificate Authority
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
+2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=ca.large.org, OU=Certificate Authority
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.large.org, OU=Certificate Authority
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate /opt/certs/externalCA/nifi-cert.pem and key /opt/certs/externalCA/nifi-key.key
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to /opt/certs/externalCA/node1.nifi.apache.org
