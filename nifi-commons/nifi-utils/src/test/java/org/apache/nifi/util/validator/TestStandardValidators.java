@@ -288,4 +288,24 @@ public class TestStandardValidators {
         vr = val.validate("foo", "2016-01-01T01:01:01.000Z", vc);
         assertTrue(vr.isValid());
     }
+
+    @Test
+    public void testURIListValidator() {
+        Validator val = StandardValidators.URI_LIST_VALIDATOR;
+        ValidationContext vc = mock(ValidationContext.class);
+        ValidationResult vr = val.validate("foo", null, vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "/no_scheme", vc);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("foo", "http://localhost 8080, https://host2:8080 ", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "http://localhost , https://host2:8080 ", vc);
+        assertTrue(vr.isValid());
+    }
 }

@@ -396,6 +396,11 @@ public class StandardValidators {
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
             return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
         }
+
+        if (input == null || input.isEmpty()) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URI, value is missing or empty").valid(false).build();
+        }
+
         Optional<ValidationResult> invalidUri = Arrays.stream(input.split(","))
                 .filter(uri -> uri != null && !uri.trim().isEmpty())
                 .map(String::trim)
