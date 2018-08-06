@@ -166,14 +166,15 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     }
 
     /**
-     * Utility method to extract current expected field from given JsonParser
-     * isTokenCurrent is a boolean variable also passed in, which determines
-     * if the JsonParser is already at the token we expect to read next, or
-     * needs advancing to the next before we read.
+     * Utility method to extract current expected field from given record.
      */
-    private Object extractCurrentField(Record record, RecordField field, TypeInfo fieldTypeInfo) {
+    @SuppressWarnings("unchecked")
+    private Object extractCurrentField(Record record, RecordField field, TypeInfo fieldTypeInfo) throws SerDeException {
         Object val;
-        String fieldName = (field != null) ? field.getFieldName() : null;
+        if (field == null) {
+            return null;
+        }
+        String fieldName = field.getFieldName();
 
         switch (fieldTypeInfo.getCategory()) {
             case PRIMITIVE:
@@ -182,9 +183,15 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                     primitiveCategory = ((PrimitiveTypeInfo) fieldTypeInfo).getPrimitiveCategory();
                 }
                 switch (primitiveCategory) {
-                    case INT:
                     case BYTE:
+                        Integer bIntValue = record.getAsInt(fieldName);
+                        val = bIntValue == null ? null : bIntValue.byteValue();
+                        break;
                     case SHORT:
+                        Integer sIntValue = record.getAsInt(fieldName);
+                        val = sIntValue == null ? null : sIntValue.shortValue();
+                        break;
+                    case INT:
                         val = record.getAsInt(fieldName);
                         break;
                     case LONG:
@@ -205,7 +212,9 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         val = record.getAsString(fieldName);
                         break;
                     case BINARY:
-                        val = AvroTypeUtil.convertByteArray(record.getAsArray(fieldName)).array();
+                        Object[] array = record.getAsArray(fieldName);
+                        if (array == null) return null;
+                        val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
                         val = record.getAsDate(fieldName, field.getDataType().getFormat());
@@ -227,8 +236,32 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 val = DataTypeUtils.convertRecordFieldtoObject(record.getValue(fieldName), field.getDataType());
                 break;
             case STRUCT:
-                val = DataTypeUtils.convertRecordFieldtoObject(record.getValue(fieldName), field.getDataType());
-                break;
+                // For some reason the Hive StandardStructObjectInspector expects the object corresponding to a "struct" to be an array or List rather than a Map.
+                // Do the conversion here, calling extractCurrentField recursively to traverse any nested structs.
+                Record r = (Record) record.getValue(fieldName);
+                if (r == null) {
+                    return null;
+                }
+                try {
+                    RecordSchema recordSchema = r.getSchema();
+                    List<RecordField> recordFields = recordSchema.getFields();
+                    if (recordFields == null || recordFields.isEmpty()) {
+                        return new ArrayList<>(0);
+                    }
+                    // This List will hold the values of the entries in the Map
+                    List<Object> structList = new ArrayList<>(recordFields.size());
+                    StructTypeInfo typeInfo = (StructTypeInfo) schema.getStructFieldTypeInfo(fieldName);
+                    for (RecordField f : recordFields) {
+                        String fName = f.getFieldName();
+                        String normalizedFieldName = fName.toLowerCase();
+                        structList.add(extractCurrentField(r, f, typeInfo.getStructFieldTypeInfo(normalizedFieldName)));
+                    }
+                    return structList;
+                } catch (Exception e) {
+                    log.warn("Error [{}] parsing Record [{}].", new Object[]{e.getLocalizedMessage(), r}, e);
+                    throw new SerDeException(e);
+                }
+                // break unreachable
             default:
                 log.error("Unknown type found: " + fieldTypeInfo + "for field of type: " + field.getDataType().toString());
                 return null;
