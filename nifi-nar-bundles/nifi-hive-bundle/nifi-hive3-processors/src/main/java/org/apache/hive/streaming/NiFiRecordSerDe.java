@@ -158,7 +158,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             stats.setRowCount(stats.getRowCount() + 1);
 
         } catch (Exception e) {
-            log.warn("Error [{}] parsing Record [{}].", new Object[]{e.getLocalizedMessage(), t}, e);
+            log.warn("Error [{}] parsing Record [{}].", new Object[]{e.toString(), t}, e);
             throw new SerDeException(e);
         }
 
@@ -213,7 +213,9 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         break;
                     case BINARY:
                         Object[] array = record.getAsArray(fieldName);
-                        if (array == null) return null;
+                        if (array == null) {
+                            return null;
+                        }
                         val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
@@ -236,29 +238,29 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 val = DataTypeUtils.convertRecordFieldtoObject(record.getValue(fieldName), field.getDataType());
                 break;
             case STRUCT:
-                // For some reason the Hive StandardStructObjectInspector expects the object corresponding to a "struct" to be an array or List rather than a Map.
+                // The Hive StandardStructObjectInspector expects the object corresponding to a "struct" to be an array or List rather than a Map.
                 // Do the conversion here, calling extractCurrentField recursively to traverse any nested structs.
-                Record r = (Record) record.getValue(fieldName);
-                if (r == null) {
+                Record nestedRecord = (Record) record.getValue(fieldName);
+                if (nestedRecord == null) {
                     return null;
                 }
                 try {
-                    RecordSchema recordSchema = r.getSchema();
+                    RecordSchema recordSchema = nestedRecord.getSchema();
                     List<RecordField> recordFields = recordSchema.getFields();
                     if (recordFields == null || recordFields.isEmpty()) {
-                        return new ArrayList<>(0);
+                        return Collections.emptyList();
                     }
                     // This List will hold the values of the entries in the Map
                     List<Object> structList = new ArrayList<>(recordFields.size());
                     StructTypeInfo typeInfo = (StructTypeInfo) schema.getStructFieldTypeInfo(fieldName);
-                    for (RecordField f : recordFields) {
-                        String fName = f.getFieldName();
+                    for (RecordField nestedRecordField : recordFields) {
+                        String fName = nestedRecordField.getFieldName();
                         String normalizedFieldName = fName.toLowerCase();
-                        structList.add(extractCurrentField(r, f, typeInfo.getStructFieldTypeInfo(normalizedFieldName)));
+                        structList.add(extractCurrentField(nestedRecord, nestedRecordField, typeInfo.getStructFieldTypeInfo(normalizedFieldName)));
                     }
                     return structList;
                 } catch (Exception e) {
-                    log.warn("Error [{}] parsing Record [{}].", new Object[]{e.getLocalizedMessage(), r}, e);
+                    log.warn("Error [{}] parsing Record [{}].", new Object[]{e.toString(), nestedRecord}, e);
                     throw new SerDeException(e);
                 }
                 // break unreachable
