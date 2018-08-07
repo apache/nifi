@@ -81,6 +81,8 @@
     var MIN_SCALE = 0.2;
     var MIN_SCALE_TO_RENDER = 0.6;
 
+    var DEFAULT_PAGE_TITLE = '';
+
     var polling = false;
     var allowPageRefresh = false;
     var groupId = 'root';
@@ -172,8 +174,14 @@
                 rootBreadcrumb = rootBreadcrumb.parentBreadcrumb
             }
 
+            if(DEFAULT_PAGE_TITLE == ''){
+                DEFAULT_PAGE_TITLE = document.title;
+            }
+
             if(rootBreadcrumb.permissions.canRead){
                 document.title = rootBreadcrumb.breadcrumb.name;
+            } else {
+                document.title = DEFAULT_PAGE_TITLE;
             }
 
             // update the timestamp
