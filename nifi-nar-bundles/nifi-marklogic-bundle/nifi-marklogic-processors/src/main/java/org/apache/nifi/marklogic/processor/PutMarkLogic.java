@@ -33,7 +33,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -81,6 +83,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
     public static final PropertyDescriptor COLLECTIONS = new PropertyDescriptor.Builder()
         .name("Collections")
         .displayName("Collections")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .description("Comma-delimited sequence of collections to add to each document")
         .required(false)
         .addValidator(Validator.VALID)
@@ -341,7 +344,9 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         }
 
         DocumentMetadataHandle metadata = new DocumentMetadataHandle();
-        final String collections = context.getProperty(COLLECTIONS).getValue();
+        final PropertyValue collectionProperty = context.getProperty(COLLECTIONS);
+        final String collections = collectionProperty != null ? collectionProperty.isExpressionLanguagePresent()
+            ? collectionProperty.evaluateAttributeExpressions(flowFile).getValue() : collectionProperty.getValue() : null;
         if (collections != null) {
             metadata.withCollections(collections.split(","));
         }

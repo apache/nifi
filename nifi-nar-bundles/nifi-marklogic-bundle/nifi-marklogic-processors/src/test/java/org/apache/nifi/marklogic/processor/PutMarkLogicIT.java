@@ -55,9 +55,11 @@ public class PutMarkLogicIT extends AbstractMarkLogicIT{
     @Test
     public void simpleIngest() throws InitializationException {
         String collection = "PutMarkLogicTest";
+        String absolutePath = "/dummyPath/PutMarkLogicTest";
         TestRunner runner = getNewTestRunner(PutMarkLogic.class);
-        runner.setProperty(PutMarkLogic.COLLECTIONS, collection);
+        runner.setProperty(PutMarkLogic.COLLECTIONS, collection+",${absolutePath}");
         for(IngestDoc document : documents) {
+            document.getAttributes().put("absolutePath", absolutePath);
             runner.enqueue(document.getContent(), document.getAttributes());
         }
         runner.run(numDocs);
@@ -70,6 +72,7 @@ public class PutMarkLogicIT extends AbstractMarkLogicIT{
         assertEquals(2,runner.getFlowFilesForRelationship(PutMarkLogic.FAILURE).size());
         assertEquals(numDocs,runner.getFlowFilesForRelationship(PutMarkLogic.SUCCESS).size());
         assertEquals(numDocs, getNumDocumentsInCollection(collection));
+        assertEquals(numDocs, getNumDocumentsInCollection(absolutePath));
         deleteDocumentsInCollection(collection);
     }
 
@@ -78,6 +81,7 @@ public class PutMarkLogicIT extends AbstractMarkLogicIT{
         String collection = "transform";
         String transform = "servertransform";
         TestRunner runner = getNewTestRunner(PutMarkLogic.class);
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutMarkLogic.COLLECTIONS, collection);
         runner.setProperty(PutMarkLogic.TRANSFORM, transform);
         runner.setProperty("trans:newValue", "new");
