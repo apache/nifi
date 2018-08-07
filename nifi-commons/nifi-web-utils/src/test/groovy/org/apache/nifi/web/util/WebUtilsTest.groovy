@@ -16,17 +16,27 @@
  */
 package org.apache.nifi.web.util
 
+import org.glassfish.jersey.client.ClientConfig
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import org.mockito.Mockito
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
+import org.apache.http.conn.ssl.DefaultHostnameVerifier
+import sun.security.tools.keytool.CertAndKeyGen
+import sun.security.x509.X500Name
+import javax.net.ssl.SSLPeerUnverifiedException
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
+import javax.ws.rs.client.Client;
+import javax.net.ssl.SSLContext
+import javax.net.ssl.HostnameVerifier;
+import java.security.cert.X509Certificate;
+
 
 @RunWith(JUnit4.class)
 class WebUtilsTest extends GroovyTestCase {
@@ -36,6 +46,7 @@ class WebUtilsTest extends GroovyTestCase {
     static final String FC_HEADER = "X-Forwarded-Context"
 
     static final String WHITELISTED_PATH = "/some/context/path"
+    private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -271,5 +282,180 @@ class WebUtilsTest extends GroovyTestCase {
             logger.expected(msg)
             assert msg =~ " was not whitelisted "
         }
+    }
+
+    @Test
+    void testHostnameVerifierType() {
+
+        // Arrange
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        HostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Assert
+        assertTrue(hostnameVerifier instanceof DefaultHostnameVerifier)
+    }
+
+    @Test
+    void testHostnameVerifierWildcard() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=*.apache.com,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = "nifi.apache.com"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = (DefaultHostnameVerifier) client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+    @Test
+    void testHostnameVerifierDNWildcardFourthLevelDomain() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String clientHostname = "client.nifi.apache.org"
+        final String serverHostname = "server.nifi.apache.org"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(clientHostname, cert)
+        hostnameVerifier.verify(serverHostname, cert)
+    }
+
+    @Test(expected = SSLPeerUnverifiedException)
+    void testHostnameVerifierDomainLevelMismatch() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = "nifi.apache.org"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+    @Test(expected = SSLPeerUnverifiedException)
+    void testHostnameVerifierEmptyHostname() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = ""
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+    @Test(expected = SSLPeerUnverifiedException)
+    void testHostnameVerifierDifferentSubdomain() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = "egg.apache.org"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+    @Test(expected = SSLPeerUnverifiedException)
+    void testHostnameVerifierDifferentTLD() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = "nifi.apache.com"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+    @Test
+    void testHostnameVerifierWildcardTLD() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=nifi.apache.*,OU=Security,O=Apache,ST=CA,C=US"
+        final String comTLDhostname = "nifi.apache.com"
+        final String orgTLDHostname = "nifi.apache.org"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(comTLDhostname, cert)
+        hostnameVerifier.verify(orgTLDHostname, cert)
+    }
+
+    @Test
+    void testHostnameVerifierWildcardDomain() {
+
+        // Arrange
+        final String EXPECTED_DN = "CN=nifi.*.com,OU=Security,O=Apache,ST=CA,C=US"
+        final String hostname = "nifi.apache.com"
+        X509Certificate cert = generateCertificate(EXPECTED_DN)
+        SSLContext sslContext = Mockito.mock(SSLContext.class)
+        final ClientConfig clientConfig = new ClientConfig()
+
+        // Act
+        Client client = WebUtils.createClient(clientConfig, sslContext)
+        DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
+
+        // Verify
+        hostnameVerifier.verify(hostname, cert)
+    }
+
+
+    X509Certificate generateCertificate(String DN) {
+         CertAndKeyGen certGenerator = new CertAndKeyGen("RSA", "SHA256WithRSA", null)
+         certGenerator.generate(2048)
+
+
+         long validityPeriod = (long) 365 * 24 * 60 * 60 // 1 YEAR
+         X509Certificate cert = certGenerator.getSelfCertificate(new X500Name(DN), validityPeriod)
+         return cert
     }
 }

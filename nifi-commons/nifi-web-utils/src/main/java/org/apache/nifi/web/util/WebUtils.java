@@ -32,6 +32,7 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 
 /**
  * Common utilities related to web development.
@@ -93,8 +94,8 @@ public final class WebUtils {
 
         if (ctx != null) {
 
-            // custom hostname verifier that checks subject alternative names against the hostname of the URI
-            clientBuilder = clientBuilder.sslContext(ctx).hostnameVerifier(new NiFiHostnameVerifier());
+            // Apache http DefaultHostnameVerifier that checks subject alternative names against the hostname of the URI
+            clientBuilder = clientBuilder.sslContext(ctx).hostnameVerifier(new DefaultHostnameVerifier());
         }
 
         clientBuilder = clientBuilder.register(ObjectMapperResolver.class).register(JacksonJaxbJsonProvider.class);
