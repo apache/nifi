@@ -432,7 +432,18 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     Map<String, String> attributes = new HashMap<>();
                     for(Iterator<Entry<String, JsonNode>> it = source.fields(); it.hasNext(); ) {
                         Entry<String, JsonNode> entry = it.next();
-                        attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), entry.getValue().asText());
+
+                        String textValue = "";
+                        if(entry.getValue().isArray()){
+                            ArrayList<String> text_values = new ArrayList<String>();
+                            for(Iterator<JsonNode> items = entry.getValue().iterator(); items.hasNext(); ) {
+                                text_values.add(items.next().asText());
+                            }
+                            textValue = StringUtils.join(text_values, ',');
+                        } else {
+                            textValue = entry.getValue().asText();
+                        }
+                        attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), textValue);
                     }
                     documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
                 }
