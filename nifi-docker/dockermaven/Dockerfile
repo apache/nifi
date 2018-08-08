@@ -24,7 +24,8 @@ ARG NIFI_BINARY
 ARG NIFI_TOOLKIT_BINARY
 
 ENV NIFI_BASE_DIR /opt/nifi
-ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
+ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
+ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
@@ -32,11 +33,15 @@ ADD sh/ ${NIFI_BASE_DIR}/scripts/
 
 COPY $NIFI_BINARY $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
-    && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip
+    && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip \
+    && mv ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION} ${NIFI_HOME} \
+    && ln -s ${NIFI_HOME} ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}
 
 COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
-    && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip
+    && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip \
+    && mv ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION} ${NIFI_TOOLKIT_HOME} \
+    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}
 
 # Create necessary directories
 RUN mkdir -p ${NIFI_HOME}/conf \
@@ -53,10 +58,9 @@ LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 ARG UID=1000
 ARG GID=1000
 
-ARG NIFI_VERSION
-
 ENV NIFI_BASE_DIR /opt/nifi
-ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
+ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
+ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
