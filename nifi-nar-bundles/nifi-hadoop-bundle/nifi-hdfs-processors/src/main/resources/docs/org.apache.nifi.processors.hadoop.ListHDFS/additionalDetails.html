@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>PutHDFS</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h1>ListHDFS Filter Modes</h1>
+<p>
+There are three filter modes available for ListHDFS that determine how the regular expression in the <b><code>File Filter</code></b> property will be applied to listings in HDFS.
+<ul>
+    <li><b><code>Directories and Files</code></b></li>
+Filtering will be applied to the names of directories and files.  If <b><code>Recurse Subdirectories</code></b> is set to true, only subdirectories with a matching name will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    <li><b><code>Files Only</code></b></li>
+Filtering will only be applied to the names of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    <li><b><code>Full Path</code></b></li>
+Filtering will be applied to the full path of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files in which the full path of the file matches the regular expression defined in <b><code>File Filter</code></b>.
+</ul>
+<p>
+<h2>Examples:</h2>
+For the given examples, the following directory structure is used:
+<br>
+<br>
+    data<br>
+    ├── readme.txt<br>
+    ├── bin<br>
+    │   ├── readme.txt<br>
+    │   ├── 1.bin<br>
+    │   ├── 2.bin<br>
+    │   └── 3.bin<br>
+    ├── csv<br>
+    │   ├── readme.txt<br>
+    │   ├── 1.csv<br>
+    │   ├── 2.csv<br>
+    │   └── 3.csv<br>
+    └── txt<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├── readme.txt<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├── 1.txt<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├── 2.txt<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └── 3.txt<br>
+    <br><br>
+<h3><b>Directories and Files</b></h3>
+This mode is useful when the listing should match the names of directories and files with the regular expression defined in <b><code>File Filter</code></b>.  When <b><code>Recurse Subdirectories</code></b> is true, this mode allows the user to filter for files in subdirectories with names that match the regular expression defined in <b><code>File Filter</code></b>.
+<br>
+<br>
+ListHDFS configuration:
+<table><tr><th><b><code>Property</code></b></th><th><b><code>Value</code></b></th></tr><tr><td><b><code>Directory</code></b></td><td><code>/data</code></td></tr><tr><td><b><code>Recurse Subdirectories</code></b></td><td>true</td><tr><td><b><code>File Filter</code></b></td><td><code>.*txt.*</code></td></tr><tr><td><code><b>Filter Mode</b></code></td><td><code>Directories and Files</code></td></tr></table>
+<p>ListHDFS results:
+<ul>
+    <li>/data/readme.txt</li>
+    <li>/data/txt/readme.txt</li>
+    <li>/data/txt/1.txt</li>
+    <li>/data/txt/2.txt</li>
+    <li>/data/txt/3.txt</li>
+</ul>
+<h3><b>Files Only</b></h3>
+This mode is useful when the listing should match only the names of files with the regular expression defined in <b><code>File Filter</code></b>.  Directory names will not be matched against the regular expression defined in <b><code>File Filter</code></b>.  When <b><code>Recurse Subdirectories</code></b> is true, this mode allows the user to filter for files in the entire subdirectory tree of the directory specified in the <b><code>Directory</code></b> property.
+<br>
+<br>
+ListHDFS configuration:
+<table><tr><th><b><code>Property</code></b></th><th><b><code>Value</code></b></th></tr><tr><td><b><code>Directory</code></b></td><td><code>/data</code></td></tr><tr><td><b><code>Recurse Subdirectories</code></b></td><td>true</td><tr><td><b><code>File Filter</code></b></td><td><code>[^\.].*\.txt</code></td></tr><tr><td><code><b>Filter Mode</b></code></td><td><code>Files Only</code></td></tr></table>
+<p>ListHDFS results:
+<ul>
+    <li>/data/readme.txt</li>
+    <li>/data/bin/readme.txt</li>
+    <li>/data/csv/readme.txt</li>
+    <li>/data/txt/readme.txt</li>
+    <li>/data/txt/1.txt</li>
+    <li>/data/txt/2.txt</li>
+    <li>/data/txt/3.txt</li>
+</ul>
+<h3><b>Full Path</b></h3>
+This mode is useful when the listing should match the entire path of a file with the regular expression defined in <b><code>File Filter</code></b>.  When <b><code>Recurse Subdirectories</code></b> is true, this mode allows the user to filter for files in the entire subdirectory tree of the directory specified in the <b><code>Directory</code></b> property while allowing filtering based on the full path of each file.
+<br>
+<br>
+ListHDFS configuration:
+<table><tr><th><b><code>Property</code></b></th><th><b><code>Value</code></b></th></tr><tr><td><b><code>Directory</code></b></td><td><code>/data</code></td></tr><tr><td><b><code>Recurse Subdirectories</code></b></td><td>true</td><tr><td><b><code>File Filter</code></b></td><td><code>(/.*/)*csv/.*</code></td></tr><tr><td><code><b>Filter Mode</b></code></td><td><code>Full Path</code></td></tr></table>
+<p>ListHDFS results:
+<ul>
+    <li>/data/csv/readme.txt</li>
+    <li>/data/csv/1.csv</li>
+    <li>/data/csv/2.csv</li>
+    <li>/data/csv/3.csv</li>
+</ul>
+</body>
+</html>

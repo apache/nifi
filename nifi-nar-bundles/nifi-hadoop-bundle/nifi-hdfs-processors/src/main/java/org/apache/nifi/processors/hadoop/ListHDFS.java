@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -119,6 +120,35 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
 
+    private static final String FILTER_MODE_DIRECTORIES_AND_FILES = "filter-mode-directories-and-files";
+    private static final String FILTER_MODE_FILES_ONLY = "filter-mode-files-only";
+    private static final String FILTER_MODE_FULL_PATH = "filter-mode-full-path";
+    static final AllowableValue FILTER_DIRECTORIES_AND_FILES_VALUE = new AllowableValue(FILTER_MODE_DIRECTORIES_AND_FILES,
+        "Directories and Files",
+        "Filtering will be applied to the names of directories and files.  If " + RECURSE_SUBDIRS.getName()
+                + " is set to true, only subdirectories with a matching name will be searched for files that match "
+                + "the regular expression defined in " + FILE_FILTER.getName() + ".");
+    static final AllowableValue FILTER_FILES_ONLY_VALUE = new AllowableValue(FILTER_MODE_FILES_ONLY,
+        "Files Only",
+        "Filtering will only be applied to the names of files.  If " + RECURSE_SUBDIRS.getName()
+                + " is set to true, the entire subdirectory tree will be searched for files that match "
+                + "the regular expression defined in " + FILE_FILTER.getName() + ".");
+    static final AllowableValue FILTER_FULL_PATH_VALUE = new AllowableValue(FILTER_MODE_FULL_PATH,
+        "Full Path",
+        "Filtering will be applied to the full path of files.  If " + RECURSE_SUBDIRS.getName()
+                + " is set to true, the entire subdirectory tree will be searched for files in which the full path of "
+                + "the file matches the regular expression defined in " + FILE_FILTER.getName() + ".");
+
+    public static final PropertyDescriptor FILE_FILTER_MODE = new PropertyDescriptor.Builder()
+        .name("file-filter-mode")
+        .displayName("File Filter Mode")
+        .description("Determines how the regular expression in  " + FILE_FILTER.getName() + " will be used when retrieving listings.")
+        .required(true)
+        .allowableValues(FILTER_DIRECTORIES_AND_FILES_VALUE, FILTER_FILES_ONLY_VALUE, FILTER_FULL_PATH_VALUE)
+        .defaultValue(FILTER_DIRECTORIES_AND_FILES_VALUE.getValue())
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
         .name("minimum-file-age")
         .displayName("Minimum File Age")
@@ -167,6 +197,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         props.add(DIRECTORY);
         props.add(RECURSE_SUBDIRS);
         props.add(FILE_FILTER);
+        props.add(FILE_FILTER_MODE);
         props.add(MIN_AGE);
         props.add(MAX_AGE);
         return props;
@@ -340,11 +371,12 @@ public class ListHDFS extends AbstractHadoopProcessor {
         // Pull in any file that is newer than the timestamp that we have.
         final FileSystem hdfs = getFileSystem();
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
+        String fileFilterMode = context.getProperty(FILE_FILTER_MODE).getValue();
 
         final Set<FileStatus> statuses;
         try {
             final Path rootPath = new Path(directory);
-            statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context));
+            statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context), fileFilterMode);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
         } catch (final IOException | IllegalArgumentException e) {
             getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
@@ -391,27 +423,56 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter) throws IOException, InterruptedException {
+    private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter, String filterMode) throws IOException, InterruptedException {
         final Set<FileStatus> statusSet = new HashSet<>();
 
         getLogger().debug("Fetching listing for {}", new Object[] {path});
-        final FileStatus[] statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path, filter));
+        final FileStatus[] statuses;
+        if (isPostListingFilterNeeded(filterMode)) {
+            // For this filter mode, the filter is not passed to listStatus, so that directory names will not be
+            // filtered out when the listing is recursive.
+            statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path));
+        } else {
+            statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path, filter));
+        }
 
         for ( final FileStatus status : statuses ) {
             if ( status.isDirectory() ) {
                 if ( recursive ) {
                     try {
-                        statusSet.addAll(getStatuses(status.getPath(), recursive, hdfs, filter));
+                        statusSet.addAll(getStatuses(status.getPath(), recursive, hdfs, filter, filterMode));
                     } catch (final IOException ioe) {
                         getLogger().error("Failed to retrieve HDFS listing for subdirectory {} due to {}; will continue listing others", new Object[] {status.getPath(), ioe});
                     }
                 }
             } else {
-                statusSet.add(status);
+                if (isPostListingFilterNeeded(filterMode)) {
+                    // Filtering explicitly performed here, since it was not able to be done when calling listStatus.
+                    if (filter.accept(status.getPath())) {
+                        statusSet.add(status);
+                    }
+                } else {
+                    statusSet.add(status);
+                }
             }
         }
 
         return statusSet;
+    }
+
+    /**
+     * Determines if filtering needs to be applied, after calling {@link FileSystem#listStatus(Path)}, based on the
+     * given filter mode.
+     * Filter modes that need to be able to search directories regardless of the given filter should return true.
+     * FILTER_MODE_FILES_ONLY and FILTER_MODE_FULL_PATH require that {@link FileSystem#listStatus(Path)} be invoked
+     * without a filter so that all directories can be traversed when filtering with these modes.
+     * FILTER_MODE_DIRECTORIES_AND_FILES should return false, since filtering can be applied directly with
+     * {@link FileSystem#listStatus(Path, PathFilter)} regardless of a recursive listing.
+     * @param filterMode the value of one of the defined AllowableValues representing filter modes
+     * @return true if results need to be filtered, false otherwise
+     */
+    private boolean isPostListingFilterNeeded(String filterMode) {
+        return filterMode.equals(FILTER_MODE_FILES_ONLY) || filterMode.equals(FILTER_MODE_FULL_PATH);
     }
 
     private String getAbsolutePath(final Path path) {
@@ -462,11 +523,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     private PathFilter createPathFilter(final ProcessContext context) {
         final Pattern filePattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
-        return new PathFilter() {
-            @Override
-            public boolean accept(Path path) {
-                return filePattern.matcher(path.getName()).matches();
+        final String filterMode = context.getProperty(FILE_FILTER_MODE).getValue();
+        return path -> {
+            final boolean accepted;
+            if (FILTER_FULL_PATH_VALUE.getValue().equals(filterMode)) {
+                accepted = filePattern.matcher(path.toString()).matches();
+            } else {
+                accepted =  filePattern.matcher(path.getName()).matches();
             }
+            return accepted;
         };
     }
 
