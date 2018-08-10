@@ -28,7 +28,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 
-
 import java.util.List;
 
 /**
@@ -59,7 +58,10 @@ public abstract class AbstractGCPProcessor<
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
             .Builder().name("gcp-proxy-host")
             .displayName("Proxy host")
-            .description("IP or hostname of the proxy to be used")
+            .description("IP or hostname of the proxy to be used.\n " +
+                    "You might need to set the following properties in bootstrap for https proxy usage:\n" +
+                    "-Djdk.http.auth.tunneling.disabledSchemes=\n" +
+                    "-Djdk.http.auth.proxying.disabledSchemes=")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -74,6 +76,22 @@ public abstract class AbstractGCPProcessor<
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("Http Proxy Username")
+            .description("Http Proxy Username")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Http Proxy Password")
+            .description("Http Proxy Password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .sensitive(true)
+            .build();
 
     /**
      * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
@@ -100,7 +118,9 @@ public abstract class AbstractGCPProcessor<
                 PROJECT_ID,
                 RETRY_COUNT,
                 PROXY_HOST,
-                PROXY_PORT
+                PROXY_PORT,
+                HTTP_PROXY_USERNAME,
+                HTTP_PROXY_PASSWORD
         );
     }
 

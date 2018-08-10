@@ -31,7 +31,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.util.StringUtils;
 
+import java.net.Authenticator;
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,6 +78,8 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
         final String proxyHost = context.getProperty(PROXY_HOST).getValue();
         final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
+        final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+        final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
 
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
@@ -88,6 +92,15 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
             storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(new HttpTransportFactory() {
                 @Override
                 public HttpTransport create() {
+                    if (!StringUtils.isBlank(proxyUser) && !StringUtils.isBlank(proxyPassword)) {
+                        Authenticator authenticator = new Authenticator() {
+                            public PasswordAuthentication getPasswordAuthentication() {
+                                return (new PasswordAuthentication(proxyUser,
+                                        proxyPassword.toCharArray()));
+                            }
+                        };
+                        Authenticator.setDefault(authenticator);
+                    }
                     return new NetHttpTransport.Builder()
                             .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
                             .build();
@@ -96,6 +109,4 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
         }
         return  storageOptionsBuilder.build();
     }
-
-
 }
