@@ -781,7 +781,7 @@ public class JettyServer implements NiFiServer {
         if (props.isClientAuthRequiredForRestApi()) {
             contextFactory.setNeedClientAuth(true);
         } else {
-            contextFactory.setWantClientAuth(true);
+            contextFactory.setWantClientAuth(props.isClientAuthWanted());
         }
 
         /* below code sets JSSE system properties when values are provided */
