@@ -1451,7 +1451,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 * link:http://security.stackexchange.com/a/26253/16485[Scrypt vs. Bcrypt (as of 2010)^]
 * link:http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2^]
 * link:http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt^]
-* link:https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt^]
+* link:https://docs.spring.io/spring-security/site/docs/current/api/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt^]
 * link:https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5^]
 * link:https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF^]
 * link:http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description^]
