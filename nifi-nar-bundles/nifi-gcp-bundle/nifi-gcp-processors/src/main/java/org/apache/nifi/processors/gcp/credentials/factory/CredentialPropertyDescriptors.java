@@ -88,4 +88,22 @@ public final class CredentialPropertyDescriptors {
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
             .build();
+
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
+            .Builder().name("gcp-proxy-host")
+            .displayName("Proxy host")
+            .description("IP or hostname of the proxy to be used")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor
+            .Builder().name("gcp-proxy-port")
+            .displayName("Proxy port")
+            .description("Proxy port number")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
 }

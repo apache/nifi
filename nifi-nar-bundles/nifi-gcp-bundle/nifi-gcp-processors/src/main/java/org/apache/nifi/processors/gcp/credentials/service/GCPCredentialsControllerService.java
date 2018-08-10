@@ -40,6 +40,8 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.PROXY_HOST;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.PROXY_PORT;
 /**
  * Implementation of GCPCredentialsService interface
  *
@@ -61,6 +63,8 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         props.add(USE_COMPUTE_ENGINE_CREDENTIALS);
         props.add(SERVICE_ACCOUNT_JSON_FILE);
         props.add(SERVICE_ACCOUNT_JSON);
+        props.add(PROXY_HOST);
+        props.add(PROXY_PORT);
         properties = Collections.unmodifiableList(props);
     }
 
