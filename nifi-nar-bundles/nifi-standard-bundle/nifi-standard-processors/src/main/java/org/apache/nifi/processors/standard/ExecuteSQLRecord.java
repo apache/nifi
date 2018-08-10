@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -32,26 +26,28 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
+import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
-import org.apache.nifi.processors.standard.util.AvroUtil.CodecType;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_PRECISION;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_SCALE;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@Tags({"sql", "select", "jdbc", "query", "database"})
-@CapabilityDescription("Executes provided SQL select query. Query result will be converted to Avro format."
-        + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
+@Tags({"sql", "select", "jdbc", "query", "database", "record"})
+@CapabilityDescription("Executes provided SQL select query. Query result will be converted to the format specified by a Record Writer. "
+        + "Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
         + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query, and the query may use the ? to escape parameters. In this case, the parameters to use must exist as FlowFile attributes "
@@ -92,21 +88,32 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
         @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
-                + "FlowFiles were produced")
+                + "FlowFiles were produced"),
+        @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
+        @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
 })
-public class ExecuteSQL extends AbstractExecuteSQL {
+public class ExecuteSQLRecord extends AbstractExecuteSQL {
 
-    public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-            .name("compression-format")
-            .displayName("Compression Format")
-            .description("Compression type to use when writing Avro files. Default is None.")
-            .allowableValues(CodecType.values())
-            .defaultValue(CodecType.NONE.toString())
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+
+    public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
+            .name("esqlrecord-record-writer")
+            .displayName("Record Writer")
+            .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer may use Inherit Schema to emulate the inferred schema behavior, i.e. "
+                    + "an explicit schema need not be defined in the writer, and will be supplied by the same logic used to infer the schema from the column types.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .build();
 
-    public ExecuteSQL() {
+    public static final PropertyDescriptor NORMALIZE_NAMES = new PropertyDescriptor.Builder()
+            .name("esqlrecord-normalize")
+            .displayName("Normalize Table/Column Names")
+            .description("Whether to change characters in column names. For example, colons and periods will be changed to underscores.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    public ExecuteSQLRecord() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
         r.add(REL_FAILURE);
@@ -116,11 +123,9 @@ public class ExecuteSQL extends AbstractExecuteSQL {
         pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
         pds.add(QUERY_TIMEOUT);
-        pds.add(NORMALIZE_NAMES_FOR_AVRO);
+        pds.add(RECORD_WRITER_FACTORY);
+        pds.add(NORMALIZE_NAMES);
         pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(COMPRESSION_FORMAT);
-        pds.add(DEFAULT_PRECISION);
-        pds.add(DEFAULT_SCALE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
@@ -128,21 +133,15 @@ public class ExecuteSQL extends AbstractExecuteSQL {
 
     @Override
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
-        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
-        final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
-        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final String codec = context.getProperty(COMPRESSION_FORMAT).getValue();
-
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
+        final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
                 .convertNames(convertNamesForAvro)
                 .useLogicalTypes(useAvroLogicalTypes)
-                .defaultPrecision(defaultPrecision)
-                .defaultScale(defaultScale)
-                .maxRows(maxRowsPerFlowFile)
-                .codecFactory(codec)
                 .build();
-        return new DefaultAvroSqlWriter(options);
+        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+
+        return new RecordSqlWriter(recordSetWriterFactory, options, maxRowsPerFlowFile, fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
     }
 }
