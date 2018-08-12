@@ -133,6 +133,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     + "Please see the Hive documentation for more details.")
             .required(false)
             .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()

@@ -182,6 +182,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     + "Please see the Hive documentation for more details.")
             .required(false)
             .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
