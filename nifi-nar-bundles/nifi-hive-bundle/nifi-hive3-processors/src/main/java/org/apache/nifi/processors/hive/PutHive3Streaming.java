@@ -302,7 +302,7 @@ public class PutHive3Streaming extends AbstractProcessor {
         ComponentLog log = getLogger();
         rollbackOnFailure = context.getProperty(ROLLBACK_ON_FAILURE).asBoolean();
 
-        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
+        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
         // If more than one concurrent task, force 'hcatalog.hive.client.cache.disabled' to true

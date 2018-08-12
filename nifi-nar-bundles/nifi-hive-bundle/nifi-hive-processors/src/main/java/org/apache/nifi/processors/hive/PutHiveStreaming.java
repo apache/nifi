@@ -425,7 +425,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         ComponentLog log = getLogger();
 
         final Integer heartbeatInterval = context.getProperty(HEARTBEAT_INTERVAL).evaluateAttributeExpressions().asInteger();
-        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
+        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
         // If more than one concurrent task, force 'hcatalog.hive.client.cache.disabled' to true
