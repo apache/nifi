@@ -29,6 +29,8 @@ import com.marklogic.client.query.QueryManager;
 import com.marklogic.client.query.StructuredQueryDefinition;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,6 +38,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -55,6 +58,8 @@ import java.util.Set;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @CapabilityDescription("Creates FlowFiles from batches of documents, matching the given criteria," +
     " retrieved from a MarkLogic server using the MarkLogic Data Movement SDK (DMSDK)")
+@WritesAttributes({
+    @WritesAttribute(attribute = "filename", description = "The filename is set to the uri of the document retrieved from MarkLogic")})
 public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor CONSISTENT_SNAPSHOT = new PropertyDescriptor.Builder()
@@ -76,7 +81,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         .build();
 
     protected static final Relationship SUCCESS = new Relationship.Builder()
-        .name("SUCCESS")
+        .name("success")
         .description("All FlowFiles that are created from documents read from MarkLogic are routed to" +
             " this success relationship.")
         .build();
@@ -126,7 +131,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
                     DocumentRecord documentRecord = docs.next();
                     FlowFile flowFile = session.create();
                     flowFile = session.write(flowFile, out -> out.write(documentRecord.getContent(new BytesHandle()).get()));
-                    session.putAttribute(flowFile, "uri", documentRecord.getUri());
+                    session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), documentRecord.getUri());
                     session.transfer(flowFile, SUCCESS);
                     if (getLogger().isDebugEnabled()) {
                         getLogger().debug("Routing " + documentRecord.getUri() + " to " + SUCCESS.getName());

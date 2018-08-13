@@ -67,7 +67,6 @@ import java.util.Set;
 @DynamicProperty(name = "Server transform parameter name", value = "Value of the server transform parameter",
     description = "Adds server transform parameters to be passed to the server transform specified. "
     + "Server transform parameter name should start with the string 'trans:'.")
-
 @TriggerWhenEmpty
 public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
@@ -177,13 +176,13 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .build();
 
     protected static final Relationship SUCCESS = new Relationship.Builder()
-        .name("SUCCESS")
+        .name("success")
         .description("All FlowFiles that are successfully written to MarkLogic are routed to the " +
             "success relationship for future processing.")
         .build();
 
     protected static final Relationship FAILURE = new Relationship.Builder()
-        .name("FAILURE")
+        .name("failure")
         .description("All FlowFiles that failed to be written to MarkLogic are routed to the " +
             "failure relationship for future processing.")
         .build();
