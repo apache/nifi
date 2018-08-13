@@ -25,7 +25,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -232,32 +231,6 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         } catch (Exception e) {
             throw new LookupFailureException(e);
         }
-    }
-
-    private RecordSchema convertSchema(Map<String, Object> result) {
-        List<RecordField> fields = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : result.entrySet()) {
-
-            RecordField field;
-            if (entry.getValue() instanceof Integer || entry.getValue() instanceof Long) {
-                field = new RecordField(entry.getKey(), RecordFieldType.LONG.getDataType());
-            } else if (entry.getValue() instanceof Boolean) {
-                field = new RecordField(entry.getKey(), RecordFieldType.BOOLEAN.getDataType());
-            } else if (entry.getValue() instanceof Float || entry.getValue() instanceof Double) {
-                field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
-            } else if (entry.getValue() instanceof List) {
-                field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
-            } else if (entry.getValue() instanceof Map) {
-                RecordSchema nestedSchema = convertSchema((Map)entry.getValue());
-                RecordDataType rdt = new RecordDataType(nestedSchema);
-                field = new RecordField(entry.getKey(), rdt);
-            } else {
-                field = new RecordField(entry.getKey(), RecordFieldType.STRING.getDataType());
-            }
-            fields.add(field);
-        }
-
-        return new SimpleRecordSchema(fields);
     }
 
     @Override
