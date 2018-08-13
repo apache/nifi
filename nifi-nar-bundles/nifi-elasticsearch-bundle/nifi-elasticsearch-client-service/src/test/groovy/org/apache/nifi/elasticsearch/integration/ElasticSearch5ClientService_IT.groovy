@@ -28,7 +28,8 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-import static groovy.json.JsonOutput.*
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 
 class ElasticSearch5ClientService_IT {
 

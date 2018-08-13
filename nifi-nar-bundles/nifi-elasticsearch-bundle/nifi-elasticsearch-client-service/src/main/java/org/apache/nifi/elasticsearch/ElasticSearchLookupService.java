@@ -27,7 +27,7 @@ import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SchemaRegistryService;
+import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -46,7 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ElasticSearchLookupService extends SchemaRegistryService implements LookupService<Record> {
+public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Record> {
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("el-rest-client-service")
         .displayName("Client Service")
@@ -78,28 +78,41 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
     private String type;
     private ObjectMapper mapper;
 
-    @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
-        index = context.getProperty(INDEX).evaluateAttributeExpressions().getValue();
-        type  = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
-        mapper = new ObjectMapper();
-    }
+    private final List<PropertyDescriptor> DESCRIPTORS;
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    ElasticSearchLookupService() {
         List<PropertyDescriptor> _desc = new ArrayList<>();
         _desc.addAll(super.getSupportedPropertyDescriptors());
         _desc.add(CLIENT_SERVICE);
         _desc.add(INDEX);
         _desc.add(TYPE);
-
-        return Collections.unmodifiableList(_desc);
+        DESCRIPTORS = Collections.unmodifiableList(_desc);
     }
 
     @Override
-    public Optional<Record> lookup(Map coordinates) throws LookupFailureException {
-        return Optional.empty();
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
+        index = context.getProperty(INDEX).evaluateAttributeExpressions().getValue();
+        type  = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
+        mapper = new ObjectMapper();
+
+        super.onEnabled(context);
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return DESCRIPTORS;
+    }
+
+    @Override
+    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        Map<String, String> context = coordinates.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey(),
+                e -> e.getValue().toString()
+            ));
+        return lookup(coordinates, context);
     }
 
     @Override
@@ -108,11 +121,10 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
 
         try {
             Record record;
-            RecordSchema schema = getSchema(context, null);
             if (coordinates.containsKey("_id")) {
-                record = getById((String)coordinates.get("_id"), schema);
+                record = getById((String)coordinates.get("_id"), context);
             } else {
-                record = getByQuery(coordinates, schema);
+                record = getByQuery(coordinates, context);
             }
 
             return record == null ? Optional.empty() : Optional.of(record);
@@ -155,7 +167,7 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
         }
     }
 
-    private Record getById(final String _id, RecordSchema recordSchema) throws IOException, LookupFailureException {
+    private Record getById(final String _id, Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
         Map<String, Object> query = new HashMap<String, Object>(){{
             put("query", new HashMap<String, Object>() {{
                 put("match", new HashMap<String, String>(){{
@@ -177,7 +189,7 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
 
         final Map<String, Object> source = (Map)response.getHits().get(0).get("_source");
 
-        RecordSchema toUse = recordSchema != null ? recordSchema : convertSchema(source);
+        RecordSchema toUse = getSchema(context, source, null);
 
         return new MapRecord(toUse, source);
     }
@@ -203,7 +215,7 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
         return outter;
     }
 
-    private Record getByQuery(final Map<String, Object> query, RecordSchema recordSchema) throws LookupFailureException {
+    private Record getByQuery(final Map<String, Object> query, Map<String, String> context) throws LookupFailureException {
         try {
             final String json = mapper.writeValueAsString(buildQuery(query));
 
@@ -213,11 +225,11 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
                 return null;
             } else {
                 final Map<String, Object> source = (Map)response.getHits().get(0).get("_source");
-                RecordSchema toUse = recordSchema != null ? recordSchema : convertSchema(source);
+                RecordSchema toUse = getSchema(context, source, null);
                 return new MapRecord(toUse, source);
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new LookupFailureException(e);
         }
     }

@@ -19,6 +19,7 @@ package org.apache.nifi.elasticsearch.integration
 
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService
+import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -35,14 +36,19 @@ class ElasticSearchLookupServiceTest {
     void setup() throws Exception {
         mockClientService = new TestElasticSearchClientService()
         lookupService = new ElasticSearchLookupService()
+        def registry = new TestSchemaRegistry()
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class)
         runner.addControllerService("clientService", mockClientService)
         runner.addControllerService("lookupService", lookupService)
+        runner.addControllerService("registry", registry)
         runner.enableControllerService(mockClientService)
+        runner.enableControllerService(registry)
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "clientService")
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "users")
         runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "clientService")
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "lookupService")
+        runner.setProperty(lookupService, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
+        runner.setProperty(lookupService, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INFER_SCHEMA)
         runner.enableControllerService(lookupService)
     }
 
