@@ -343,7 +343,6 @@
                         <exclude>src/test/resources/randombytes-1</exclude>
                         <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
-                        <exclude>src/test/resources/hello_with_expression_like_text.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Original.txt</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt</exclude>

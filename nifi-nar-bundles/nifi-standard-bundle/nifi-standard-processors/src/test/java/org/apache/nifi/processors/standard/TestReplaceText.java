@@ -405,7 +405,8 @@ public class TestReplaceText {
     }
 
     /**
-     * Test for NIFI-5474
+     * Test that Expression Lanaguage like text in flowfile content is not evaluated.
+     * see: NIFI-5474
      */
     @Test
     public void testExpressionLanguageInContentIsNotEvaluated() throws IOException {
@@ -416,8 +417,7 @@ public class TestReplaceText {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("replaceKey", "Hello");
         attributes.put("replaceValue", "Good-bye");
-        runner.enqueue(Paths.get("src/test/resources/hello_with_expression_like_text.txt"), attributes);
-
+        runner.enqueue("Hello, World! ${DO NOT EVALUATE}", attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
