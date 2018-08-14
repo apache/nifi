@@ -17,6 +17,7 @@
 package org.apache.hive.streaming;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.AbstractSerDe;
@@ -45,9 +46,11 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,23 +222,31 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
-                        val = record.getAsDate(fieldName, field.getDataType().getFormat());
+                        Date d = record.getAsDate(fieldName, field.getDataType().getFormat());
+                        org.apache.hadoop.hive.common.type.Date hiveDate = new org.apache.hadoop.hive.common.type.Date();
+                        hiveDate.setTimeInMillis(d.getTime());
+                        val = hiveDate;
                         break;
+                    // ORC doesn't currently handle TIMESTAMPLOCALTZ
                     case TIMESTAMP:
-                        val = DataTypeUtils.toTimestamp(record.getValue(fieldName), () -> DataTypeUtils.getDateFormat(field.getDataType().getFormat()), fieldName);
+                        Timestamp ts = DataTypeUtils.toTimestamp(record.getValue(fieldName), () -> DataTypeUtils.getDateFormat(field.getDataType().getFormat()), fieldName);
+                        // Convert to Hive's Timestamp type
+                        org.apache.hadoop.hive.common.type.Timestamp hivetimestamp = new org.apache.hadoop.hive.common.type.Timestamp();
+                        hivetimestamp.setTimeInMillis(ts.getTime(), ts.getNanos());
+                        val = hivetimestamp;
                         break;
                     case DECIMAL:
-                        val = record.getAsDouble(fieldName);
+                        val = HiveDecimal.create(record.getAsDouble(fieldName));
                         break;
                     default:
-                        throw new IllegalArgumentException("Field " + fieldName + " cannot be converted to unknown type: " + primitiveCategory.name());
+                        throw new IllegalArgumentException("Field " + fieldName + " cannot be converted to type: " + primitiveCategory.name());
                 }
                 break;
             case LIST:
                 val = Arrays.asList(record.getAsArray(fieldName));
                 break;
             case MAP:
-                val = DataTypeUtils.convertRecordFieldtoObject(record.getValue(fieldName), field.getDataType());
+                val = record.getValue(fieldName);
                 break;
             case STRUCT:
                 // The Hive StandardStructObjectInspector expects the object corresponding to a "struct" to be an array or List rather than a Map.
