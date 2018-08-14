@@ -43,7 +43,7 @@ public class TestReplaceText {
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(ReplaceText.class);
 
-        /**
+        /*
          * we have to disable validation of expression language because the scope of the evaluation
          * for the search value depends of another property (the evaluation mode). If not disabling
          * the validation, it'll throw an error about the eval
@@ -402,6 +402,27 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         out.assertContentEquals("Hello, World!");
+    }
+
+    /**
+     * Test that Expression Lanaguage like text in flowfile content is not evaluated.
+     * see: NIFI-5474
+     */
+    @Test
+    public void testExpressionLanguageInContentIsNotEvaluated() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "${replaceKey}");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${replaceValue}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("replaceKey", "Hello");
+        attributes.put("replaceValue", "Good-bye");
+        runner.enqueue("Hello, World! ${DO NOT EVALUATE}", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("Good-bye, World! ${DO NOT EVALUATE}");
     }
 
     @Test

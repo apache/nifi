@@ -542,7 +542,7 @@ public class ReplaceText extends AbstractProcessor {
                     }
                 });
 
-                final String contentString = new String(buffer, 0, flowFileSize, charset);
+                String contentString = new String(buffer, 0, flowFileSize, charset);
                 additionalAttrs.clear();
                 final Matcher matcher = searchPattern.matcher(contentString);
                 if (matcher.find()) {
@@ -550,6 +550,10 @@ public class ReplaceText extends AbstractProcessor {
                         final String groupValue = matcher.group(i);
                         additionalAttrs.put("$" + i, groupValue);
                     }
+
+                    // the content line may have things that evaluate to expressions in it so
+                    // we must escape them
+                    contentString = escapeExpressionsInContent(contentString);
 
                     // prepare the string and do the regex replace first
                     // then evaluate the EL on the result
@@ -588,6 +592,10 @@ public class ReplaceText extends AbstractProcessor {
                                         final String groupValue = matcher.group(i);
                                         additionalAttrs.put("$" + i, groupValue);
                                     }
+
+                                    // the content line may have things that evaluate to expressions in it so
+                                    // we must escape them
+                                    oneLine = escapeExpressionsInContent(oneLine);
 
                                     // prepare the string and do the regex replace first
                                     // then evaluate the EL on the result
@@ -681,7 +689,7 @@ public class ReplaceText extends AbstractProcessor {
     /**
      * Wraps '$1' with the {@code literal} function for EL evaluation.
      * @param possibleLiteral the {@code String} to evaluate.
-     * @return {@code String} with literals wrapped.  If no literals or Expression Lanaguage present the passed string
+     * @return {@code String} with literals wrapped.  If no literals or Expression Language present the passed string
      * is returned.
      */
     private static String wrapLiterals(String possibleLiteral) {
@@ -699,6 +707,27 @@ public class ReplaceText extends AbstractProcessor {
         }
 
         return replacementFinal;
+    }
+
+    /**
+     * Escapes Expression Language like text from content Strings.
+     * <p>
+     * Since we do regular expression replacement on the content and then do Expression Language
+     * evaluations afterwards, it is possible that if there are Expression Language like text
+     * in the content that they will be evaluated when they should not be.
+     * </p>
+     * <p>
+     * This function is called to escape any such construct by prefixing a second $ to the ${...} text.
+     * </p>
+     *
+     * @param content the content that may contain Expression Language like text
+     * @return A {@code String} with any Expression Language text escaped with a $.
+     */
+    private static String escapeExpressionsInContent(String content) {
+        if (!content.contains("${")) {
+            return content;
+        }
+        return content.replaceAll("(\\$\\{.*\\})","\\$$1");
     }
 
     /**
