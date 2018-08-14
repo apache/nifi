@@ -189,14 +189,31 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         return new MapRecord(toUse, source);
     }
 
+    Map<String, Object> getNested(String key, Object value) {
+        String path = key.substring(0, key.lastIndexOf("."));
+
+        return new HashMap<String, Object>(){{
+            put("path", path);
+            put("query", new HashMap<String, Object>(){{
+                put("match", new HashMap<String, Object>(){{
+                    put(key, value);
+                }});
+            }});
+        }};
+    }
+
     private Map<String, Object> buildQuery(Map<String, Object> coordinates) {
         Map<String, Object> query = new HashMap<String, Object>(){{
             put("bool", new HashMap<String, Object>(){{
                 put("must", coordinates.entrySet().stream()
                     .map(e -> new HashMap<String, Object>(){{
-                        put("match", new HashMap<String, Object>(){{
-                            put(e.getKey(), e.getValue());
-                        }});
+                        if (e.getKey().contains(".")) {
+                            put("nested", getNested(e.getKey(), e.getValue()));
+                        } else {
+                            put("match", new HashMap<String, Object>() {{
+                                put(e.getKey(), e.getValue());
+                            }});
+                        }
                     }}).collect(Collectors.toList())
                 );
             }});

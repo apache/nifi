@@ -130,6 +130,33 @@ class ElasticSearchLookupService_IT {
     }
 
     @Test
+    void testNestedSchema() {
+        def coordinates = [
+            "subField.deeper.deepest.super_secret": "The sky is blue",
+            "subField.deeper.secretz": "Buongiorno, mondo!!",
+            "msg": "Hello, world"
+        ]
+
+        runner.disableControllerService(lookupService)
+        runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "nested_complex")
+        runner.enableControllerService(lookupService)
+
+        Optional<Record> response = lookupService.lookup(coordinates)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.isPresent())
+        def rec = response.get()
+        Assert.assertEquals("Hello, world", rec.getValue("msg"))
+        def subRec = getSubRecord(rec, "subField")
+        Assert.assertNotNull(subRec)
+        def deeper = getSubRecord(subRec, "deeper")
+        Assert.assertNotNull(deeper)
+        def deepest = getSubRecord(deeper, "deepest")
+        Assert.assertNotNull(deepest)
+        Assert.assertEquals("The sky is blue", deepest.getAsString("super_secret"))
+    }
+
+    @Test
     void testDetectedSchema() throws LookupFailureException {
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "complex")
@@ -140,14 +167,18 @@ class ElasticSearchLookupService_IT {
         Optional<Record> response = lookupService.lookup(coordinates)
         Assert.assertNotNull(response)
         Record rec = response.get()
-        RecordSchema schema = rec.schema
-        RecordSchema subSchema = ((RecordDataType)schema.getField("subField").get().dataType).childSchema
-        Record subRec = rec.getAsRecord("subField", subSchema)
+        Record subRec = getSubRecord(rec, "subField")
         Assert.assertNotNull(rec)
         Assert.assertNotNull(subRec)
         Assert.assertEquals("Hello, world", rec.getValue("msg"))
         Assert.assertNotNull(rec.getValue("subField"))
         Assert.assertEquals(new Long(100000), subRec.getValue("longField"))
         Assert.assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
+    }
+
+    Record getSubRecord(Record rec, String fieldName) {
+        RecordSchema schema = rec.schema
+        RecordSchema subSchema = ((RecordDataType)schema.getField(fieldName).get().dataType).childSchema
+        rec.getAsRecord(fieldName, subSchema)
     }
 }
