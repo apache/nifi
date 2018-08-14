@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PublishKafkaRecord</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Description</h2>
+        <p>
+            This Processor puts the contents of a FlowFile to a Topic in
+            <a href="http://kafka.apache.org/">Apache Kafka</a> using KafkaProducer API available
+            with Kafka 2.0 API. The contents of the incoming FlowFile will be read using the
+            configured Record Reader. Each record will then be serialized using the configured
+            Record Writer, and this serialized form will be the content of a Kafka message.
+            This message is optionally assigned a key by using the &lt;Kafka Key&gt; Property.
+        </p>
+
+
+        <h2>Security Configuration</h2>
+        <p>
+            The Security Protocol property allows the user to specify the protocol for communicating
+            with the Kafka broker. The following sections describe each of the protocols in further detail.
+        </p>
+        <h3>PLAINTEXT</h3>
+        <p>
+            This option provides an unsecured connection to the broker, with no client authentication and no encryption.
+            In order to use this option the broker must be configured with a listener of the form:
+            <pre>
+    PLAINTEXT://host.name:port
+            </pre>
+        </p>
+        <h3>SSL</h3>
+        <p>
+            This option provides an encrypted connection to the broker, with optional client authentication. In order
+            to use this option the broker must be configured with a listener of the form:
+            <pre>
+    SSL://host.name:port
+            </pre>
+            In addition, the processor must have an SSL Context Service selected.
+        </p>
+        <p>
+            If the broker specifies ssl.client.auth=none, or does not specify ssl.client.auth, then the client will
+            not be required to present a certificate. In this case, the SSL Context Service selected may specify only
+            a truststore containing the public key of the certificate authority used to sign the broker's key.
+        </p>
+        <p>
+            If the broker specifies ssl.client.auth=required then the client will be required to present a certificate.
+            In this case, the SSL Context Service must also specify a keystore containing a client key, in addition to
+            a truststore as described above.
+        </p>
+        <h3>SASL_PLAINTEXT</h3>
+        <p>
+            This option uses SASL with a PLAINTEXT transport layer to authenticate to the broker. In order to use this
+            option the broker must be configured with a listener of the form:
+            <pre>
+    SASL_PLAINTEXT://host.name:port
+            </pre>
+            In addition, the Kerberos Service Name must be specified in the processor.
+        </p>
+        <h4>SASL_PLAINTEXT - GSSAPI</h4>
+        <p>
+            If the SASL mechanism is GSSAPI, then the client must provide a JAAS configuration to authenticate. The
+            JAAS configuration can be provided by specifying the java.security.auth.login.config system property in
+            NiFi's bootstrap.conf, such as:
+            <pre>
+    java.arg.16=-Djava.security.auth.login.config=/path/to/kafka_client_jaas.conf
+            </pre>
+        </p>
+        <p>
+            An example of the JAAS config file would be the following:
+            <pre>
+    KafkaClient {
+        com.sun.security.auth.module.Krb5LoginModule required
+        useKeyTab=true
+        storeKey=true
+        keyTab="/path/to/nifi.keytab"
+        serviceName="kafka"
+        principal="nifi@YOURREALM.COM";
+    };
+            </pre>
+        <b>NOTE:</b> The serviceName in the JAAS file must match the Kerberos Service Name in the processor.
+        </p>
+        <p>
+            Alternatively, the JAAS
+            configuration when using GSSAPI can be provided by specifying the Kerberos Principal and Kerberos Keytab
+            directly in the processor properties. This will dynamically create a JAAS configuration like above, and
+            will take precedence over the java.security.auth.login.config system property.
+        </p>
+        <h4>SASL_PLAINTEXT - PLAIN</h4>
+        <p>
+            If the SASL mechanism is PLAIN, then client must provide a JAAS configuration to authenticate, but
+            the JAAS configuration must use Kafka's PlainLoginModule. An example of the JAAS config file would
+            be the following:
+            <pre>
+    KafkaClient {
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="nifi"
+      password="nifi-password";
+    };
+            </pre>
+        </p>
+        <p>
+            <b>NOTE:</b> It is not recommended to use a SASL mechanism of PLAIN with SASL_PLAINTEXT, as it would transmit
+            the username and password unencrypted.
+        </p>
+        <p>
+            <b>NOTE:</b> Using the PlainLoginModule will cause it be registered in the JVM's static list of Providers, making
+            it visible to components in other NARs that may access the providers. There is currently a known issue
+            where Kafka processors using the PlainLoginModule will cause HDFS processors with Keberos to no longer work.
+        </p>
+        <h3>SASL_SSL</h3>
+        <p>
+            This option uses SASL with an SSL/TLS transport layer to authenticate to the broker. In order to use this
+            option the broker must be configured with a listener of the form:
+            <pre>
+    SASL_SSL://host.name:port
+            </pre>
+        </p>
+        <p>
+            See the SASL_PLAINTEXT section for a description of how to provide the proper JAAS configuration
+            depending on the SASL mechanism (GSSAPI or PLAIN).
+        </p>
+        <p>
+            See the SSL section for a description of how to configure the SSL Context Service based on the
+            ssl.client.auth property.
+        </p>
+    </body>
+</html>
