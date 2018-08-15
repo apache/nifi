@@ -73,6 +73,7 @@ public class TestJoltTransformRecord {
         } catch (InitializationException e) {
             throw new IOException(e);
         }
+        runner.setProperty(writer, "Schema Write Strategy", "full-schema-attribute");
         runner.setProperty(JoltTransformRecord.RECORD_WRITER, "writer");
         // Each test must set the Schema Access strategy and Schema, and enable the writer CS
     }
@@ -91,7 +92,8 @@ public class TestJoltTransformRecord {
         Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformRecord.REL_FAILURE));
         assertTrue(relationships.contains(JoltTransformRecord.REL_SUCCESS));
-        assertEquals(2, relationships.size());
+        assertTrue(relationships.contains(JoltTransformRecord.REL_ORIGINAL));
+        assertEquals(3, relationships.size());
     }
 
     @Test
@@ -116,7 +118,7 @@ public class TestJoltTransformRecord {
     }
 
     @Test
-    public void testSpecIsNotSet() throws IOException {
+    public void testSpecIsNotSet() {
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.SHIFTR);
         runner.assertNotValid();
     }
@@ -244,56 +246,14 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutput.json"))),
-                new String(transformed.toByteArray()));
-    }
-
-    @Test
-    public void testTransformInputWithChainrMultipleRecordsInSingleRecordOut() throws IOException {
-        generateTestData(2, null);
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleChainrOutputSchema.avsc")));
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, "Pretty Print JSON", "true");
-        runner.enableControllerService(writer);
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleChainrSpec.json")));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORD_SET);
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
-        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleChainrOutput.json"))),
-                new String(transformed.toByteArray()));
-    }
-
-    @Test
-    public void testTransformInputWithChainrMultipleRecordsInMultipleRecordsOut() throws IOException {
-        generateTestData(2, null);
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrOutputSchema.avsc")));
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, "Pretty Print JSON", "true");
-        runner.enableControllerService(writer);
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrSpec.json")));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORD_SET);
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
-        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrOutput.json"))),
                 new String(transformed.toByteArray()));
     }
 
@@ -308,10 +268,10 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.SHIFTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -331,10 +291,10 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -353,7 +313,8 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.REMOVR);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/removrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -371,10 +332,10 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/cardrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CARDINALITY);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/cardrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -392,7 +353,8 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.SORTR);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -411,11 +373,11 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.setVariable("quota", "5");
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -434,10 +396,9 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefaultSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.MODIFIER_DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -454,10 +415,10 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefineSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.MODIFIER_DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -474,10 +435,10 @@ public class TestJoltTransformRecord {
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierOverwriteSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.MODIFIER_DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -495,84 +456,12 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, "abcd");
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/sortrOutput.json"))),
-                new String(transformed.toByteArray()));
-    }
-
-    @Test
-    public void testTransformInputWithCustomTransformationWithJar() throws IOException {
-        generateTestData(1, null);
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, "Pretty Print JSON", "true");
-        runner.enableControllerService(writer);
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
-        runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
-        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
-        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutput.json"))),
-                new String(transformed.toByteArray()));
-    }
-
-    @Test
-    public void testTransformInputWithCustomTransformationWithDir() throws IOException {
-        generateTestData(1, null);
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, "Pretty Print JSON", "true");
-        runner.enableControllerService(writer);
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord";
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
-        runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
-        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.CUSTOMR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
-        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutput.json"))),
-                new String(transformed.toByteArray()));
-    }
-
-    @Test
-    public void testTransformInputWithChainrEmbeddedCustomTransformation() throws IOException {
-        generateTestData(1, null);
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, "Pretty Print JSON", "true");
-        runner.enableControllerService(writer);
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord";
-        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/customChainrSpec.json")));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
-        transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
-        transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutput.json"))),
                 new String(transformed.toByteArray()));
     }
 
@@ -590,10 +479,10 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -612,19 +501,19 @@ public class TestJoltTransformRecord {
         final String spec = "${joltSpec}";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.DEFAULTR);
-        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORDS);
         final Map<String, String> attributes = Collections.singletonMap("joltSpec",
                 "{\"RatingRange\":5,\"rating\":{\"*\":{\"MaxLabel\":\"High\",\"MinLabel\":\"Low\",\"DisplayType\":\"NORMAL\"}}}");
         runner.enqueue(new byte[0], attributes);
         runner.run();
-        runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"))),
                 new String(transformed.toByteArray()));
     }
 
     @Test
-    public void testJoltSpecInvalidEL() throws IOException {
+    public void testJoltSpecInvalidEL() {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformRecord());
         final String spec = "${joltSpec:nonExistingFunction()}";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);

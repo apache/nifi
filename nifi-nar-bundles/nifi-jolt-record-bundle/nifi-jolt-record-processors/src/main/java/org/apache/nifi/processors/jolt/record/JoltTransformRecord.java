@@ -24,8 +24,6 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.SystemResource;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -51,15 +49,12 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.FilenameFilter;
 import java.io.InputStream;
@@ -89,8 +84,6 @@ import java.util.stream.Collectors;
 @CapabilityDescription("Applies a list of Jolt specifications to the FlowFile payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
-@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "If the Jolt transform is applied to the entire record set, memory issues can occur "
-        + "for large record sets.")
 public class JoltTransformRecord extends AbstractProcessor {
 
     static final AllowableValue SHIFTR
@@ -113,13 +106,6 @@ public class JoltTransformRecord extends AbstractProcessor {
             = new AllowableValue("jolt-transform-modify-overwrite", "Modify - Overwrite", " Always overwrite value");
     static final AllowableValue MODIFIER_DEFINER
             = new AllowableValue("jolt-transform-modify-define", "Modify - Define", "Writes when key is missing");
-
-    static final AllowableValue APPLY_TO_RECORD_SET
-            = new AllowableValue("jolt-record-apply-recordset", "Entire Record Set", "Applies the transformation to the record set as a whole. Used when "
-            + "values from multiple records are needed in the transformation.");
-    static final AllowableValue APPLY_TO_RECORDS
-            = new AllowableValue("jolt-record-apply-records", "Each Record", "Applies the transformation to each record individually.");
-
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("jolt-record-record-reader")
@@ -169,18 +155,9 @@ public class JoltTransformRecord extends AbstractProcessor {
             .displayName("Custom Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor TRANSFORM_STRATEGY = new PropertyDescriptor.Builder()
-            .name("jolt-record-transform-strategy")
-            .displayName("Transformation Strategy")
-            .description("Specifies whether the transform should be applied to the entire record set or to each individual record. Note that when the transform is applied to "
-                    + "the entire record set, the first element in the spec should be an asterix (*) in order to match each record.")
-            .required(true)
-            .allowableValues(APPLY_TO_RECORD_SET, APPLY_TO_RECORDS)
-            .defaultValue(APPLY_TO_RECORDS.getValue())
+            .dynamicallyModifiesClasspath(true)
             .build();
 
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -198,14 +175,19 @@ public class JoltTransformRecord extends AbstractProcessor {
             .name("success")
             .description("The FlowFile with transformed content will be routed to this relationship")
             .build();
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile records cannot be parsed), it will be routed to this relationship")
             .build();
 
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile that was transformed. If the FlowFile fails processing, nothing will be sent to this relationship")
+            .build();
+
     private final static List<PropertyDescriptor> properties;
     private final static Set<Relationship> relationships;
-    private volatile ClassLoader customClassLoader;
     private final static String DEFAULT_CHARSET = "UTF-8";
 
     // Cache is guarded by synchronizing on 'this'.
@@ -229,13 +211,13 @@ public class JoltTransformRecord extends AbstractProcessor {
         _properties.add(CUSTOM_CLASS);
         _properties.add(MODULES);
         _properties.add(JOLT_SPEC);
-        _properties.add(TRANSFORM_STRATEGY);
         _properties.add(TRANSFORM_CACHE_SIZE);
         properties = Collections.unmodifiableList(_properties);
 
         final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         _relationships.add(REL_FAILURE);
+        _relationships.add(REL_ORIGINAL);
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
@@ -254,7 +236,6 @@ public class JoltTransformRecord extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
-        final String modulePath = validationContext.getProperty(MODULES).isSet() ? validationContext.getProperty(MODULES).getValue() : null;
 
         if (!validationContext.getProperty(JOLT_SPEC).isSet() || StringUtils.isEmpty(validationContext.getProperty(JOLT_SPEC).getValue())) {
             if (!SORTR.getValue().equals(transform)) {
@@ -264,15 +245,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                         .build());
             }
         } else {
-            final ClassLoader customClassLoader;
-
             try {
-                if (modulePath != null) {
-                    customClassLoader = ClassLoaderUtils.getCustomClassLoader(modulePath, this.getClass().getClassLoader(), getJarFilenameFilter());
-                } else {
-                    customClassLoader = this.getClass().getClassLoader();
-                }
-
                 final String specValue = validationContext.getProperty(JOLT_SPEC).getValue();
 
                 if (validationContext.isExpressionLanguagePresent(specValue)) {
@@ -294,10 +267,10 @@ public class JoltTransformRecord extends AbstractProcessor {
                                     .explanation(customMessage)
                                     .build());
                         } else {
-                            TransformFactory.getCustomTransform(customClassLoader, customTransform, specJson);
+                            TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), customTransform, specJson);
                         }
                     } else {
-                        TransformFactory.getTransform(customClassLoader, transform, specJson);
+                        TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), transform, specJson);
                     }
                 }
             } catch (final Exception e) {
@@ -323,7 +296,6 @@ public class JoltTransformRecord extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
 
-        final String transformStrategy = context.getProperty(TRANSFORM_STRATEGY).getValue();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
@@ -341,56 +313,19 @@ public class JoltTransformRecord extends AbstractProcessor {
                  final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
 
                 final JoltTransform transform = getTransform(context, original);
-                if (customClassLoader != null) {
-                    Thread.currentThread().setContextClassLoader(customClassLoader);
-                }
-
-                if (APPLY_TO_RECORD_SET.getValue().equals(transformStrategy)) {
-                    List<Map<String, Object>> recordList = new ArrayList<>();
-                    final RecordSet transformedRecordSet;
-                    while ((record = reader.nextRecord()) != null) {
-
-                        Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                        // JOLT expects arrays to be of type List where our Record code uses Object[].
-                        // Make another pass of the transformed objects to change Object[] to List.
-                        recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
-                        recordList.add(recordMap);
-                    }
-                    Object transformedObjects = transform(transform, recordList);
-
+                writer.beginRecordSet();
+                while ((record = reader.nextRecord()) != null) {
+                    Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+                    // JOLT expects arrays to be of type List where our Record code uses Object[].
+                    // Make another pass of the transformed objects to change Object[] to List.
+                    recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
+                    Object transformedObject = transform(transform, recordMap);
                     // JOLT expects arrays to be of type List where our Record code uses Object[].
                     // Make another pass of the transformed objects to change List to Object[].
-                    if (transformedObjects instanceof Map) {
-                        // The set of incoming records has been transformed to a single record (Map)
-                        List<Record> normalizedList = new ArrayList<>();
-                        normalizedList.add(DataTypeUtils.toRecord(normalizeRecordObjects(transformedObjects), schema, "r"));
-                        transformedObjects = normalizedList;
-
-                    } else if (transformedObjects instanceof List) {
-                        transformedObjects = ((List) transformedObjects).stream()
-                                .map(JoltTransformRecord::normalizeRecordObjects)
-                                .map((o) -> DataTypeUtils.toRecord(o, schema, "r"))
-                                .collect(Collectors.toList());
-                    }
-
-                    transformedRecordSet = new ListRecordSet(schema, (List<Record>) transformedObjects);
-                    writeResult = writer.write(transformedRecordSet);
-
-                } else {
-                    writer.beginRecordSet();
-                    while ((record = reader.nextRecord()) != null) {
-                        Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                        // JOLT expects arrays to be of type List where our Record code uses Object[].
-                        // Make another pass of the transformed objects to change Object[] to List.
-                        recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
-                        Object transformedObject = transform(transform, recordMap);
-                        // JOLT expects arrays to be of type List where our Record code uses Object[].
-                        // Make another pass of the transformed objects to change List to Object[].
-                        Record r = DataTypeUtils.toRecord(normalizeRecordObjects(transformedObject), schema, "r");
-                        writer.write(r);
-                    }
-                    writeResult = writer.finishRecordSet();
+                    Record r = DataTypeUtils.toRecord(normalizeRecordObjects(transformedObject), schema, "r");
+                    writer.write(r);
                 }
+                writeResult = writer.finishRecordSet();
 
                 attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                 attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
@@ -406,7 +341,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             transformed = session.putAllAttributes(transformed, attributes);
             session.transfer(transformed, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.remove(original);
+            session.transfer(original, REL_ORIGINAL);
             logger.debug("Transformed {}", new Object[]{original});
 
 
@@ -414,12 +349,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
             return;
-        } finally {
-            if (customClassLoader != null && originalContextClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(originalContextClassLoader);
-            }
         }
-
     }
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
@@ -449,9 +379,9 @@ public class JoltTransformRecord extends AbstractProcessor {
         }
 
         if (CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            transform = TransformFactory.getCustomTransform(customClassLoader, context.getProperty(CUSTOM_CLASS).getValue(), specJson);
+            transform = TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).getValue(), specJson);
         } else {
-            transform = TransformFactory.getTransform(customClassLoader, context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+            transform = TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
         }
 
         // Check again for the transform in our cache, since it's possible that another thread has
@@ -473,16 +403,6 @@ public class JoltTransformRecord extends AbstractProcessor {
     public synchronized void setup(final ProcessContext context) {
         transformCache.clear();
         maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
-
-        try {
-            if (context.getProperty(MODULES).isSet()) {
-                customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).getValue(), this.getClass().getClassLoader(), getJarFilenameFilter());
-            } else {
-                customClassLoader = this.getClass().getClassLoader();
-            }
-        } catch (final Exception ex) {
-            getLogger().error("Unable to setup processor", ex);
-        }
     }
 
     protected FilenameFilter getJarFilenameFilter() {
