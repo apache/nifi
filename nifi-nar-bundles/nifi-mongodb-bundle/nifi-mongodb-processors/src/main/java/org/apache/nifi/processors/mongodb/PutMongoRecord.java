@@ -51,7 +51,11 @@ import java.util.Set;
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Bulk ingest documents into MongoDB using a configured record reader.")
+@CapabilityDescription("This processor is a record-aware processor for inserting data into MongoDB. It uses a configured record reader and " +
+        "schema to read an incoming record set from the body of a flowfile and then inserts batches of those records into " +
+        "a configured MongoDB collection. This processor does not support updates, deletes or upserts. The number of documents to insert at a time is controlled " +
+        "by the \"Insert Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
+        "that MongoDB is not overloaded with too many inserts at once.")
 public class PutMongoRecord extends AbstractMongoProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
