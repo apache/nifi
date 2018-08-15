@@ -18,16 +18,17 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -292,9 +293,7 @@ public class ReplaceText extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
 
         try {
-
             flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
-
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
@@ -524,12 +523,8 @@ public class ReplaceText extends AbstractProcessor {
 
         @Override
         public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
-            final AttributeValueDecorator quotedAttributeDecorator = new AttributeValueDecorator() {
-                @Override
-                public String decorate(final String attributeValue) {
-                    return Pattern.quote(attributeValue);
-                }
-            };
+            final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
+
             final String searchRegex = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
             final Pattern searchPattern = Pattern.compile(searchRegex);
 
@@ -546,18 +541,29 @@ public class ReplaceText extends AbstractProcessor {
                 final String contentString = new String(buffer, 0, flowFileSize, charset);
                 additionalAttrs.clear();
                 final Matcher matcher = searchPattern.matcher(contentString);
-                if (matcher.find()) {
-                    for (int i = 1; i <= matcher.groupCount(); i++) {
-                        final String groupValue = matcher.group(i);
-                        additionalAttrs.put("$" + i, groupValue);
+
+                final PropertyValue replacementValueProperty = context.getProperty(REPLACEMENT_VALUE);
+
+                int matches = 0;
+                final StringBuffer sb = new StringBuffer();
+                while (matcher.find()) {
+                    matches++;
+
+                    for (int i=0; i <= matcher.groupCount(); i++) {
+                        additionalAttrs.put("$" + i, matcher.group(i));
                     }
 
-                    String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
+                    String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-
                     String replacementFinal = normalizeReplacementString(replacement);
 
-                    final String updatedValue = contentString.replaceAll(searchRegex, replacementFinal);
+                    matcher.appendReplacement(sb, replacementFinal);
+                }
+
+                if (matches > 0) {
+                    matcher.appendTail(sb);
+
+                    final String updatedValue = sb.toString();
                     updatedFlowFile = session.write(flowFile, new OutputStreamCallback() {
                         @Override
                         public void process(final OutputStream out) throws IOException {
@@ -565,9 +571,9 @@ public class ReplaceText extends AbstractProcessor {
                         }
                     });
                 } else {
-                    // If no match, just return the original. No need to write out any content.
                     return flowFile;
                 }
+
             } else {
                 updatedFlowFile = session.write(flowFile, new StreamCallback() {
                     @Override
@@ -575,21 +581,39 @@ public class ReplaceText extends AbstractProcessor {
                         try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
                             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
                             String oneLine;
+
+                            final StringBuffer sb = new StringBuffer();
+                            Matcher matcher = null;
+
                             while (null != (oneLine = br.readLine())) {
                                 additionalAttrs.clear();
-                                final Matcher matcher = searchPattern.matcher(oneLine);
-                                if (matcher.find()) {
-                                    for (int i = 1; i <= matcher.groupCount(); i++) {
-                                        final String groupValue = matcher.group(i);
-                                        additionalAttrs.put("$" + i, groupValue);
+                                if (matcher == null) {
+                                    matcher = searchPattern.matcher(oneLine);
+                                } else {
+                                    matcher.reset(oneLine);
+                                }
+
+                                int matches = 0;
+                                sb.setLength(0);
+
+                                while (matcher.find()) {
+                                    matches++;
+
+                                    for (int i=0; i <= matcher.groupCount(); i++) {
+                                        additionalAttrs.put("$" + i, matcher.group(i));
                                     }
 
                                     String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-
                                     String replacementFinal = normalizeReplacementString(replacement);
 
-                                    final String updatedValue = oneLine.replaceAll(searchRegex, replacementFinal);
+                                    matcher.appendReplacement(sb, replacementFinal);
+                                }
+
+                                if (matches > 0) {
+                                    matcher.appendTail(sb);
+
+                                    final String updatedValue = sb.toString();
                                     bw.write(updatedValue);
                                 } else {
                                     // No match. Just write out the line as it was.

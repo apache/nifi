@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -26,14 +34,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class TestReplaceText {
 
@@ -64,6 +64,36 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         out.assertContentEquals(Paths.get("src/test/resources/hello.txt"));
     }
+
+    @Test
+    public void testIterativeRegexReplace() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "\"([a-z]+?)\":\"(.*?)\"");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"${'$1':toUpper()}\":\"$2\"");
+
+        runner.enqueue("{\"name\":\"Smith\",\"middle\":\"nifi\",\"firstname\":\"John\"}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"NAME\":\"Smith\",\"MIDDLE\":\"nifi\",\"FIRSTNAME\":\"John\"}");
+    }
+
+    @Test
+    public void testIterativeRegexReplaceLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "\"([a-z]+?)\":\"(.*?)\"");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"${'$1':toUpper()}\":\"$2\"");
+
+        runner.enqueue("{\"name\":\"Smith\",\"middle\":\"nifi\",\"firstname\":\"John\"}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"NAME\":\"Smith\",\"MIDDLE\":\"nifi\",\"FIRSTNAME\":\"John\"}");
+    }
+
 
     @Test
     public void testSimple() throws IOException {
