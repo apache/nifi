@@ -17,6 +17,12 @@
 
 package org.apache.nifi.wali;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.SerDeFactory;
+import org.wali.SyncListener;
+import org.wali.WriteAheadRepository;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -31,12 +37,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.SerDeFactory;
-import org.wali.SyncListener;
-import org.wali.WriteAheadRepository;
 
 /**
  * <p>
@@ -251,13 +251,22 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         try {
             if (journal != null) {
                 final JournalSummary journalSummary = journal.getSummary();
-                if (journalSummary.getTransactionCount() == 0) {
+                if (journalSummary.getTransactionCount() == 0 && journal.isHealthy()) {
                     logger.debug("Will not checkpoint Write-Ahead Log because no updates have occurred since last checkpoint");
                     return snapshot.getRecordCount();
                 }
 
-                journal.fsync();
-                journal.close();
+                try {
+                    journal.fsync();
+                } catch (final Exception e) {
+                    logger.error("Failed to synch Write-Ahead Log's journal to disk at {}", storageDirectory, e);
+                }
+
+                try {
+                    journal.close();
+                } catch (final Exception e) {
+                    logger.error("Failed to close Journal while attempting to checkpoint Write-Ahead Log at {}", storageDirectory);
+                }
 
                 nextTransactionId = Math.max(nextTransactionId, journalSummary.getLastTransactionId() + 1);
             }
