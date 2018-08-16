@@ -17,12 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
@@ -33,6 +27,12 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestMergeRecord {
     private TestRunner runner;
@@ -202,9 +202,22 @@ public class TestMergeRecord {
     }
 
     @Test
-    public void testMinRecords() {
+    public void testValidation() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "103");
         runner.setProperty(MergeRecord.MAX_RECORDS, "2");
+        runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
+
+        runner.assertNotValid();
+
+        runner.setProperty(MergeRecord.MIN_RECORDS, "2");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "103");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMinRecords() {
+        runner.setProperty(MergeRecord.MIN_RECORDS, "103");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "110");
         runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
 
         runner.enqueue("Name, Age\nJohn, 35");
@@ -221,7 +234,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
 
         runner.enqueue("Name, Age\nJohn, 35");
-        runner.run();
+        runner.run(2);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
     }
@@ -240,6 +253,8 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 30);
 
         assertEquals(4, runner.getQueueSize().getObjectCount());
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).stream().forEach(ff -> ff.assertAttributeEquals("record.count", "10"));
     }
 
     @Test

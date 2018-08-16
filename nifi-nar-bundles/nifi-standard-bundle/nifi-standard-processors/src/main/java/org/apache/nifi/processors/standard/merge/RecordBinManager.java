@@ -17,19 +17,6 @@
 
 package org.apache.nifi.processors.standard.merge;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -42,6 +29,20 @@ import org.apache.nifi.processors.standard.MergeRecord;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 
 public class RecordBinManager {
 
@@ -237,8 +238,16 @@ public class RecordBinManager {
     }
 
 
-    public void completeExpiredBins() throws IOException {
+    public int completeExpiredBins() throws IOException {
         final long maxNanos = maxBinAgeNanos.get();
+        return handleCompletedBins(bin -> bin.isOlderThan(maxNanos, TimeUnit.NANOSECONDS));
+    }
+
+    public int completeFullEnoughBins() throws IOException {
+        return handleCompletedBins(bin -> bin.isFullEnough());
+    }
+
+    private int handleCompletedBins(final Predicate<RecordBin> completionTest) throws IOException {
         final Map<String, List<RecordBin>> expiredBinMap = new HashMap<>();
 
         lock.lock();
@@ -248,7 +257,7 @@ public class RecordBinManager {
                 final List<RecordBin> bins = entry.getValue();
 
                 for (final RecordBin bin : bins) {
-                    if (bin.isOlderThan(maxNanos, TimeUnit.NANOSECONDS)) {
+                    if (completionTest.test(bin)) {
                         final List<RecordBin> expiredBinsForKey = expiredBinMap.computeIfAbsent(key, ignore -> new ArrayList<>());
                         expiredBinsForKey.add(bin);
                     }
@@ -258,6 +267,7 @@ public class RecordBinManager {
             lock.unlock();
         }
 
+        int completed = 0;
         for (final Map.Entry<String, List<RecordBin>> entry : expiredBinMap.entrySet()) {
             final String key = entry.getKey();
             final List<RecordBin> expiredBins = entry.getValue();
@@ -265,11 +275,15 @@ public class RecordBinManager {
             for (final RecordBin bin : expiredBins) {
                 logger.debug("Completing Bin {} because it has expired");
                 bin.complete("Bin has reached Max Bin Age");
+                completed++;
             }
 
             removeBins(key, expiredBins);
         }
+
+        return completed;
     }
+
 
     private void removeBins(final String key, final List<RecordBin> bins) {
         lock.lock();
