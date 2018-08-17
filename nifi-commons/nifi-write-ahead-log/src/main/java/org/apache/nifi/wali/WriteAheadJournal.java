@@ -53,4 +53,9 @@ public interface WriteAheadJournal<T> extends Closeable {
      * @return <code>true</code> if the journal is healthy and can be written to, <code>false</code> if either the journal has been closed or is poisoned
      */
     boolean isHealthy();
+
+    /**
+     * Destroys any resources that the journal occupies
+     */
+    void dispose();
 }

@@ -17,8 +17,11 @@
 
 package org.apache.nifi.repository.schema;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -29,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 
 public class SchemaRecordReader {
     private final RecordSchema schema;
@@ -56,15 +58,24 @@ public class SchemaRecordReader {
     }
 
     public Record readRecord(final InputStream in) throws IOException {
-        final int sentinelByte = in.read();
-        if (sentinelByte < 0) {
+        final int recordIndicator = in.read();
+        if (recordIndicator < 0) {
             return null;
         }
 
-        if (sentinelByte != 1) {
-            throw new IOException("Expected to read a Sentinel Byte of '1' but got a value of '" + sentinelByte + "' instead");
+        if (recordIndicator == SchemaRecordWriter.EXTERNAL_FILE_INDICATOR) {
+            throw new IOException("Expected to read a Sentinel Byte of '1' indicating that the next record is inline but the Sentinel value was '" + SchemaRecordWriter.EXTERNAL_FILE_INDICATOR
+                + ", indicating that data was written to an External File. This data cannot be recovered via calls to #readRecord(InputStream) but must be recovered via #readRecords(InputStream)");
         }
 
+        if (recordIndicator != 1) {
+            throw new IOException("Expected to read a Sentinel Byte of '1' but got a value of '" + recordIndicator + "' instead");
+        }
+
+        return readInlineRecord(in);
+    }
+
+    private Record readInlineRecord(final InputStream in) throws IOException {
         final List<RecordField> schemaFields = schema.getFields();
         final Map<RecordField, Object> fields = new HashMap<>(schemaFields.size());
 
@@ -75,6 +86,53 @@ public class SchemaRecordReader {
 
         return new FieldMapRecord(fields, schema);
     }
+
+    public RecordIterator readRecords(final InputStream in) throws IOException {
+        final int recordIndicator = in.read();
+        if (recordIndicator < 0) {
+            return null;
+        }
+
+        if (recordIndicator == SchemaRecordWriter.INLINE_RECORD_INDICATOR) {
+            final Record nextRecord = readInlineRecord(in);
+            return new SingleRecordIterator(nextRecord);
+        }
+
+        if (recordIndicator != SchemaRecordWriter.EXTERNAL_FILE_INDICATOR) {
+            throw new IOException("Expected to read a Sentinel Byte of '" + SchemaRecordWriter.INLINE_RECORD_INDICATOR + "' or '" + SchemaRecordWriter.EXTERNAL_FILE_INDICATOR
+                + "' but encountered a value of '" + recordIndicator + "' instead");
+        }
+
+        final DataInputStream dis = new DataInputStream(in);
+        final String externalFilename = dis.readUTF();
+        final File externalFile = new File(externalFilename);
+        final FileInputStream fis = new FileInputStream(externalFile);
+        final InputStream bufferedIn = new BufferedInputStream(fis);
+
+        final RecordIterator recordIterator = new RecordIterator() {
+            @Override
+            public Record next() throws IOException {
+                return readRecord(bufferedIn);
+            }
+
+            @Override
+            public boolean isNext() throws IOException {
+                bufferedIn.mark(1);
+                final int nextByte = bufferedIn.read();
+                bufferedIn.reset();
+
+                return (nextByte > -1);
+            }
+
+            @Override
+            public void close() throws IOException {
+                bufferedIn.close();
+            }
+        };
+
+        return recordIterator;
+    }
+
 
 
     private Object readField(final InputStream in, final RecordField field) throws IOException {
