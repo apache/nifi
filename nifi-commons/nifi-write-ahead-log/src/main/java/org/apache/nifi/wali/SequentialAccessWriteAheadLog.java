@@ -300,10 +300,8 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         snapshot.writeSnapshot(snapshotCapture);
 
         for (final File existingJournal : existingJournals) {
-            logger.debug("Deleting Journal {} because it is now encapsulated in the latest Snapshot", existingJournal.getName());
-            if (!existingJournal.delete() && existingJournal.exists()) {
-                logger.warn("Unable to delete expired journal file " + existingJournal + "; this file should be deleted manually.");
-            }
+            final WriteAheadJournal journal = new LengthDelimitedJournal<>(existingJournal, serdeFactory, streamPool, nextTransactionId);
+            journal.dispose();
         }
 
         final long totalNanos = System.nanoTime() - startNanos;

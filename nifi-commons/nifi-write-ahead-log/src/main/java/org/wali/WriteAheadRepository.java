@@ -89,7 +89,7 @@ public interface WriteAheadRepository<T> {
      * <p>
      * Recovers all External Swap locations that were persisted. If this method
      * is to be called, it must be called AFTER {@link #recoverRecords()} and
-     * BEFORE {@link update}.
+     * BEFORE {@link #update(Collection, boolean)}}.
      * </p>
      *
      * @return swap location

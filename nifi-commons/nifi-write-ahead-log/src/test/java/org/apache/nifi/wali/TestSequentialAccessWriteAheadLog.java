@@ -17,10 +17,17 @@
 
 package org.apache.nifi.wali;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+import org.wali.DummyRecord;
+import org.wali.DummyRecordSerde;
+import org.wali.SerDeFactory;
+import org.wali.SingletonSerDeFactory;
+import org.wali.UpdateType;
+import org.wali.WriteAheadRepository;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,21 +45,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.wali.DummyRecord;
-import org.wali.DummyRecordSerde;
-import org.wali.SerDeFactory;
-import org.wali.SingletonSerDeFactory;
-import org.wali.UpdateType;
-import org.wali.WriteAheadRepository;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestSequentialAccessWriteAheadLog {
     @Rule
     public TestName testName = new TestName();
+
+
+    @Test
+    public void testUpdateWithExternalFile() {
+        // TODO: Write unit test!
+    }
 
     @Test
     public void testRecoverWithNoCheckpoint() throws IOException {

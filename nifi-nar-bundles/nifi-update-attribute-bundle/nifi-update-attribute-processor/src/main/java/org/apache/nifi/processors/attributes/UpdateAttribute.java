@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.processors.attributes;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -75,6 +58,24 @@ import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -96,6 +97,13 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final static Set<Relationship> statelessRelationshipSet;
     private final static Set<Relationship> statefulRelationshipSet;
+
+    private final Map<String, String> canonicalValueLookup = new LinkedHashMap<String, String>() {
+        @Override
+        protected boolean removeEldestEntry(final Map.Entry eldest) {
+            return size() > 100;
+        }
+    };
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -619,6 +627,30 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     }
 
+    /**
+     * This method caches a 'canonical' value for a given attribute value. When this processor is used to update an attribute or add a new
+     * attribute, if Expression Language is used, we may well end up with a new String object for each attribute for each FlowFile. As a result,
+     * we will store a different String object for the attribute value of every FlowFile, meaning that we have to keep a lot of String objects
+     * in heap. By using this 'canonical lookup', we are able to keep only a single String object on the heap.
+     *
+     * For example, if we have a property named "abc" and the value is "${abc}${xyz}", and we send through 1,000 FlowFiles with attributes abc="abc"
+     * and xyz="xyz", then would end up with 1,000 String objects with a value of "abcxyz". By using this canonical representation, we are able to
+     * instead hold a single String whose value is "abcxyz" instead of holding 1,000 String objects in heap (1,000 String objects may still be created
+     * when calling PropertyValue.evaluateAttributeExpressions, but this way those values are garbage collected).
+     *
+     * @param attributeValue the value whose canonical value should be return
+     * @return the canonical representation of the given attribute value
+     */
+    private synchronized String getCanonicalRepresentation(final String attributeValue) {
+        final String canonical = this.canonicalValueLookup.get(attributeValue);
+        if (canonical != null) {
+            return canonical;
+        }
+
+        this.canonicalValueLookup.put(attributeValue, attributeValue);
+        return attributeValue;
+    }
+
     // Executes the specified action on the specified flowfile.
     private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile,
                                     final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
@@ -688,7 +720,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                 if (notDeleted || setStatefulAttribute) {
                     try {
-                        final String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
+                        String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
+                        newAttributeValue = getCanonicalRepresentation(newAttributeValue);
 
                         // log if appropriate
                         if (debugEnabled) {
