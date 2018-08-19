@@ -146,7 +146,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
                 generateJSON(multipleRecords, session, flowFile, parser, processedRecord, buffer);
                 break;
             }
-            // Create a provenance event recording the routing to failure
+            // Create a provenance event recording the routing to success
             multipleRecords.forEach(recordFlowFile -> session.getProvenanceReporter().route(recordFlowFile, REL_SUCCESS));
             session.getProvenanceReporter().route(flowFile, REL_ORIGINAL);
             // Ready to transfer and commit
