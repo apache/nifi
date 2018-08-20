@@ -1144,6 +1144,11 @@ The following binary components are provided under the Apache Software License v
 
       Copyright 2010-2012 RethinkDB
 
+    (ASLv2) Neo4j Java Driver
+      Neo4j
+      Copyright © 2002-2018 Neo4j Sweden AB (referred to in this notice as "Neo4j")
+      [http://neo4j.com]
+
     (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
       HPPC borrowed code, ideas or both from:
