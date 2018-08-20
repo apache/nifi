@@ -20,7 +20,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
@@ -284,5 +289,65 @@ public class CryptoUtils {
                 niFiProperties.getProvenanceRepoEncryptionKeys());
 
         return encryptedRepo && keyProviderConfigured;
+    }
+
+    /**
+     * Returns true if the two parameters are equal. This method is null-safe and evaluates the
+     * equality in constant-time rather than "short-circuiting" on the first inequality. This
+     * prevents timing attacks (side channel attacks) when comparing passwords or hash values.
+     *
+     * @param a a String to compare
+     * @param b a String to compare
+     * @return true if the values are equal
+     */
+    public static boolean constantTimeEquals(String a, String b) {
+        if (a == null) {
+            return b == null;
+        } else {
+            // This returns true IFF b != null and the byte[] are equal; if b == null, a is not, and they are not equal
+            return b != null && constantTimeEquals(a.getBytes(StandardCharsets.UTF_8), b.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    /**
+     * Returns true if the two parameters are equal. This method is null-safe and evaluates the
+     * equality in constant-time rather than "short-circuiting" on the first inequality. This
+     * prevents timing attacks (side channel attacks) when comparing passwords or hash values.
+     * Does not convert the character arrays to {@code String}s when converting to {@code byte[]}
+     * to avoid putting sensitive data in the String pool.
+     *
+     * @param a a char[] to compare
+     * @param b a char[] to compare
+     * @return true if the values are equal
+     */
+    public static boolean constantTimeEquals(char[] a, char[] b) {
+        return constantTimeEquals(convertCharsToBytes(a), convertCharsToBytes(b));
+    }
+
+
+    /**
+     * Returns true if the two parameters are equal. This method is null-safe and evaluates the
+     * equality in constant-time rather than "short-circuiting" on the first inequality. This
+     * prevents timing attacks (side channel attacks) when comparing passwords or hash values.
+     *
+     * @param a a byte[] to compare
+     * @param b a byte[] to compare
+     * @return true if the values are equal
+     */
+    public static boolean constantTimeEquals(byte[] a, byte[] b) {
+        return MessageDigest.isEqual(a, b);
+    }
+
+    /**
+     * Returns a {@code byte[]} containing the value of the provided {@code char[]} without using {@code new String(chars).getBytes()} which would put sensitive data (the password) in the String pool.
+     *
+     * @param chars the characters to convert
+     * @return the byte[]
+     */
+    private static byte[] convertCharsToBytes(char[] chars) {
+        CharBuffer charBuffer = CharBuffer.wrap(chars);
+        ByteBuffer byteBuffer = Charset.forName("UTF-8").encode(charBuffer);
+        return Arrays.copyOfRange(byteBuffer.array(),
+                byteBuffer.position(), byteBuffer.limit());
     }
 }
