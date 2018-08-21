@@ -133,6 +133,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                     + "Please see the Hive documentation for more details.")
             .required(false)
             .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
@@ -301,7 +302,7 @@ public class PutHive3Streaming extends AbstractProcessor {
         ComponentLog log = getLogger();
         rollbackOnFailure = context.getProperty(ROLLBACK_ON_FAILURE).asBoolean();
 
-        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
+        final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
         // If more than one concurrent task, force 'hcatalog.hive.client.cache.disabled' to true
