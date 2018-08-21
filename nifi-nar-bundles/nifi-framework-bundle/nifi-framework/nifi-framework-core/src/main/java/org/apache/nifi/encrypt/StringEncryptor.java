@@ -273,7 +273,7 @@ public class StringEncryptor {
 
     private boolean passwordIsValid(PBEKeySpec password) {
         try {
-            return password.getPassword() != null;
+            return password.getPassword().length > 0;
         } catch (IllegalStateException | NullPointerException e) {
             return false;
         }
