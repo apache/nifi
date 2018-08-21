@@ -406,7 +406,7 @@ public class StringEncryptor {
         }
     }
 
-    private byte[] decryptPBE(byte[] cipherBytes) throws DecoderException {
+    private byte[] decryptPBE(byte[] cipherBytes) {
         PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
         final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
 
@@ -564,6 +564,11 @@ public class StringEncryptor {
         return Objects.hash(algorithm, provider, encoding, password, key);
     }
 
+    /**
+     * Returns a String containing the {@code algorithm}, {@code provider}, {@code encoding}, and {@code cipherProvider} class name.
+     *
+     * @return a String representation of the object state
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("StringEncryptor using ").append(algorithm)
