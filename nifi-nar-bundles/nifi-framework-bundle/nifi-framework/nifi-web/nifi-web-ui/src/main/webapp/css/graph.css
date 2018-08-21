@@ -400,6 +400,10 @@ g.connection.selected rect.linepoint {
     visibility: visible;
 }
 
+g.connection:not(.selected) rect.linepoint {
+    display : none;
+}
+
 g.connection rect.startpoint {
     stroke: #ff0000;
     fill: #ff0000;
