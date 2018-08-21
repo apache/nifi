@@ -502,16 +502,16 @@ public class StringEncryptor {
 
     /**
      * Returns true if the provided {@code password} and {@code key} match those contained in this {@code StringEncryptor}. This method does <strong>not</strong> compare {@code password == key}.
-     * 
+     * <p>
      * Internally, uses {@link #isPBEKeySpecEqual(PBEKeySpec, PBEKeySpec)} and {@link SecretKeySpec#equals(Object)}.
      *
      * @param otherPassword the password {@link PBEKeySpec}
-     * @param otherKey the key {@link SecretKeySpec}
+     * @param otherKey      the key {@link SecretKeySpec}
      * @return true if the passwords match and the keys match
      */
     private boolean secretsAreEqual(PBEKeySpec otherPassword, SecretKeySpec otherKey) {
         // SecretKeySpec implements null-safe equals(), but PBEKeySpec does not
-       return isPBEKeySpecEqual(this.password, otherPassword) && Objects.equals(this.key, otherKey);
+        return isPBEKeySpecEqual(this.password, otherPassword) && Objects.equals(this.key, otherKey);
     }
 
     /**
@@ -552,7 +552,6 @@ public class StringEncryptor {
             return b == null;
         }
     }
-
 
 
     /**
