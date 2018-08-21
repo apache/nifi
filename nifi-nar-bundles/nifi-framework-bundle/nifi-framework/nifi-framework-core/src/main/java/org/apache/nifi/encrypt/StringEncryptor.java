@@ -477,8 +477,6 @@ public class StringEncryptor {
         return SUPPORTED_PROVIDERS.contains(provider);
     }
 
-    // TODO: Add unit tests for equals, secretsAreEqual, isPBEKeySpecEqual, hashCode, and toString methods
-
     /**
      * Returns {@code true} if the two {@code StringEncryptor} objects are logically equivalent.
      * This requires the same {@code algorithm}, {@code provider}, {@code encoding}, and

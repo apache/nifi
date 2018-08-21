@@ -542,4 +542,73 @@ class StringEncryptorTest {
         // Assert
         assert propertiesEncryptor == DEFAULT_ENCRYPTOR
     }
+
+    @Test
+    void testEquals() throws Exception {
+        // Arrange
+        final StringEncryptor DEFAULT_ENCRYPTOR = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD)
+        logger.info("Created encryptor from constructor using default values: ${DEFAULT_ENCRYPTOR}")
+
+        StringEncryptor identityEncryptor = DEFAULT_ENCRYPTOR
+        logger.info("Created encryptor by assigning identity: ${identityEncryptor}")
+
+        StringEncryptor sameValueEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD)
+        logger.info("Created encryptor from constructor using same values: ${DEFAULT_ENCRYPTOR}")
+
+        // Clone not supported
+//        StringEncryptor cloneEncryptor = DEFAULT_ENCRYPTOR.clone()
+//        logger.info("Created encryptor from cloning default: ${cloneEncryptor}")
+
+        StringEncryptor base64Encryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD)
+        base64Encryptor.setEncoding("BASE64")
+        logger.info("Created encryptor with Base64 encoding: ${base64Encryptor}")
+
+        StringEncryptor algorithmEncryptor = new StringEncryptor("PBEWITHSHAAND128BITAES-CBC-BC", DEFAULT_PROVIDER, DEFAULT_PASSWORD)
+        logger.info("Created encryptor with ${algorithmEncryptor.algorithm} algorithm: ${algorithmEncryptor}")
+
+        StringEncryptor providerEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, "SunJCE", DEFAULT_PASSWORD)
+        logger.info("Created encryptor with ${providerEncryptor.provider} provider: ${providerEncryptor}")
+
+        StringEncryptor passwordEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, DEFAULT_PASSWORD.reverse())
+        logger.info("Created encryptor with ${DEFAULT_PASSWORD.reverse()} password: ${passwordEncryptor}")
+        
+        // Act
+        boolean defaultIsEqual = DEFAULT_ENCRYPTOR.equals(DEFAULT_ENCRYPTOR)
+        logger.info("[${defaultIsEqual.toString().padLeft(5)}]: default == default")
+
+        boolean identityIsEqual = DEFAULT_ENCRYPTOR.equals(identityEncryptor)
+        logger.info("[${identityIsEqual.toString().padLeft(5)}]: default == identity")
+
+        boolean sameValueIsEqual = DEFAULT_ENCRYPTOR.equals(sameValueEncryptor)
+        logger.info("[${sameValueIsEqual.toString().padLeft(5)}]: default == same value")
+        
+//        boolean cloneIsEqual = DEFAULT_ENCRYPTOR.equals(cloneEncryptor)
+//        logger.info("[${cloneIsEqual.toString().padLeft(5)}]: ${DEFAULT_ENCRYPTOR} | ${cloneEncryptor}")
+
+        // Should be unequal
+
+        boolean base64IsEqual = DEFAULT_ENCRYPTOR.equals(base64Encryptor)
+        logger.info("[${base64IsEqual.toString().padLeft(5)}]: default == base64")
+       
+        boolean algorithmIsEqual = DEFAULT_ENCRYPTOR.equals(algorithmEncryptor)
+        logger.info("[${algorithmIsEqual.toString().padLeft(5)}]: default == algorithm")
+       
+        boolean providerIsEqual = DEFAULT_ENCRYPTOR.equals(providerEncryptor)
+        logger.info("[${providerIsEqual.toString().padLeft(5)}]: default == provider")
+       
+        boolean passwordIsEqual = DEFAULT_ENCRYPTOR.equals(passwordEncryptor)
+        logger.info("[${passwordIsEqual.toString().padLeft(5)}]: default == password")
+       
+        
+        // Assert
+        assert defaultIsEqual
+        assert identityIsEqual
+        assert sameValueIsEqual
+//        assert cloneIsEqual
+
+        assert !base64IsEqual
+        assert !algorithmIsEqual
+        assert !providerIsEqual
+        assert !passwordIsEqual
+    }
 }
