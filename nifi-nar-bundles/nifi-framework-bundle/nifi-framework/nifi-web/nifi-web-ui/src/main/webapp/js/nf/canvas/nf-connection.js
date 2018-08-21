@@ -669,7 +669,6 @@
 
                     // create a point for the end
                     var endpointsEntered = endpoints.enter().append('rect')
-                        .call(endpointDrag)
                         .attrs({
                             'class': 'endpoint linepoint',
                             'pointer-events': 'all',
@@ -683,6 +682,7 @@
                             // update URL deep linking params
                             nfCanvasUtils.setURLParameters();
                         })
+                        .call(endpointDrag)
                         .call(nfContextMenu.activate);
 
                     // update the end point
@@ -708,7 +708,6 @@
                             'width': 8,
                             'height': 8
                         })
-                        .call(bendPointDrag)
                         .on('dblclick', function (p) {
                             // stop even propagation
                             d3.event.stopPropagation();
@@ -766,6 +765,7 @@
                             // update URL deep linking params
                             nfCanvasUtils.setURLParameters();
                         })
+                        .call(bendPointDrag)
                         .call(nfContextMenu.activate);
 
                     // update the midpoints
