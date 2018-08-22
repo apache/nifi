@@ -79,7 +79,33 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
 
         // Violates LoD but need to evaluate nested encryptor can decrypt
         def encryptor = election.fingerprintFactory.encryptor
-        String decrypted = encryptor.encrypt(EXPECTED_CIPHERTEXT)
+        String decrypted = encryptor.decrypt(EXPECTED_CIPHERTEXT)
+        logger.info("Decrypted plain text: ${decrypted}")
+        assert decrypted == EXPECTED_PLAINTEXT
+    }
+
+    @Test
+    void testGetObjectShouldPopulateSensitivePropsKeyIfPresent() {
+        // Arrange
+        final String REVERSE_KEY = DEFAULT_SENSITIVE_PROPS_KEY.reverse()
+
+        PopularVoteFlowElectionFactoryBean electionFactoryBean = new PopularVoteFlowElectionFactoryBean()
+        electionFactoryBean.properties = mockProperties([(NiFiProperties.SENSITIVE_PROPS_KEY): REVERSE_KEY])
+
+        final StringEncryptor REVERSE_ENCRYPTOR = new StringEncryptor(EncryptionMethod.MD5_256AES.algorithm, EncryptionMethod.MD5_256AES.provider, REVERSE_KEY)
+        final String EXPECTED_PLAINTEXT = "my.test.value"
+        final String EXPECTED_CIPHERTEXT = REVERSE_ENCRYPTOR.encrypt(EXPECTED_PLAINTEXT)
+        logger.info("Expected ciphertext: ${EXPECTED_CIPHERTEXT}")
+
+        // Act
+        PopularVoteFlowElection election = electionFactoryBean.object
+        logger.info("Got object: ${election}")
+
+        // Assert
+
+        // Violates LoD but need to evaluate nested encryptor can decrypt
+        def encryptor = election.fingerprintFactory.encryptor
+        String decrypted = encryptor.decrypt(EXPECTED_CIPHERTEXT)
         logger.info("Decrypted plain text: ${decrypted}")
         assert decrypted == EXPECTED_PLAINTEXT
     }

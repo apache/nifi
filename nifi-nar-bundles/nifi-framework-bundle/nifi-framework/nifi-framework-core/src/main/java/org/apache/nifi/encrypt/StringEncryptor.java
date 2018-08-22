@@ -227,7 +227,7 @@ public class StringEncryptor {
         logger.error(StringUtils.repeat("*", 80));
         logger.error(centerString("A blank sensitive properties key was provided"));
         logger.error(centerString("Specify a unique key in nifi.properties"));
-        logger.error(centerString("in nifi.sensitive.props.key"));
+        logger.error(centerString("for nifi.sensitive.props.key"));
         logger.error(centerString(""));
         logger.error(centerString("The Encrypt Config Tool in NiFi Toolkit can be used to"));
         logger.error(centerString("migrate the flow to the new key"));
