@@ -305,14 +305,16 @@ public class CryptoUtils {
             return b == null;
         } else {
             // This returns true IFF b != null and the byte[] are equal; if b == null, a is not, and they are not equal
-             return b != null && constantTimeEquals(a.getBytes(StandardCharsets.UTF_8), b.getBytes(StandardCharsets.UTF_8));
+            return b != null && constantTimeEquals(a.getBytes(StandardCharsets.UTF_8), b.getBytes(StandardCharsets.UTF_8));
         }
     }
 
     /**
      * Returns true if the two parameters are equal. This method is null-safe and evaluates the
      * equality in constant-time rather than "short-circuiting" on the first inequality. This
-     * prevents timing attacks (side channel attacks) when comparing passwords or hash values. Does not convert the character arrays to {@code String}s when converting to {@code byte[]} to avoid putting sensitive data in the String pool.
+     * prevents timing attacks (side channel attacks) when comparing passwords or hash values.
+     * Does not convert the character arrays to {@code String}s when converting to {@code byte[]}
+     * to avoid putting sensitive data in the String pool.
      *
      * @param a a char[] to compare
      * @param b a char[] to compare
@@ -320,7 +322,7 @@ public class CryptoUtils {
      */
     public static boolean constantTimeEquals(char[] a, char[] b) {
         return constantTimeEquals(convertCharsToBytes(a), convertCharsToBytes(b));
-        }
+    }
 
 
     /**
@@ -338,6 +340,7 @@ public class CryptoUtils {
 
     /**
      * Returns a {@code byte[]} containing the value of the provided {@code char[]} without using {@code new String(chars).getBytes()} which would put sensitive data (the password) in the String pool.
+     *
      * @param chars the characters to convert
      * @return the byte[]
      */
