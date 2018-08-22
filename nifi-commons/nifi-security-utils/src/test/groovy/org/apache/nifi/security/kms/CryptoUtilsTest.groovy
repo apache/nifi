@@ -488,6 +488,203 @@ class CryptoUtilsTest {
         assert emptyMsg.getMessage() == "The key provider file is not present and readable"
     }
 
+    @Test
+    void testShouldEvaluateConstantTimeEqualsForStrings() {
+        // Arrange
+        String plaintext = "This is a short string."
+        String firstCharOff = "this is a short string."
+        String lastCharOff = "This is a short string,"
+
+        final int ITERATIONS = 10_000
+        final int WARM_UP_ITERATIONS = 1_000 * ITERATIONS
+
+        def scenarios = ["identical": plaintext, "first off": firstCharOff, "last off": lastCharOff]
+        def results = [:]
+        def timings = [:]
+
+        boolean isEqual = true
+        long nanos = 0
+        long scNanos = 0
+
+        // Prepare the JVM
+        (WARM_UP_ITERATIONS).times { int i ->
+            def scIterationNanos = time("warm up sc") {
+                assert plaintext == plaintext
+            }
+            scNanos += scIterationNanos
+            def iterationNanos = time("warm up") {
+                assert CryptoUtils.constantTimeEquals(plaintext, plaintext)
+            }
+            nanos += iterationNanos
+        }
+        logger.info("${"warm up sc".padLeft(10)}: ${nanos} ns (avg: ${nanos / (WARM_UP_ITERATIONS)} ns)")
+        logger.info("${"warm up".padLeft(10)}: ${scNanos} ns (avg: ${scNanos / (WARM_UP_ITERATIONS)} ns)")
+
+        // Act
+        scenarios.each { String scenario, String value ->
+            isEqual = true
+            scNanos = 0
+            nanos = 0
+            ITERATIONS.times { int i ->
+                def scIterationNanos = time(scenario + " sc") {
+                    (plaintext == value)
+                }
+                scNanos += scIterationNanos
+                def iterationNanos = time(scenario) {
+                    isEqual = CryptoUtils.constantTimeEquals(plaintext, value)
+                }
+                nanos += iterationNanos
+            }
+            def scenarioWidth = 16
+            logger.info("${(scenario + " sc").padLeft(scenarioWidth)}: ${scNanos} ns (avg: ${scNanos / ITERATIONS} ns)")
+            logger.info("${scenario.padLeft(scenarioWidth)}: ${nanos} ns (avg: ${nanos / ITERATIONS} ns)")
+            results[scenario] = isEqual
+            timings[scenario] = nanos
+        }
+
+        // Assert
+        assert results["identical"]
+        assert !results["first off"]
+        assert !results["last off"]
+
+        // TODO: Assert timings are within std dev?
+    }
+
+    @Test
+    void testShouldEvaluateConstantTimeEqualsForBytes() {
+        // Arrange
+        String plaintext = "This is a short string."
+        String firstCharOff = "this is a short string."
+        String lastCharOff = "This is a short string,"
+
+        final int ITERATIONS = 10_000
+        final int WARM_UP_ITERATIONS = 1_000 * ITERATIONS
+
+        def scenarios = ["identical": plaintext, "first off": firstCharOff, "last off": lastCharOff]
+        def results = [:]
+        def timings = [:]
+
+        boolean isEqual = true
+        long nanos = 0
+        long scNanos = 0
+
+        // Prepare the JVM
+        byte[] plaintextBytes = plaintext.getBytes("UTF-8")
+        (WARM_UP_ITERATIONS).times { int i ->
+            def scIterationNanos = time("warm up sc") {
+                assert plaintext == plaintext
+            }
+            scNanos += scIterationNanos
+            def iterationNanos = time("warm up") {
+                assert CryptoUtils.constantTimeEquals(plaintextBytes, plaintextBytes)
+            }
+            nanos += iterationNanos
+        }
+        logger.info("${"warm up sc".padLeft(10)}: ${nanos} ns (avg: ${nanos / (WARM_UP_ITERATIONS)} ns)")
+        logger.info("${"warm up".padLeft(10)}: ${scNanos} ns (avg: ${scNanos / (WARM_UP_ITERATIONS)} ns)")
+
+        // Act
+        scenarios.each { String scenario, String value ->
+            isEqual = true
+            scNanos = 0
+            nanos = 0
+            byte[] valueBytes = value.getBytes("UTF-8")
+            ITERATIONS.times { int i ->
+                def scIterationNanos = time(scenario + " sc") {
+                    (plaintextBytes == valueBytes)
+                }
+                scNanos += scIterationNanos
+                def iterationNanos = time(scenario) {
+                    isEqual = CryptoUtils.constantTimeEquals(plaintextBytes, valueBytes)
+                }
+                nanos += iterationNanos
+            }
+            def scenarioWidth = 16
+            logger.info("${(scenario + " sc").padLeft(scenarioWidth)}: ${scNanos} ns (avg: ${scNanos / ITERATIONS} ns)")
+            logger.info("${scenario.padLeft(scenarioWidth)}: ${nanos} ns (avg: ${nanos / ITERATIONS} ns)")
+            results[scenario] = isEqual
+            timings[scenario] = nanos
+        }
+
+        // Assert
+        assert results["identical"]
+        assert !results["first off"]
+        assert !results["last off"]
+
+        // TODO: Assert timings are within std dev?
+    }
+
+    @Test
+    void testShouldEvaluateConstantTimeEqualsForChars() {
+        // Arrange
+        String plaintext = "This is a short string."
+        String firstCharOff = "this is a short string."
+        String lastCharOff = "This is a short string,"
+
+        final int ITERATIONS = 10_000
+        final int WARM_UP_ITERATIONS = 1_000 * ITERATIONS
+
+        def scenarios = ["identical": plaintext, "first off": firstCharOff, "last off": lastCharOff]
+        def results = [:]
+        def timings = [:]
+
+        boolean isEqual = true
+        long nanos = 0
+        long scNanos = 0
+
+        // Prepare the JVM
+        def plaintextChars = plaintext.chars
+        (WARM_UP_ITERATIONS).times { int i ->
+            def scIterationNanos = time("warm up sc") {
+                assert plaintext == plaintext
+            }
+            scNanos += scIterationNanos
+            def iterationNanos = time("warm up") {
+                assert CryptoUtils.constantTimeEquals(plaintextChars, plaintextChars)
+            }
+            nanos += iterationNanos
+        }
+        logger.info("${"warm up sc".padLeft(10)}: ${nanos} ns (avg: ${nanos / (WARM_UP_ITERATIONS)} ns)")
+        logger.info("${"warm up".padLeft(10)}: ${scNanos} ns (avg: ${scNanos / (WARM_UP_ITERATIONS)} ns)")
+
+        // Act
+        scenarios.each { String scenario, String value ->
+            isEqual = true
+            scNanos = 0
+            nanos = 0
+            def valueChars = value.chars
+            ITERATIONS.times { int i ->
+                def scIterationNanos = time(scenario + " sc") {
+                    (plaintextChars == valueChars)
+                }
+                scNanos += scIterationNanos
+                def iterationNanos = time(scenario) {
+                    isEqual = CryptoUtils.constantTimeEquals(plaintextChars, valueChars)
+                }
+                nanos += iterationNanos
+            }
+            def scenarioWidth = 16
+            logger.info("${(scenario + " sc").padLeft(scenarioWidth)}: ${scNanos} ns (avg: ${scNanos / ITERATIONS} ns)")
+            logger.info("${scenario.padLeft(scenarioWidth)}: ${nanos} ns (avg: ${nanos / ITERATIONS} ns)")
+            results[scenario] = isEqual
+            timings[scenario] = nanos
+        }
+
+        // Assert
+        assert results["identical"]
+        assert !results["first off"]
+        assert !results["last off"]
+
+        // TODO: Assert timings are within std dev?
+    }
+
+    private static long time(String name = "closure", Closure closure) {
+        long start = System.nanoTime()
+        closure.run()
+        long end = System.nanoTime()
+        end - start
+    }
+
     private static String generateEncryptedKey(SecretKey masterKey) {
         byte[] ivBytes = new byte[16]
         byte[] keyBytes = new byte[isUnlimitedStrengthCryptoAvailable() ? 32 : 16]

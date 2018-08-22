@@ -291,8 +291,6 @@ public class CryptoUtils {
         return encryptedRepo && keyProviderConfigured;
     }
 
-    // TODO: Add unit tests for constantTimeEquals and convertCharsToBytes methods
-
     /**
      * Returns true if the two parameters are equal. This method is null-safe and evaluates the
      * equality in constant-time rather than "short-circuiting" on the first inequality. This
