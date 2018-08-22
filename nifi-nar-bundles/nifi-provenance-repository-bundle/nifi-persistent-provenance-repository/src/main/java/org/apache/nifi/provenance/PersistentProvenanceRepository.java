@@ -124,6 +124,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This class is now deprecated in favor of {@link WriteAheadProvenanceRepository}.
+ */
+@Deprecated
 public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public static final String EVENT_CATEGORY = "Provenance Repository";

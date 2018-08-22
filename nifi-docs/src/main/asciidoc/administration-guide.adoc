@@ -279,7 +279,7 @@ You can use the following command line options with the `tls-toolkit` in client 
 
 After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
 
-For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`. 
+For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`.
 
 ==== Using An Existing Intermediate Certificate Authority (CA)
 
@@ -288,11 +288,11 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
 . Generate or obtain the signed intermediate CA keys in the following format (see additional commands below):
   * Public certificate in PEM format: `nifi-cert.pem`
   * Private key in PEM format: `nifi-key.key`
-. Place the files in the *toolkit working directory*. This is the directory where the tool is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*. 
-  * For example, given the following scenario, the toolkit command can be run from its location as long as the output directory `-o` is `../hardcoded/`, and the existing `nifi-cert.pem` and `nifi-key.key` will be used.  
-  ** e.g. `$ ./toolkit/bin/tls-toolkit.sh standalone -o ./hardcoded/ -n 'node4.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` will result in a new directory at `./hardcoded/node4.nifi.apache.org` with a keystore and truststore containing a certificate signed by `./hardcoded/nifi-key.key`  
+. Place the files in the *toolkit working directory*. This is the directory where the tool is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*.
+  * For example, given the following scenario, the toolkit command can be run from its location as long as the output directory `-o` is `../hardcoded/`, and the existing `nifi-cert.pem` and `nifi-key.key` will be used.
+  ** e.g. `$ ./toolkit/bin/tls-toolkit.sh standalone -o ./hardcoded/ -n 'node4.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` will result in a new directory at `./hardcoded/node4.nifi.apache.org` with a keystore and truststore containing a certificate signed by `./hardcoded/nifi-key.key`
   * If the `-o` argument is not provided, the default working directory (`.`) must contain `nifi-cert.pem` and `nifi-key.key`
-  ** e.g. `$ cd ./hardcoded/ && ../toolkit/bin/tls-toolkit.sh standalone -n 'node5.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` 
+  ** e.g. `$ cd ./hardcoded/ && ../toolkit/bin/tls-toolkit.sh standalone -n 'node5.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O`
 
 ```
 # Example directory structure *before* commands above are run
@@ -552,19 +552,19 @@ coefficient:
   * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
   * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
 . To convert from PKCS #8 PEM format to PKCS #1 PEM format:
-  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`: 
+  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
   ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
 
 ===== Signing with Externally-signed CA Certificates
 
-To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.). 
+To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.).
 
 To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional-commands>> above):
 
 * `nifi-cert.pem` -- the public certificate of the *intermediate CA* in PEM format
 * `nifi-key.key` -- the Base64-encoded private key of the *intermediate CA* in PKCS #1 PEM format
 
-If the *intermediate CA* was the *root CA*, it would be *self-signed* -- the signature over the certificate would be issued from the same key. In that case (the same as a toolkit-generated CA), no additional arguments are necessary. However, because the *intermediate CA* is signed by the *root CA*, the public certificate of the *root CA* needs to be provided as well to validate the signature. The `--additionalCACertificate` parameter is used to specify the path to the signing public certificate. The value should be the absolute path to the *root CA* public certificate. 
+If the *intermediate CA* was the *root CA*, it would be *self-signed* -- the signature over the certificate would be issued from the same key. In that case (the same as a toolkit-generated CA), no additional arguments are necessary. However, because the *intermediate CA* is signed by the *root CA*, the public certificate of the *root CA* needs to be provided as well to validate the signature. The `--additionalCACertificate` parameter is used to specify the path to the signing public certificate. The value should be the absolute path to the *root CA* public certificate.
 
 Example:
 
@@ -3347,66 +3347,31 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.PersistentProvenanceRepository`.
+|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
 Three additional repositories are available as well.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
-As of Apache NiFi 1.2.0, a third and fourth option are available: `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
-This implementation was created to replace the `PersistentProvenanceRepository`. The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
+A third and fourth option are available: `org.apache.nifi.provenance.PersistentProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
+The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
 Provenance Events as they are generated and providing the ability to iterate over those events sequentially. Later, it was desired to be able to compress the data so that
 more data could be stored. After that, the ability to index and query the data was added. As requirements evolved over time, the repository kept changing without any major
 redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the `PersistentProvenanceRepository` can quickly become a bottleneck.
 The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
-Changing to the `WriteAheadProvenanceRepository` is easy to accomplish, as the two repositories support most of the same properties.
+The `WriteAheadProvenanceRepository` was added in version 1.2.0 of NiFi. Since then, it has proven to be very stable and robust and as such was made the default implementation.
+The `PersistentProvenanceRepository` is now considered deprecated and should no longer be used. If administering an instance of NiFi that is currently using the
+`PersistentProvenanceRepository`, it is highly recommended to upgrade to the `WriteAheadProvenanceRepository`. Doing so is as simple as changing the implementation property value
+from `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository`. Because the Provenance Repository is backward
+compatible, there will be no loss of data or functionality.
+
+The `EncryptedWriteAheadProvenanceRepository` builds upon the `WriteAheadProvenanceRepository` and ensures that data is encrypted at rest.
 
 *NOTE:* The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
 `PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
-the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository. It is therefore
-recommended that before changing the implementation, users ensure that their version of NiFi is stable, in case any issue arises that causes the user to need to roll back to
-a previous version of NiFi that did not support the `WriteAheadProvenanceRepository`. It is for this reason that the default is still set to the `PersistentProvenanceRepository`
-at this time.
+the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository.
 |====
 
-=== Persistent Provenance Repository Properties
-
-|====
-|*Property*|*Description*
-|`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
- +
-*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
- +
-For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
- +
-`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
-`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
- +
-Providing three total locations, including `nifi.provenance.repository.directory.default`.
-|`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
-|`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `1 GB`.
-|`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is `30 secs`.
-|`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
-|`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
-|`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
-	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
-	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
-|`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when rolling it over. The default value is `true`.
-|`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
-|`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.
-|`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable. Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`, `AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
-|`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default. But some good examples to consider are `filename`, `uuid`, and `mime.type` as well as any custom attritubes you might use which are valuable for your use case.
-|`nifi.provenance.repository.index.shard.size`|Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should provide better performance. The default value is `500 MB`.
-|`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
-|====
-
-=== Volatile Provenance Repository Properties
-
-|====
-|*Property*|*Description*
-|`nifi.provenance.repository.buffer.size`|The Provenance Repository buffer size. The default value is `100000` provenance events.
-|====
 
 === Write Ahead Provenance Repository Properties
 
@@ -3452,7 +3417,7 @@ Providing three total locations, including `nifi.provenance.repository.directory
 	become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
 	provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
 	For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
-	will be destroyed as well.
+	will be destroyed as well. *Note:* this value should be smaller than (no more than half of) the `nifi.provenance.repository.max.storage.size` property.
 |`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository.
 	If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
 |`nifi.provenance.repository.concurrent.merge.threads`|Apache Lucene creates several "segments" in an Index. These segments are periodically merged together in order to provide faster
@@ -3496,6 +3461,46 @@ nifi.provenance.repository.encryption.key.provider.location=
 nifi.provenance.repository.encryption.key.id=Key1
 nifi.provenance.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ....
+
+
+=== Persistent Provenance Repository Properties
+
+|====
+|*Property*|*Description*
+|`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
+ +
+*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
+ +
+For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
+ +
+`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
+`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
+ +
+Providing three total locations, including `nifi.provenance.repository.directory.default`.
+|`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
+|`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time. The default value is `1 GB`.
+|`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is `30 secs`.
+|`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
+|`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
+|`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
+	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
+	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
+	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
+|`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when rolling it over. The default value is `true`.
+|`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+|`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.
+|`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable. Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`, `AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
+|`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default. But some good examples to consider are `filename`, `uuid`, and `mime.type` as well as any custom attritubes you might use which are valuable for your use case.
+|`nifi.provenance.repository.index.shard.size`|Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should provide better performance. The default value is `500 MB`.
+|`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
+|====
+
+=== Volatile Provenance Repository Properties
+
+|====
+|*Property*|*Description*
+|`nifi.provenance.repository.buffer.size`|The Provenance Repository buffer size. The default value is `100000` provenance events.
+|====
 
 
 === Component Status Repository
