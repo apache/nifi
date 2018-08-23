@@ -50,7 +50,7 @@ import java.util.UUID;
 
 public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private static final Logger logger = LoggerFactory.getLogger(LengthDelimitedJournal.class);
-    private static final int DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES = 1024 * 1024; // 1 MB
+    private static final int DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES = 5 * 1024 * 1024; // 5 MB
 
     private static final JournalSummary INACTIVE_JOURNAL_SUMMARY = new StandardJournalSummary(-1L, -1L, 0);
     private static final int JOURNAL_ENCODING_VERSION = 1;
@@ -105,6 +105,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
             if (overflowFiles == null) {
                 logger.warn("Unable to obtain listing of files that exist in 'overflow directory' " + overflowDirectory
                     + " - this directory and any files within it can now be safely removed manually");
+                return;
             }
 
             for (final File overflowFile : overflowFiles) {
@@ -230,46 +231,58 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         checkState();
 
         File overflowFile = null;
-        FileOutputStream overflowFileOut = null;
-
         final ByteArrayDataOutputStream bados = streamPool.borrowObject();
+
         try {
-            DataOutputStream dataOut = bados.getDataOutputStream();
-            for (final T record : records) {
-                final Object recordId = serde.getRecordIdentifier(record);
-                final T previousRecordState = recordLookup.lookup(recordId);
-                serde.serializeEdit(previousRecordState, record, dataOut);
+            FileOutputStream overflowFileOut = null;
 
-                final int size = bados.getByteArrayOutputStream().size();
-                if (serde.isWriteExternalFileReferenceSupported() && size > maxInHeapSerializationBytes) {
-                    if (!overflowDirectory.exists()) {
-                        Files.createDirectory(overflowDirectory.toPath());
+            try {
+                DataOutputStream dataOut = bados.getDataOutputStream();
+                for (final T record : records) {
+                    final Object recordId = serde.getRecordIdentifier(record);
+                    final T previousRecordState = recordLookup.lookup(recordId);
+                    serde.serializeEdit(previousRecordState, record, dataOut);
+
+                    final int size = bados.getByteArrayOutputStream().size();
+                    if (serde.isWriteExternalFileReferenceSupported() && size > maxInHeapSerializationBytes) {
+                        if (!overflowDirectory.exists()) {
+                            Files.createDirectory(overflowDirectory.toPath());
+                        }
+
+                        // If we have exceeded our threshold for how much to serialize in memory,
+                        // flush the in-memory representation to an 'overflow file' and then update
+                        // the Data Output Stream that is used to write to the file also.
+                        overflowFile = new File(overflowDirectory, UUID.randomUUID().toString());
+
+                        overflowFileOut = new FileOutputStream(overflowFile);
+                        bados.getByteArrayOutputStream().writeTo(overflowFileOut);
+                        bados.getByteArrayOutputStream().reset();
+
+                        // change dataOut to point to the File's Output Stream so that all subsequent records are written to the file.
+                        dataOut = new DataOutputStream(new BufferedOutputStream(overflowFileOut));
+
+                        // We now need to write to the ByteArrayOutputStream a pointer to the overflow file
+                        // so that what is written to the actual journal is that pointer.
+                        serde.writeExternalFileReference(overflowFile, bados.getDataOutputStream());
                     }
-
-                    // If we have exceeded our threshold for how much to serialize in memory,
-                    // flush the in-memory representation to an 'overflow file' and then update
-                    // the Data Output Stream that is used to write to the file also.
-                    overflowFile = new File(overflowDirectory, UUID.randomUUID().toString());
-
-                    overflowFileOut = new FileOutputStream(overflowFile);
-                    bados.getByteArrayOutputStream().writeTo(overflowFileOut);
-                    bados.getByteArrayOutputStream().reset();
-
-                    dataOut = new DataOutputStream(new BufferedOutputStream(overflowFileOut));
-
-                    // We now need to write to the ByteArrayOutputStream a pointer to the overflow file
-                    // so that what is written to the actual journal is that pointer.
-                    serde.writeExternalFileReference(overflowFile, bados.getDataOutputStream());
                 }
-            }
 
-            dataOut.flush();
+                dataOut.flush();
 
-            // If we overflowed to an external file, we need to be sure that we sync to disk before
-            // updating the Journal. Otherwise, we could get to a state where the Journal was flushed to disk without the
-            // external file being flushed. This would result in a missed update to the FlowFile Repository.
-            if (overflowFileOut != null) {
-                overflowFileOut.getFD().sync();
+                // If we overflowed to an external file, we need to be sure that we sync to disk before
+                // updating the Journal. Otherwise, we could get to a state where the Journal was flushed to disk without the
+                // external file being flushed. This would result in a missed update to the FlowFile Repository.
+                if (overflowFileOut != null) {
+                    overflowFileOut.getFD().sync();
+                }
+            } finally {
+                if (overflowFileOut != null) {
+                    try {
+                        overflowFileOut.close();
+                    } catch (final Exception e) {
+                        logger.warn("Failed to close open file handle to overflow file {}", overflowFile, e);
+                    }
+                }
             }
 
             final ByteArrayOutputStream baos = bados.getByteArrayOutputStream();

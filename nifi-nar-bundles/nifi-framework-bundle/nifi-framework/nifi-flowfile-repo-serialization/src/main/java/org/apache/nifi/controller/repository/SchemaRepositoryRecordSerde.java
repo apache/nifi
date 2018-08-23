@@ -125,9 +125,9 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     @Override
     public RepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         if (recordIterator != null) {
-            final Record record = recordIterator.next();
+            final RepositoryRecord record = nextRecord();
             if (record != null) {
-                return createRepositoryRecord(record);
+                return record;
             }
 
             recordIterator.close();
@@ -138,7 +138,23 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
             return null;
         }
 
-        final Record record = recordIterator.next();
+        return nextRecord();
+    }
+
+    private RepositoryRecord nextRecord() throws IOException {
+        final Record record;
+        try {
+            record = recordIterator.next();
+        } catch (final Exception e) {
+            recordIterator.close();
+            recordIterator = null;
+            throw e;
+        }
+
+        if (record == null) {
+            return null;
+        }
+
         return createRepositoryRecord(record);
     }
 
