@@ -892,6 +892,7 @@ The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you c
 |`Initial Admin Identity` | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
 |`Legacy Authorized Users File` | The full path to an existing _authorized-users.xml_ that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
 |`Node Identity` | The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered these properties can be ignored. The name of each property must be unique, for example for a three node cluster: "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
+|`Node Group` | The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically added/removed from the cluster.
 
 |==================================================================================================================================================
 

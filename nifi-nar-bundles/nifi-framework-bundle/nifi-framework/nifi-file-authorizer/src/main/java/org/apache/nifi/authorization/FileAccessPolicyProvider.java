@@ -114,6 +114,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     static final String WRITE_CODE = "W";
 
     static final String PROP_NODE_IDENTITY_PREFIX = "Node Identity ";
+    static final String PROP_NODE_GROUP_NAME = "Node Group";
     static final String PROP_USER_GROUP_PROVIDER = "User Group Provider";
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
@@ -128,6 +129,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
+    private String nodeGroupIdentifier;
     private List<PortDTO> ports = new ArrayList<>();
     private List<IdentityMapping> identityMappings;
     private List<IdentityMapping> groupMappings;
@@ -219,6 +221,27 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                     final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
                     nodeIdentities.add(mappedNodeIdentity);
                     logger.info("Added mapped node {} (raw node identity {})", new Object[]{mappedNodeIdentity, entry.getValue()});
+                }
+            }
+
+            // read node group name
+            PropertyValue nodeGroupNameProp = configurationContext.getProperty(PROP_NODE_GROUP_NAME);
+            String nodeGroupName = (nodeGroupNameProp != null && nodeGroupNameProp.isSet()) ? nodeGroupNameProp.getValue() : null;
+
+            // look up node group identifier using node group name
+            nodeGroupIdentifier = null;
+
+            if (nodeGroupName != null) {
+                for (Group group : userGroupProvider.getGroups()) {
+                    if (group.getName().equals(nodeGroupName)) {
+                        nodeGroupIdentifier = group.getIdentifier();
+                        break;
+                    }
+                }
+
+                if (nodeGroupIdentifier == null) {
+                    throw new AuthorizerCreationException(String.format(
+                            "Authorizations node group '%s' could not be found", nodeGroupName));
                 }
             }
 
@@ -604,12 +627,12 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      * @param authorizations the overall authorizations
      */
     private void populateNodes(Authorizations authorizations) {
+        // authorize static nodes
         for (String nodeIdentity : nodeIdentities) {
             final User node = userGroupProvider.getUserByIdentity(nodeIdentity);
             if (node == null) {
                 throw new AuthorizerCreationException("Unable to locate node " + nodeIdentity + " to seed policies.");
             }
-
             // grant access to the proxy resource
             addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
 
@@ -617,6 +640,16 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             if (rootGroupId != null) {
                 addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), READ_CODE);
                 addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), WRITE_CODE);
+            }
+        }
+
+        // authorize dynamic nodes (node group)
+        if (nodeGroupIdentifier != null) {
+            addGroupToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), nodeGroupIdentifier, WRITE_CODE);
+
+            if (rootGroupId != null) {
+                addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, nodeGroupIdentifier, READ_CODE);
+                addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, nodeGroupIdentifier, WRITE_CODE);
             }
         }
     }
@@ -808,6 +841,52 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             Policy.User policyUser = new Policy.User();
             policyUser.setIdentifier(userIdentifier);
             foundPolicy.getUser().add(policyUser);
+        }
+    }
+
+    /**
+     * Creates and adds an access policy for the given resource, group identity, and actions to the specified authorizations.
+     *
+     * @param authorizations the Authorizations instance to add the policy to
+     * @param resource       the resource for the policy
+     * @param groupIdentifier the identifier for the group to add to the policy
+     * @param action         the action for the policy
+     */
+    private void addGroupToAccessPolicy(final Authorizations authorizations, final String resource, final String groupIdentifier, final String action) {
+        // first try to find an existing policy for the given resource and action
+        Policy foundPolicy = null;
+        for (Policy policy : authorizations.getPolicies().getPolicy()) {
+            if (policy.getResource().equals(resource) && policy.getAction().equals(action)) {
+                foundPolicy = policy;
+                break;
+            }
+        }
+
+        if (foundPolicy == null) {
+            // if we didn't find an existing policy create a new one
+            final String uuidSeed = resource + action;
+
+            final AccessPolicy.Builder builder = new AccessPolicy.Builder()
+                    .identifierGenerateFromSeed(uuidSeed)
+                    .resource(resource)
+                    .addGroup(groupIdentifier);
+
+            if (action.equals(READ_CODE)) {
+                builder.action(RequestAction.READ);
+            } else if (action.equals(WRITE_CODE)) {
+                builder.action(RequestAction.WRITE);
+            } else {
+                throw new IllegalStateException("Unknown Policy Action: " + action);
+            }
+
+            final AccessPolicy accessPolicy = builder.build();
+            final Policy jaxbPolicy = createJAXBPolicy(accessPolicy);
+            authorizations.getPolicies().getPolicy().add(jaxbPolicy);
+        } else {
+            // otherwise add the user to the existing policy
+            Policy.Group policyGroup = new Policy.Group();
+            policyGroup.setIdentifier(groupIdentifier);
+            foundPolicy.getGroup().add(policyGroup);
         }
     }
 
