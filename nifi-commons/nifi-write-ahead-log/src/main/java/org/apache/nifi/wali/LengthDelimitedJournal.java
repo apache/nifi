@@ -253,6 +253,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                         // flush the in-memory representation to an 'overflow file' and then update
                         // the Data Output Stream that is used to write to the file also.
                         overflowFile = new File(overflowDirectory, UUID.randomUUID().toString());
+                        logger.debug("Length of update with {} records exceeds in-memory max of {} bytes. Overflowing to {}", records.size(), maxInHeapSerializationBytes, overflowFile);
 
                         overflowFileOut = new FileOutputStream(overflowFile);
                         bados.getByteArrayOutputStream().writeTo(overflowFileOut);
@@ -273,6 +274,10 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                 // updating the Journal. Otherwise, we could get to a state where the Journal was flushed to disk without the
                 // external file being flushed. This would result in a missed update to the FlowFile Repository.
                 if (overflowFileOut != null) {
+                    if (logger.isDebugEnabled()) { // avoid calling File.length() if not necessary
+                        logger.debug("Length of update to overflow file is {} bytes", overflowFile.length());
+                    }
+
                     overflowFileOut.getFD().sync();
                 }
             } finally {
@@ -439,7 +444,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     final ByteCountingInputStream transactionByteCountingIn = new ByteCountingInputStream(transactionLimitingIn);
                     final DataInputStream transactionDis = new DataInputStream(transactionByteCountingIn);
 
-                    while (transactionByteCountingIn.getBytesConsumed() < transactionLength) {
+                    while (transactionByteCountingIn.getBytesConsumed() < transactionLength || serde.isMoreInExternalFile()) {
                         final T record = serde.deserializeEdit(transactionDis, recordMap, serdeAndVersion.getVersion());
 
                         // Update our RecordMap so that we have the most up-to-date version of the Record.

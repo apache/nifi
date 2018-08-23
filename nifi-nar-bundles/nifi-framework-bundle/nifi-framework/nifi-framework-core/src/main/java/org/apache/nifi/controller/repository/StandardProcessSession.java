@@ -99,6 +99,11 @@ import java.util.stream.Collectors;
  * <p/>
  */
 public final class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
+    private static final int SOURCE_EVENT_BIT_INDEXES = (1 << ProvenanceEventType.CREATE.ordinal())
+        | (1 << ProvenanceEventType.FORK.ordinal())
+        | (1 << ProvenanceEventType.JOIN.ordinal())
+        | (1 << ProvenanceEventType.RECEIVE.ordinal())
+        | (1 << ProvenanceEventType.FETCH.ordinal());
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
@@ -379,11 +384,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                         decrementClaimCount(record.getOriginalClaim());
                     }
 
-                    final FlowFileRecord flowFile = record.getCurrent();
-                    final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-                    final Connectable connectable = context.getConnectable();
-                    final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-                    LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
+                    if (LOG.isInfoEnabled()) {
+                        final FlowFileRecord flowFile = record.getCurrent();
+                        final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
+                        final Connectable connectable = context.getConnectable();
+                        final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
+                        LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
+                    }
                 } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
                     // records which have been updated - remove original if exists
                     decrementClaimCount(record.getOriginalClaim());
@@ -544,10 +551,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             flowFileEvent.setFlowFilesSent(flowFilesSent);
             flowFileEvent.setBytesSent(bytesSent);
 
+            final long now = System.currentTimeMillis();
             long lineageMillis = 0L;
             for (final StandardRepositoryRecord record : checkpoint.records.values()) {
                 final FlowFile flowFile = record.getCurrent();
-                final long lineageDuration = System.currentTimeMillis() - flowFile.getLineageStartDate();
+                final long lineageDuration = now - flowFile.getLineageStartDate();
                 lineageMillis += lineageDuration;
             }
             flowFileEvent.setAggregateLineageMillis(lineageMillis);
@@ -566,13 +574,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private Map<String, Long> combineCounters(final Map<String, Long> first, final Map<String, Long> second) {
-        if (first == null && second == null) {
+        final boolean firstEmpty = first == null || first.isEmpty();
+        final boolean secondEmpty = second == null || second.isEmpty();
+
+        if (firstEmpty && secondEmpty) {
             return null;
         }
-        if (first == null) {
+        if (firstEmpty) {
             return second;
         }
-        if (second == null) {
+        if (secondEmpty) {
             return first;
         }
 
@@ -699,6 +710,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                         || registeredTypes.get(ProvenanceEventType.JOIN.ordinal())
                         || registeredTypes.get(ProvenanceEventType.RECEIVE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.FETCH.ordinal())) {
+
                         creationEventRegistered = true;
                     }
                 }

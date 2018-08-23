@@ -23,4 +23,6 @@ public interface RecordIterator extends Closeable {
 
     Record next() throws IOException;
 
+    boolean isNext() throws IOException;
+
 }

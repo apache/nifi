@@ -121,6 +121,11 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
         }
     }
 
+    @Override
+    public boolean isMoreInExternalFile() {
+        return externalRecords != null && !externalRecords.isEmpty();
+    }
+
     private DummyRecord deserializeRecordInline(final DataInputStream in, final int version, final boolean expectInlineRecordIndicator) throws IOException {
         if (expectInlineRecordIndicator) {
             final int locationIndicator = in.read();

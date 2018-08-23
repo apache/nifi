@@ -109,19 +109,19 @@ public class SchemaRecordReader {
         final FileInputStream fis = new FileInputStream(externalFile);
         final InputStream bufferedIn = new BufferedInputStream(fis);
 
-        final List<RecordField> schemaFields = schema.getFields();
-
         final RecordIterator recordIterator = new RecordIterator() {
             @Override
             public Record next() throws IOException {
-                final Map<RecordField, Object> fields = new HashMap<>(schemaFields.size());
+                return readRecord(bufferedIn);
+            }
 
-                for (final RecordField field : schema.getFields()) {
-                    final Object value = readField(bufferedIn, field);
-                    fields.put(field, value);
-                }
+            @Override
+            public boolean isNext() throws IOException {
+                bufferedIn.mark(1);
+                final int nextByte = bufferedIn.read();
+                bufferedIn.reset();
 
-                return new FieldMapRecord(fields, schema);
+                return (nextByte > -1);
             }
 
             @Override

@@ -80,6 +80,35 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     @Test
+    public void testUpdateWithExternalFileFollowedByInlineUpdate() throws IOException {
+        final DummyRecordSerde serde = new DummyRecordSerde();
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(serde);
+
+        final List<DummyRecord> records = new ArrayList<>();
+        for (int i = 0; i < 350_000; i++) {
+            final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+            records.add(record);
+        }
+
+        repo.update(records, false);
+
+        final DummyRecord subsequentRecord = new DummyRecord("350001", UpdateType.CREATE);
+        repo.update(Collections.singleton(subsequentRecord), false);
+        repo.shutdown();
+
+        assertEquals(1, serde.getExternalFileReferences().size());
+
+        final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo();
+        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+
+        // ensure that we get the same records back, but the order may be different, so wrap both collections
+        // in a HashSet so that we can compare unordered collections of the same type.
+        final Set<DummyRecord> expectedRecords = new HashSet<>(records);
+        expectedRecords.add(subsequentRecord);
+        assertEquals(expectedRecords, new HashSet<>(recovered));
+    }
+
+    @Test
     public void testRecoverWithNoCheckpoint() throws IOException {
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo();
 

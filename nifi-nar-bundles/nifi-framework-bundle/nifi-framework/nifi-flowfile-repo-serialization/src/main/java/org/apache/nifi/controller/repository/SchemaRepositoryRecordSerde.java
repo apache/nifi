@@ -292,4 +292,9 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
     public void writeExternalFileReference(final File externalFile, final DataOutputStream out) throws IOException {
         new SchemaRecordWriter().writeExternalFileReference(out, externalFile);
     }
+
+    @Override
+    public boolean isMoreInExternalFile() throws IOException {
+        return recordIterator != null && recordIterator.isNext();
+    }
 }

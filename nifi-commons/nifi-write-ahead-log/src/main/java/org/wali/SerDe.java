@@ -174,4 +174,15 @@ public interface SerDe<T> {
     default boolean isWriteExternalFileReferenceSupported() {
         return false;
     }
+
+    /**
+     * If the last call to read data from this SerDe resulted in data being read from an External File, and there is more data in that External File,
+     * then this method will return <code>true</code>. Otherwise, it will return <code>false</code>.
+     *
+     * @return <code>true</code> if more data available in External File, <code>false</code> otherwise.
+     * @throws IOException if unable to read from External File to determine data availability
+     */
+    default boolean isMoreInExternalFile() throws IOException {
+        return false;
+    }
 }

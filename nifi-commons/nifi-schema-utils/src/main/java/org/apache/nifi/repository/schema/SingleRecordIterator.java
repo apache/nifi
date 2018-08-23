@@ -37,4 +37,9 @@ public class SingleRecordIterator implements RecordIterator {
     @Override
     public void close() {
     }
+
+    @Override
+    public boolean isNext() {
+        return !consumed;
+    }
 }
