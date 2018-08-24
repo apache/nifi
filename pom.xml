@@ -706,6 +706,33 @@
                 </pluginManagement>
             </build>
         </profile>
+	<profile>
+		<!-- Maven Plugin that uses dependency-check-core to detect publicly disclosed
+			vulnerabilities associated with the project's dependencies. The plugin will
+			generate a report listing the dependency, any identified Common Platform
+			Enumeration (CPE) identifiers, and the associated Common Vulnerability and
+			Exposure (CVE) entries. -->
+		<id>owasp</id>
+		<build>
+			<plugins>
+				<plugin>
+					<groupId>org.owasp</groupId>
+					<artifactId>dependency-check-maven</artifactId>
+					<version>3.3.1</version>
+					<configuration>
+						<nspAnalyzerEnabled>false</nspAnalyzerEnabled>
+					</configuration>
+					<executions>
+						<execution>
+							<goals>
+								<goal>aggregate</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</build>
+	</profile>
         <!-- The following profiles are here as a convenience for folks that 
             want to build against vendor-specific distributions of the various Hadoop 
             ecosystem libraries. These will alter which dependencies are sourced in a 
