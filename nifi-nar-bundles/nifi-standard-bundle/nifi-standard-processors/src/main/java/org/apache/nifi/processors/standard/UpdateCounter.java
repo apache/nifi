@@ -100,6 +100,10 @@ public class UpdateCounter extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
         session.adjustCounter(context.getProperty(COUNTER_NAME).evaluateAttributeExpressions(flowFile).getValue(),
                 Long.parseLong(context.getProperty(DELTA).evaluateAttributeExpressions(flowFile).getValue()),
                 false
