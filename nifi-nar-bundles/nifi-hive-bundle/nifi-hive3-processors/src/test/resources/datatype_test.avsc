@@ -21,6 +21,8 @@
  "fields": [
   {"name": "uuid", "type": "string"},
   {"name": "stringc", "type": "string"},
+  {"name": "charc", "type": "string"},
+  {"name": "varcharc", "type": "string"},
   {"name": "intc", "type": "int"},
   {"name": "tinyintc", "type": ["null", "int"]},
   {"name": "smallintc", "type": "int"},
@@ -28,12 +30,17 @@
   {"name": "booleanc", "type": "boolean"},
   {"name": "floatc", "type": "float"},
   {"name": "doublec", "type": "double"},
+  {"name": "bytesc", "type": "bytes"},
   {"name": "listc", "type": ["null", {"type": "array", "items": "string"}]},
   {"name": "structc", "type": ["null", {"name": "structcRecord", "type": "record", "fields": [
 	{"name": "sint", "type": "int"},
 	{"name": "sboolean", "type": ["null","boolean"]},
     {"name": "sstring", "type": "string"}
    ]}]},
+  {"name": "mapc", "type": ["null", {"name": "mapType", "type": "map", "values": "string"}]},
+  {"name": "datec","type": {"type": "int","logicalType": "date"}},
+  {"name": "timestampc","type": {"type": "long","logicalType": "timestamp-millis"}},
+  {"name": "decimalc", "type": {"type": "bytes", "logicalType": "decimal", "precision": 4, "scale": 2}},
   {"name": "enumc", "type": {"type": "enum", "name": "Suit", "symbols": ["SPADES","HEARTS","DIAMONDS","CLUBS"]}}
  ]
 }
