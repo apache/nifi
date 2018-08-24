@@ -173,7 +173,7 @@
             return false;
         }
 
-        if (nfCanvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canOperate(selection) === false) {
             return false;
         }
 
@@ -639,7 +639,7 @@
      * @param {selection} selection
      */
     var canStartTransmission = function (selection) {
-        if (nfCanvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canOperate(selection) === false) {
             return false;
         }
 
@@ -652,7 +652,7 @@
      * @param {selection} selection
      */
     var canStopTransmission = function (selection) {
-        if (nfCanvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canOperate(selection) === false) {
             return false;
         }
 

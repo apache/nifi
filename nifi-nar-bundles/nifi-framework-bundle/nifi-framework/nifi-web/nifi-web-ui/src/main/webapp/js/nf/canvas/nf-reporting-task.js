@@ -247,22 +247,22 @@
         var entity = {
             'revision': nfClient.getRevision(reportingTaskEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'component': {
-                'id': reportingTaskEntity.id,
-                'state': running === true ? 'RUNNING' : 'STOPPED'
-            }
+            'state': running === true ? 'RUNNING' : 'STOPPED'
         };
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTaskEntity.uri,
+            url: reportingTaskEntity.uri + '/run-status',
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
             // update the task
             renderReportingTask(response);
-            nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            // component can be null if the user only has 'operate' permission without 'read'.
+            if (nfCommon.isDefinedAndNotNull(response.component)) {
+                nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 

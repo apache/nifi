@@ -1109,7 +1109,7 @@
                 return true;
             }
 
-            if (nfCanvasUtils.canModify(selection) === false) {
+            if (nfCanvasUtils.canOperate(selection) === false) {
                 return false;
             }
 
@@ -1159,7 +1159,7 @@
                 return true;
             }
 
-            if (nfCanvasUtils.canModify(selection) === false) {
+            if (nfCanvasUtils.canOperate(selection) === false) {
                 return false;
             }
 
@@ -1188,7 +1188,7 @@
                 }
 
                 // not a PG, verify permissions to modify
-                if (nfCanvasUtils.canModify(selected) === false) {
+                if (nfCanvasUtils.canOperate(selected) === false) {
                     return false;
                 }
 
@@ -1227,7 +1227,7 @@
                 }
 
                 // not a PG, verify permissions to modify
-                if (nfCanvasUtils.canModify(selected) === false) {
+                if (nfCanvasUtils.canOperate(selected) === false) {
                     return false;
                 }
 
@@ -1282,7 +1282,8 @@
                 return false;
             }
 
-            if (nfCanvasUtils.canModify(selection) === false || nfCanvasUtils.canRead(selection) === false) {
+            if ((nfCanvasUtils.canModify(selection) === false || nfCanvasUtils.canRead(selection) === false)
+                    && nfCanvasUtils.canOperate(selection) === false) {
                 return false;
             }
 
@@ -1319,7 +1320,8 @@
                 return false;
             }
 
-            if (nfCanvasUtils.canModify(selection) === false || nfCanvasUtils.canRead(selection) === false) {
+            if ((nfCanvasUtils.canModify(selection) === false || nfCanvasUtils.canRead(selection) === false)
+                    && nfCanvasUtils.canOperate(selection) === false) {
                 return false;
             }
 
@@ -1470,6 +1472,21 @@
             }).size();
 
             return selectionSize === readableSize;
+        },
+
+        /**
+         * Determines whether the components in the specified selection can be operated.
+         *
+         * @argument {selection} selection      The selection
+         * @return {boolean}            Whether the selection can be operated
+         */
+        canOperate: function (selection) {
+            var selectionSize = selection.size();
+            var writableSize = selection.filter(function (d) {
+                return d.permissions.canWrite || (d.operatePermissions && d.operatePermissions.canWrite);
+            }).size();
+
+            return selectionSize === writableSize;
         },
 
         /**

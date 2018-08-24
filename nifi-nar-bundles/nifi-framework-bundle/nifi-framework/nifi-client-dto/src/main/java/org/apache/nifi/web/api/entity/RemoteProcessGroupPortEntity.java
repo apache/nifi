@@ -18,15 +18,18 @@ package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupPortDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupPortEntity")
-public class RemoteProcessGroupPortEntity extends ComponentEntity {
+public class RemoteProcessGroupPortEntity extends ComponentEntity implements OperationPermissible {
 
     private RemoteProcessGroupPortDTO remoteProcessGroupPort;
+    private PermissionsDTO operatePermissions;
 
     /**
      * The RemoteProcessGroupPortDTO that is being serialized.
@@ -41,4 +44,19 @@ public class RemoteProcessGroupPortEntity extends ComponentEntity {
         this.remoteProcessGroupPort = remoteProcessGroupPort;
     }
 
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO operatePermissions) {
+        this.operatePermissions = operatePermissions;
+    }
 }
