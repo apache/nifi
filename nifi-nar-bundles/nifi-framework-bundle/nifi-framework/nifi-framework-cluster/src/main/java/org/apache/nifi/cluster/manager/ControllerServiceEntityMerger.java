@@ -128,7 +128,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
 
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
-        final Map<String, PermissionsDTO> canReads = new HashMap<>();
+        final Map<String, PermissionsDTO> permissionsHolder = new HashMap<>();
+        final Map<String, PermissionsDTO> operatePermissionsHolder = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeEntry : referencingComponentMap.entrySet()) {
             final Set<ControllerServiceReferencingComponentEntity> nodeReferencingComponents = nodeEntry.getValue();
 
@@ -137,7 +138,9 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                 for (final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity : nodeReferencingComponents) {
                     final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getComponent();
 
-                    if (nodeReferencingComponentEntity.getPermissions().getCanRead()) {
+                    final Boolean canRead = nodeReferencingComponentEntity.getPermissions().getCanRead();
+                    final Boolean canOperate = nodeReferencingComponentEntity.getOperatePermissions().getCanWrite();
+                    if (canRead || canOperate) {
                         // handle active thread counts
                         if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
                             final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
@@ -160,15 +163,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     }
 
                     // handle read permissions
-                    final PermissionsDTO mergedPermissions = canReads.get(nodeReferencingComponentEntity.getId());
-                    final PermissionsDTO permissions = nodeReferencingComponentEntity.getPermissions();
-                    if (permissions != null) {
-                        if (mergedPermissions == null) {
-                            canReads.put(nodeReferencingComponentEntity.getId(), permissions);
-                        } else {
-                            PermissionsDtoMerger.mergePermissions(mergedPermissions, permissions);
-                        }
-                    }
+                    mergePermissions(permissionsHolder, nodeReferencingComponentEntity, nodeReferencingComponentEntity.getPermissions());
+                    mergePermissions(operatePermissionsHolder, nodeReferencingComponentEntity, nodeReferencingComponentEntity.getOperatePermissions());
                 }
             }
         }
@@ -176,8 +172,9 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         // go through each referencing components
         if (referencingComponents != null) {
             for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
-                final PermissionsDTO permissions = canReads.get(referencingComponent.getId());
-                if (permissions != null && permissions.getCanRead() != null && permissions.getCanRead()) {
+                final PermissionsDTO permissions = permissionsHolder.get(referencingComponent.getId());
+                final PermissionsDTO operatePermissions = operatePermissionsHolder.get(referencingComponent.getId());
+                if (safeCanRead(permissions) || safeCanRead(operatePermissions)) {
                     final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
                     if (activeThreadCount != null) {
                         referencingComponent.getComponent().setActiveThreadCount(activeThreadCount);
@@ -203,10 +200,26 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     mergeControllerServiceReferencingComponent(referencingComponent, nodeEntities);
                 } else {
                     referencingComponent.setPermissions(permissions);
+                    referencingComponent.setOperatePermissions(operatePermissions);
                     referencingComponent.setComponent(null);
                 }
             }
         }
+    }
+
+    private static void mergePermissions(Map<String, PermissionsDTO> permissionsHolder, ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity, PermissionsDTO permissions) {
+        final PermissionsDTO mergedPermissions = permissionsHolder.get(nodeReferencingComponentEntity.getId());
+        if (permissions != null) {
+            if (mergedPermissions == null) {
+                permissionsHolder.put(nodeReferencingComponentEntity.getId(), permissions);
+            } else {
+                PermissionsDtoMerger.mergePermissions(mergedPermissions, permissions);
+            }
+        }
+    }
+
+    private static boolean safeCanRead(PermissionsDTO permissions) {
+        return permissions != null && permissions.getCanRead() != null && permissions.getCanRead();
     }
 
     private static void mergeControllerServiceReferencingComponent(ControllerServiceReferencingComponentEntity clientEntity, Map<NodeIdentifier,
@@ -219,10 +232,18 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         for (Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerServiceReferencingComponentEntity nodeEntity = entry.getValue();
-            nodeEntity.getComponent().getDescriptors().values().stream().forEach(propertyDescriptor -> {
-                propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
-            });
-            nodeReferencingComponentsMap.put(nodeIdentifier, nodeEntity.getComponent().getReferencingComponents());
+            final ControllerServiceReferencingComponentDTO nodeComponent = nodeEntity.getComponent();
+            if (nodeComponent == null) {
+                continue;
+            }
+
+            if (nodeComponent.getDescriptors() != null) {
+                nodeComponent.getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                    propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
+                });
+            }
+
+            nodeReferencingComponentsMap.put(nodeIdentifier, nodeComponent.getReferencingComponents());
         }
 
         // merge property descriptors

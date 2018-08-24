@@ -300,7 +300,10 @@
         var remoteProcessGroup = d3.select('#id-' + remoteProcessGroupId);
 
         // if can modify, support updating the remote group port
-        if (nfCanvasUtils.canModify(remoteProcessGroup)) {
+        var canModify = nfCanvasUtils.canModify(remoteProcessGroup);
+        var canOperate = nfCanvasUtils.canOperate(remoteProcessGroup);
+        var canRead = nfCanvasUtils.canRead(remoteProcessGroup);
+        if (canModify || canOperate) {
 
             var createTransmissionSwitch = function (port) {
                 var transmissionSwitch;
@@ -331,32 +334,34 @@
             transmissionSwitch.appendTo(portContainerEditContainer);
 
             // only support configuration when the remote port exists
-            if (port.exists === true && port.connected === true) {
-                // create the button for editing the ports configuration
-                var editRemotePort = $('<button class="button edit-remote-port fa fa-pencil"></button>').click(function () {
-                    var portName = $('#' + portId + '-name').text();
-                    var portConcurrentTasks = $('#' + portId + '-concurrent-tasks').text();
-                    var portCompression = $('#' + portId + '-compression').text() === 'Yes';
-                    var batchCount = $('#' + portId + '-batch-count').text();
-                    var batchSize = $('#' + portId + '-batch-size').text();
-                    var batchDuration = $('#' + portId + '-batch-duration').text();
+            if (canModify) {
+                if (port.exists === true && port.connected === true) {
+                    // create the button for editing the ports configuration
+                    var editRemotePort = $('<button class="button edit-remote-port fa fa-pencil"></button>').click(function () {
+                        var portName = $('#' + portId + '-name').text();
+                        var portConcurrentTasks = $('#' + portId + '-concurrent-tasks').text();
+                        var portCompression = $('#' + portId + '-compression').text() === 'Yes';
+                        var batchCount = $('#' + portId + '-batch-count').text();
+                        var batchSize = $('#' + portId + '-batch-size').text();
+                        var batchDuration = $('#' + portId + '-batch-duration').text();
 
-                    // show the configuration dialog
-                    configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType);
-                }).appendTo(portContainerEditContainer);
+                        // show the configuration dialog
+                        configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType);
+                    }).appendTo(portContainerEditContainer);
 
-                // show/hide the edit button as appropriate
-                if (port.transmitting === true) {
-                    editRemotePort.hide();
-                } else {
-                    editRemotePort.show();
+                    // show/hide the edit button as appropriate
+                    if (port.transmitting === true) {
+                        editRemotePort.hide();
+                    } else {
+                        editRemotePort.show();
+                    }
+                } else if (port.exists === false) {
+                    $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: 'This port has been removed.'
+                        }));
                 }
-            } else if (port.exists === false) {
-                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
-                    nfCommon.config.tooltipConfig,
-                    {
-                        content: 'This port has been removed.'
-                    }));
             }
 
             // only allow modifications to transmission when the swtich is defined
@@ -376,11 +381,7 @@
                     var remoteProcessGroupPortEntity = {
                         'revision': nfClient.getRevision(remoteProcessGroupData),
                         'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-                        'remoteProcessGroupPort': {
-                            id: port.id,
-                            groupId: remoteProcessGroupId,
-                            transmitting: isTransmitting
-                        }
+                        'state': isTransmitting ? "TRANSMITTING" : "STOPPED"
                     };
 
                     // determine the type of port this is
@@ -393,7 +394,7 @@
                     $.ajax({
                         type: 'PUT',
                         data: JSON.stringify(remoteProcessGroupPortEntity),
-                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id),
+                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id) + "/run-status",
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
@@ -491,95 +492,97 @@
         // clear
         $('<div class="clear"></div>').appendTo(portContainerDetailsContainer);
 
-        var concurrentTasksContainer = $('<div class="concurrent-task-container"></div>').appendTo(portContainerDetailsContainer);
+        if (canRead) {
+            var concurrentTasksContainer = $('<div class="concurrent-task-container"></div>').appendTo(portContainerDetailsContainer);
 
-        // concurrent tasks
-        var concurrentTasks = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-concurrent-tasks"></div>').text(port.concurrentlySchedulableTaskCount));
+            // concurrent tasks
+            var concurrentTasks = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-concurrent-tasks"></div>').text(port.concurrentlySchedulableTaskCount));
 
-        // add this ports concurrent tasks
-        $('<div>' +
-            '<div class="setting-name">' +
-            'Concurrent tasks' +
-            '<div class="processor-setting concurrent-tasks-info fa fa-question-circle"></div>' +
-            '</div>' +
-            '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({},
-            nfCommon.config.tooltipConfig,
-            {
-                content: 'The number of tasks that should be concurrently scheduled for this port.'
-            }));
+            // add this ports concurrent tasks
+            $('<div>' +
+                '<div class="setting-name">' +
+                'Concurrent tasks' +
+                '<div class="processor-setting concurrent-tasks-info fa fa-question-circle"></div>' +
+                '</div>' +
+                '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({},
+                nfCommon.config.tooltipConfig,
+                {
+                    content: 'The number of tasks that should be concurrently scheduled for this port.'
+                }));
 
-        var compressionContainer = $('<div class="compression-container"></div>').appendTo(portContainerDetailsContainer);
+            var compressionContainer = $('<div class="compression-container"></div>').appendTo(portContainerDetailsContainer);
 
-        // determine the compression label
-        var compressionLabel = 'No';
-        if (port.useCompression === true) {
-            compressionLabel = 'Yes';
+            // determine the compression label
+            var compressionLabel = 'No';
+            if (port.useCompression === true) {
+                compressionLabel = 'Yes';
+            }
+
+            // add this ports compression config
+            $('<div>' +
+                '<div class="setting-name">' +
+                'Compressed' +
+                '</div>' +
+                '<div class="setting-field">' +
+                '<div id="' + portId + '-compression">' + compressionLabel + '</div>' +
+                '</div>' +
+                '</div>').appendTo(compressionContainer);
+
+            // clear: Concurrent Tasks, Compressed
+            $('<div class="clear"></div>').appendTo(portContainerDetailsContainer);
+
+            // Batch related settings
+            var batchSettingsContainer = $('<div class="batch-settings-container"></div>')
+                .append($('<div class="setting-name">Batch Settings'
+                + '<div class="processor-setting batch-settings-info fa fa-question-circle"></div></div>'))
+                .appendTo(portContainerDetailsContainer);
+
+            batchSettingsContainer.find('div.batch-settings-info').qtip($.extend({},
+                nf.Common.config.tooltipConfig,
+                {
+                    content: (portType === 'input'
+                        ? 'The batch settings to control how this NiFi sends data to the remote input port in a transaction.'
+                            + ' This NiFi will transfer as much flow files as they are queued in incoming relationships,'
+                            + ' until any of these limits is met.'
+                            + ' If none of these setting is specified, this NiFi uses 500 milliseconds batch duration by default.'
+                        : 'The batch settings to tell the remote NiFi how this NiFi prefers to receive data from the remote output port in a transaction.'
+                            + ' The remote NiFi will use these settings as a hint to control batch data transferring.'
+                            + ' However, actual behavior depends on the version of remote NiFi instance.'
+                            + ' Recent version of NiFi uses 5 seconds for batch duration if none of these setting is specified.')
+                }));
+
+            var batchSettings = getBatchSettingsDisplayValues(port);
+            var batchCount = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-count"></div>').text(batchSettings.count));
+            var batchSize = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-size"></div>').text(batchSettings.size));
+            var batchDuration = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-duration"></div>').text(batchSettings.duration));
+
+            // add this ports batch count
+            $('<div class="batch-setting">' +
+                '<div class="setting-name">' +
+                'Count' +
+                '<div class="processor-setting"></div>' +
+                '</div>' +
+                '</div>').append(batchCount).appendTo(batchSettingsContainer);
+
+            // add this ports batch size
+            $('<div class="batch-setting">' +
+                '<div class="setting-name">' +
+                'Size' +
+                '<div class="processor-setting"></div>' +
+                '</div>' +
+                '</div>').append(batchSize).appendTo(batchSettingsContainer);
+
+            // add this ports batch duration
+            $('<div class="batch-setting">' +
+                '<div class="setting-name">' +
+                'Duration' +
+                '<div class="processor-setting"></div>' +
+                '</div>' +
+                '</div>').append(batchDuration).appendTo(batchSettingsContainer);
+
+            // clear
+            $('<div class="clear"></div>').appendTo(portContainer);
         }
-
-        // add this ports compression config
-        $('<div>' +
-            '<div class="setting-name">' +
-            'Compressed' +
-            '</div>' +
-            '<div class="setting-field">' +
-            '<div id="' + portId + '-compression">' + compressionLabel + '</div>' +
-            '</div>' +
-            '</div>').appendTo(compressionContainer);
-
-        // clear: Concurrent Tasks, Compressed
-        $('<div class="clear"></div>').appendTo(portContainerDetailsContainer);
-
-        // Batch related settings
-        var batchSettingsContainer = $('<div class="batch-settings-container"></div>')
-            .append($('<div class="setting-name">Batch Settings'
-            + '<div class="processor-setting batch-settings-info fa fa-question-circle"></div></div>'))
-            .appendTo(portContainerDetailsContainer);
-
-        batchSettingsContainer.find('div.batch-settings-info').qtip($.extend({},
-            nf.Common.config.tooltipConfig,
-            {
-                content: (portType === 'input'
-                    ? 'The batch settings to control how this NiFi sends data to the remote input port in a transaction.'
-                        + ' This NiFi will transfer as much flow files as they are queued in incoming relationships,'
-                        + ' until any of these limits is met.'
-                        + ' If none of these setting is specified, this NiFi uses 500 milliseconds batch duration by default.'
-                    : 'The batch settings to tell the remote NiFi how this NiFi prefers to receive data from the remote output port in a transaction.'
-                        + ' The remote NiFi will use these settings as a hint to control batch data transferring.'
-                        + ' However, actual behavior depends on the version of remote NiFi instance.'
-                        + ' Recent version of NiFi uses 5 seconds for batch duration if none of these setting is specified.')
-            }));
-
-        var batchSettings = getBatchSettingsDisplayValues(port);
-        var batchCount = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-count"></div>').text(batchSettings.count));
-        var batchSize = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-size"></div>').text(batchSettings.size));
-        var batchDuration = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-batch-duration"></div>').text(batchSettings.duration));
-
-        // add this ports batch count
-        $('<div class="batch-setting">' +
-            '<div class="setting-name">' +
-            'Count' +
-            '<div class="processor-setting"></div>' +
-            '</div>' +
-            '</div>').append(batchCount).appendTo(batchSettingsContainer);
-
-        // add this ports batch size
-        $('<div class="batch-setting">' +
-            '<div class="setting-name">' +
-            'Size' +
-            '<div class="processor-setting"></div>' +
-            '</div>' +
-            '</div>').append(batchSize).appendTo(batchSettingsContainer);
-
-        // add this ports batch duration
-        $('<div class="batch-setting">' +
-            '<div class="setting-name">' +
-            'Duration' +
-            '<div class="processor-setting"></div>' +
-            '</div>' +
-            '</div>').append(batchDuration).appendTo(batchSettingsContainer);
-
-        // clear
-        $('<div class="clear"></div>').appendTo(portContainer);
 
         // apply ellipsis where appropriate
         portContainer.find('.ellipsis').ellipsis();
@@ -653,7 +656,8 @@
                     // populate the port settings
                     $('#remote-process-group-ports-id').text(remoteProcessGroup.id);
                     $('#remote-process-group-ports-name').text(remoteProcessGroup.name);
-                    $('#remote-process-group-ports-urls').text(remoteProcessGroup.targetUris);
+                    // Show 'Unknown' to not break layout
+                    $('#remote-process-group-ports-urls').text(remoteProcessGroup.targetUris ? remoteProcessGroup.targetUris : 'Unknown');
 
                     // get the contents
                     var remoteProcessGroupContents = remoteProcessGroup.contents;

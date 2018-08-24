@@ -719,7 +719,7 @@
      * @returns {String}
      */
     var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.permissions.canRead) {
+        if (!dataContext.permissions.canRead && !dataContext.operatePermissions.canWrite) {
             return '';
         }
 
@@ -891,7 +891,7 @@
         };
 
         var controllerServiceStateFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
+            if (!dataContext.permissions.canRead && !dataContext.operatePermissions.canWrite) {
                 return '';
             }
             
@@ -927,7 +927,11 @@
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.permissions.canRead) {
+            var canRead = dataContext.permissions.canRead;
+            var canWrite = dataContext.permissions.canWrite;
+            var canOperate = canWrite || (dataContext.operatePermissions && dataContext.operatePermissions.canWrite);
+
+            if (canRead || canOperate) {
                 var definedByCurrentGroup = false;
                 if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
                     // when opened in the process group context, the current group is store in #process-group-id
@@ -940,20 +944,24 @@
                 }
 
                 if (definedByCurrentGroup === true) {
-                    if (dataContext.permissions.canWrite) {
+                    if (canWrite || canOperate) {
                         // write permission... allow actions based on the current state of the service
                         if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                            markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
+                            if (canWrite) {
+                                markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
+                            }
                             markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable"></div>';
                         } else if (dataContext.component.state === 'DISABLED') {
-                            markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
+                            if (canWrite) {
+                                markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
+                            }
 
                             // if there are no validation errors allow enabling
-                            if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
+                            if (dataContext.component.validationStatus === 'VALID') {
                                 markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable"></div>';
                             }
 
-                            if (dataContext.component.multipleVersionsAvailable === true) {
+                            if (canWrite && dataContext.component.multipleVersionsAvailable === true) {
                                 markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange"></div>';
                             }
 
@@ -962,7 +970,7 @@
                             }
                         }
 
-                        if (dataContext.component.persistsState === true) {
+                        if (canWrite && dataContext.component.persistsState === true) {
                             markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks"></div>';
                         }
                     } else {

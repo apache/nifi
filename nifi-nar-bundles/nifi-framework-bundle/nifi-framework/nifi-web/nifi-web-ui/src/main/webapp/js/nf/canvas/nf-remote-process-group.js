@@ -728,7 +728,7 @@
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
                 var icon = '';
-                if (d.permissions.canRead) {
+                if (d.permissions.canRead || d.operatePermissions.canWrite) {
                     if (hasIssues(d)) {
                         icon = '\uf071';
                     } else if (d.component.transmitting === true) {
@@ -741,7 +741,7 @@
             })
             .attr('font-family', function (d) {
                 var family = '';
-                if (d.permissions.canRead) {
+                if (d.permissions.canRead || d.operatePermissions.canWrite) {
                     if (hasIssues(d) || d.component.transmitting) {
                         family = 'FontAwesome';
                     } else {
@@ -751,20 +751,20 @@
                 return family;
             })
             .classed('invalid', function (d) {
-                return d.permissions.canRead && hasIssues(d);
+                return (d.permissions.canRead || d.operatePermissions.canWrite) && hasIssues(d);
             })
             .classed('transmitting', function (d) {
-                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === true;
+                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.component.transmitting === true;
             })
             .classed('not-transmitting', function (d) {
-                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === false;
+                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.component.transmitting === false;
             })
             .each(function (d) {
                 // get the tip
                 var tip = d3.select('#authorization-issues-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && hasIssues(d)) {
+                if ((d.permissions.canRead || d.operatePermissions.canWrite) && hasIssues(d)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#remote-process-group-tooltips').append('div')

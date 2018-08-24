@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
@@ -378,7 +379,7 @@ public class FlowResource extends ApplicationResource {
     // -------------------
 
     /**
-     * Retrieves all the of controller services in this NiFi.
+     * Retrieves controller services for reporting tasks in this NiFi.
      *
      * @return A controllerServicesEntity.
      */
@@ -387,7 +388,7 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller/controller-services")
     @ApiOperation(
-            value = "Gets all controller services",
+            value = "Gets controller services for reporting tasks",
             response = ControllerServicesEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
@@ -537,7 +538,8 @@ public class FlowResource extends ApplicationResource {
             response = ScheduleComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled"),
+                    @Authorization(value = "Write - /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
             }
     )
     @ApiResponses(
@@ -626,7 +628,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
                         .filter(getProcessorFilter.get())
-                        .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(processor -> OperationAuthorizable.isAuthorized(processor, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
                         });
@@ -634,7 +636,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
                     .filter(getPortFilter.get())
-                        .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(inputPort -> OperationAuthorizable.isAuthorized(inputPort, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
                         });
@@ -642,7 +644,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
                         .filter(getPortFilter.get())
-                        .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(outputPort -> OperationAuthorizable.isAuthorized(outputPort, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
                         });
@@ -685,7 +687,7 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorize(connectable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> {

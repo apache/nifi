@@ -76,6 +76,8 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class EntityFactory {
 
@@ -197,13 +199,14 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
+    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
         final ProcessorStatusDTO status, final List<BulletinEntity> bulletins) {
 
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setInputRequirement(dto.getInputRequirement());
@@ -216,11 +219,13 @@ public final class EntityFactory {
         return entity;
     }
 
-    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PortStatusDTO status, final List<BulletinEntity> bulletins) {
+    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
+                                       final PortStatusDTO status, final List<BulletinEntity> bulletins) {
         final PortEntity entity = new PortEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
@@ -429,12 +434,14 @@ public final class EntityFactory {
         return entity;
     }
 
-    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
+    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision,
+                                                                   final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
                                                                    final RemoteProcessGroupStatusDTO status, final List<BulletinEntity> bulletins) {
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
@@ -443,12 +450,52 @@ public final class EntityFactory {
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
+
+            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
+                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
+                final RemoteProcessGroupDTO opsDto = new RemoteProcessGroupDTO();
+                opsDto.setId(dto.getId());
+                opsDto.setName(dto.getId());
+                opsDto.setTransmitting(dto.isTransmitting());
+                opsDto.setAuthorizationIssues(dto.getAuthorizationIssues());
+                opsDto.setFlowRefreshed(dto.getFlowRefreshed());
+                opsDto.setParentGroupId(dto.getParentGroupId());
+
+                opsDto.setActiveRemoteInputPortCount(dto.getActiveRemoteInputPortCount());
+                opsDto.setActiveRemoteOutputPortCount(dto.getActiveRemoteOutputPortCount());
+                opsDto.setInactiveRemoteInputPortCount(dto.getInactiveRemoteInputPortCount());
+                opsDto.setInactiveRemoteOutputPortCount(dto.getInactiveRemoteOutputPortCount());
+                opsDto.setInputPortCount(dto.getInputPortCount());
+                opsDto.setOutputPortCount(dto.getOutputPortCount());
+
+                final RemoteProcessGroupContentsDTO opsContentsDto = new RemoteProcessGroupContentsDTO();
+                opsDto.setContents(opsContentsDto);
+                final RemoteProcessGroupContentsDTO contentsDto = dto.getContents();
+                opsContentsDto.setInputPorts(contentsDto.getInputPorts().stream()
+                        .map(this::createRemoteProcessGroupPortDtoForOperation).collect(Collectors.toSet()));
+                opsContentsDto.setOutputPorts(contentsDto.getOutputPorts().stream()
+                        .map(this::createRemoteProcessGroupPortDtoForOperation).collect(Collectors.toSet()));
+
+                entity.setComponent(opsDto);
             }
         }
         return entity;
     }
 
-    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+    private RemoteProcessGroupPortDTO createRemoteProcessGroupPortDtoForOperation(RemoteProcessGroupPortDTO port) {
+        final RemoteProcessGroupPortDTO opsPort = new RemoteProcessGroupPortDTO();
+        opsPort.setId(port.getId());
+        opsPort.setName(port.getId());
+        opsPort.setGroupId(port.getGroupId());
+        opsPort.setTransmitting(port.isTransmitting());
+        opsPort.setConnected(port.isConnected());
+        opsPort.setExists(port.getExists());
+        opsPort.setTargetRunning(port.isTargetRunning());
+        return opsPort;
+    }
+
+    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision,
+                                                                           final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
         final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -456,6 +503,9 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setRemoteProcessGroupPort(dto);
+            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
+                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
+                entity.setRemoteProcessGroupPort(createRemoteProcessGroupPortDtoForOperation(dto));
             }
         }
 
@@ -468,15 +518,25 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
+    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision,
+                                                         final PermissionsDTO permissions, final PermissionsDTO operatePermissions, final List<BulletinEntity> bulletins) {
         final ReportingTaskEntity entity = new ReportingTaskEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
+            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
+                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
+                final ReportingTaskDTO opsDto = new ReportingTaskDTO();
+                opsDto.setId(dto.getId());
+                opsDto.setName(dto.getId());
+                opsDto.setState(dto.getState());
+                opsDto.setValidationStatus(dto.getValidationStatus());
+                entity.setComponent(opsDto);
             }
         }
 
@@ -495,30 +555,63 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
+    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision,
+                                                                 final PermissionsDTO permissions, final PermissionsDTO operatePermissions, final List<BulletinEntity> bulletins) {
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
+            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
+                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
+                final Set<ControllerServiceReferencingComponentEntity> opsRefs = dto.getReferencingComponents().stream()
+                        .map(ref -> createControllerServiceReferencingComponentEntity(ref.getId(), ref.getComponent(), ref.getRevision(),
+                                ref.getPermissions(), ref.getOperatePermissions())).collect(Collectors.toSet());
+
+                final ControllerServiceDTO opsDto = new ControllerServiceDTO();
+                opsDto.setId(dto.getId());
+                opsDto.setName(dto.getId());
+                opsDto.setParentGroupId(dto.getParentGroupId());
+                opsDto.setState(dto.getState());
+                opsDto.setValidationStatus(dto.getValidationStatus());
+                opsDto.setReferencingComponents(opsRefs);
+                entity.setComponent(opsDto);
             }
         }
         return entity;
     }
 
-    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
-        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(final String id,
+        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
+        entity.setId(id);
         entity.setRevision(revision);
+        entity.setPermissions(permissions);
+        entity.setOperatePermissions(operatePermissions);
+
         if (dto != null) {
-            entity.setPermissions(permissions);
-            entity.setId(dto.getId());
+            if (!id.equals(dto.getId())) {
+                throw new IllegalArgumentException("The entity id and the dto id should be the same.");
+            }
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
+            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
+                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
+                final ControllerServiceReferencingComponentDTO opsDto = new ControllerServiceReferencingComponentDTO();
+                opsDto.setId(dto.getId());
+                opsDto.setGroupId(dto.getGroupId());
+                opsDto.setName(dto.getId());
+                opsDto.setReferenceType(dto.getReferenceType());
+                opsDto.setReferenceCycle(dto.getReferenceCycle());
+                opsDto.setReferencingComponents(dto.getReferencingComponents());
+                opsDto.setState(dto.getState());
+                entity.setComponent(opsDto);
             }
         }
 

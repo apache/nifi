@@ -177,7 +177,8 @@
         // service B that has been removed. attempting to enable/disable/remove A
         // will attempt to reload B which is no longer a known service. also ensure
         // we have permissions to reload the service
-        if (nfCommon.isUndefined(controllerServiceEntity) || controllerServiceEntity.permissions.canRead === false) {
+        if (nfCommon.isUndefined(controllerServiceEntity)
+            || (controllerServiceEntity.permissions.canRead === false && controllerServiceEntity.operatePermissions.canWrite === false)) {
             return $.Deferred(function (deferred) {
                 deferred.reject();
             }).promise();
@@ -233,7 +234,7 @@
         // reload all dependent processors if they are currently visible
         $.each(controllerService.referencingComponents, function (_, referencingComponentEntity) {
             // ensure we can read the referencing component prior to reloading
-            if (referencingComponentEntity.permissions.canRead === false) {
+            if (referencingComponentEntity.permissions.canRead === false && referencingComponentEntity.operatePermissions.canWrite === false) {
                 return;
             }
 
@@ -454,7 +455,8 @@
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
-            if (referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false) {
+            if ((referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false)
+                    && referencingComponentEntity.operatePermissions.canWrite === false) {
                 var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingComponentEntity.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
@@ -479,7 +481,7 @@
                     var processorBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
 
                     // type
-                    var processorType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+                    var processorType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
 
                     // active thread count
                     var processorActiveThreadCount = $('<span class="referencing-component-active-thread-count"></span>').addClass(referencingComponent.id + '-active-threads');
@@ -540,7 +542,7 @@
                     var serviceBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
 
                     // type
-                    var serviceType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+                    var serviceType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
 
                     // service
                     var serviceItem = $('<li></li>').append(serviceTwist).append(serviceState).append(serviceBulletins).append(serviceLink).append(serviceType).append(referencingServiceReferencesContainer);
@@ -636,15 +638,12 @@
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'component': {
-                'id': controllerServiceEntity.id,
-                'state': enabled ? 'ENABLED' : 'DISABLED'
-            }
+            'state': enabled ? 'ENABLED' : 'DISABLED'
         };
 
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.uri,
+            url: controllerServiceEntity.uri + '/run-status',
             data: JSON.stringify(updateControllerServiceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -710,7 +709,7 @@
             });
         };
 
-        // check the referencing servcies
+        // check the referencing services
         checkReferencingServices(controllerService.referencingComponents);
         return ids;
     };
@@ -1335,7 +1334,7 @@
     };
 
     /**
-     * Determines if any of the specified referencing components are not authorized.
+     * Determines if any of the specified referencing components are not authorized to enable/disable.
      *
      * @param referencingComponents referencing components
      * @returns {boolean}
@@ -1344,7 +1343,8 @@
         var hasUnauthorized = false;
 
         $.each(referencingComponents, function (_, referencingComponentEntity) {
-            if (referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false) {
+            if ((referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false)
+                    && referencingComponentEntity.operatePermissions.canWrite === false) {
                 hasUnauthorized = true;
                 return false;
             }
@@ -2200,7 +2200,7 @@
                 controllerServiceData.deleteItem(controllerServiceEntity.id);
 
                 // reload the as necessary
-                if (controllerServiceEntity.permissions.canRead) {
+                if (controllerServiceEntity.permissions.canRead || controllerServiceEntity.operatePermissions.canWrite) {
                     reloadControllerServiceReferences(serviceTable, controllerServiceEntity.component);
                 }
             }).fail(nfErrorHandler.handleAjaxError);

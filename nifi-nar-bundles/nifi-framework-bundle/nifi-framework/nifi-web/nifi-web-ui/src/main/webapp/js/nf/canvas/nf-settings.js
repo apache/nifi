@@ -1006,7 +1006,7 @@
         };
 
         var reportingTaskRunStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
+            if (!dataContext.permissions.canRead && !dataContext.operatePermissions.canWrite) {
                 return '';
             }
 
@@ -1045,18 +1045,23 @@
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
+            var canWrite = dataContext.permissions.canWrite;
+            var canOperate = dataContext.operatePermissions.canWrite;
+            if (canWrite || canOperate) {
                 if (dataContext.component.state === 'RUNNING') {
                     markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop"></div>';
                 } else if (dataContext.component.state === 'STOPPED' || dataContext.component.state === 'DISABLED') {
-                    markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
+
+                    if (canWrite) {
+                        markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
+                    }
 
                     // support starting when stopped and no validation errors
-                    if (dataContext.component.state === 'STOPPED' && nfCommon.isEmpty(dataContext.component.validationErrors)) {
+                    if (dataContext.component.state === 'STOPPED' && dataContext.component.validationStatus === 'VALID') {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
                     }
 
-                    if (dataContext.component.multipleVersionsAvailable === true) {
+                    if (canWrite && dataContext.component.multipleVersionsAvailable === true) {
                         markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
                     }
 
@@ -1065,7 +1070,7 @@
                     }
                 }
 
-                if (dataContext.component.persistsState === true) {
+                if (canWrite && dataContext.component.persistsState === true) {
                     markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks"></div>';
                 }
             }

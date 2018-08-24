@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.OperationPermissible;
 import org.apache.nifi.web.api.entity.Permissible;
 
 import java.util.ArrayList;
@@ -44,9 +45,18 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
         for (final Map.Entry<NodeIdentifier, EntityType> entry : entityMap.entrySet()) {
             final EntityType entity = entry.getValue();
             PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), entity.getPermissions());
+            if (clientEntity instanceof OperationPermissible) {
+                PermissionsDtoMerger.mergePermissions(
+                        ((OperationPermissible) clientEntity).getOperatePermissions(),
+                        ((OperationPermissible) entity).getOperatePermissions());
+            }
         }
 
-        if (clientEntity.getPermissions().getCanRead()) {
+        final Boolean canRead = clientEntity.getPermissions().getCanRead();
+        final Boolean canOperate = clientEntity instanceof OperationPermissible
+                && ((OperationPermissible) clientEntity).getOperatePermissions().getCanWrite();
+
+        if (canRead) {
             final Map<NodeIdentifier, List<BulletinEntity>> bulletinEntities = new HashMap<>();
             for (final Map.Entry<NodeIdentifier, ? extends ComponentEntity> entry : entityMap.entrySet()) {
                 final NodeIdentifier nodeIdentifier = entry.getKey();
@@ -68,10 +78,13 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
             if (clientEntity.getBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
                 clientEntity.setBulletins(clientEntity.getBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
             }
-
-            mergeComponents(clientEntity, entityMap);
         } else {
             clientEntity.setBulletins(null);
+        }
+
+        if (canRead || canOperate) {
+            mergeComponents(clientEntity, entityMap);
+        } else {
             clientEntity.setComponent(null); // unchecked warning suppressed
         }
     }
