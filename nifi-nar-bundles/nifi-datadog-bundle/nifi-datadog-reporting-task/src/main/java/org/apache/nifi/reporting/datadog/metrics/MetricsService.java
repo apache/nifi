@@ -108,23 +108,6 @@ public class MetricsService {
         return metrics;
     }
 
-    public List<String> getAllTagsList() {
-        List<String> tagsList = new ArrayList<>();
-        tagsList.add("env");
-        tagsList.add("dataflow_id");
-        tagsList.add(MetricNames.PORT_ID);
-        tagsList.add(MetricNames.PORT_NAME);
-        tagsList.add(MetricNames.PORT_GROUP_ID);
-        tagsList.add(MetricNames.CONNECTION_ID);
-        tagsList.add(MetricNames.CONNECTION_NAME);
-        tagsList.add(MetricNames.CONNECTION_GROUP_ID);
-        tagsList.add(MetricNames.CONNECTION_SOURCE_ID);
-        tagsList.add(MetricNames.CONNECTION_SOURCE_NAME);
-        tagsList.add(MetricNames.CONNECTION_DESTINATION_ID);
-        tagsList.add(MetricNames.CONNECTTION_DESTINATION_NAME);
-        return tagsList;
-    }
-
     //virtual machine metrics
     public Map<String, Double> getJVMMetrics(VirtualMachineMetrics virtualMachineMetrics) {
         final Map<String, Double> metrics = new HashMap<>();

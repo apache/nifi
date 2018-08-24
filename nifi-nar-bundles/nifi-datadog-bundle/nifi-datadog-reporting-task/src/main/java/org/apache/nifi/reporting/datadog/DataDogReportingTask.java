@@ -20,7 +20,6 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,7 +37,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
-import org.coursera.metrics.datadog.DynamicTagsCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -47,6 +45,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Tags({"reporting", "datadog", "metrics"})
 @CapabilityDescription("Publishes metrics from NiFi to datadog. For accurate and informative reporting, components should have unique names.")
@@ -72,6 +71,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .name("API key")
             .description("Datadog API key. If specified value is 'agent', local Datadog agent will be used.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -114,8 +114,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         metricsPrefix = METRICS_PREFIX.getDefaultValue();
         environment = ENVIRONMENT.getDefaultValue();
         virtualMachineMetrics = VirtualMachineMetrics.getInstance();
-        ddMetricRegistryBuilder.setMetricRegistry(metricRegistry)
-                .setTags(metricsService.getAllTagsList());
+        ddMetricRegistryBuilder.setMetricRegistry(metricRegistry);
     }
 
     @Override
@@ -147,12 +146,12 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
     protected void updateMetrics(Map<String, Double> metrics, Optional<String> processorName, Map<String, String> tags) {
         for (Map.Entry<String, Double> entry : metrics.entrySet()) {
-            final String metricName = buildMetricName(processorName, entry.getKey());
+            final String metricName = buildMetricName(processorName, entry.getKey(), tags);
             logger.debug(metricName + ": " + entry.getValue());
             //if metric is not registered yet - register it
             if (!metricsMap.containsKey(metricName)) {
                 metricsMap.put(metricName, new AtomicDouble(entry.getValue()));
-                metricRegistry.register(metricName, new MetricGauge(metricName, tags));
+                metricRegistry.register(metricName, (Gauge) () -> metricsMap.get(metricName).get());
             }
             //set real time value to metrics map
             metricsMap.get(metricName).set(entry.getValue());
@@ -196,37 +195,13 @@ public class DataDogReportingTask extends AbstractReportingTask {
         updateMetrics(metricsService.getDataFlowMetrics(processGroupStatus), Optional.<String>absent(), defaultTags);
     }
 
-    private class MetricGauge implements Gauge, DynamicTagsCallback {
-        private Map<String, String> tags;
-        private String metricName;
-
-        public MetricGauge(String metricName, Map<String, String> tagsMap) {
-            this.tags = tagsMap;
-            this.metricName = metricName;
-        }
-
-        @Override
-        public Object getValue() {
-            return metricsMap.get(metricName).get();
-        }
-
-        @Override
-        public List<String> getTags() {
-            List<String> tagsList = Lists.newArrayList();
-            for (Map.Entry<String, String> entry : tags.entrySet()) {
-                tagsList.add(entry.getKey() + ":" + entry.getValue());
-            }
-            return tagsList;
-        }
-    }
-
     private void updateDataDogTransport(ReportingContext context) throws IOException {
         String dataDogTransport = context.getProperty(DATADOG_TRANSPORT).getValue();
         if (dataDogTransport.equalsIgnoreCase(DATADOG_AGENT.getValue())) {
             ddMetricRegistryBuilder.build("agent");
         } else if (dataDogTransport.equalsIgnoreCase(DATADOG_HTTP.getValue())
                 && context.getProperty(API_KEY).isSet()) {
-            ddMetricRegistryBuilder.build(context.getProperty(API_KEY).getValue());
+            ddMetricRegistryBuilder.build(context.getProperty(API_KEY).evaluateAttributeExpressions().getValue());
         }
     }
 
@@ -258,8 +233,19 @@ public class DataDogReportingTask extends AbstractReportingTask {
         }
     }
 
-    private String buildMetricName(Optional<String> processorName, String metricName) {
-        return metricsPrefix + "." + processorName.or("flow") + "." + metricName;
+    private String buildMetricName(Optional<String> processorName, String metricName, Map<String, String> tags) {
+        return metricsPrefix + "." + processorName.or("flow") + "." + metricName + encodeTags(tags);
+    }
+
+    private String encodeTags(Map<String, String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        } else {
+            return tags.entrySet()
+                    .stream()
+                    .map(e -> e.getKey() + ":" + e.getValue())
+                    .collect(Collectors.joining(",", "[", "]"));
+        }
     }
 
     protected MetricsService getMetricsService() {
