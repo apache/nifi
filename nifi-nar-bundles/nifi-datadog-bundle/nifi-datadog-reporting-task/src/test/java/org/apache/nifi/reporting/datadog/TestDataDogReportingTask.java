@@ -35,7 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -99,7 +98,7 @@ public class TestDataDogReportingTask {
 
     //test onTrigger method
     @Test
-    public void testOnTrigger() throws InitializationException, IOException {
+    public void testOnTrigger() throws InitializationException {
         DataDogReportingTask dataDogReportingTask = new TestableDataDogReportingTask();
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
@@ -112,7 +111,7 @@ public class TestDataDogReportingTask {
 
     //test updating metrics of processors
     @Test
-    public void testUpdateMetricsProcessor() throws InitializationException, IOException {
+    public void testUpdateMetricsProcessor() throws InitializationException {
         MetricsService ms = new MetricsService();
         Map<String, Double> processorMetrics = ms.getProcessorMetrics(procStatus);
         Map<String, String> tagsMap = ImmutableMap.of("env", "test");
@@ -121,16 +120,16 @@ public class TestDataDogReportingTask {
         dataDogReportingTask.setup(configurationContext);
         dataDogReportingTask.updateMetrics(processorMetrics, Optional.of("sampleProcessor"), tagsMap);
 
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesReceivedLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.ActiveThreads"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesWrittenLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesReadLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesSentLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesReceivedLast5Minutes[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.sampleProcessor.ActiveThreads[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesWrittenLast5Minutes[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesReadLast5Minutes[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesSentLast5Minutes[env:test]"), Mockito.<Gauge>any());
     }
 
     //test updating JMV metrics
     @Test
-    public void testUpdateMetricsJVM() throws InitializationException, IOException {
+    public void testUpdateMetricsJVM() throws InitializationException {
         MetricsService ms = new MetricsService();
         Map<String, Double> processorMetrics = ms.getJVMMetrics(virtualMachineMetrics);
         Map<String, String> tagsMap = ImmutableMap.of("env", "test");
@@ -140,16 +139,16 @@ public class TestDataDogReportingTask {
         dataDogReportingTask.setup(configurationContext);
 
         dataDogReportingTask.updateMetrics(processorMetrics, Optional.<String>absent(), tagsMap);
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.terminated"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_used"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.runnable"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.timed_waiting"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.uptime"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.daemon_thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.file_descriptor_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.blocked"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_usage[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_count[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.terminated[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_used[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.runnable[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.timed_waiting[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.uptime[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.daemon_thread_count[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.file_descriptor_usage[env:test]"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.blocked[env:test]"), Mockito.<Gauge>any());
     }
 
 
