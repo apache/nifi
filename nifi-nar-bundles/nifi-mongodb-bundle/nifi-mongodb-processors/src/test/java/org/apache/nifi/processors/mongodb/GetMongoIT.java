@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class GetMongoIT {
     private static final String MONGO_URI = "mongodb://localhost";
@@ -555,5 +556,27 @@ public class GetMongoIT {
             Assert.assertEquals(DB_NAME, db);
             Assert.assertEquals(COLLECTION_NAME, col);
         }
+    }
+
+    @Test
+    public void testDateFormat() throws Exception {
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
+        runner.setProperty(GetMongo.DATE_FORMAT, "yyyy-MM-dd");
+        runner.enqueue("{ \"_id\": \"doc_2\" }");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
+        byte[] content = runner.getContentAsByteArray(ff);
+        String json = new String(content);
+        Map<String, Object> result = new ObjectMapper().readValue(json, Map.class);
+
+        Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
+
+        Assert.assertTrue(result.containsKey("date_field"));
+        Assert.assertTrue(format.matcher((String)result.get("date_field")).matches());
     }
 }

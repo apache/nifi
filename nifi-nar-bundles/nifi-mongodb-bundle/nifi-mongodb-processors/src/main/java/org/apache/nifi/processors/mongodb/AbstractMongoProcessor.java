@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -51,6 +52,7 @@ import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -172,6 +174,30 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
+    static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
+        .name("mongo-date-format")
+        .displayName("Date Format")
+        .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
+                "applied when the JSON output format is set to Standard JSON. Full documentation for format characters can be " +
+                "found here: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html")
+        .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        .addValidator((subject, input, context) -> {
+            ValidationResult.Builder result = new ValidationResult.Builder()
+                .subject(subject)
+                .input(input);
+            try {
+                new SimpleDateFormat(input).format(new Date());
+                result.valid(true);
+            } catch (Exception ex) {
+                result.valid(false)
+                    .explanation(ex.getMessage());
+            }
+
+            return result.build();
+        })
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
 
@@ -311,12 +337,12 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         session.transfer(flowFile, rel);
     }
 
-    protected synchronized void configureMapper(String setting) {
+    protected synchronized void configureMapper(String setting, String dateFormat) {
         objectMapper = new ObjectMapper();
 
         if (setting.equals(JSON_TYPE_STANDARD)) {
             objectMapper.registerModule(ObjectIdSerializer.getModule());
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            DateFormat df = new SimpleDateFormat(dateFormat);
             objectMapper.setDateFormat(df);
         }
     }
