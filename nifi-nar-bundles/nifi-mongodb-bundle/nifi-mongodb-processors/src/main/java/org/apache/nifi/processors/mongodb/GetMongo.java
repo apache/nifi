@@ -164,6 +164,7 @@ public class GetMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(LIMIT);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
+        _propertyDescriptors.add(DATE_FORMAT);
         _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
         _propertyDescriptors.add(CLIENT_AUTH);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -244,6 +245,9 @@ public class GetMongo extends AbstractMongoProcessor {
         final Document sort = context.getProperty(SORT).isSet()
                 ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions(input).getValue()) : null;
 
+        final String dateFormat      = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions(input).getValue();
+        configureMapper(jsonTypeSetting, dateFormat);
+
         final MongoCollection<Document> collection = getCollection(context, input);
         final FindIterable<Document> it = collection.find(query);
 
@@ -264,7 +268,7 @@ public class GetMongo extends AbstractMongoProcessor {
         }
 
         try (MongoCursor<Document> cursor = it.iterator()) {
-            configureMapper(jsonTypeSetting);
+            configureMapper(jsonTypeSetting, dateFormat);
 
             if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
                 int sizePerBatch = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();

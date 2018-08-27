@@ -100,6 +100,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         _propertyDescriptors.add(QUERY_ATTRIBUTE);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
+        _propertyDescriptors.add(DATE_FORMAT);
         _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
         _propertyDescriptors.add(CLIENT_AUTH);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -148,8 +149,9 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
+        final String dateFormat      = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
 
-        configureMapper(jsonTypeSetting);
+        configureMapper(jsonTypeSetting, dateFormat);
 
         Map<String, String> attrs = new HashMap<>();
         if (queryAttr != null && queryAttr.trim().length() > 0) {

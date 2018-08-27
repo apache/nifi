@@ -26,6 +26,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -83,6 +84,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         .displayName("Projection")
         .description("Specifies a projection for limiting which fields will be returned.")
         .required(false)
+        .addValidator(JsonValidator.INSTANCE)
         .build();
 
     private String lookupValueField;
