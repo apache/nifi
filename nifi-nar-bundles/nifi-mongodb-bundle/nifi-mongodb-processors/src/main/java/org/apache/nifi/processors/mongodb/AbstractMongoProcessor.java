@@ -178,7 +178,9 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
         .name("mongo-date-format")
         .displayName("Date Format")
-        .description("")
+        .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
+                "applied when the JSON output format is set to Standard JSON. Full documentation for format characters can be " +
+                "found here: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html")
         .required(true)
         .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .addValidator((subject, input, context) -> {
