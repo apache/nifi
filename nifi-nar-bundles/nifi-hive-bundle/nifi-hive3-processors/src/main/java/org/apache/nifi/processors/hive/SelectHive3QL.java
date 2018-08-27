@@ -348,7 +348,8 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
                 fileToProcess = null;
                 throw failure.getRight();
             }
-            st.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asInteger());
+
+            setTimeout(st, context, fileToProcess);
 
             if (fetchSize != null && fetchSize > 0) {
                 try {

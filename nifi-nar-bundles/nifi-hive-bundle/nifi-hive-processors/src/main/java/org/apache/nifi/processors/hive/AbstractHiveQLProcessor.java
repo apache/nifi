@@ -105,7 +105,8 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
                 && !validationContext.getProperty(QUERY_TIMEOUT).isExpressionLanguagePresent()
                 && validationContext.getProperty(QUERY_TIMEOUT).asInteger() != 0) {
             try(HiveStatement stmt = new HiveStatement(null, null, null)) {
-                stmt.setQueryTimeout(0);
+                // trying to set the timeout to check whether the driver supports it or not
+                stmt.setQueryTimeout(1);
             } catch (SQLException e) {
                 problems.add(new ValidationResult.Builder()
                         .subject("Query Timeout")
@@ -281,6 +282,7 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
             stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
         } catch (SQLException e) {
             // just ignoring it, no timeout.
+            // the custom validate is not executed in case of FF-based EL evaluation
         } catch (NumberFormatException e) {
             throw new ProcessException("Query timeout value cannot be converted to an integer.", e);
         }

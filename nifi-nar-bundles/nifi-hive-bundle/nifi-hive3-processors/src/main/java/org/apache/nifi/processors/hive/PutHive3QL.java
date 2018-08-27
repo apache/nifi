@@ -234,7 +234,7 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
                         getLogger().warn("Failed to parse hiveQL: {} due to {}", new Object[]{hiveQL, e}, e);
                     }
 
-                    stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
+                    setTimeout(stmt, context, flowFile);
 
                     // Execute the statement
                     stmt.execute();

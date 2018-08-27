@@ -25,7 +25,9 @@ import org.apache.nifi.dbcp.hive.Hive3DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -35,6 +37,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -344,5 +347,23 @@ public abstract class AbstractHive3QLProcessor extends AbstractSessionFactoryPro
             }
         }
         return attributes;
+    }
+
+    /**
+     * Method to set the configured timeout on the statement to be executed
+     * @param stmt statement to be executed
+     * @param context process context to retrieve the configured value
+     * @param flowFile flow file to evaluate expression language
+     * @throws ProcessException exception in case configured value cannot be converted to an integer
+     */
+    protected void setTimeout(Statement stmt, ProcessContext context, FlowFile flowFile) throws ProcessException {
+        try {
+            // set query timeout
+            stmt.setQueryTimeout(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(flowFile).asInteger());
+        } catch (SQLException e) {
+            // just ignoring it, no timeout - should never happen with 3.x driver
+        } catch (NumberFormatException e) {
+            throw new ProcessException("Query timeout value cannot be converted to an integer.", e);
+        }
     }
 }
