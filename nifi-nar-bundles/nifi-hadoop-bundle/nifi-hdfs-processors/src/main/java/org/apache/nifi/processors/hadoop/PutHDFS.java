@@ -50,6 +50,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
+import com.google.common.base.Strings;
+
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -266,6 +268,13 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             throw new IOException(configuredRootDirPath.toString() + " could not be created");
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
+                    } catch (IOException e) {
+                        if (!Strings.isNullOrEmpty(e.getMessage()) && e.getMessage().contains(String.format("Couldn't setup connection for %s", ugi.getUserName()))) {
+                          getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flowfile %s", flowFile.getAttribute(CoreAttributes.UUID.key())));
+                          session.rollback(true);
+                        } else {
+                          throw e;
+                        }
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
