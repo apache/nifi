@@ -17,9 +17,12 @@
 
 package org.apache.nifi.provenance.serialization;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+
 import java.util.Optional;
 
 public class StorageSummary {
+    private final ProvenanceEventRecord event;
     private final long eventId;
     private final String storageLocation;
     private final String partitionName;
@@ -27,18 +30,23 @@ public class StorageSummary {
     private final long serializedLength;
     private final long bytesWritten;
 
-    public StorageSummary(final long eventId, final String storageLocation, final Integer blockIndex, final long serializedLength, final long bytesWritten) {
-        this(eventId, storageLocation, null, blockIndex, serializedLength, bytesWritten);
+    public StorageSummary(final ProvenanceEventRecord event, final long eventId, final String storageLocation, final Integer blockIndex, final long serializedLength, final long bytesWritten) {
+        this(event, eventId, storageLocation, null, blockIndex, serializedLength, bytesWritten);
     }
 
-    public StorageSummary(final long eventId, final String storageLocation, final String partitionName,
-        final Integer blockIndex, final long serializedLength, final long bytesWritten) {
+    public StorageSummary(final ProvenanceEventRecord event, final long eventId, final String storageLocation, final String partitionName,
+                          final Integer blockIndex, final long serializedLength, final long bytesWritten) {
+        this.event = event;
         this.eventId = eventId;
         this.storageLocation = storageLocation;
         this.partitionName = partitionName;
         this.blockIndex = blockIndex;
         this.serializedLength = serializedLength;
         this.bytesWritten = bytesWritten;
+    }
+
+    public ProvenanceEventRecord getEvent() {
+        return event;
     }
 
     public long getEventId() {

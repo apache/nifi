@@ -17,19 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.schema.EventFieldNames;
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
@@ -43,14 +30,28 @@ import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(EventIdFirstSchemaRecordWriter.class);
+    private static final long SERIALIZED_HEAP_EVENT_THRESHOLD = 5 * 1024 * 1024; // 1 MB
 
     private static final RecordSchema eventSchema = LookupTableEventSchema.EVENT_SCHEMA;
     private static final RecordSchema contentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.CONTENT_CLAIM).getSubFields());
@@ -102,14 +103,83 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         queueIdMap = idLookup.invertQueueIdentifiers();
     }
 
-    public EventIdFirstSchemaRecordWriter(final OutputStream out, final String storageLocation, final AtomicLong idGenerator, final TocWriter tocWriter, final boolean compressed,
-        final int uncompressedBlockSize, final IdentifierLookup idLookup) throws IOException {
-        super(out, storageLocation, idGenerator, tocWriter, compressed, uncompressedBlockSize);
 
-        this.idLookup = idLookup;
-        componentIdMap = idLookup.invertComponentIdentifiers();
-        componentTypeMap = idLookup.invertComponentTypes();
-        queueIdMap = idLookup.invertQueueIdentifiers();
+    @Override
+    public List<StorageSummary> writeRecords(final Iterable<ProvenanceEventRecord> events) throws IOException {
+        if (isDirty()) {
+            throw new IOException("Cannot update Provenance Repository because this Record Writer has already failed to write to the Repository");
+        }
+
+        final List<Tuple<ProvenanceEventRecord, Integer>> eventStartOffsets = new ArrayList<>();
+        final List<StorageSummary> storageSummaries = new ArrayList<>();
+
+        final ByteArrayDataOutputStream bados = streamCache.checkOut();
+        try {
+            final ByteArrayOutputStream baos = bados.getByteArrayOutputStream();
+            final DataOutputStream dos = bados.getDataOutputStream();
+
+            for (final ProvenanceEventRecord event : events) {
+                writeRecord(event, 0L, dos);
+                eventStartOffsets.add(new Tuple<>(event, baos.size()));
+
+                // If we've reached our threshold, flush the data to the BufferedOutputStream.
+                if (baos.size() >= SERIALIZED_HEAP_EVENT_THRESHOLD) {
+                    synchronized (this) {
+                        writeSerialized(eventStartOffsets, storageSummaries, baos.toByteArray());
+                    }
+
+                    eventStartOffsets.clear();
+                    baos.reset();
+                }
+            }
+
+            synchronized (this) {
+                writeSerialized(eventStartOffsets, storageSummaries, baos.toByteArray());
+            }
+        } finally {
+            streamCache.checkIn(bados);
+        }
+
+        return storageSummaries;
+    }
+
+    private void writeSerialized(final List<Tuple<ProvenanceEventRecord, Integer>> eventStartOffsets, final List<StorageSummary> storageSummaries, final byte[] serialized) throws IOException {
+        try {
+            int lastOffset = 0;
+
+            for (final Tuple<ProvenanceEventRecord, Integer> tuple : eventStartOffsets) {
+                final ProvenanceEventRecord eventBeingSerialized = tuple.getKey();
+                final Integer offset = tuple.getValue();
+
+                final long eventId = getIdGenerator().getAndIncrement();
+                final long startBytes = getBytesWritten();
+
+                ensureStreamState(eventId, startBytes);
+
+                final DataOutputStream out = getBufferedOutputStream();
+                final int recordIdOffset = (int) (eventId - firstEventId);
+                out.writeInt(recordIdOffset);
+
+                final int eventLength = offset - lastOffset;
+                out.writeInt(eventLength);
+
+                out.write(serialized, lastOffset, eventLength);
+                final long endBytes = getBytesWritten();
+
+                final TocWriter tocWriter = getTocWriter();
+                final Integer blockIndex = tocWriter == null ? null : tocWriter.getCurrentBlockIndex();
+                final File file = getFile();
+                final String storageLocation = file.getParentFile().getName() + "/" + file.getName();
+
+                final StorageSummary storageSummary = new StorageSummary(eventBeingSerialized, eventId, storageLocation, blockIndex, eventLength, endBytes);
+                storageSummaries.add(storageSummary);
+
+                lastOffset = offset;
+            }
+        } catch (final Exception e) {
+            markDirty();
+            throw e;
+        }
     }
 
     @Override
@@ -189,7 +259,7 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         final Integer blockIndex = tocWriter == null ? null : tocWriter.getCurrentBlockIndex();
         final File file = getFile();
         final String storageLocation = file.getParentFile().getName() + "/" + file.getName();
-        return new StorageSummary(recordIdentifier, storageLocation, blockIndex, serializedLength, endBytes);
+        return new StorageSummary(record, record.getEventId(), storageLocation, blockIndex, serializedLength, endBytes);
     }
 
     @Override
@@ -247,15 +317,6 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     }
 
     /* Getters for internal state written to by subclass EncryptedSchemaRecordWriter */
-
-    IdentifierLookup getIdLookup() {
-        return idLookup;
-    }
-
-    SchemaRecordWriter getSchemaRecordWriter() {
-        return schemaRecordWriter;
-    }
-
     AtomicInteger getRecordCount() {
         return recordCount;
     }
@@ -282,10 +343,6 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
 
     long getFirstEventId() {
         return firstEventId;
-    }
-
-    long getSystemTimeOffset() {
-        return systemTimeOffset;
     }
 
 }

@@ -17,17 +17,16 @@
 
 package org.apache.nifi.provenance.store;
 
-import java.util.Collections;
-import java.util.Map;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public interface StorageResult {
     /**
      * @return a map of each Provenance Event Record to the location where it was stored
      */
-    Map<ProvenanceEventRecord, StorageSummary> getStorageLocations();
+    Collection<StorageSummary> getStorageLocations();
 
     /**
      * Indicates whether or not the storage of events triggered the store to roll over
@@ -45,8 +44,8 @@ public interface StorageResult {
 
     public static StorageResult EMPTY = new StorageResult() {
         @Override
-        public Map<ProvenanceEventRecord, StorageSummary> getStorageLocations() {
-            return Collections.emptyMap();
+        public Collection<StorageSummary> getStorageLocations() {
+            return Collections.emptyList();
         }
 
         @Override

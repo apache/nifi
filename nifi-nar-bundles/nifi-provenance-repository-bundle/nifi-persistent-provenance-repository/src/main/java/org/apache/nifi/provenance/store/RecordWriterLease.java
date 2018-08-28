@@ -28,12 +28,9 @@ public class RecordWriterLease {
     private final long maxBytes;
     private final int maxEvents;
     private long usageCounter;
-    private boolean markedRollable = false;
     private boolean closed = false;
 
-    public RecordWriterLease(final RecordWriter writer, final long maxBytes) {
-        this(writer, maxBytes, Integer.MAX_VALUE);
-    }
+    private volatile boolean markedRollable = false;
 
     public RecordWriterLease(final RecordWriter writer, final long maxBytes, final int maxEvents) {
         this.writer = writer;
@@ -45,13 +42,19 @@ public class RecordWriterLease {
         return writer;
     }
 
-    public synchronized boolean tryClaim() {
+    public boolean tryClaim() {
         if (markedRollable || writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents) {
             return false;
         }
 
-        usageCounter++;
-        return true;
+        synchronized (this) {
+            if (closed) {
+                return false;
+            }
+
+            usageCounter++;
+            return true;
+        }
     }
 
     public synchronized void relinquishClaim() {

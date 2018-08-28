@@ -17,24 +17,6 @@
 
 package org.apache.nifi.provenance.store;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
@@ -56,6 +38,25 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestPartitionedWriteAheadEventStore {
     private static final RecordWriterFactory writerFactory = (file, idGen, compress, createToc) -> RecordWriters.newSchemaRecordWriter(file, idGen, compress, createToc);
@@ -119,7 +120,7 @@ public class TestPartitionedWriteAheadEventStore {
         final ProvenanceEventRecord event1 = createEvent();
         final StorageResult result = store.addEvents(Collections.singleton(event1));
 
-        final StorageSummary summary = result.getStorageLocations().values().iterator().next();
+        final StorageSummary summary = result.getStorageLocations().iterator().next();
         final long eventId = summary.getEventId();
         final ProvenanceEventRecord eventWithId = addId(event1, eventId);
 
@@ -149,6 +150,55 @@ public class TestPartitionedWriteAheadEventStore {
             final ProvenanceEventRecord read = store.getEvent(i).get();
             assertEquals(events.get(i), read);
         }
+    }
+
+    @Test
+    public void testWritePerformance() throws IOException, InterruptedException {
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(createConfig(), writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+        assertEquals(-1, store.getMaxEventId());
+
+        final int numThreads = 10;
+        final int numEvents = 100_000;
+
+        Thread.sleep(5000L);
+        System.out.println("Starting");
+
+        final List<ProvenanceEventRecord> oneThousandEvents = new ArrayList<>();
+        for (int i=0; i < 1000; i++) {
+            oneThousandEvents.add(createEvent());
+        }
+
+        for (int k=0; k < 1000; k++) {
+            final CountDownLatch latch = new CountDownLatch(numThreads);
+            final long start = System.nanoTime();
+
+            for (int j = 0; j < numThreads; j++) {
+                final int numEventsPerThread = numEvents / numThreads;
+
+                final Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < numEventsPerThread / 1000; i++) {
+                            try {
+                                store.addEvents(oneThousandEvents);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        latch.countDown();
+                    }
+                });
+
+                t.start();
+            }
+
+            latch.await();
+            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            System.out.println(millis);
+        }
+
     }
 
 

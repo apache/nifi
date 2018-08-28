@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
@@ -30,6 +23,14 @@ import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordWriter.class);
@@ -140,7 +141,7 @@ public class EncryptedSchemaRecordWriter extends EventIdFirstSchemaRecordWriter 
         final Integer blockIndex = tocWriter == null ? null : tocWriter.getCurrentBlockIndex();
         final File file = getFile();
         final String storageLocation = file.getParentFile().getName() + "/" + file.getName();
-        return new StorageSummary(recordIdentifier, storageLocation, blockIndex, serializedLength, endBytes);
+        return new StorageSummary(record, record.getEventId(), storageLocation, blockIndex, serializedLength, endBytes);
     }
 
     private void printStats() {

@@ -17,23 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.StandardTocReader;
@@ -48,6 +31,24 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
     private final AtomicLong idGenerator = new AtomicLong(0L);
     private File journalFile;
@@ -55,7 +56,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
 
     @BeforeClass
     public static void setupLogger() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
     }
 
     @Before
@@ -64,6 +65,48 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         tocFile = TocUtil.getTocFile(journalFile);
         idGenerator.set(0L);
     }
+
+
+    @Test
+    public void testWritePerformance() throws IOException {
+        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File tocFile = TocUtil.getTocFile(journalFile);
+        try (final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
+            final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192)) {
+
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("filename", "1.txt");
+            attributes.put("uuid", UUID.randomUUID().toString());
+
+            final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+            builder.setEventTime(System.currentTimeMillis());
+            builder.setEventType(ProvenanceEventType.RECEIVE);
+            builder.setTransitUri("nifi://unit-test");
+            builder.fromFlowFile(TestUtil.createFlowFile(3L, 3000L, attributes));
+            builder.setComponentId("1234");
+            builder.setComponentType("dummy processor");
+            builder.setPreviousContentClaim("container-1", "section-1", "identifier-1", 1L, 1L);
+            builder.setCurrentContentClaim("container-1", "section-1", "identifier-1", 1L, 1L);
+            final ProvenanceEventRecord record = builder.build();
+
+
+            final List<ProvenanceEventRecord> events = new ArrayList<>();
+            events.add(record   );
+            writer.writeHeader(1L);
+
+            for (int j=0; j < 10; j++) {
+                final long start = System.nanoTime();
+
+                for (int i = 0; i < 100_000; i++) {
+                    writer.writeRecords(events);
+                }
+
+                final long nanos = System.nanoTime() - start;
+                System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
+            }
+        }
+    }
+
 
     @Test
     public void testContentClaimUnchanged() throws IOException {

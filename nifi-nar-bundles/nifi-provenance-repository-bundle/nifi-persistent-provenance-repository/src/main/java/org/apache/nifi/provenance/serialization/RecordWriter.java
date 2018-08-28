@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.provenance.serialization;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.toc.TocWriter;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.toc.TocWriter;
+import java.util.List;
 
 public interface RecordWriter extends Closeable {
 
@@ -37,10 +38,19 @@ public interface RecordWriter extends Closeable {
      * Writes the given record out to the underlying stream
      *
      * @param record the record to write
-     * @return the number of bytes written for the given records
+     * @return the StorageSummary that describes where the data was stored
      * @throws IOException if unable to write the record to the stream
      */
     StorageSummary writeRecord(ProvenanceEventRecord record) throws IOException;
+
+    /**
+     * Writes the given records out to the underlying stream
+     *
+     * @param records the records to write
+     * @return the Storage Summary for each record written
+     * @throws IOException if unable to write the records to the stream
+     */
+    List<StorageSummary> writeRecords(Iterable<ProvenanceEventRecord> records) throws IOException;
 
     /**
      * Flushes any data that is held in a buffer to the underlying storage mechanism
