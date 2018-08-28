@@ -114,6 +114,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     static final String WRITE_CODE = "W";
 
     static final String PROP_NODE_IDENTITY_PREFIX = "Node Identity ";
+    static final String PROP_NODE_GROUP = "Node Group";
     static final String PROP_USER_GROUP_PROVIDER = "User Group Provider";
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
@@ -128,6 +129,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
+    private String nodeGroupName;
     private List<PortDTO> ports = new ArrayList<>();
     private List<IdentityMapping> identityMappings;
     private List<IdentityMapping> groupMappings;
@@ -221,6 +223,10 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                     logger.info("Added mapped node {} (raw node identity {})", new Object[]{mappedNodeIdentity, entry.getValue()});
                 }
             }
+
+            // read node group name
+            PropertyValue nodeGroupProp = configurationContext.getProperty(PROP_NODE_GROUP);
+            nodeGroupName = (nodeGroupProp != null && nodeGroupProp.isSet()) ? nodeGroupProp.getValue() : null;
 
             // load the authorizations
             load();
@@ -604,12 +610,26 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      * @param authorizations the overall authorizations
      */
     private void populateNodes(Authorizations authorizations) {
+        // authorize static nodes
+        authorizeNodeIdentities(authorizations, nodeIdentities);
+
+        // authorize dynamic nodes (node group)
+        if (nodeGroupName != null) {
+            Group nodeGroup = userGroupProvider.getGroup(nodeGroupName);
+            if (nodeGroup == null) {
+                throw new AuthorizerCreationException("Unable to locate node group " + nodeGroupName + " to seed policies.");
+            }
+            Set<String> nodeGroupUserIdentities = nodeGroup.getUsers();
+            authorizeNodeIdentities(authorizations, nodeGroupUserIdentities);
+        }
+    }
+
+    private void authorizeNodeIdentities(Authorizations authorizations, Set<String> nodeIdentities) {
         for (String nodeIdentity : nodeIdentities) {
             final User node = userGroupProvider.getUserByIdentity(nodeIdentity);
             if (node == null) {
                 throw new AuthorizerCreationException("Unable to locate node " + nodeIdentity + " to seed policies.");
             }
-
             // grant access to the proxy resource
             addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
 
