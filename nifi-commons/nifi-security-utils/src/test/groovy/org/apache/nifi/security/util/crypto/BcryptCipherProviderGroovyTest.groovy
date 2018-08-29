@@ -19,7 +19,7 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
-import org.apache.nifi.security.util.crypto.bcrypt.BCrypt
+import org.mindrot.jbcrypt.BCrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assume
