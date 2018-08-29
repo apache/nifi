@@ -151,6 +151,25 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor FILTER_COMPONENT_NAME = new PropertyDescriptor.Builder()
+        .name("s2s-prov-task-name-filter")
+        .displayName("Component Name to Include")
+        .description("Regular expression to filter the provenance events based on the component name. Only the events matching the regular "
+                + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+        .required(false)
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor FILTER_COMPONENT_NAME_EXCLUDE = new PropertyDescriptor.Builder()
+            .name("s2s-prov-task-name-filter-exclude")
+            .displayName("Component Name to Exclude")
+            .description("Regular expression to exclude the provenance events based on the component name. The events matching the regular "
+                    + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
+                    + "If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
         .name("start-position")
         .displayName("Start Position")
@@ -177,6 +196,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         // initialize component type filtering
         consumer.setComponentTypeRegex(context.getProperty(FILTER_COMPONENT_TYPE).getValue());
         consumer.setComponentTypeRegexExclude(context.getProperty(FILTER_COMPONENT_TYPE_EXCLUDE).getValue());
+        consumer.setComponentNameRegex(context.getProperty(FILTER_COMPONENT_NAME).getValue());
+        consumer.setComponentNameRegexExclude(context.getProperty(FILTER_COMPONENT_NAME_EXCLUDE).getValue());
 
         final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).getValue(), ','));
         if(targetEventTypes != null) {
@@ -231,6 +252,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         properties.add(FILTER_COMPONENT_TYPE_EXCLUDE);
         properties.add(FILTER_COMPONENT_ID);
         properties.add(FILTER_COMPONENT_ID_EXCLUDE);
+        properties.add(FILTER_COMPONENT_NAME);
+        properties.add(FILTER_COMPONENT_NAME_EXCLUDE);
         properties.add(START_POSITION);
         return properties;
     }

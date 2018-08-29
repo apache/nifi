@@ -68,6 +68,8 @@ public class ProvenanceEventConsumer {
     private String startPositionValue = PROVENANCE_START_POSITION.getDefaultValue();
     private Pattern componentTypeRegex;
     private Pattern componentTypeRegexExclude;
+    private Pattern componentNameRegex;
+    private Pattern componentNameRegexExclude;
     private List<ProvenanceEventType> eventTypes = new ArrayList<>();
     private List<ProvenanceEventType> eventTypesExclude = new ArrayList<>();
     private List<String> componentIds = new ArrayList<>();
@@ -96,6 +98,18 @@ public class ProvenanceEventConsumer {
     public void setComponentTypeRegexExclude(final String componentTypeRegex) {
         if (!StringUtils.isBlank(componentTypeRegex)) {
             this.componentTypeRegexExclude = Pattern.compile(componentTypeRegex);
+        }
+    }
+
+    public void setComponentNameRegex(final String componentNameRegex) {
+        if (!StringUtils.isBlank(componentNameRegex)) {
+            this.componentNameRegex = Pattern.compile(componentNameRegex);
+        }
+    }
+
+    public void setComponentNameRegexExclude(final String componentNameRegexExclude) {
+        if (!StringUtils.isBlank(componentNameRegexExclude)) {
+            this.componentNameRegexExclude = Pattern.compile(componentNameRegexExclude);
         }
     }
 
@@ -241,7 +255,8 @@ public class ProvenanceEventConsumer {
 
     private boolean isFilteringEnabled() {
         return componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty()
-                || componentTypeRegexExclude != null || !eventTypesExclude.isEmpty() || !componentIdsExclude.isEmpty();
+                || componentTypeRegexExclude != null || !eventTypesExclude.isEmpty() || !componentIdsExclude.isEmpty()
+                || componentNameRegex != null || componentNameRegexExclude != null;
     }
 
     private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
@@ -249,12 +264,15 @@ public class ProvenanceEventConsumer {
             List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
+
                 if (!eventTypesExclude.isEmpty() && eventTypesExclude.contains(provenanceEventRecord.getEventType())) {
                     continue;
                 }
+
                 if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
                     continue;
                 }
+
                 final String componentId = provenanceEventRecord.getComponentId();
                 if (!componentIdsExclude.isEmpty()) {
                     if (componentIdsExclude.contains(componentId)) {
@@ -281,6 +299,7 @@ public class ProvenanceEventConsumer {
                         }
                     }
                 }
+
                 if (!componentIds.isEmpty() && !componentIds.contains(componentId)) {
                     // If we aren't filtering it out based on component ID, let's see if this component has a parent process group IDs
                     // that is being filtered on
@@ -305,9 +324,20 @@ public class ProvenanceEventConsumer {
                 if (componentTypeRegexExclude != null && componentTypeRegexExclude.matcher(provenanceEventRecord.getComponentType()).matches()) {
                     continue;
                 }
+
                 if (componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
                     continue;
                 }
+
+                final String componentName = componentMapHolder.getComponentName(provenanceEventRecord.getComponentId());
+                if (componentNameRegexExclude != null && componentName != null && componentNameRegexExclude.matcher(componentName).matches()) {
+                    continue;
+                }
+
+                if (componentNameRegex != null && componentName != null && !componentNameRegex.matcher(componentName).matches()) {
+                    continue;
+                }
+
                 filteredEvents.add(provenanceEventRecord);
             }
 
