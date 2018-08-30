@@ -36,8 +36,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class ProvenanceEventConsumer {
 
@@ -254,9 +256,19 @@ public class ProvenanceEventConsumer {
 
 
     private boolean isFilteringEnabled() {
-        return componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty()
-                || componentTypeRegexExclude != null || !eventTypesExclude.isEmpty() || !componentIdsExclude.isEmpty()
-                || componentNameRegex != null || componentNameRegexExclude != null;
+        // Collect all non-blank patterns
+        boolean anyPatternPresent = Stream.of(componentTypeRegex, componentTypeRegexExclude, componentNameRegex, componentNameRegexExclude)
+                .filter(Objects::nonNull)
+                .map(Pattern::toString)
+                .anyMatch(StringUtils::isNotBlank);
+
+        // Collect all non-empty lists
+        boolean anyListPresent = Stream.of(eventTypes, eventTypesExclude, componentIds, componentIdsExclude)
+                .filter(Objects::nonNull)
+                .anyMatch(list -> !list.isEmpty());
+
+        // If either is present, filtering is enabled
+        return anyPatternPresent || anyListPresent;
     }
 
     private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
