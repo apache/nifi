@@ -68,7 +68,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
-        + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ")
+        + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
+    expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success. If the <Message Demarcator> Property is not set, this will always be 1, but if the Property is set, it may "
     + "be greater than 1.")
@@ -289,6 +290,7 @@ public class PublishKafka_1_0 extends AbstractProcessor {
             .name(propertyDescriptorName)
             .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ProducerConfig.class))
             .dynamic(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     }
 
