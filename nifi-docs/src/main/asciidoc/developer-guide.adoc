@@ -2569,6 +2569,7 @@ Contributions can be provided either by creating a patch:
 
 and attaching that patch to a ticket, or by generating a Pull Request.
 
+For further details regarding contributions, refer to the relevant sections of the link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide#ContributorGuide-providingCodeOrDocumentationContributionProvidingcodeordocumentationcontributions[contributor guide].
 
 === Contact Us
 
