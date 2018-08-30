@@ -264,47 +264,48 @@ public class GetMongo extends AbstractMongoProcessor {
         }
 
         try (MongoCursor<Document> cursor = it.iterator()) {
-            final List<Document> listOfDocuments = new ArrayList<>();
-            Document doc;
-
             configureMapper(jsonTypeSetting);
 
-            while ((doc = cursor.tryNext()) != null) {
-                listOfDocuments.add(doc);
-            }
-
             if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
-                final int sizePerChunk = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
-                List<List<Document>> chunks = chunkDocumentsList(listOfDocuments, sizePerChunk);
+                int sizePerBatch = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
+                List<Document> batch = new ArrayList<>();
 
-                for (final List<Document> chunk : chunks) {
+                while (cursor.hasNext()) {
+                    batch.add(cursor.next());
+
+                    if (batch.size() == sizePerBatch) {
+                        try {
+                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
+                            batch = new ArrayList<>();
+                        } catch (Exception e) {
+                            logger.error("Error building batch due to {}", new Object[] {e});
+                        }
+                    }
+                }
+
+                if (batch.size() > 0) {
                     try {
-                        String payload = buildBatch(chunk, jsonTypeSetting, usePrettyPrint);
-                        writeBatch(payload, input, context, session, attributes, REL_SUCCESS);
+                        writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                     } catch (Exception e) {
                         logger.error("Error building batch due to {}", new Object[] {e});
                     }
                 }
             } else {
-                for (final Document document : listOfDocuments) {
-                    FlowFile outgoingFF = (input == null) ? session.create() : session.create(input);
+                FlowFile outgoingFlowFile;
 
-                    outgoingFF = session.write(outgoingFF, out -> {
-                        String json;
-
+                while (cursor.hasNext()) {
+                    outgoingFlowFile = (input == null) ? session.create() : session.create(input);
+                    outgoingFlowFile = session.write(outgoingFlowFile, out -> {
                         if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
-                            json = getObjectWriter(objectMapper, usePrettyPrint).writeValueAsString(document);
+                            out.write(getObjectWriter(objectMapper, usePrettyPrint).writeValueAsString(cursor.next()).getBytes(charset));
                         } else {
-                            json = document.toJson();
+                            out.write(cursor.next().toJson().getBytes(charset));
                         }
-
-                        out.write(json.getBytes(charset));
                     });
 
-                    outgoingFF = session.putAllAttributes(outgoingFF, attributes);
-
-                    session.getProvenanceReporter().receive(outgoingFF, getURI(context));
-                    session.transfer(outgoingFF, REL_SUCCESS);
+                    outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
+                    session.getProvenanceReporter().receive(outgoingFlowFile, getURI(context));
+                    session.transfer(outgoingFlowFile, REL_SUCCESS);
                 }
             }
 
@@ -341,16 +342,4 @@ public class GetMongo extends AbstractMongoProcessor {
         return query;
     }
 
-    private List<List<Document>> chunkDocumentsList(List<Document> originalList, int perChunkSize) {
-        final List<List<Document>> chunks = new ArrayList<>();
-        final int originalSize = originalList.size();
-
-        for (int i = 0; i < originalSize; i += perChunkSize) {
-            chunks.add(new ArrayList<>(
-                    originalList.subList(i, Math.min(originalSize, i + perChunkSize)))
-            );
-        }
-
-        return chunks;
-    }
 }
