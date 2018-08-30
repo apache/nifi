@@ -503,9 +503,6 @@
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
-                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt
-                            because the binary is compiled for Java 8 and we must support Java 7 -->
-                        <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
                         <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
