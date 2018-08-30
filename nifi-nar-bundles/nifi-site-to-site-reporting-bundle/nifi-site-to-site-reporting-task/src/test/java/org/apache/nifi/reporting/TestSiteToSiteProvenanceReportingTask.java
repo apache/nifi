@@ -273,6 +273,38 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterComponentName() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME, "Processor in .*");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME_EXCLUDE, ".*PGB");
+
+        // A001 has name "Processor in PGA" and should be picked
+        ProvenanceEventRecord event = createProvenanceEventRecord("A001", "dummy");
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        assertEquals("A001", reportedEvent.get("componentId").asText());
+        assertEquals("Processor in PGA", reportedEvent.get("componentName").asText());
+
+        // B001 has name "Processor in PGB" and should not be picked
+        event = createProvenanceEventRecord("B001", "dummy");
+        task = setup(event, properties, 1);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
+    }
+
+    @Test
     public void testFilterComponentTypeExcludeSuccess() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
