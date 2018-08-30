@@ -119,8 +119,8 @@ public class AvroTypeUtil {
     }
 
     private static Field buildAvroField(final RecordField recordField) {
-        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
-        final Field field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+        final Schema schema = buildAvroSchema(recordField.getDataType(), getFieldName(recordField), recordField.isNullable());
+        final Field field = new Field(getFieldName(recordField), schema, null, recordField.getDefaultValue());
         for (final String alias : recordField.getAliases()) {
             field.addAlias(alias);
         }
@@ -445,7 +445,7 @@ public class AvroTypeUtil {
      * @return Pair with the LHS being the field name and RHS being the mapped field from the schema
      */
     protected static Pair<String, Field> lookupField(final Schema avroSchema, final RecordField recordField) {
-        String fieldName = recordField.getFieldName();
+        String fieldName = getFieldName(recordField);
 
         // Attempt to locate the field as is in a true 1:1 mapping with the same name
         Field field = avroSchema.getField(fieldName);
@@ -640,7 +640,7 @@ public class AvroTypeUtil {
                     for (final RecordField recordField : recordValue.getSchema().getFields()) {
                         final Object v = recordValue.getValue(recordField);
                         if (v != null) {
-                            map.put(recordField.getFieldName(), v);
+                            map.put(getFieldName(recordField), v);
                         }
                     }
 
@@ -662,7 +662,7 @@ public class AvroTypeUtil {
                 final Record record = (Record) rawValue;
                 for (final RecordField recordField : record.getSchema().getFields()) {
                     final Object recordFieldValue = record.getValue(recordField);
-                    final String recordFieldName = recordField.getFieldName();
+                    final String recordFieldName = getFieldName(recordField);
 
                     final Field field = fieldSchema.getField(recordFieldName);
                     if (field == null) {
@@ -711,7 +711,7 @@ public class AvroTypeUtil {
 
         for (final RecordField recordField : recordSchema.getFields()) {
 
-            Object value = avroRecord.get(recordField.getFieldName());
+            Object value = avroRecord.get(getFieldName(recordField));
             if (value == null) {
                 for (final String alias : recordField.getAliases()) {
                     value = avroRecord.get(alias);
@@ -721,7 +721,7 @@ public class AvroTypeUtil {
                 }
             }
 
-            final String fieldName = recordField.getFieldName();
+            final String fieldName = getFieldName(recordField);
             try {
             final Field avroField = avroRecord.getSchema().getField(fieldName);
             if (avroField == null) {
@@ -930,6 +930,18 @@ public class AvroTypeUtil {
         }
 
         return value;
+    }
+
+    public static String normalizeNameForAvro(String inputName) {
+        String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
+        if (Character.isDigit(normalizedName.charAt(0))) {
+            normalizedName = "_" + normalizedName;
+        }
+        return normalizedName;
+    }
+
+    private static String getFieldName(RecordField field) {
+        return normalizeNameForAvro(field.getFieldName());
     }
 
 }

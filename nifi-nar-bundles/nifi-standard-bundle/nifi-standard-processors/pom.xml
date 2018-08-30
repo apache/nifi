@@ -384,6 +384,7 @@
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/dummy-csv-data.csv</exclude>
                         <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>

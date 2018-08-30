@@ -17,7 +17,16 @@
 
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import org.apache.nifi.avro.AvroRecordSetWriter;
+import org.apache.nifi.csv.CSVReader;
+import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -25,8 +34,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 public class TestConvertRecord {
 
@@ -161,4 +168,36 @@ public class TestConvertRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertRecord.REL_FAILURE).get(0);
         assertTrue(original == out);
     }
+
+    @Test
+    public void testUpdateCSVtoAvroWithNonAvroCompatibleColumnNames() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertRecord.class);
+        runner.setProperty(ConvertRecord.RECORD_READER, "reader");
+        runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
+
+        // reader
+        final CSVReader reader = new CSVReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(reader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
+        runner.setProperty(reader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
+        runner.setProperty(reader, CSVUtils.TRAILING_DELIMITER, "false");
+        runner.enableControllerService(reader);
+
+        // writer
+        final AvroRecordSetWriter writer = new AvroRecordSetWriter();
+        runner.addControllerService("writer", writer);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(writer, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(writer);
+
+        // test
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/dummy-csv-data.csv"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        String schema = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0).getAttribute("avro.schema");
+        assertTrue(schema.contains("First_Name"));
+        assertTrue(schema.contains("_1"));
+    }
+
 }
