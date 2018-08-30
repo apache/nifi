@@ -270,7 +270,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
                     } catch (IOException e) {
                         if (!Strings.isNullOrEmpty(e.getMessage()) && e.getMessage().contains(String.format("Couldn't setup connection for %s", ugi.getUserName()))) {
-                          getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flowfile %s", 
+                          getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flowfile %s",
                               flowFile.getAttribute(CoreAttributes.UUID.key())));
                           session.rollback(true);
                         } else {
