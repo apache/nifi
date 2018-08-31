@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -48,7 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.bouncycastle.crypto.digests.Blake2bDigest;
+import org.apache.nifi.security.util.crypto.HashService;
 
 @EventDriven
 @SideEffectFree
@@ -241,18 +239,8 @@ public class CalculateAttributeHash extends AbstractProcessor {
         return attributeMap;
     }
 
-    // TODO: Refactor to HashService for use in HashContent as well
     private static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
-        if (algorithm.isBlake2()) {
-            int digestLengthBytes = algorithm.getDigestBytesLength();
-            Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
-            byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
-            blake2bDigest.update(value.getBytes(charset), 0, value.getBytes(charset).length);
-            blake2bDigest.doFinal(rawHash, 0);
-            return Hex.encodeHexString(rawHash);
-        } else {
-            return Hex.encodeHexString(DigestUtils.getDigest(algorithm.getName()).digest(value.getBytes(charset)));
-        }
+        return HashService.hashValue(algorithm, value, charset);
     }
 
     private static String getMissingKeysString(Set<String> foundKeys, Set<String> wantedKeys) {
