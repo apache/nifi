@@ -23,7 +23,9 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
- * Enumeration capturing information about the cryptographic hash algorithms used in {@link org.apache.nifi.processors.standard.CalculateAttributeHash} and {@link org.apache.nifi.processors.standard.HashContent} processors.
+ * Enumeration capturing information about the cryptographic hash algorithms used in
+ * {@link org.apache.nifi.processors.standard.CalculateAttributeHash} and
+ * {@link org.apache.nifi.processors.standard.HashContent} processors.
  */
 public enum HashAlgorithm {
 
