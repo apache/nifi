@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -220,7 +219,10 @@ public class CalculateAttributeHash extends AbstractProcessor {
         // Generate a hash with the configured algorithm for each attribute value
         // and create a new attribute with the configured name
         for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            String value = hashValue(context.getProperty(HASH_ALGORITHM).getValue(), entry.getValue(), charset);
+            // TODO: Move outside loop because there is only one algorithm determined for a processor instance
+            final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
+            HashAlgorithm algorithm = HashAlgorithm.valueOf(algorithmName);
+            String value = hashValue(algorithm, entry.getValue(), charset);
             session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
         }
         session.getProvenanceReporter().modifyAttributes(flowFile);
@@ -239,25 +241,22 @@ public class CalculateAttributeHash extends AbstractProcessor {
         return attributeMap;
     }
 
-    // TODO: Move to HashAlgorithm function
-    private static List<String> BLAKE2_ALGORITHMS = Arrays.asList("BLAKE2_224", "BLAKE2_256", "BLAKE2_384", "BLAKE2_512");
-
     // TODO: Refactor to HashService for use in HashContent as well
     // TODO: Pass HashAlgorithm parameter rather than plain String
-    private static String hashValue(String algorithm, String value, Charset charset) {
+    private static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
         // TODO: Empty values generate hashes
         if (StringUtils.isBlank(value)) {
             return value;
         }
-        if (BLAKE2_ALGORITHMS.contains(algorithm)) {
-            int digestLengthBytes = HashAlgorithm.valueOf(algorithm).getDigestBytesLength();
+        if (algorithm.isBlake2()) {
+            int digestLengthBytes = algorithm.getDigestBytesLength();
             Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
             byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
             blake2bDigest.update(value.getBytes(charset), 0, value.getBytes(charset).length);
             blake2bDigest.doFinal(rawHash, 0);
             return Hex.encodeHexString(rawHash);
         } else {
-            return Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest(value.getBytes(charset)));
+            return Hex.encodeHexString(DigestUtils.getDigest(algorithm.getName()).digest(value.getBytes(charset)));
         }
     }
 
