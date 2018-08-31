@@ -100,7 +100,7 @@ public class CalculateAttributeHash extends AbstractProcessor {
                     "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
             .required(true)
             .allowableValues(buildHashAlgorithmAllowableValues())
-            .defaultValue(HashAlgorithm.SHA256.name())
+            .defaultValue(HashAlgorithm.SHA256.getName())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -131,7 +131,7 @@ public class CalculateAttributeHash extends AbstractProcessor {
         final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
         List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
         for (HashAlgorithm algorithm : hashAlgorithms) {
-            allowableValues.add(new AllowableValue(algorithm.name(), algorithm.getName(), algorithm.getDescription()));
+            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.getDescription()));
         }
 
         return allowableValues.toArray(new AllowableValue[0]);
@@ -215,11 +215,13 @@ public class CalculateAttributeHash extends AbstractProcessor {
 
         // Determine the algorithm to use
         final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
-        HashAlgorithm algorithm = HashAlgorithm.valueOf(algorithmName);
+        logger.debug("Using algorithm {}", new Object[]{algorithmName});
+        HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
 
         // Generate a hash with the configured algorithm for each attribute value
         // and create a new attribute with the configured name
         for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+            logger.debug("Generating {} hash of attribute '{}'", new Object[]{algorithmName, entry.getKey()});
             String value = hashValue(algorithm, entry.getValue(), charset);
             session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
         }
@@ -239,7 +241,11 @@ public class CalculateAttributeHash extends AbstractProcessor {
         return attributeMap;
     }
 
-    private static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
+    private String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
+        if (value == null) {
+            getLogger().warn("Tried to calculate {} hash of null value; returning empty string", new Object[]{algorithm.getName()});
+            return "";
+        }
         return HashService.hashValue(algorithm, value, charset);
     }
 
