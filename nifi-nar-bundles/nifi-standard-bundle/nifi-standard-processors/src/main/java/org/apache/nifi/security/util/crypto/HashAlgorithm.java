@@ -134,4 +134,16 @@ public enum HashAlgorithm {
         }
         return sb.toString();
     }
+
+    public static HashAlgorithm fromName(String algorithmName) {
+        HashAlgorithm match = Arrays.stream(HashAlgorithm.values())
+                .filter(algo -> algorithmName.equalsIgnoreCase(algo.name))
+                .findAny()
+                .orElse(null);
+        if (match == null) {
+            throw new IllegalArgumentException("No algorithm matches " + algorithmName);
+        } else {
+            return match;
+        }
+    }
 }

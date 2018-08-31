@@ -93,4 +93,24 @@ class HashAlgorithmTest extends GroovyTestCase {
         // Assert
         assert blake2Algorithms == [HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512]
     }
+
+    @Test
+    void testShouldMatchAlgorithmByName() {
+        // Arrange
+        def algorithms = HashAlgorithm.values()
+
+        // Act
+        algorithms.each { HashAlgorithm algorithm ->
+            def transformedNames = [algorithm.name, algorithm.name.toUpperCase(), algorithm.name.toLowerCase()]
+            logger.info("Trying with names: ${transformedNames}")
+
+            transformedNames.each { String name ->
+                HashAlgorithm found = HashAlgorithm.fromName(name)
+
+                // Assert
+                assert found instanceof HashAlgorithm
+                assert found.name == name.toUpperCase()
+            }
+        }
+    }
 }
