@@ -75,7 +75,7 @@ class CalculateHashAttributeTest extends GroovyTestCase {
                 sha3_256: "b1b3cd90a21ef60caba5ec1bf12ffcb833e52a0ae26f0ab7c4f9ccfa9c5c025b",
                 sha3_384: "ca699a2447032857bf4f7e84fa316264f0c1870f9330031d5d75a0770644353c268b36d0522a3cf62e60f9401aadc37c",
                 sha3_512: "cb9059d9b7ec4fde4d9710160a694e7ac2a4dd9969dee43d730066ded7b80d3eefdb4cae7622d21f6cfe16092e24f1ad6ca5924767118667654cf71b7abaaca4",
-                blake2_224: "0cd14551d0ddfcc5952ee4ee4d7bab063f5c40c628296af394a02176",
+                blake2_160: "7bc5a408dba4f1934d9090c4d75c65bfa0c7c90c",
                 blake2_256: "40b8935dc5ed153846fb08dac8e7999ba04a74f4dab28415c39847a15c211447",
                 blake2_384: "40716eddc8cfcf666d980804fed294c43fe9436a9787367a3086b45d69791fd5cef1a16c17235ea289c1e40a899b4f6b",
                 blake2_512: "5f34525b130c11c469302ef6734bf6eedb1eca5d7445a3c4ae289ab58dd13ef72531966bfe2f67c4bf49c99dd14dae92d245f241482307d29bf25c45a1085026"
@@ -85,7 +85,7 @@ class CalculateHashAttributeTest extends GroovyTestCase {
 
         // Act
         def generatedHashes = algorithms.collectEntries { HashAlgorithm algorithm ->
-            String hash = processor.hashValue(algorithm.name, knownValue, StandardCharsets.UTF_8)
+            String hash = processor.hashValue(algorithm, knownValue, StandardCharsets.UTF_8)
             logger.info("${algorithm.getName().padLeft(11)}('${knownValue}') [${hash.length() / 2}] = ${hash}")
             [(algorithm.name), hash]
         }
@@ -98,7 +98,7 @@ class CalculateHashAttributeTest extends GroovyTestCase {
     }
 
     private static String translateAlgorithmNameToMapKey(String algorithmName) {
-        algorithmName.toLowerCase().replaceAll(/-\//, '_')
+        algorithmName.toLowerCase().replaceAll(/[-\/]/, '_')
     }
 
 }
