@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -40,6 +32,15 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -65,6 +66,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
+            .defaultValue(STORE_TYPE_JKS)
             .build();
     public static final PropertyDescriptor TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Truststore Password")
@@ -86,6 +88,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
+            .defaultValue(STORE_TYPE_JKS)
             .build();
     public static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
             .name("Keystore Password")
