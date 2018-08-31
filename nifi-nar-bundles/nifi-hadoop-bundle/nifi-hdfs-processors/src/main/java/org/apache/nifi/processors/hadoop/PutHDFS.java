@@ -49,8 +49,9 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
-import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
@@ -64,6 +65,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -269,13 +272,15 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
                     } catch (IOException e) {
-                        if (!Strings.isNullOrEmpty(e.getMessage()) && e.getMessage().contains(String.format("Couldn't setup connection for %s", ugi.getUserName()))) {
-                          getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flowfile %s",
-                              flowFile.getAttribute(CoreAttributes.UUID.key())));
-                          session.rollback(true);
-                        } else {
-                          throw e;
-                        }
+                      boolean tgtExpired = hasCause(e, GSSException.class, gsse -> "Failed to find any Kerberos tgt".equals(gsse.getMinorString()));
+                      if (tgtExpired) {
+                        getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flow file %s",
+                            putFlowFile.getAttribute(CoreAttributes.UUID.key())));
+                        session.rollback(true);
+                      } else {
+                        getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
+                        session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                      }
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
@@ -399,6 +404,21 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 return null;
             }
         });
+    }
+
+
+    /**
+     * Returns <code>true</code> if, and only if: the causal chain contains the expected cause type,
+     * and satisfies the provided cause predicate, <code>false</code> otherwise.
+     * @param t The throwable to inspect for the cause.
+     * @return
+     */
+    private <T extends Throwable> boolean hasCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
+      Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+      return causalChain
+              .filter(expectedCauseType::isInstance)
+              .map(expectedCauseType::cast)
+              .anyMatch(causePredicate);
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
