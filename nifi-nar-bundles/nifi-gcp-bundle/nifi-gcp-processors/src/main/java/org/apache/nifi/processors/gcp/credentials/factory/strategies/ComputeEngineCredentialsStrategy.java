@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.ComputeEngineCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,7 +37,9 @@ public class ComputeEngineCredentialsStrategy extends AbstractBooleanCredentials
     }
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties) throws IOException {
-        return new ComputeEngineCredentials();
+    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+        return ComputeEngineCredentials.newBuilder()
+                .setHttpTransportFactory(transportFactory)
+                .build();
     }
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.util.List;
 
@@ -76,16 +77,18 @@ public abstract class AbstractGCPProcessor<
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("Http Proxy Username")
+    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor
+            .Builder().name("gcp-proxy-user-name")
+            .displayName("Http Proxy Username")
             .description("Http Proxy Username")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
 
-    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Http Proxy Password")
+    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor
+            .Builder().name("gcp-proxy-user-password")
+            .displayName("Http Proxy Password")
             .description("Http Proxy Password")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -120,7 +123,8 @@ public abstract class AbstractGCPProcessor<
                 PROXY_HOST,
                 PROXY_PORT,
                 HTTP_PROXY_USERNAME,
-                HTTP_PROXY_PASSWORD
+                HTTP_PROXY_PASSWORD,
+                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
         );
     }
 
