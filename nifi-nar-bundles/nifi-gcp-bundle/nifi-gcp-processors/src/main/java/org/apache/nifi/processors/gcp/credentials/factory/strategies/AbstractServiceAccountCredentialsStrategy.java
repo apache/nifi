@@ -16,18 +16,12 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.auth.http.HttpTransportFactory;
-import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.util.Map;
 
 /**
@@ -42,25 +36,8 @@ public abstract class AbstractServiceAccountCredentialsStrategy extends Abstract
     protected abstract InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException;
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties) throws IOException {
-        final String proxyHost = properties.get(CredentialPropertyDescriptors.PROXY_HOST);
-        final String proxyPortString = properties.get(CredentialPropertyDescriptors.PROXY_PORT);
-        final Integer proxyPort = (proxyPortString != null && proxyPortString.matches("-?\\d+")) ?
-                Integer.parseInt(proxyPortString) : 0;
-
-        if (!StringUtils.isBlank(proxyHost) && proxyPort > 0) {
-            return GoogleCredentials.fromStream(getServiceAccountJson(properties),
-                    new HttpTransportFactory() {
-                        @Override
-                        public HttpTransport create() {
-                            return new NetHttpTransport.Builder()
-                                    .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
-                                    .build();
-                        }
-                    });
-        } else {
-            return GoogleCredentials.fromStream(getServiceAccountJson(properties));
-        }
+    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+            return GoogleCredentials.fromStream(getServiceAccountJson(properties), transportFactory);
     }
 
 }
