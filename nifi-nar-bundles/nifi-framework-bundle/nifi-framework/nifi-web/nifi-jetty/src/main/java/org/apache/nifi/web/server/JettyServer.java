@@ -74,6 +74,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.security.ContentSecurityPolicyFilter;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -501,6 +502,11 @@ public class JettyServer implements NiFiServer {
 
         // add a filter to set the X-Frame-Options filter
         webappContext.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
+
+        // add a filter to set the Content Security Policy frame-ancestors directive
+        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
+        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
+        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
