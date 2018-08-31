@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -244,10 +243,6 @@ public class CalculateAttributeHash extends AbstractProcessor {
 
     // TODO: Refactor to HashService for use in HashContent as well
     private static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
-        // TODO: Empty values generate hashes
-        if (StringUtils.isBlank(value)) {
-            return value;
-        }
         if (algorithm.isBlake2()) {
             int digestLengthBytes = algorithm.getDigestBytesLength();
             Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
