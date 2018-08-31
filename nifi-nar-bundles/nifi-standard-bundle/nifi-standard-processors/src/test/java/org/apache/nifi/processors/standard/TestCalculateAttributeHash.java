@@ -36,42 +36,42 @@ public class TestCalculateAttributeHash {
     @Test
     public void testMD2() throws Exception {
         testAllAlgorithm("MD2");
-        testParitalAlgorithm("MD2");
+        testPartialAlgorithm("MD2");
         testMissingAlgorithm("MD2");
     }
 
     @Test
     public void testMD5() throws Exception {
         testAllAlgorithm("MD5");
-        testParitalAlgorithm("MD5");
+        testPartialAlgorithm("MD5");
         testMissingAlgorithm("MD5");
     }
 
     @Test
     public void testSHA1() throws Exception {
         testAllAlgorithm("SHA-1");
-        testParitalAlgorithm("SHA-1");
+        testPartialAlgorithm("SHA-1");
         testMissingAlgorithm("SHA-1");
     }
 
     @Test
     public void testSHA256() throws Exception {
         testAllAlgorithm("SHA-256");
-        testParitalAlgorithm("SHA-256");
+        testPartialAlgorithm("SHA-256");
         testMissingAlgorithm("SHA-256");
     }
 
     @Test
     public void testSHA384() throws Exception {
         testAllAlgorithm("SHA-384");
-        testParitalAlgorithm("SHA-384");
+        testPartialAlgorithm("SHA-384");
         testMissingAlgorithm("SHA-384");
     }
 
     @Test
     public void testSHA512() throws Exception {
         testAllAlgorithm("SHA-512");
-        testParitalAlgorithm("SHA-512");
+        testPartialAlgorithm("SHA-512");
         testMissingAlgorithm("SHA-512");
     }
 
@@ -101,7 +101,7 @@ public class TestCalculateAttributeHash {
         }
     }
 
-    public void testParitalAlgorithm(String algorithm) {
+    public void testPartialAlgorithm(String algorithm) {
         final TestRunner runner = TestRunners.newTestRunner(new CalculateAttributeHash());
         runner.setProperty(CalculateAttributeHash.HASH_ALGORITHM.getName(), algorithm);
         runner.setProperty("name", String.format("%s_%s", "name", algorithm));
@@ -109,9 +109,9 @@ public class TestCalculateAttributeHash {
 
         // test default ALLOW
 
-        final Map<String, String> paritalAttributeMap = new HashMap<>();
-        paritalAttributeMap.put("name", "abcdefg");
-        runner.enqueue(new byte[0], paritalAttributeMap);
+        final Map<String, String> partialAttributeMap = new HashMap<>();
+        partialAttributeMap.put("name", "abcdefg");
+        runner.enqueue(new byte[0], partialAttributeMap);
 
         runner.run(1);
 
@@ -129,7 +129,7 @@ public class TestCalculateAttributeHash {
 
         // test PROHIBIT
         runner.setProperty(CalculateAttributeHash.PARTIAL_ATTR_ROUTE_POLICY, CalculateAttributeHash.PartialAttributePolicy.PROHIBIT.name());
-        runner.enqueue(new byte[0], paritalAttributeMap);
+        runner.enqueue(new byte[0], partialAttributeMap);
 
         runner.run(1);
 
