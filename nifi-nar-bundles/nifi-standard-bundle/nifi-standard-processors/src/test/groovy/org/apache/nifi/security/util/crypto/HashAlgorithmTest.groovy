@@ -57,7 +57,7 @@ class HashAlgorithmTest extends GroovyTestCase {
         def algorithms = HashAlgorithm.values()
 
         // Act
-        def brokenAlgorithms = algorithms.findAll { !it.isStrongAlgorithm()        }
+        def brokenAlgorithms = algorithms.findAll { !it.isStrongAlgorithm() }
         logger.info("Broken algorithms: ${brokenAlgorithms}")
 
         // Assert
@@ -80,5 +80,17 @@ class HashAlgorithmTest extends GroovyTestCase {
         }
 
         assert descriptions.findAll { it =~ "MD2|MD5|SHA-1" }.every { it =~ /\[WARNING/ }
+    }
+
+    @Test
+    void testDetermineBlake2Algorithms() {
+        def algorithms = HashAlgorithm.values()
+
+        // Act
+        def blake2Algorithms = algorithms.findAll { it.isBlake2() }
+        logger.info("Blake2 algorithms: ${blake2Algorithms}")
+
+        // Assert
+        assert blake2Algorithms == [HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512]
     }
 }

@@ -40,7 +40,7 @@ public enum HashAlgorithm {
     SHA3_256("SHA3-256", 32, "Keccak-based SHA3 family"),
     SHA3_384("SHA3-384", 48, "Keccak-based SHA3 family"),
     SHA3_512("SHA3-512", 64, "Keccak-based SHA3 family"),
-    BLAKE2_224("BLAKE2-224", 28, "Also known as Blake2b"),
+    BLAKE2_160("BLAKE2-160", 20, "Also known as Blake2b"),
     BLAKE2_256("BLAKE2-256", 32, "Also known as Blake2b"),
     BLAKE2_384("BLAKE2-384", 48, "Also known as Blake2b"),
     BLAKE2_512("BLAKE2-512", 64, "Also known as Blake2b");
@@ -97,6 +97,10 @@ public enum HashAlgorithm {
      */
     public boolean isStrongAlgorithm() {
         return (!BROKEN_ALGORITHMS.contains(name));
+    }
+
+    public boolean isBlake2() {
+        return name.contains("BLAKE2");
     }
 
     @Override
