@@ -825,6 +825,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void clearProperties() {
+        context.clearProperties();
+    }
+
+    @Override
     public List<ProvenanceEventRecord> getProvenanceEvents() {
         return sharedState.getProvenanceEvents();
     }
