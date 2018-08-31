@@ -131,7 +131,7 @@ public class CalculateAttributeHash extends AbstractProcessor {
         final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
         List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
         for (HashAlgorithm algorithm : hashAlgorithms) {
-            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.getDescription()));
+            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.buildAllowableValueDescription()));
         }
 
         return allowableValues.toArray(new AllowableValue[0]);
