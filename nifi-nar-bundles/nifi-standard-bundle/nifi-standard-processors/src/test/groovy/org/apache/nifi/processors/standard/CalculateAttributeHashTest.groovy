@@ -56,7 +56,7 @@ class CalculateHashAttributeTest extends GroovyTestCase {
     void testShouldHashConstantValue() throws Exception {
         // Arrange
         def algorithms = HashAlgorithm.values()
-        final String knownValue = "apachenifi"
+        final String KNOWN_VALUE = "apachenifi"
 
         /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 224)
          * Ex: {@code $ echo -n "apachenifi" | openssl dgst -md5}
@@ -85,8 +85,53 @@ class CalculateHashAttributeTest extends GroovyTestCase {
 
         // Act
         def generatedHashes = algorithms.collectEntries { HashAlgorithm algorithm ->
-            String hash = processor.hashValue(algorithm, knownValue, StandardCharsets.UTF_8)
-            logger.info("${algorithm.getName().padLeft(11)}('${knownValue}') [${hash.length() / 2}] = ${hash}")
+            String hash = processor.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8)
+            logger.info("${algorithm.getName().padLeft(11)}('${KNOWN_VALUE}') [${hash.length() / 2}] = ${hash}")
+            [(algorithm.name), hash]
+        }
+
+        // Assert
+        generatedHashes.each { String algorithmName, String hash ->
+            String key = translateAlgorithmNameToMapKey(algorithmName)
+            assert EXPECTED_HASHES[key] == hash
+        }
+    }
+
+    @Test
+    void testShouldHashEmptyValue() throws Exception {
+        // Arrange
+        def algorithms = HashAlgorithm.values()
+        final String EMPTY_VALUE = ""
+
+        /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 224)
+         * Ex: {@code $ echo -n "" | openssl dgst -md5}
+         */
+        final def EXPECTED_HASHES = [
+                md2: "8350e5a3e24c153df2275c9f80692773",
+                md5: "d41d8cd98f00b204e9800998ecf8427e",
+                sha_1: "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                sha_224: "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
+                sha_256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                sha_384: "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
+                sha_512: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+                sha_512_224: "6ed0dd02806fa89e25de060c19d3ac86cabb87d6a0ddd05c333b84f4",
+                sha_512_256: "c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a",
+                sha3_224: "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7",
+                sha3_256: "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+                sha3_384: "0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004",
+                sha3_512: "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26",
+                blake2_160: "3345524abf6bbe1809449224b5972c41790b6cf2",
+                blake2_256: "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
+                blake2_384: "b32811423377f52d7862286ee1a72ee540524380fda1724a6f25d7978c6fd3244a6caf0498812673c5e05ef583825100",
+                blake2_512: "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce"
+        ]
+
+        CalculateAttributeHash processor = new CalculateAttributeHash()
+
+        // Act
+        def generatedHashes = algorithms.collectEntries { HashAlgorithm algorithm ->
+            String hash = processor.hashValue(algorithm, EMPTY_VALUE, StandardCharsets.UTF_8)
+            logger.info("${algorithm.getName().padLeft(11)}('${EMPTY_VALUE}') [${hash.length() / 2}] = ${hash}")
             [(algorithm.name), hash]
         }
 

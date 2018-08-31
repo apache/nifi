@@ -216,12 +216,13 @@ public class CalculateAttributeHash extends AbstractProcessor {
             }
         }
 
+        // Determine the algorithm to use
+        final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
+        HashAlgorithm algorithm = HashAlgorithm.valueOf(algorithmName);
+
         // Generate a hash with the configured algorithm for each attribute value
         // and create a new attribute with the configured name
         for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            // TODO: Move outside loop because there is only one algorithm determined for a processor instance
-            final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
-            HashAlgorithm algorithm = HashAlgorithm.valueOf(algorithmName);
             String value = hashValue(algorithm, entry.getValue(), charset);
             session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
         }
@@ -242,7 +243,6 @@ public class CalculateAttributeHash extends AbstractProcessor {
     }
 
     // TODO: Refactor to HashService for use in HashContent as well
-    // TODO: Pass HashAlgorithm parameter rather than plain String
     private static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
         // TODO: Empty values generate hashes
         if (StringUtils.isBlank(value)) {
