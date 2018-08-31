@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.crypto.HashAlgorithm;
+import org.bouncycastle.crypto.digests.Blake2bDigest;
 
 @EventDriven
 @SideEffectFree
@@ -88,8 +90,8 @@ public class CalculateAttributeHash extends AbstractProcessor {
             .name("fail_when_empty")
             .displayName("Fail when no attributes present")
             .description("Route to failure when none of the attributes that are configured for hashing are found. " +
-            "If set to false, then flow files that do not contain any of the attributes that are configured for hashing will just pass through to success.")
-            .allowableValues("true","false")
+                    "If set to false, then flow files that do not contain any of the attributes that are configured for hashing will just pass through to success.")
+            .allowableValues("true", "false")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("true")
@@ -99,7 +101,7 @@ public class CalculateAttributeHash extends AbstractProcessor {
             .name("hash_algorithm")
             .displayName("Hash Algorithm")
             .description("The Hash Algorithm to use. Note that not all of the algorithms available are recommended for use (some are provided for legacy use). " +
-            "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
+                    "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
             .required(true)
             .allowableValues(buildHashAlgorithmAllowableValues())
             .defaultValue(HashAlgorithm.SHA256.name())
@@ -200,16 +202,16 @@ public class CalculateAttributeHash extends AbstractProcessor {
         final ComponentLog logger = getLogger();
 
         final SortedMap<String, String> attributes = getRelevantAttributes(flowFile, attributeToGeneratedNameMap);
-        if(attributes.isEmpty()) {
-            if( context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
-                logger.info("Routing {} to 'failure' because of missing all attributes: {}", new Object[]{flowFile, getMissingKeysString(null,attributeToGeneratedNameMap.keySet())});
+        if (attributes.isEmpty()) {
+            if (context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
+                logger.info("Routing {} to 'failure' because of missing all attributes: {}", new Object[]{flowFile, getMissingKeysString(null, attributeToGeneratedNameMap.keySet())});
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
         }
         if (attributes.size() != attributeToGeneratedNameMap.size()) {
             if (PartialAttributePolicy.valueOf(context.getProperty(PARTIAL_ATTR_ROUTE_POLICY).getValue()) == PartialAttributePolicy.PROHIBIT) {
-                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, getMissingKeysString(attributes.keySet(),attributeToGeneratedNameMap.keySet())});
+                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, getMissingKeysString(attributes.keySet(), attributeToGeneratedNameMap.keySet())});
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -237,11 +239,26 @@ public class CalculateAttributeHash extends AbstractProcessor {
         return attributeMap;
     }
 
+    // TODO: Move to HashAlgorithm function
+    private static List<String> BLAKE2_ALGORITHMS = Arrays.asList("BLAKE2_224", "BLAKE2_256", "BLAKE2_384", "BLAKE2_512");
+
+    // TODO: Refactor to HashService for use in HashContent as well
+    // TODO: Pass HashAlgorithm parameter rather than plain String
     private static String hashValue(String algorithm, String value, Charset charset) {
+        // TODO: Empty values generate hashes
         if (StringUtils.isBlank(value)) {
             return value;
         }
-        return Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest(value.getBytes(charset)));
+        if (BLAKE2_ALGORITHMS.contains(algorithm)) {
+            int digestLengthBytes = HashAlgorithm.valueOf(algorithm).getDigestBytesLength();
+            Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
+            byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
+            blake2bDigest.update(value.getBytes(charset), 0, value.getBytes(charset).length);
+            blake2bDigest.doFinal(rawHash, 0);
+            return Hex.encodeHexString(rawHash);
+        } else {
+            return Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest(value.getBytes(charset)));
+        }
     }
 
     private static String getMissingKeysString(Set<String> foundKeys, Set<String> wantedKeys) {
