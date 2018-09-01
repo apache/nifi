@@ -16,10 +16,18 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.processors.standard.HashContent;
+import org.apache.nifi.processors.standard.HashContentLegacy;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +42,45 @@ import org.slf4j.LoggerFactory;
  */
 public class HashService {
     private static final Logger logger = LoggerFactory.getLogger(HashService.class);
+    private static final int BUFFER_SIZE = 8192;
+
+    /**
+     * Returns an array of {@link AllowableValue} elements for each {@link HashAlgorithm}. The
+     * complete {@code description} is built from the digest length, safety warnings, etc. See
+     * {@link HashAlgorithm#buildAllowableValueDescription()}.
+     *
+     * @return an ordered {@code AllowableValue[]} containing the values
+     */
+    public static AllowableValue[] buildHashAlgorithmAllowableValues() {
+        final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
+        List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
+        for (HashAlgorithm algorithm : hashAlgorithms) {
+            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.buildAllowableValueDescription()));
+        }
+
+        return allowableValues.toArray(new AllowableValue[0]);
+    }
+
+    /**
+     * Returns the hash of the specified value. This method uses an {@link java.io.InputStream} to perform the operation in a streaming manner for large inputs.
+     *
+     * @param algorithm the hash algorithm to use
+     * @param value     the value to hash (cannot be {@code null} but can be an empty stream)
+     * @return the hash value in hex
+     */
+    public static String hashValueStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
+        if (algorithm == null) {
+            throw new IllegalArgumentException("The hash algorithm cannot be null");
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("The value cannot be null");
+        }
+        if (algorithm.isBlake2()) {
+            return Hex.encodeHexString(blake2HashStreaming(algorithm, value));
+        } else {
+            return Hex.encodeHexString(traditionalHashStreaming(algorithm, value));
+        }
+    }
 
     /**
      * Returns the hex-encoded hash of the specified value.
@@ -110,11 +157,34 @@ public class HashService {
         return DigestUtils.getDigest(algorithm.getName()).digest(value);
     }
 
+    private static byte[] traditionalHashStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
+        MessageDigest digest = DigestUtils.getDigest(algorithm.getName());
+        // DigestInputStream digestInputStream = new DigestInputStream(value, digest);
+        return DigestUtils.digest(digest, value);
+    }
+
     private static byte[] blake2Hash(HashAlgorithm algorithm, byte[] value) {
         int digestLengthBytes = algorithm.getDigestBytesLength();
         Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
         byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
         blake2bDigest.update(value, 0, value.length);
+        blake2bDigest.doFinal(rawHash, 0);
+        return rawHash;
+    }
+
+    private static byte[] blake2HashStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
+        int digestLengthBytes = algorithm.getDigestBytesLength();
+        Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
+        byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
+
+        final byte[] buffer = new byte[BUFFER_SIZE];
+        int read = value.read(buffer, 0, BUFFER_SIZE);
+
+        while (read > -1) {
+            blake2bDigest.update(buffer, 0, read);
+            read = value.read(buffer, 0, BUFFER_SIZE);
+        }
+
         blake2bDigest.doFinal(rawHash, 0);
         return rawHash;
     }
