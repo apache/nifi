@@ -48,7 +48,7 @@ import org.apache.nifi.security.util.crypto.HashService;
 @SupportsBatching
 @Tags({"content", "hash", "sha", "blake2", "md5", "cryptography"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Calculates a hash value for the flowfile content using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use.")
+@CapabilityDescription("Calculates a hash value for the flowfile content using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use." + "For the processor previously called \"HashContent\" (prior to version 1.8.0), see \"HashContentLegacy\". ")
 @WritesAttribute(attribute = "content_<algorithm>", description = "This processor adds an attribute whose value is the result of "
         + "hashing the flowfile content. The name of this attribute is specified by the value of the algorithm, e.g. 'content_SHA-256'.")
 public class HashContent extends AbstractProcessor {

@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.processors.standard.HashAttribute;
 import org.apache.nifi.processors.standard.HashContent;
 import org.apache.nifi.processors.standard.HashContentLegacy;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class provides a generic service for cryptographic hashing. It is used in
- * {@link org.apache.nifi.processors.standard.CalculateAttributeHash}, {@link HashContent}, and
+ * {@link HashAttribute}, {@link HashContent}, {@link org.apache.nifi.processors.standard.HashAttributeLegacy}, and
  * {@link HashContentLegacy}.
  * <p>
  * See also:

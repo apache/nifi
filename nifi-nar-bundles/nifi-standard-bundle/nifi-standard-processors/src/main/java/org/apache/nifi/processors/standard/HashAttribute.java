@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.processors.standard;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,124 +28,129 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.crypto.HashAlgorithm;
+import org.apache.nifi.security.util.crypto.HashService;
 
-/**
- * <p>
- * This processor identifies groups of user-specified flowfile attributes and assigns a unique hash value to each group, recording this hash value in the flowfile's attributes using a user-specified
- * attribute key. The groups are identified dynamically and preserved across application restarts. </p>
- *
- * <p>
- * The user must supply optional processor properties during runtime to correctly configure this processor. The optional property key will be used as the flowfile attribute key for attribute
- * inspection. The value must be a valid regular expression. This regular expression is evaluated against the flowfile attribute values. If the regular expression contains a capturing group, the value
- * of that group will be used when comparing flow file attributes. Otherwise, the original flow file attribute's value will be used if and only if the value matches the given regular expression. </p>
- *
- * <p>
- * If a flowfile does not have an attribute entry for one or more processor configured values, then the flowfile is routed to failure. </p>
- *
- * <p>
- * An example hash value identification:
- *
- * Assume Processor Configured with Two Properties ("MDKey1" = ".*" and "MDKey2" = "(.).*").
- *
- * FlowFile 1 has the following attributes: MDKey1 = a MDKey2 = b
- *
- * and will be assigned to group 1 (since no groups exist yet)
- *
- * FlowFile 2 has the following attributes: MDKey1 = 1 MDKey2 = 2
- *
- * and will be assigned to group 2 (attribute keys do not match existing groups)
- *
- * FlowFile 3 has the following attributes: MDKey1 = a MDKey2 = z
- *
- * and will be assigned to group 3 (attribute keys do not match existing groups)
- *
- * FlowFile 4 has the following attribute: MDKey1 = a MDKey2 = bad
- *
- * and will be assigned to group 1 (because the value of MDKey1 has the regular expression ".*" applied to it, and that evaluates to the same as MDKey1 attribute of the first flow file. Similarly, the
- * capturing group for the MDKey2 property indicates that only the first character of the MDKey2 attribute must match, and the first character of MDKey2 for Flow File 1 and Flow File 4 are both 'b'.)
- *
- * FlowFile 5 has the following attributes: MDKey1 = a
- *
- * and will route to failure because it does not have MDKey2 entry in its attribute
- * </p>
- *
- * <p>
- * The following flow file attributes are created or modified: <ul>
- * <li><b>&lt;group.id.attribute.key&gt;</b> - The hash value.</li> </ul> </p>
- */
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"attributes", "hash"})
-@InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Hashes together the key/value pairs of several FlowFile Attributes and adds the hash as a new attribute. "
-        + "Optional properties are to be added such that the name of the property is the name of a FlowFile Attribute to consider "
-        + "and the value of the property is a regular expression that, if matched by the attribute value, will cause that attribute "
-        + "to be used as part of the hash. If the regular expression contains a capturing group, only the value of the capturing "
-        + "group will be used.")
-@WritesAttribute(attribute = "<Hash Value Attribute Key>", description = "This Processor adds an attribute whose value is the result of "
-        + "Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
-@DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "A Regular Expression",
-        description = "This regular expression is evaluated against the "
-        + "flowfile attribute values. If the regular expression contains a capturing "
-        + "group, the value of that group will be used when comparing flow file "
-        + "attributes. Otherwise, the original flow file attribute's value will be used "
-        + "if and only if the value matches the given regular expression.")
+@Tags({"attributes", "hash", "md5", "sha", "keccak", "blake2", "cryptography"})
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Calculates a hash value for each of the specified attributes using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use. " + "For the processor previously called \"HashAttribute\" (prior to version 1.8.0), see \"HashAttributeLegacy\". ")
+@WritesAttribute(attribute = "<Specified Attribute Name per Dynamic Property>", description = "This Processor adds an attribute whose value is the result of "
+        + "hashing the specified attribute. The name of this attribute is specified by the value of the dynamic property.")
+@DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "Attribute Name",
+        description = "The property name defines the attribute to look for and hash in the incoming flowfile. "
+                + "The property value defines the name to give the generated attribute. "
+                + "Attribute names must be unique.")
 public class HashAttribute extends AbstractProcessor {
+    public enum PartialAttributePolicy {
+        ALLOW,
+        PROHIBIT
+    }
 
-    public static final PropertyDescriptor HASH_VALUE_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("Hash Value Attribute Key")
-            .description("The name of the FlowFile Attribute where the hash value should be stored")
+    private static final AllowableValue ALLOW_PARTIAL_ATTRIBUTES_VALUE = new AllowableValue(PartialAttributePolicy.ALLOW.name(),
+            "Allow missing attributes",
+            "Do not route to failure if there are attributes configured for hashing that are not present in the flowfile");
+
+    private static final AllowableValue FAIL_PARTIAL_ATTRIBUTES_VALUE = new AllowableValue(PartialAttributePolicy.PROHIBIT.name(),
+            "Fail if missing attributes",
+            "Route to failure if there are attributes configured for hashing that are not present in the flowfile");
+
+    private static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("character_set")
+            .description("The Character Set used to encode the attribute being hashed")
             .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .build();
+
+    static final PropertyDescriptor FAIL_WHEN_EMPTY = new PropertyDescriptor.Builder()
+            .name("fail_when_empty")
+            .displayName("Fail when no attributes present")
+            .description("Route to failure when none of the attributes that are configured for hashing are found. " +
+                    "If set to false, then flow files that do not contain any of the attributes that are configured for hashing will just pass through to success.")
+            .allowableValues("true", "false")
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("true")
+            .build();
+
+    static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("hash_algorithm")
+            .displayName("Hash Algorithm")
+            .description("The Hash Algorithm to use. Note that not all of the algorithms available are recommended for use (some are provided for legacy use). " +
+                    "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
+            .required(true)
+            .allowableValues(buildHashAlgorithmAllowableValues())
+            .defaultValue(HashAlgorithm.SHA256.getName())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor PARTIAL_ATTR_ROUTE_POLICY = new PropertyDescriptor.Builder()
+            .name("missing_attr_policy")
+            .displayName("Missing attribute policy")
+            .description("Policy for how the processor handles attributes that are configured for hashing but are not found in the flowfile.")
+            .required(true)
+            .allowableValues(ALLOW_PARTIAL_ATTRIBUTES_VALUE, FAIL_PARTIAL_ATTRIBUTES_VALUE)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(ALLOW_PARTIAL_ATTRIBUTES_VALUE.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Used for FlowFiles that have a hash value added")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Used for FlowFiles that are missing required attributes")
             .build();
+    private final static Set<Relationship> relationships;
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
-    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.<String, Pattern>emptyMap());
+    private final static List<PropertyDescriptor> properties;
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
+    private static AllowableValue[] buildHashAlgorithmAllowableValues() {
+        final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
+        List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
+        for (HashAlgorithm algorithm : hashAlgorithms) {
+            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.buildAllowableValueDescription()));
+        }
 
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HASH_VALUE_ATTRIBUTE);
-        this.properties = Collections.unmodifiableList(properties);
+        return allowableValues.toArray(new AllowableValue[0]);
+    }
+
+    private final AtomicReference<Map<String, String>> attributeToGenerateNameMapRef = new AtomicReference<>(Collections.emptyMap());
+
+    static {
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_FAILURE);
+        _relationships.add(REL_SUCCESS);
+        relationships = Collections.unmodifiableSet(_relationships);
+
+        final List<PropertyDescriptor> _properties = new ArrayList<>();
+        _properties.add(CHARACTER_SET);
+        _properties.add(FAIL_WHEN_EMPTY);
+        _properties.add(HASH_ALGORITHM);
+        _properties.add(PARTIAL_ATTR_ROUTE_POLICY);
+        properties = Collections.unmodifiableList(_properties);
     }
 
     @Override
@@ -159,7 +166,9 @@ public class HashAttribute extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName).addValidator(StandardValidators.createRegexValidator(0, 1, false)).required(false).dynamic(true).build();
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+                .build();
     }
 
     @Override
@@ -168,19 +177,14 @@ public class HashAttribute extends AbstractProcessor {
             return;
         }
 
-        final Map<String, Pattern> patternMap = new HashMap<>(regexMapRef.get());
+        final Map<String, String> attributeToGeneratedNameMap = new HashMap<>(attributeToGenerateNameMapRef.get());
         if (newValue == null) {
-            patternMap.remove(descriptor.getName());
+            attributeToGeneratedNameMap.remove(descriptor.getName());
         } else {
-            if (newValue.equals(".*")) {
-                patternMap.put(descriptor.getName(), null);
-            } else {
-                final Pattern pattern = Pattern.compile(newValue);
-                patternMap.put(descriptor.getName(), pattern);
-            }
+            attributeToGeneratedNameMap.put(descriptor.getName(), newValue);
         }
 
-        regexMapRef.set(Collections.unmodifiableMap(patternMap));
+        attributeToGenerateNameMapRef.set(Collections.unmodifiableMap(attributeToGeneratedNameMap));
     }
 
     @Override
@@ -189,67 +193,70 @@ public class HashAttribute extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-
-        final Map<String, Pattern> patterns = regexMapRef.get();
+        final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
+        final Map<String, String> attributeToGeneratedNameMap = attributeToGenerateNameMapRef.get();
         final ComponentLog logger = getLogger();
 
-        final SortedMap<String, String> attributes = getRelevantAttributes(flowFile, patterns);
-        if (attributes.size() != patterns.size()) {
-            final Set<String> wantedKeys = patterns.keySet();
-            final Set<String> foundKeys = attributes.keySet();
-            final StringBuilder missingKeys = new StringBuilder();
-            for (final String wantedKey : wantedKeys) {
-                if (!foundKeys.contains(wantedKey)) {
-                    missingKeys.append(wantedKey).append(" ");
-                }
+        final SortedMap<String, String> attributes = getRelevantAttributes(flowFile, attributeToGeneratedNameMap);
+        if (attributes.isEmpty()) {
+            if (context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
+                logger.info("Routing {} to 'failure' because of missing all attributes: {}", new Object[]{flowFile, getMissingKeysString(null, attributeToGeneratedNameMap.keySet())});
+                session.transfer(flowFile, REL_FAILURE);
+                return;
             }
-
-            logger.error("routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, missingKeys.toString()});
-            session.transfer(flowFile, REL_FAILURE);
-        } else {
-            // create single string of attribute key/value pairs to use for group ID hash
-            final StringBuilder hashableValue = new StringBuilder();
-            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-                hashableValue.append(entry.getKey());
-                if (StringUtils.isBlank(entry.getValue())) {
-                    hashableValue.append("EMPTY");
-                } else {
-                    hashableValue.append(entry.getValue());
-                }
-            }
-
-            // create group ID
-            final String hashValue = DigestUtils.md5Hex(hashableValue.toString());
-
-            logger.info("adding Hash Value {} to attributes for {} and routing to success", new Object[]{hashValue, flowFile});
-            flowFile = session.putAttribute(flowFile, context.getProperty(HASH_VALUE_ATTRIBUTE).getValue(), hashValue);
-            session.getProvenanceReporter().modifyAttributes(flowFile);
-            session.transfer(flowFile, REL_SUCCESS);
         }
+        if (attributes.size() != attributeToGeneratedNameMap.size()) {
+            if (PartialAttributePolicy.valueOf(context.getProperty(PARTIAL_ATTR_ROUTE_POLICY).getValue()) == PartialAttributePolicy.PROHIBIT) {
+                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, getMissingKeysString(attributes.keySet(), attributeToGeneratedNameMap.keySet())});
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+        }
+
+        // Determine the algorithm to use
+        final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
+        logger.debug("Using algorithm {}", new Object[]{algorithmName});
+        HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
+
+        // Generate a hash with the configured algorithm for each attribute value
+        // and create a new attribute with the configured name
+        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+            logger.debug("Generating {} hash of attribute '{}'", new Object[]{algorithmName, entry.getKey()});
+            String value = hashValue(algorithm, entry.getValue(), charset);
+            session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
+        }
+        session.getProvenanceReporter().modifyAttributes(flowFile);
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private SortedMap<String, String> getRelevantAttributes(final FlowFile flowFile, final Map<String, Pattern> patterns) {
+    private static SortedMap<String, String> getRelevantAttributes(final FlowFile flowFile, final Map<String, String> attributeToGeneratedNameMap) {
         final SortedMap<String, String> attributeMap = new TreeMap<>();
-        for (final Map.Entry<String, Pattern> entry : patterns.entrySet()) {
+        for (final Map.Entry<String, String> entry : attributeToGeneratedNameMap.entrySet()) {
             final String attributeName = entry.getKey();
             final String attributeValue = flowFile.getAttribute(attributeName);
             if (attributeValue != null) {
-                final Pattern pattern = entry.getValue();
-                if (pattern == null) {
-                    attributeMap.put(attributeName, attributeValue);
-                } else {
-                    final Matcher matcher = pattern.matcher(attributeValue);
-                    if (matcher.matches()) {
-                        if (matcher.groupCount() == 0) {
-                            attributeMap.put(attributeName, matcher.group(0));
-                        } else {
-                            attributeMap.put(attributeName, matcher.group(1));
-                        }
-                    }
-                }
+                attributeMap.put(attributeName, attributeValue);
             }
         }
-
         return attributeMap;
     }
+
+    private String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
+        if (value == null) {
+            getLogger().warn("Tried to calculate {} hash of null value; returning empty string", new Object[]{algorithm.getName()});
+            return "";
+        }
+        return HashService.hashValue(algorithm, value, charset);
+    }
+
+    private static String getMissingKeysString(Set<String> foundKeys, Set<String> wantedKeys) {
+        final StringBuilder missingKeys = new StringBuilder();
+        for (final String wantedKey : wantedKeys) {
+            if (foundKeys == null || !foundKeys.contains(wantedKey)) {
+                missingKeys.append(wantedKey).append(" ");
+            }
+        }
+        return missingKeys.toString();
+    }
 }
+

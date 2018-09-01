@@ -15,7 +15,7 @@
 org.apache.nifi.processors.standard.AttributesToJSON
 org.apache.nifi.processors.standard.AttributesToCSV
 org.apache.nifi.processors.standard.Base64EncodeContent
-org.apache.nifi.processors.standard.CalculateAttributeHash
+org.apache.nifi.processors.standard.HashAttribute
 org.apache.nifi.processors.standard.CalculateRecordStats
 org.apache.nifi.processors.standard.CompressContent
 org.apache.nifi.processors.standard.ControlRate
@@ -47,6 +47,7 @@ org.apache.nifi.processors.standard.GetSFTP
 org.apache.nifi.processors.standard.HandleHttpRequest
 org.apache.nifi.processors.standard.HandleHttpResponse
 org.apache.nifi.processors.standard.HashAttribute
+org.apache.nifi.processors.standard.HashAttributeLegacy
 org.apache.nifi.processors.standard.HashContent
 org.apache.nifi.processors.standard.HashContentLegacy
 org.apache.nifi.processors.standard.IdentifyMimeType
