@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class provides a generic service for cryptographic hashing. It is used in
- * {@link org.apache.nifi.processors.standard.CalculateAttributeHash} and
- * {@link org.apache.nifi.processors.standard.HashContent}.
+ * {@link org.apache.nifi.processors.standard.CalculateAttributeHash}, {@link HashContent}, and
+ * {@link HashContentLegacy}.
  * <p>
  * See also:
  * * {@link HashAlgorithm}
