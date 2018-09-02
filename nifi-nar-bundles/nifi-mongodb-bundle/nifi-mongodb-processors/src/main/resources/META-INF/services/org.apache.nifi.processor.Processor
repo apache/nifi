@@ -15,6 +15,7 @@
 
 org.apache.nifi.processors.mongodb.DeleteMongo
 org.apache.nifi.processors.mongodb.GetMongo
+org.apache.nifi.processors.mongodb.GetMongoRecord
 org.apache.nifi.processors.mongodb.RunMongoAggregation
 org.apache.nifi.processors.mongodb.PutMongo
 org.apache.nifi.processors.mongodb.PutMongoRecord
