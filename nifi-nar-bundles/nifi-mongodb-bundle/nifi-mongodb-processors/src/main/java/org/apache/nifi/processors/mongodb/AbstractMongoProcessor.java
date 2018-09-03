@@ -291,19 +291,11 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         }
     }
 
-//    protected MongoDatabase getDatabase(final ProcessContext context) {
-//        return getDatabase(context, null);
-//    }
-
     protected MongoDatabase getDatabase(final ProcessContext context, final FlowFile flowFile) {
         final String databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         return clientService!= null ? clientService.getDatabase(databaseName) : mongoClient.getDatabase(databaseName);
     }
-
-//    protected MongoCollection<Document> getCollection(final ProcessContext context) {
-//        return getCollection(context, null);
-//    }
 
     protected MongoCollection<Document> getCollection(final ProcessContext context, final FlowFile flowFile) {
         final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
