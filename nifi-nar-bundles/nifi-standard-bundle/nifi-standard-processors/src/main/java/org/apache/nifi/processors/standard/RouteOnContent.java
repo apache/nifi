@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -58,7 +57,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"route", "content", "regex", "regular expression", "regexp"})
+@Tags({"route", "content", "regex", "regular expression", "regexp", "find", "text", "string", "search", "filter", "detect"})
 @CapabilityDescription("Applies Regular Expressions to the content of a FlowFile and routes a copy of the FlowFile to each "
         + "destination whose Regular Expression matches. Regular Expressions are added as User-Defined Properties where the name "
         + "of the property is the name of the relationship and the value is a Regular Expression to match against the FlowFile "
