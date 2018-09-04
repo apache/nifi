@@ -138,7 +138,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     @Test
     void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
         // Arrange
-        def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testMainShouldHandleMalformedBootstrapKeyFromFile.txt").toFile()
+        def passwordFile = new File("${TEST_RES_PATH}/NiFiProperties/password-testMainShouldHandleMalformedBootstrapKeyFromFile.txt")
         passwordFile.text = "BAD KEY"
         def args = ["-K", passwordFile.absolutePath] as String[]
 
@@ -158,7 +158,7 @@ class NiFiGroovyTest extends GroovyTestCase {
 
         // 64 chars of '0' for a 256 bit key; 32 chars for 128 bit
         final String DIFFERENT_KEY = "0" * (currentMaxKeyLengthInBits / 4)
-        def passwordFile = Paths.get(TEST_RES_PATH, "NiFiProperties", "password-testInitializePropertiesShouldSetBootstrapKeyFromFile.txt").toFile()
+        def passwordFile = new File("${TEST_RES_PATH}/NiFiProperties/password-testInitializePropertiesShouldSetBootstrapKeyFromFile.txt")
         passwordFile.text = DIFFERENT_KEY
         def args = ["-K", passwordFile.absolutePath] as String[]
 
