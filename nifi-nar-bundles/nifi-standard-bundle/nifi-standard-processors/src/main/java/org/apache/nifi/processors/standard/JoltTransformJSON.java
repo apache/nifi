@@ -131,7 +131,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
-            .name(("Pretty Print"))
+            .name("pretty_print")
             .displayName("Pretty Print")
             .description("Apply pretty print formatting to the output of the Jolt transform")
             .required(true)
