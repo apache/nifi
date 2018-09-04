@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class HashAttributeTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(HashAttributeTest.class)
+class CryptographicHashAttributeTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(CryptographicHashAttributeTest.class)
 
 
     @BeforeClass
@@ -61,7 +61,7 @@ class HashAttributeTest extends GroovyTestCase {
         // Arrange
         def algorithms = HashAlgorithm.values()
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashAttribute())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
 
         // Create attributes for username and date
         def attributes = [
@@ -83,7 +83,7 @@ class HashAttributeTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashAttribute.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
 
             // Add the desired dynamic properties
             attributeKeys.each { String attr ->
@@ -97,10 +97,10 @@ class HashAttributeTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashAttribute.REL_FAILURE, 0)
-            runner.assertTransferCount(HashAttribute.REL_SUCCESS, 1)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 1)
 
-            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS)
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_SUCCESS)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.first()
@@ -119,7 +119,7 @@ class HashAttributeTest extends GroovyTestCase {
         // Arrange
         def algorithms = HashAlgorithm.values()
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashAttribute())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
 
         // Create attributes for username (empty string) and date (null)
         def attributes = [
@@ -141,7 +141,7 @@ class HashAttributeTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashAttribute.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
 
             // Add the desired dynamic properties
             attributeKeys.each { String attr ->
@@ -155,10 +155,10 @@ class HashAttributeTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashAttribute.REL_FAILURE, 0)
-            runner.assertTransferCount(HashAttribute.REL_SUCCESS, 1)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 1)
 
-            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS)
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_SUCCESS)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.first()
@@ -177,7 +177,7 @@ class HashAttributeTest extends GroovyTestCase {
         // Arrange
         def algorithms = HashAlgorithm.values()
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashAttribute())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
 
         // Create attributes for username (empty string) and date (null)
         def attributes = [
@@ -199,10 +199,10 @@ class HashAttributeTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashAttribute.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
 
             // Set to fail if there are missing attributes
-            runner.setProperty(HashAttribute.PARTIAL_ATTR_ROUTE_POLICY, HashAttribute.PartialAttributePolicy.PROHIBIT.name())
+            runner.setProperty(CryptographicHashAttribute.PARTIAL_ATTR_ROUTE_POLICY, CryptographicHashAttribute.PartialAttributePolicy.PROHIBIT.name())
 
             // Add the desired dynamic properties
             attributeKeys.each { String attr ->
@@ -216,10 +216,10 @@ class HashAttributeTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashAttribute.REL_FAILURE, 1)
-            runner.assertTransferCount(HashAttribute.REL_SUCCESS, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 1)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 0)
 
-            final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(HashAttribute.REL_FAILURE)
+            final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_FAILURE)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = failedFlowFiles.first()
@@ -235,7 +235,7 @@ class HashAttributeTest extends GroovyTestCase {
         // Arrange
         def algorithms = HashAlgorithm.values()
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashAttribute())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
 
         // Create attributes for username (empty string) and date (null)
         def attributes = [
@@ -252,10 +252,10 @@ class HashAttributeTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashAttribute.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
 
             // Set to fail if all attributes are missing
-            runner.setProperty(HashAttribute.FAIL_WHEN_EMPTY, "true")
+            runner.setProperty(CryptographicHashAttribute.FAIL_WHEN_EMPTY, "true")
 
             // Insert the attributes in the mock flowfile
             runner.enqueue(new byte[0], attributes)
@@ -264,10 +264,10 @@ class HashAttributeTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashAttribute.REL_FAILURE, 1)
-            runner.assertTransferCount(HashAttribute.REL_SUCCESS, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 1)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 0)
 
-            final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(HashAttribute.REL_FAILURE)
+            final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_FAILURE)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = failedFlowFiles.first()

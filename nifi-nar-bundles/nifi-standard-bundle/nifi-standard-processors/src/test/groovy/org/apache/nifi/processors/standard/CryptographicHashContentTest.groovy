@@ -36,8 +36,8 @@ import java.nio.charset.StandardCharsets
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class HashContentTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(HashContentTest.class)
+class CryptographicHashContentTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(CryptographicHashContentTest.class)
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -64,7 +64,7 @@ class HashContentTest extends GroovyTestCase {
         // Generate some long content (90 KB)
         final String LONG_CONTENT = "apachenifi " * 8192
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashContent())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent())
 
         algorithms.each { HashAlgorithm algorithm ->
             final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(LONG_CONTENT.bytes))
@@ -77,7 +77,7 @@ class HashContentTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashContent.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.name)
 
             // Insert the content in the mock flowfile
             runner.enqueue(LONG_CONTENT.getBytes(StandardCharsets.UTF_8),
@@ -87,10 +87,10 @@ class HashContentTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashContent.REL_FAILURE, 0)
-            runner.assertTransferCount(HashContent.REL_SUCCESS, 1)
+            runner.assertTransferCount(CryptographicHashContent.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashContent.REL_SUCCESS, 1)
 
-            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashContent.REL_SUCCESS)
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.first()
@@ -111,7 +111,7 @@ class HashContentTest extends GroovyTestCase {
 
         final String EMPTY_CONTENT = ""
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashContent())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent())
 
         algorithms.each { HashAlgorithm algorithm ->
             final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(EMPTY_CONTENT.bytes))
@@ -124,7 +124,7 @@ class HashContentTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashContent.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.name)
 
             // Insert the content in the mock flowfile
             runner.enqueue(EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8), [size: "0"])
@@ -133,10 +133,10 @@ class HashContentTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashContent.REL_FAILURE, 0)
-            runner.assertTransferCount(HashContent.REL_SUCCESS, 1)
+            runner.assertTransferCount(CryptographicHashContent.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashContent.REL_SUCCESS, 1)
 
-            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashContent.REL_SUCCESS)
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.first()
@@ -160,7 +160,7 @@ class HashContentTest extends GroovyTestCase {
 
         final String NON_EMPTY_CONTENT = "apachenifi"
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashContent())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent())
 
         algorithms.each { HashAlgorithm algorithm ->
             final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(NON_EMPTY_CONTENT.bytes))
@@ -173,7 +173,7 @@ class HashContentTest extends GroovyTestCase {
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashContent.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.name)
 
             // Insert the content in the mock flowfile (with the wrong size attribute)
             runner.enqueue(NON_EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8), [size: "0"])
@@ -182,10 +182,10 @@ class HashContentTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashContent.REL_FAILURE, 0)
-            runner.assertTransferCount(HashContent.REL_SUCCESS, 1)
+            runner.assertTransferCount(CryptographicHashContent.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashContent.REL_SUCCESS, 1)
 
-            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashContent.REL_SUCCESS)
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = successfulFlowfiles.first()
@@ -207,14 +207,14 @@ class HashContentTest extends GroovyTestCase {
 
         HashAlgorithm algorithm = HashAlgorithm.SHA256
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashContent())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent())
 
         final String EXPECTED_CONTENT_HASH = HashService.hashValue(algorithm, NON_EMPTY_CONTENT)
         logger.info("Expected ${algorithm.name.padLeft(11)}: ${EXPECTED_CONTENT_HASH}")
 
         // Set the algorithm
         logger.info("Setting hash algorithm to ${algorithm.name}")
-        runner.setProperty(HashContent.HASH_ALGORITHM, algorithm.name)
+        runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.name)
 
         // Insert the content in the mock flowfile (with an existing attribute)
         def oldAttributes = [("content_${algorithm.name}".toString()): OLD_HASH_ATTRIBUTE_VALUE]
@@ -225,10 +225,10 @@ class HashContentTest extends GroovyTestCase {
         runner.run(1)
 
         // Assert
-        runner.assertTransferCount(HashContent.REL_FAILURE, 0)
-        runner.assertTransferCount(HashContent.REL_SUCCESS, 1)
+        runner.assertTransferCount(CryptographicHashContent.REL_FAILURE, 0)
+        runner.assertTransferCount(CryptographicHashContent.REL_SUCCESS, 1)
 
-        final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(HashContent.REL_SUCCESS)
+        final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS)
 
         // Extract the generated attributes from the flowfile
         MockFlowFile flowFile = successfulFlowfiles.first()
@@ -249,7 +249,7 @@ class HashContentTest extends GroovyTestCase {
 
         final String EMPTY_CONTENT = ""
 
-        final TestRunner runner = TestRunners.newTestRunner(new HashContent())
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashContent())
 
         algorithms.each { HashAlgorithm algorithm ->
             final String EXPECTED_CONTENT_HASH = HashService.hashValueStreaming(algorithm, new ByteArrayInputStream(EMPTY_CONTENT.bytes))
@@ -262,11 +262,11 @@ class HashContentTest extends GroovyTestCase {
 
             // Set the failure property
             logger.info("Setting fail when empty to true")
-            runner.setProperty(HashContent.FAIL_WHEN_EMPTY, "true")
+            runner.setProperty(CryptographicHashContent.FAIL_WHEN_EMPTY, "true")
 
             // Set the algorithm
             logger.info("Setting hash algorithm to ${algorithm.name}")
-            runner.setProperty(HashContent.HASH_ALGORITHM, algorithm.name)
+            runner.setProperty(CryptographicHashContent.HASH_ALGORITHM, algorithm.name)
 
             // Insert the content in the mock flowfile
             runner.enqueue(EMPTY_CONTENT.getBytes(StandardCharsets.UTF_8))
@@ -275,10 +275,10 @@ class HashContentTest extends GroovyTestCase {
             runner.run(1)
 
             // Assert
-            runner.assertTransferCount(HashContent.REL_FAILURE, 1)
-            runner.assertTransferCount(HashContent.REL_SUCCESS, 0)
+            runner.assertTransferCount(CryptographicHashContent.REL_FAILURE, 1)
+            runner.assertTransferCount(CryptographicHashContent.REL_SUCCESS, 0)
 
-            final List<MockFlowFile> failedFlowfiles = runner.getFlowFilesForRelationship(HashContent.REL_FAILURE)
+            final List<MockFlowFile> failedFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_FAILURE)
 
             // Extract the generated attributes from the flowfile
             MockFlowFile flowFile = failedFlowfiles.first()

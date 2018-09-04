@@ -21,13 +21,13 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.processors.standard.HashAttribute;
-import org.apache.nifi.processors.standard.HashContentLegacy;
+import org.apache.nifi.processors.standard.CryptographicHashAttribute;
+import org.apache.nifi.processors.standard.HashContent;
 
 /**
  * Enumeration capturing information about the cryptographic hash algorithms used in
- * {@link HashAttribute}, {@link HashContent}, and
- * {@link HashContentLegacy} processors.
+ * {@link CryptographicHashAttribute}, {@link HashContent}, and
+ * {@link HashContent} processors.
  */
 public enum HashAlgorithm {
 

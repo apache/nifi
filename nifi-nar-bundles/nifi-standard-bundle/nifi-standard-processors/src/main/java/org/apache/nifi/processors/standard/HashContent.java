@@ -14,9 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,10 +30,11 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -39,72 +45,63 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.crypto.HashAlgorithm;
-import org.apache.nifi.security.util.crypto.HashService;
+import org.apache.nifi.stream.io.NullOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.processors.standard.CryptographicHashContent"}, reason = "This processor is deprecated and may be removed in future releases.")
 @EventDriven
-@SideEffectFree
 @SupportsBatching
-@Tags({"content", "hash", "sha", "blake2", "md5", "cryptography"})
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Calculates a hash value for the flowfile content using the given algorithm and writes it to an output attribute. Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions for help to decide which algorithm to use." + "For the processor previously called \"HashContent\" (prior to version 1.8.0), see \"HashContentLegacy\". ")
-@WritesAttribute(attribute = "content_<algorithm>", description = "This processor adds an attribute whose value is the result of "
-        + "hashing the flowfile content. The name of this attribute is specified by the value of the algorithm, e.g. 'content_SHA-256'.")
+@InputRequirement(Requirement.INPUT_REQUIRED)
+@Tags({"hash", "content", "MD5", "SHA-1", "SHA-256"})
+@CapabilityDescription("Calculates a hash value for the Content of a FlowFile and puts that hash value on the FlowFile as an attribute whose name "
+        + "is determined by the <Hash Attribute Name> property. "
+        + "This processor did not provide a consistent offering of hash algorithms, and is now deprecated. For modern cryptographic hashing capabilities, see \"CryptographicHashContent\". ")
+@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
+        + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")
 public class HashContent extends AbstractProcessor {
 
-    static final PropertyDescriptor FAIL_WHEN_EMPTY = new PropertyDescriptor.Builder()
-            .name("fail_when_empty")
-            .displayName("Fail if the content is empty")
-            .description("Route to failure if the content is empty. " +
-                    "While hashing an empty value is valid, some flows may want to detect empty input.")
-            .allowableValues("true", "false")
+    public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+            .name("Hash Attribute Name")
+            .description("The name of the FlowFile Attribute into which the Hash Value should be written. If the value already exists, it will be overwritten")
             .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("false")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("hash.value")
             .build();
 
-    static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("hash_algorithm")
-            .displayName("Hash Algorithm")
-            .description("The hash algorithm to use. Note that not all of the algorithms available are recommended for use (some are provided for legacy compatibility). " +
-                    "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
+    public static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("Hash Algorithm")
+            .description("Determines what hashing algorithm should be used to perform the hashing function")
             .required(true)
-            .allowableValues(HashService.buildHashAlgorithmAllowableValues())
-            .defaultValue(HashAlgorithm.SHA256.getName())
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(Security.getAlgorithms("MessageDigest"))
+            .defaultValue("MD5")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Used for flowfiles that have a hash value added")
+            .description("FlowFiles that are process successfully will be sent to this relationship")
             .build();
-
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Used for flowfiles that have no content if the 'fail on empty' setting is enabled")
+            .description("Any FlowFile that cannot be processed successfully will be sent to this relationship without any attribute being added")
             .build();
 
-    private static Set<Relationship> relationships;
-
-    private static List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_FAILURE);
-        _relationships.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(_relationships);
-
-        final List<PropertyDescriptor> _properties = new ArrayList<>();
-        _properties.add(FAIL_WHEN_EMPTY);
-        _properties.add(HASH_ALGORITHM);
-        properties = Collections.unmodifiableList(_properties);
-    }
+    private List<PropertyDescriptor> properties;
+    private Set<Relationship> relationships;
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return relationships;
+    protected void init(ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(ATTRIBUTE_NAME);
+        props.add(HASH_ALGORITHM);
+        properties = Collections.unmodifiableList(props);
+
+        final Set<Relationship> rels = new HashSet<>();
+        rels.add(REL_SUCCESS);
+        rels.add(REL_FAILURE);
+        relationships = Collections.unmodifiableSet(rels);
     }
 
     @Override
@@ -113,49 +110,54 @@ public class HashContent extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
+
         final ComponentLog logger = getLogger();
-
-        // Determine the algorithm to use
-        final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
-        logger.debug("Using algorithm {}", new Object[]{algorithmName});
-        HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
-
-        if (flowFile.getSize() == 0) {
-            if (context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
-                logger.info("Routing {} to 'failure' because content is empty (and FAIL_WHEN_EMPTY is true)");
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            } else {
-                logger.debug("Flowfile content is empty; hashing with {} anyway", new Object[]{algorithmName});
-            }
+        final String algorithm = context.getProperty(HASH_ALGORITHM).getValue();
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
-        // Generate a hash with the configured algorithm for the content
-        // and create a new attribute with the configured name
-        logger.debug("Generating {} hash of content", new Object[]{algorithmName});
         final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
         try {
-            // Read the flowfile content via a lambda InputStreamCallback and hash the content
-            session.read(flowFile, in -> hashValueHolder.set(HashService.hashValueStreaming(algorithm, in)));
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    try (final DigestOutputStream digestOut = new DigestOutputStream(new NullOutputStream(), digest)) {
+                        StreamUtils.copy(in, digestOut);
 
-            // Determine the destination attribute name
-            final String attributeName = "content_" + algorithmName;
-            logger.debug("Writing {} hash to attribute '{}'", new Object[]{algorithmName, attributeName});
+                        final byte[] hash = digest.digest();
+                        final StringBuilder strb = new StringBuilder(hash.length * 2);
+                        for (int i = 0; i < hash.length; i++) {
+                            strb.append(Integer.toHexString((hash[i] & 0xFF) | 0x100), 1, 3);
+                        }
 
-            // Write the attribute
+                        hashValueHolder.set(strb.toString());
+                    }
+                }
+            });
+
+            final String attributeName = context.getProperty(ATTRIBUTE_NAME).getValue();
             flowFile = session.putAttribute(flowFile, attributeName, hashValueHolder.get());
             logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
-
-            // Update provenance and route to success
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
         }

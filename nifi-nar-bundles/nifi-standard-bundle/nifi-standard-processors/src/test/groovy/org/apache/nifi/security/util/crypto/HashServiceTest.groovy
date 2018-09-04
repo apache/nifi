@@ -35,7 +35,7 @@ import java.security.Security
 @RunWith(JUnit4.class)
 class HashServiceTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(HashServiceTest.class)
-    static private final String LARGE_FILE_PATH = "src/test/resources/HashContent/largefile.txt"
+    static private final String LARGE_FILE_PATH = "src/test/resources/HashServiceTest/largefile.txt"
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -313,7 +313,6 @@ class HashServiceTest extends GroovyTestCase {
         // No command-line md2sum tool available
         def algorithms = HashAlgorithm.values() - HashAlgorithm.MD2
 
-        // TODO: Replace with ad-hoc generation to reduce resource size
         File inputFile = new File(LARGE_FILE_PATH)
 
         // Generates a file with "apachenifi" 10 times per line for 10_000 lines (11 bytes * 10 * 10_000 ~= 1 MiB)
@@ -324,7 +323,7 @@ class HashServiceTest extends GroovyTestCase {
         }
 
         /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 160)
-         * Ex: {@code $ openssl dgst -md5 src/test/resources/HashContent/largefile.txt}
+         * Ex: {@code $ openssl dgst -md5 src/test/resources/HashServiceTest/largefile.txt}
          */
         final def EXPECTED_HASHES = [
                 md5        : "8d329076847b678449610a5fb53997d2",

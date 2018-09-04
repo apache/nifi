@@ -28,12 +28,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
-public class TestHashAttributeLegacy {
+public class TestHashAttribute {
 
     @Test
     public void test() {
-        final TestRunner runner = TestRunners.newTestRunner(new HashAttributeLegacy());
-        runner.setProperty(HashAttributeLegacy.HASH_VALUE_ATTRIBUTE.getName(), "hashValue");
+        final TestRunner runner = TestRunners.newTestRunner(new HashAttribute());
+        runner.setProperty(HashAttribute.HASH_VALUE_ATTRIBUTE.getName(), "hashValue");
         runner.setProperty("MDKey1", ".*");
         runner.setProperty("MDKey2", "(.).*");
 
@@ -60,10 +60,10 @@ public class TestHashAttributeLegacy {
 
         runner.run(5);
 
-        runner.assertTransferCount(HashAttributeLegacy.REL_FAILURE, 1);
-        runner.assertTransferCount(HashAttributeLegacy.REL_SUCCESS, 4);
+        runner.assertTransferCount(HashAttribute.REL_FAILURE, 1);
+        runner.assertTransferCount(HashAttribute.REL_SUCCESS, 4);
 
-        final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttributeLegacy.REL_SUCCESS);
+        final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
         final Map<String, Integer> correlationCount = new HashMap<>();
         for (final MockFlowFile flowFile : success) {
             final String correlationId = flowFile.getAttribute("hashValue");
