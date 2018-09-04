@@ -60,7 +60,7 @@ public class PutCassandraQLTest {
     private MockPutCassandraQL processor;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new MockPutCassandraQL();
         testRunner = TestRunners.newTestRunner(processor);
     }
@@ -172,6 +172,98 @@ public class PutCassandraQLTest {
     }
 
     @Test
+    public void testMultipleQuery() {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraQL.STATEMENT_CACHE_SIZE, "1");
+
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "timestamp");
+                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+
+                    }
+                });
+
+        testRunner.enqueue("INSERT INTO newusers (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "timestamp");
+                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+
+                    }
+                });
+
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "timestamp");
+                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+
+                    }
+                });
+
+        testRunner.enqueue("INSERT INTO users (user_id) VALUES ('user_id data');");
+
+        testRunner.run(4, true, true);
+        testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_SUCCESS, 4);
+    }
+
+    @Test
     public void testProcessorBadTimestamp() {
         setUpStandardTestConfig();
         processor.setExceptionToThrow(
@@ -236,7 +328,7 @@ public class PutCassandraQLTest {
     public void testProcessorNoHostAvailableException() {
         setUpStandardTestConfig();
 
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<>()));
         testRunner.enqueue("UPDATE users SET cities = [ 'New York', 'Los Angeles' ] WHERE user_id = 'coast2coast';");
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_RETRY, 1);
@@ -307,7 +399,7 @@ public class PutCassandraQLTest {
             return mockCluster;
         }
 
-        public void setExceptionToThrow(Exception e) {
+        void setExceptionToThrow(Exception e) {
             exceptionToThrow = e;
             doThrow(exceptionToThrow).when(mockSession).executeAsync(anyString());
             doThrow(exceptionToThrow).when(mockSession).executeAsync(any(Statement.class));
