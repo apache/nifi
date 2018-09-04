@@ -18,15 +18,19 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -36,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
@@ -47,6 +52,18 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.api.client.util.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class TestHandleHttpRequest {
 
@@ -137,6 +154,214 @@ public class TestHandleHttpRequest {
             // shut down the server
             runner.run(1, true);
         }
+    }
+
+
+    @Test(timeout=10000)
+    public void testMultipartFormDataRequest() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+      final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
+      runner.setProperty(HandleHttpRequest.PORT, "0");
+
+      final MockHttpContextMap contextMap = new MockHttpContextMap();
+      runner.addControllerService("http-context-map", contextMap);
+      runner.enableControllerService(contextMap);
+      runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+
+      // trigger processor to stop but not shutdown.
+      runner.run(1, false);
+      try {
+        final Thread httpThread = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            try {
+
+              final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+
+              MultipartBody multipartBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("p1", "v1")
+                .addFormDataPart("p2", "v2")
+                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                .build();
+
+              Request request = new Request.Builder()
+              .url(String.format("http://localhost:%s/my/path", port))
+              .post(multipartBody).build();
+
+              OkHttpClient client =
+                  new OkHttpClient.Builder()
+                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                  .build();
+
+              try (Response response = client.newCall(request).execute()) {
+                Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
+              }
+            } catch (final Throwable t) {
+              t.printStackTrace();
+              Assert.fail(t.toString());
+            }
+          }
+        });
+        httpThread.start();
+
+        while ( runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).isEmpty() ) {
+          // process the request.
+          runner.run(1, false, false);
+        }
+
+        runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 5);
+        assertEquals(1, contextMap.size());
+
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS);
+
+        // Part fragments are not processed in the order we submitted them.
+        // We cannot rely on the order we sent them in.
+        MockFlowFile mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p1");
+        String contextId = mff.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+        mff.assertAttributeEquals("http.multipart.name", "p1");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeEquals("http.multipart.fragments.sequence.number", "1");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+
+        mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p2");
+        // each part generates a corresponding flow file - yet all parts are coming from the same request,
+        mff.assertAttributeEquals(HTTPUtils.HTTP_CONTEXT_ID, contextId);
+        mff.assertAttributeEquals("http.multipart.name", "p2");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+
+        mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file1");
+        mff.assertAttributeEquals(HTTPUtils.HTTP_CONTEXT_ID, contextId);
+        mff.assertAttributeEquals("http.multipart.name", "file1");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-text.txt");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "text/plain");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+
+        mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file2");
+        mff.assertAttributeEquals(HTTPUtils.HTTP_CONTEXT_ID, contextId);
+        mff.assertAttributeEquals("http.multipart.name", "file2");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-data.json");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/json");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+
+        mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file3");
+        mff.assertAttributeEquals(HTTPUtils.HTTP_CONTEXT_ID, contextId);
+        mff.assertAttributeEquals("http.multipart.name", "file3");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-binary.bin");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/octet-stream");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+      } finally {
+        // shut down the server
+        runner.run(1, true);
+      }
+    }
+
+    @Test(timeout=10000)
+    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+      final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
+      runner.setProperty(HandleHttpRequest.PORT, "0");
+
+      final MockHttpContextMap contextMap = new MockHttpContextMap();
+      contextMap.setRegisterSuccessfully(false);
+      runner.addControllerService("http-context-map", contextMap);
+      runner.enableControllerService(contextMap);
+      runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+
+      // trigger processor to stop but not shutdown.
+      runner.run(1, false);
+      try {
+        AtomicInteger responseCode = new AtomicInteger(0);
+        final Thread httpThread = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            try {
+
+              final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+
+              MultipartBody multipartBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("p1", "v1")
+                .addFormDataPart("p2", "v2")
+                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                .build();
+
+              Request request = new Request.Builder()
+              .url(String.format("http://localhost:%s/my/path", port))
+              .post(multipartBody).build();
+
+              OkHttpClient client =
+                  new OkHttpClient.Builder()
+                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                  .build();
+
+              try (Response response = client.newCall(request).execute()) {
+                responseCode.set(response.code());
+              }
+            } catch (final Throwable t) {
+              t.printStackTrace();
+              Assert.fail(t.toString());
+            }
+          }
+        });
+        httpThread.start();
+
+        while (responseCode.get() == 0) {
+          // process the request.
+          runner.run(1, false, false);
+        }
+
+        runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 0);
+        assertEquals(0, contextMap.size());
+        Assert.assertEquals(503, responseCode.get());
+      } finally {
+        // shut down the server
+        runner.run(1, true);
+      }
+    }
+
+    private byte[] generateRandomBinaryData(int i) {
+      byte[] bytes = new byte[100];
+      new Random().nextBytes(bytes);
+      return bytes;
+    }
+
+
+    private File createTextFile(String fileName, String... lines) throws IOException {
+      File file = new File(fileName);
+      file.deleteOnExit();
+      for (String string : lines) {
+        Files.append(string, file, Charsets.UTF_8);
+      }
+      return file;
+    }
+
+
+    protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
+      Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
+      Assert.assertTrue(optional.isPresent());
+      return optional.get();
     }
 
 
