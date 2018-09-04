@@ -1,0 +1,326 @@
+#!/usr/bin/env bash
+#
+#  Licensed to the Apache Software Foundation (ASF) under one or more
+#  contributor license agreements.  See the NOTICE file distributed with
+#  this work for additional information regarding copyright ownership.
+#  The ASF licenses this file to You under the Apache License, Version 2.0
+#  (the "License"); you may not use this file except in compliance with
+#  the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+shopt -s nocasematch
+
+function print_help {
+  echo " "
+  echo "usage: ${0}"
+  echo "    -v/--version=<version>   The version of the NiFi release. [Required]"
+  echo "    -c/--candidate=<RC#>      Defines the Release Candidate. [Required]"
+  echo "    -h/--help                Usage information."
+  echo " "
+  echo "example: "
+  echo "    nifi-rc-check --version=1.6.0 --candidate=RC2"
+  echo " "
+}
+
+print_section_header() {
+    echo
+    echo ----------------------------------------------
+    echo
+    echo "$@"
+    echo
+    echo ----------------------------------------------
+    echo
+}
+
+print_section_item() {
+    echo
+    echo "-----> $@"
+    echo
+}
+
+print_item() {
+    echo
+    echo "$@"
+    echo
+}
+
+print_error() {
+    echo
+    echo "ERROR !!!!!!"
+    echo ----------------------------------------------
+    echo
+    echo "$@"
+    echo
+    echo ----------------------------------------------
+    echo
+}
+
+NIFI_DEV_DIST="https://dist.apache.org/repos/dist/dev/nifi/"
+NIFI_DIST="https://www.apache.org/dist/nifi/"
+NIFI_NAME_LOWER="nifi";
+
+# print help, if the user just runs this without any args
+if [ "$#" -eq 0 ]; then
+    print_help
+    exit 1
+fi
+
+# handle command line options
+for i in "$@"; do
+  case ${i} in
+    #
+    # VERSION: The release version of Nifi to validate.
+    #
+    #
+    -v=*|--version=*)
+    VERSION="${i#*=}"
+    shift # past argument=value
+    ;;
+
+    #
+    # RC: Defines the RC# to use
+    #
+    #   -c=RC2
+    #   --candidate=RC2
+    #
+    -c=*|--candidate=*)
+    CANDIDATE="${i#*=}"
+    shift # past argument=value
+    ;;
+
+    #
+    # -h/--help
+    #
+    -h|--help)
+    help
+    exit 0
+    shift # past argument with no value
+    ;;
+
+    #
+    # Unknown option
+    #
+    *)
+    UNKNOWN_OPTION="${i#*=}"
+    echo "Error: unknown option: $UNKNOWN_OPTION"
+    help
+    ;;
+  esac
+done
+
+# validation
+if [ -z "$VERSION" ]; then
+	echo "Missing -v/--version is is required"
+	exit 1
+fi
+if [[ "$VERSION" =~ ^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2} ]]; then
+  NIFI_VERSION="$VERSION"
+else
+  print_error "$VERSION may not be a valid version number"
+  exit 1
+fi
+
+if [ -z "$CANDIDATE" ]; then
+	echo "Missing -c/--candidate which is required"
+	exit 1
+fi
+
+if [[ "$CANDIDATE" =~ ^RC[0-9]+ ]]; then
+  RC=$(echo "$CANDIDATE" | tr '[:upper:]' '[:lower:]')
+  UPPER_RC=$(echo "$CANDIDATE" | tr '[:lower:]' '[:upper:]')
+elif [[ "$CANDIDATE" =~ ^[0-9]+ ]]; then
+  RC=rc"$CANDIDATE"
+  UPPER_RC=RC"$CANDIDATE"
+else
+  print_error "invalid RC, valid is RC# or just #"
+  exit 1
+fi
+
+print_section_header "Apache Nifi Version $NIFI_VERSION $UPPER_RC"
+
+NIFI_REL_RC="$NIFI_NAME_LOWER-$NIFI_VERSION-$UPPER_RC"
+
+NIFI_RC_DIST="$NIFI_DEV_DIST$NIFI_NAME_LOWER-$NIFI_VERSION/"
+print_item "Apache Nifi RC Distribution Root is $NIFI_RC_DIST"
+
+
+# working directory
+WORK="$HOME/tmp/nifi-release-$NIFI_VERSION"
+
+# handle tilde expansion
+WORK="${WORK/#\~/$HOME}"
+
+# warn the user if the working directory exists
+if [ -d "$WORK" ]; then
+  print_error "Directory $WORK exists, please rename it and start over"
+  exit 1
+fi
+
+if [ ! -d "$WORK" ]; then
+  mkdir -p "$WORK"
+fi
+print_item "Working directory is $WORK"
+
+print_section_header "Validation"
+
+KEYS="$NIFI_DEV_DIST/KEYS"
+LOCAL_ASSEMBLY="$NIFI_NAME_LOWER-$NIFI_VERSION-source-release.zip"
+NIFI_ASSEMBLY="$NIFI_RC_DIST$NIFI_NAME_LOWER-$NIFI_VERSION-source-release.zip"
+NIFI_ASSEMBLY_SIG="$NIFI_ASSEMBLY.asc"
+NIFI_ASSEMBLY_SHA1="$NIFI_ASSEMBLY.sha1"
+NIFI_ASSEMBLY_SHA256="$NIFI_ASSEMBLY.sha256"
+NIFI_ASSEMBLY_SHA512="$NIFI_ASSEMBLY.sha512"
+
+print_section_item "Downloading $KEYS"
+if ! wget -P "$WORK" "$KEYS" ; then
+  print_error "Failed to download $KEYS"
+  exit 1
+fi
+
+print_section_item "Downloading $NIFI_ASSEMBLY"
+if ! wget -P "$WORK" "$NIFI_ASSEMBLY" ; then
+  print_error "Failed to download $NIFI_ASSEMBLY"
+  exit 1
+fi
+print_section_item "Downloading $NIFI_ASSEMBLY_SIG"
+if ! wget -P "$WORK" "$NIFI_ASSEMBLY_SIG" ; then
+  print_error "Failed to download $NIFI_ASSEMBLY_SIG"
+  exit 1
+fi
+
+cd "$WORK" || exit 1
+print_section_item "importing nifi keys"
+
+if ! gpg --import KEYS ; then
+  print_error "failed to import KEYS"
+  exit 1
+fi
+
+print_section_item "Verifying Nifi Assembly"
+if ! gpg --verify -v ./"nifi-$NIFI_VERSION-source-release.zip.asc" "nifi-$NIFI_VERSION-source-release.zip" ; then
+  print_error "failed to verify Nifi Assembly"
+  exit 1
+fi
+
+LOCAL_SHA1="$(shasum -a 1 ${LOCAL_ASSEMBLY} | cut -d' ' -f1)";
+REMOTE_SHA1="$(curl -s ${NIFI_ASSEMBLY_SHA1})"
+print_section_item "Verifying Nifi Assembly SHA1"
+if [ "${LOCAL_SHA1}" = "${REMOTE_SHA1}" ] ; then
+    echo "SHA-1 match"
+else
+    print_error "SHA-1 does not match : sha1sum: ${LOCAL_SHA1} Remote sha1sum: ${REMOTE_SHA1}"
+    exit 1
+fi
+
+LOCAL_SHA256=$(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+REMOTE_SHA256=$(curl -s ${NIFI_ASSEMBLY_SHA256})
+print_section_item "Verifying Nifi Assembly SHA256"
+if [ "${LOCAL_SHA256}" = "${REMOTE_SHA256}" ] ; then
+    echo "SHA-256 match"
+else
+    echo
+    echo
+    echo sha256sum: $(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+    echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA256})
+    print_error "SHA-256 does not match"
+    exit 1
+fi
+
+LOCAL_SHA512=$(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+REMOTE_SHA512=$(curl -s ${NIFI_ASSEMBLY_SHA512})
+print_section_item "Verifying Nifi Assembly SHA512"
+if  [ "${LOCAL_SHA512}" = "${REMOTE_SHA512}" ] ; then
+    echo "SHA-512 match"
+else
+    echo sha256sum: $(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+    echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA512})
+    print_error "SHA-512 does not match"
+    exit 1
+fi
+
+print_section_item "Unpacking Assemblies"
+if ! unzip -q ${LOCAL_ASSEMBLY}; then
+  print_error "failed to unpack Nifi Assembly"
+  exit 1
+fi
+
+print_section_item "Retrieving remote Nifi repository"
+if ! git clone https://git-wip-us.apache.org/repos/asf/nifi.git; then
+  print_error "failed git clone https://git-wip-us.apache.org/repos/asf/nifi.git"
+  exit 1
+fi
+
+print_section_item "Getting the commit hash for ${UPPER_RC}"
+#git ls-remote --tags --refs https://github.com/apache/nifi.git | grep nifi-1.7.0-RC1 | cut -f1
+COMMIT_HASH=$(git ls-remote --tags --refs https://github.com/apache/nifi.git | grep "${NIFI_REL_RC}" | cut -f1);
+
+print_section_item "Commit Hash for ${NIFI_REL_RC} is ${COMMIT_HASH}"
+
+print_section_item "Checking out the correct tag"
+if ! git -C nifi checkout "${COMMIT_HASH}" ; then
+  print_error "failed git -C nifi checkout ${COMMIT_HASH}"
+  exit 1
+fi
+
+print_section_item "Checking for differences between downloaded rc sources and git"
+
+DIFF=$(diff --brief -r nifi-${NIFI_VERSION} nifi | grep -v DEPENDENCIES | grep -v .git* | grep -v project.basedir);
+
+if [ ! -z "${DIFF}" ] ; then
+  echo "${DIFF}"
+  print_error  "[ERROR] There are differences!"
+  exit 1
+fi
+
+print_section_header "Build and Test"
+echo ""
+echo ""
+read -p " Build Nifi and run contrib check? [yN]" -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  print_section_item "Performing build with contrib-check"
+  if ! mvn -f nifi-${NIFI_VERSION}/pom.xml clean install -Pcontrib-check -Pinclude-grpc ; then
+    print_error "[ERROR] failed to mvn install metron"
+    exit 1
+  fi
+else
+  print_section_header "Complete!"
+  exit 0
+fi
+
+echo ""
+echo ""
+read -p "  Run Nifi? [yN] " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    print_section_item "Starting Nifi"
+    ./nifi-${NIFI_VERSION}/nifi-assembly/target/nifi-${NIFI_VERSION}-bin/nifi-${NIFI_VERSION}/bin/nifi.sh start
+    echo listening for application to start
+    attempt=1
+    started="no"
+    while [ ${attempt} -le 6 ]
+        do
+        curl -f http://localhost:8080/nifi-api/controller && started="yes" && break
+        echo NiFi was not available for attempt ${attempt}, sleeping
+        attempt=$[$attempt+1]
+        sleep 10
+    done
+
+    print_section_item "Stopping nifi"
+    ./nifi-${NIFI_VERSION}/nifi-assembly/target/nifi-${NIFI_VERSION}-bin/nifi-${NIFI_VERSION}/bin/nifi.sh stop
+
+    print_section_item "NiFi was $([[ ${started} == "yes" ]] && echo "" || echo "not") successfully started"
+    if [ ${started} != "yes" ] ; then
+        print_error "Nifi did not start"
+        exit 1
+    fi
+
+fi
+
