@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 #    Licensed to the Apache Software Foundation (ASF) under one or more
 #    contributor license agreements.  See the NOTICE file distributed with
@@ -16,16 +16,39 @@
 #    limitations under the License.
 #
 
+# By default this file will unconditionally override whatever environment variables you have set
+# and set them to defaults defined here.
+# If you want to define your own versions outside of this script please set the environment variable
+# NIFI_OVERRIDE_NIFIENV to "true". That will then use whatever variables you used outside of
+# this script.
+
 # The java implementation to use.
 #export JAVA_HOME=/usr/java/jdk1.8.0/
 
-export NIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
+setOrDefault() {
+  envvar="$1"
+  default="$2"
+
+  res="$default"
+  if [ -n "$envvar" ] && [ "$NIFI_OVERRIDE_NIFIENV" = "true" ]
+  then
+    res="$envvar"
+  fi
+
+  echo "$res"
+}
+
+
+NIFI_HOME="$(setOrDefault "$NIFI_HOME" "$(cd "$SCRIPT_DIR" && cd .. && pwd)")"
+export NIFI_HOME
 
 #The directory for the NiFi pid file
-export NIFI_PID_DIR="${NIFI_HOME}/run"
+NIFI_PID_DIR="$(setOrDefault "$NIFI_PID_DIR" "$NIFI_HOME/run")"
+export NIFI_PID_DIR
 
 #The directory for NiFi log files
-export NIFI_LOG_DIR="${NIFI_HOME}/logs"
+NIFI_LOG_DIR="$(setOrDefault "$NIFI_LOG_DIR" "$NIFI_HOME/logs")"
+export NIFI_LOG_DIR
 
 # Set to false to force the use of Keytab controller service in processors
 # that use Kerberos. If true, these processors will allow configuration of keytab
@@ -34,8 +57,10 @@ export NIFI_LOG_DIR="${NIFI_HOME}/logs"
 # a multi-tenant environment where management of keytabs should be performed only by
 # a user with elevated permissions (i.e., users that have been granted the 'ACCESS_KEYTAB'
 # restriction).
-export NIFI_ALLOW_EXPLICIT_KEYTAB=true
+NIFI_ALLOW_EXPLICIT_KEYTAB="$(setOrDefault "$NIFI_ALLOW_EXPLICIT_KEYTAB" true)"
+export NIFI_ALLOW_EXPLICIT_KEYTAB
 
 # Set to true to deny access to the Local File System from HDFS Processors
 # This flag forces HDFS Processors to evaluate the File System path during scheduling
-export NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS=false
+NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS="$(setOrDefault "$NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS" false)"
+export NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS
