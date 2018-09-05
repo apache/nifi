@@ -122,7 +122,7 @@ final class JMSConsumer extends JMSWorker {
                     // and if CLIENT_ACKNOWLEDGE is set.
                     consumerCallback.accept(response);
                     acknowledge(message, session);
-                } catch (JMSException e) {
+                } catch (Exception e) {
                     // We need to call recover to ensure that in the event of
                     // abrupt end or exception the current session will stop message
                     // delivery and restart with the oldest unacknowledged message
