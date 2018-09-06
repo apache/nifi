@@ -58,7 +58,7 @@ import com.google.gson.Gson;
 @SupportsBatching
 @Tags({"neo4j", "graph", "network", "insert", "update", "delete", "put", "get", "node", "relationship", "connection", "executor"})
 @CapabilityDescription("This processor executes a Neo4J Query (https://www.neo4j.com/) defined in the 'Neo4j Query' property of the "
-    + "FlowFile and writes the result to the FlowFile body in JSON format.")
+    + "FlowFile and writes the result to the FlowFile body in JSON format. The processor has been tested with Neo4j version 3.4.5")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractNeo4JCypherExecutor.ERROR_MESSAGE, description = "Neo4J error message"),
     @WritesAttribute(attribute = AbstractNeo4JCypherExecutor.LABELS_ADDED, description = "Number of labels added"),
