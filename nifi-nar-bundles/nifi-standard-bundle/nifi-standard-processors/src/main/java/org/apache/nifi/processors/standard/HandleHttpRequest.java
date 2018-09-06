@@ -119,12 +119,18 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the mulipart request will be added as an "
         + "attribute, prefixed with \"http.headers.multipart.\" For example, if the multipart request contains an HTTP Header named \"content-disposition\", then the value "
         + "will be added to an attribute named \"http.headers.multipart.content-disposition\""),
-    @WritesAttribute(attribute = "http.multipart.size", description = "If the request's Content-Type is \"multipart/form-data\", the part's content size is recorded into this attribute"),
-    @WritesAttribute(attribute = "http.multipart.content.type", description = "If the request's Content-Type is \"multipart/form-data\", the part's content type is recorded into this attribute"),
-    @WritesAttribute(attribute = "http.multipart.name", description = "If the request's Content-Type is \"multipart/form-data\", the part's name is recorded into this attribute"),
-    @WritesAttribute(attribute = "http.multipart.filename", description = "If the request's Content-Type is \"multipart/form-data\", and the part contains a uploaded file, the name of the file is recorded into this attribute"),
-    @WritesAttribute(attribute = "http.multipart.fragments.sequence.number", description = "If the request's Content-Type is \"multipart/form-data\", the part's index is recorded into this attribute. The index starts with 1."),
-    @WritesAttribute(attribute = "http.multipart.fragments.total.number", description = "If the request's Content-Type is \"multipart/form-data\", the count of all parts is recorded into this attribute.")})
+    @WritesAttribute(attribute = "http.multipart.size",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's content size is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.content.type",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's content type is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.name",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's name is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.filename",
+        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.fragments.sequence.number",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's index is recorded into this attribute. The index starts with 1."),
+    @WritesAttribute(attribute = "http.multipart.fragments.total.number",
+      description = "For requests with Content-Type \"multipart/form-data\", the count of all parts is recorded into this attribute.")})
 @SeeAlso(value = {HandleHttpResponse.class})
 public class HandleHttpRequest extends AbstractProcessor {
 
@@ -736,7 +742,8 @@ public class HandleHttpRequest extends AbstractProcessor {
 
       final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
       String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
-      session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
+      session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
+          "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
       session.transfer(flowFile, REL_SUCCESS);
       getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
     }
