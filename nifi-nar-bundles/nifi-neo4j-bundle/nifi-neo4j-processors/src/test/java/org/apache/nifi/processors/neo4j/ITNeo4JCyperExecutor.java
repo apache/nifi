@@ -37,6 +37,21 @@ import static org.junit.Assert.assertEquals;
 
 /**
  * Neo4J Cypher integration tests.  Please set the neo4j url, user and password according to your setup.
+ * The steps to setup neo4j are
+ * <ol>
+ *   <li> Install Neo4J</li>
+ *      <code>brew install neo4j</code>
+ *   <li>Setup neo4j</li>
+ * <code>neo4j start</code>
+ *    <li>Log into cypher shell using default username/password - neo4j/neo4j</li>
+ * <code>cypher-shell</code>
+ *    <li>Changel password to admin</li>
+ * <code>CALL dbms.changePassword('admin')</code>
+ *    <li> Restart neo4j</li>
+ * <code>neo4j restart</code>
+ *    <li>Log into cypher shell using new password (admin)</li>
+ * <code>cypher-shell</code>
+ * </ol>
  */
 public class ITNeo4JCyperExecutor {
     protected TestRunner runner;
