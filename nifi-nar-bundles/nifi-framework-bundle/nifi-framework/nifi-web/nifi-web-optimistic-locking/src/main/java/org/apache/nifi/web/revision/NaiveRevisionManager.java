@@ -19,9 +19,7 @@ package org.apache.nifi.web.revision;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -115,43 +113,18 @@ public class NaiveRevisionManager implements RevisionManager {
         // We successfully verified all revisions.
         logger.debug("Successfully verified Revision Claim for all revisions");
 
-        RevisionUpdate<T> updatedComponent = null;
-        try {
-            updatedComponent = task.update();
-        } finally {
-            // Release the lock that we are holding and update the revision.
-            // To do this, we need to map the old revision to the new revision
-            // so that we have an efficient way to lookup the pairing, so that
-            // we can easily obtain the old revision and the new revision for
-            // the same component in order to call #unlock on the RevisionLock
-            final Map<Revision, Revision> updatedRevisions = new HashMap<>();
-            final Map<String, Revision> revisionsByComponentId = new HashMap<>();
-            for (final Revision revision : revisionList) {
-                updatedRevisions.put(revision, revision);
-                revisionsByComponentId.put(revision.getComponentId(), revision);
-            }
+        // Perform the update
+        final RevisionUpdate<T> updatedComponent = task.update();
 
-            if (updatedComponent != null) {
-                for (final Revision updatedRevision : updatedComponent.getUpdatedRevisions()) {
-                    final Revision oldRevision = revisionsByComponentId.get(updatedRevision.getComponentId());
-                    if (oldRevision != null) {
-                        updatedRevisions.put(oldRevision, updatedRevision);
-                    }
-                }
-            }
-
-            for (final Revision revision : revisionList) {
-                final Revision updatedRevision = updatedRevisions.get(revision);
+        // If the update succeeded then put the updated revisions into the revisionMap
+        // If an exception is thrown during the update we don't want to update revision so it is ok to bounce out of this method
+        if (updatedComponent != null) {
+            for (final Revision updatedRevision : updatedComponent.getUpdatedRevisions()) {
                 revisionMap.put(updatedRevision.getComponentId(), updatedRevision);
-
-                if (updatedRevision.getVersion() != revision.getVersion()) {
-                    logger.debug("Unlocked Revision {} and updated associated Version to {}", revision, updatedRevision.getVersion());
-                } else {
-                    logger.debug("Unlocked Revision {} without updating Version", revision);
-                }
             }
         }
 
         return updatedComponent;
     }
+
 }
