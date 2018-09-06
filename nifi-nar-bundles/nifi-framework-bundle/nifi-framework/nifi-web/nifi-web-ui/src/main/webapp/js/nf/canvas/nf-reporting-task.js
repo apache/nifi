@@ -259,7 +259,10 @@
         }).done(function (response) {
             // update the task
             renderReportingTask(response);
-            nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            // component can be null if the user only has 'operate' permission without 'read'.
+            if (nfCommon.isDefinedAndNotNull(response.component)) {
+                nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 

@@ -128,9 +128,6 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     public ControllerServiceDTO populateRemainingControllerServiceContent(final ControllerServiceDTO controllerService) {
         final BundleDTO bundle = controllerService.getBundle();
-        if (bundle == null) {
-            return controllerService;
-        }
 
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
@@ -160,9 +157,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}"),
-                    @Authorization(value = "Write - /operation/controller-services/{uuid} : Only partial data can be returned" +
-                            " if the user only has 'operation' but no 'controller-services' read privilege.")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -188,7 +183,7 @@ public class ControllerServiceResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
-            OperationAuthorizable.authorize(controllerService, authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the controller service

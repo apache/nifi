@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ReportingTaskStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
@@ -76,7 +78,6 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class EntityFactory {
@@ -526,17 +527,16 @@ public final class EntityFactory {
             entity.setPermissions(permissions);
             entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
+
+            final ReportingTaskStatusDTO status = new ReportingTaskStatusDTO();
+            status.setRunStatus(dto.getState());
+            status.setValidationStatus(dto.getValidationStatus());
+            status.setActiveThreadCount(dto.getActiveThreadCount());
+            entity.setStatus(status);
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
-            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
-                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
-                final ReportingTaskDTO opsDto = new ReportingTaskDTO();
-                opsDto.setId(dto.getId());
-                opsDto.setName(dto.getId());
-                opsDto.setState(dto.getState());
-                opsDto.setValidationStatus(dto.getValidationStatus());
-                entity.setComponent(opsDto);
             }
         }
 
@@ -563,24 +563,17 @@ public final class EntityFactory {
             entity.setPermissions(permissions);
             entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
+            entity.setParentGroupId(dto.getParentGroupId());
             entity.setPosition(dto.getPosition());
+
+            final ControllerServiceStatusDTO status = new ControllerServiceStatusDTO();
+            status.setRunStatus(dto.getState());
+            status.setValidationStatus(dto.getValidationStatus());
+            entity.setStatus(status);
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
-            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
-                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
-                final Set<ControllerServiceReferencingComponentEntity> opsRefs = dto.getReferencingComponents().stream()
-                        .map(ref -> createControllerServiceReferencingComponentEntity(ref.getId(), ref.getComponent(), ref.getRevision(),
-                                ref.getPermissions(), ref.getOperatePermissions())).collect(Collectors.toSet());
-
-                final ControllerServiceDTO opsDto = new ControllerServiceDTO();
-                opsDto.setId(dto.getId());
-                opsDto.setName(dto.getId());
-                opsDto.setParentGroupId(dto.getParentGroupId());
-                opsDto.setState(dto.getState());
-                opsDto.setValidationStatus(dto.getValidationStatus());
-                opsDto.setReferencingComponents(opsRefs);
-                entity.setComponent(opsDto);
             }
         }
         return entity;
@@ -589,29 +582,13 @@ public final class EntityFactory {
     public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(final String id,
         final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
-        entity.setId(id);
         entity.setRevision(revision);
-        entity.setPermissions(permissions);
-        entity.setOperatePermissions(operatePermissions);
-
         if (dto != null) {
-            if (!id.equals(dto.getId())) {
-                throw new IllegalArgumentException("The entity id and the dto id should be the same.");
-            }
-
+            entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
+            entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
-            } else if (operatePermissions != null && operatePermissions.getCanWrite()) {
-                // If the user doesn't have read permission, but has operate permission, then populate values required to operate the component.
-                final ControllerServiceReferencingComponentDTO opsDto = new ControllerServiceReferencingComponentDTO();
-                opsDto.setId(dto.getId());
-                opsDto.setGroupId(dto.getGroupId());
-                opsDto.setName(dto.getId());
-                opsDto.setReferenceType(dto.getReferenceType());
-                opsDto.setReferenceCycle(dto.getReferenceCycle());
-                opsDto.setReferencingComponents(dto.getReferencingComponents());
-                opsDto.setState(dto.getState());
-                entity.setComponent(opsDto);
             }
         }
 

@@ -1012,17 +1012,17 @@
 
             // determine the appropriate label
             var icon = '', label = '';
-            if (dataContext.component.validationStatus === 'VALIDATING') {
+            if (dataContext.status.validationStatus === 'VALIDATING') {
                 icon = 'validating fa fa-spin fa-circle-notch';
                 label = 'Validating';
-            } else if (dataContext.component.validationStatus === 'INVALID') {
+            } else if (dataContext.status.validationStatus === 'INVALID') {
                 icon = 'invalid fa fa-warning';
                 label = 'Invalid';
             } else {
-                if (dataContext.component.state === 'STOPPED') {
+                if (dataContext.status.runStatus === 'STOPPED') {
                     label = 'Stopped';
                     icon = 'fa fa-stop stopped';
-                } else if (dataContext.component.state === 'RUNNING') {
+                } else if (dataContext.status.runStatus === 'RUNNING') {
                     label = 'Running';
                     icon = 'fa fa-play running';
                 } else {
@@ -1033,8 +1033,8 @@
 
             // include the active thread count if appropriate
             var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.component.activeThreadCount) && dataContext.component.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.component.activeThreadCount + ')';
+            if (nfCommon.isDefinedAndNotNull(dataContext.status.activeThreadCount) && dataContext.status.activeThreadCount > 0) {
+                activeThreadCount = '(' + dataContext.status.activeThreadCount + ')';
             }
 
             // format the markup
@@ -1048,16 +1048,16 @@
             var canWrite = dataContext.permissions.canWrite;
             var canOperate = dataContext.operatePermissions.canWrite;
             if (canWrite || canOperate) {
-                if (dataContext.component.state === 'RUNNING') {
+                if (dataContext.status.runStatus === 'RUNNING') {
                     markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop"></div>';
-                } else if (dataContext.component.state === 'STOPPED' || dataContext.component.state === 'DISABLED') {
+                } else if (dataContext.status.runStatus === 'STOPPED' || dataContext.status.runStatus === 'DISABLED') {
 
                     if (canWrite) {
                         markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
                     }
 
                     // support starting when stopped and no validation errors
-                    if (dataContext.component.state === 'STOPPED' && dataContext.component.validationStatus === 'VALID') {
+                    if (dataContext.status.runStatus === 'STOPPED' && dataContext.status.validationStatus === 'VALID') {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
                     }
 
@@ -1178,7 +1178,7 @@
                 } else if (target.hasClass('delete-reporting-task')) {
                     nfReportingTask.promptToDeleteReportingTask(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
-                    var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
+                    var canClear = reportingTaskEntity.status.runStatus === 'STOPPED' && reportingTaskEntity.status.activeThreadCount === 0;
                     nfComponentState.showState(reportingTaskEntity, canClear);
                 } else if (target.hasClass('change-version-reporting-task')) {
                     nfComponentVersion.promptForVersionChange(reportingTaskEntity);
