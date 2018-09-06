@@ -27,15 +27,31 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -66,7 +82,7 @@ public class TestListenHTTP {
     public void setup() throws IOException {
         proc = new ListenHTTP();
         runner = TestRunners.newTestRunner(proc);
-        availablePort = NetworkUtils.availablePort();;
+        availablePort = NetworkUtils.availablePort();
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
 
@@ -181,8 +197,8 @@ public class TestListenHTTP {
     private int executePOST(String message) throws Exception {
         final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
         final boolean secure = (sslContextService != null);
-        final String scheme = secure ? "https" : "http";
-        final URL url = new URL(scheme + "://localhost:" + availablePort + "/" + HTTP_BASE_PATH);
+        String endpointUrl = buildUrl(secure);
+        final URL url = new URL(endpointUrl);
         HttpURLConnection connection;
 
         if (secure) {
@@ -207,6 +223,10 @@ public class TestListenHTTP {
         return connection.getResponseCode();
     }
 
+    private String buildUrl(final boolean secure) {
+      return String.format("%s://localhost:%s/%s", secure ? "https" : "http" , availablePort,  HTTP_BASE_PATH);
+    }
+
     private void testPOSTRequestsReceived(int returnCode) throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("payload 1");
@@ -225,12 +245,28 @@ public class TestListenHTTP {
         mockFlowFiles.get(3).assertContentEquals("payload 2");
     }
 
+    private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles, int returnCode) throws Exception {
+      final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+      final ProcessContext context = runner.getProcessContext();
+      proc.createHttpServer(context);
+
+      new Thread(sendRequestToWebserver).start();
+
+      long responseTimeout = 10000;
+
+      int numTransferred = 0;
+      long startTime = System.currentTimeMillis();
+      while (numTransferred < numberOfExpectedFlowFiles && (System.currentTimeMillis() - startTime < responseTimeout)) {
+          proc.onTrigger(context, processSessionFactory);
+          numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
+          Thread.sleep(100);
+      }
+
+      runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, numberOfExpectedFlowFiles);
+    }
+
     private void startWebServerAndSendMessages(final List<String> messages, int returnCode)
             throws Exception {
-
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-        proc.createHttpServer(context);
 
         Runnable sendMessagestoWebServer = () -> {
             try {
@@ -244,20 +280,8 @@ public class TestListenHTTP {
                 fail("Not expecting error here.");
             }
         };
-        new Thread(sendMessagestoWebServer).start();
 
-        long responseTimeout = 10000;
-
-        int numTransferred = 0;
-        long startTime = System.currentTimeMillis();
-        while (numTransferred < messages.size() && (System.currentTimeMillis() - startTime < responseTimeout)) {
-            proc.onTrigger(context, processSessionFactory);
-            numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
-            Thread.sleep(100);
-        }
-
-        runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, messages.size());
-
+        startWebServerAndSendRequests(sendMessagestoWebServer, messages.size(), returnCode);
     }
 
     private SSLContextService configureProcessorSslContextService() throws InitializationException {
@@ -286,5 +310,115 @@ public class TestListenHTTP {
 
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
         return sslContextService;
+    }
+
+
+    @Test(/*timeout=10000*/)
+    public void testMultipartFormDataRequest() throws Exception {
+
+      runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+      runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+      runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
+
+      final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
+      final boolean isSecure = (sslContextService != null);
+
+      Runnable sendRequestToWebserver = () -> {
+        try {
+          MultipartBody multipartBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+              .addFormDataPart("p1", "v1")
+              .addFormDataPart("p2", "v2")
+              .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+              .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+              .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+              .build();
+
+          Request request =
+              new Request.Builder()
+                .url(buildUrl(isSecure))
+                .post(multipartBody)
+                .build();
+
+          int timeout = 3000;
+          OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(timeout, TimeUnit.MILLISECONDS)
+                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
+                .build();
+
+          try (Response response = client.newCall(request).execute()) {
+            Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
+          }
+        } catch (final Throwable t) {
+          t.printStackTrace();
+          Assert.fail(t.toString());
+        }
+      };
+
+
+      startWebServerAndSendRequests(sendRequestToWebserver, 5, 200);
+
+      runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
+      List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
+      // Part fragments are not processed in the order we submitted them.
+      // We cannot rely on the order we sent them in.
+      MockFlowFile mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p1");
+      mff.assertAttributeEquals("http.multipart.name", "p1");
+      mff.assertAttributeExists("http.multipart.size");
+      mff.assertAttributeEquals("http.multipart.fragments.sequence.number", "1");
+      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p2");
+      mff.assertAttributeEquals("http.multipart.name", "p2");
+      mff.assertAttributeExists("http.multipart.size");
+      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file1");
+      mff.assertAttributeEquals("http.multipart.name", "file1");
+      mff.assertAttributeEquals("http.multipart.filename", "my-file-text.txt");
+      mff.assertAttributeEquals("http.headers.multipart.content-type", "text/plain");
+      mff.assertAttributeExists("http.multipart.size");
+      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file2");
+      mff.assertAttributeEquals("http.multipart.name", "file2");
+      mff.assertAttributeEquals("http.multipart.filename", "my-file-data.json");
+      mff.assertAttributeEquals("http.headers.multipart.content-type", "application/json");
+      mff.assertAttributeExists("http.multipart.size");
+      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file3");
+      mff.assertAttributeEquals("http.multipart.name", "file3");
+      mff.assertAttributeEquals("http.multipart.filename", "my-file-binary.bin");
+      mff.assertAttributeEquals("http.headers.multipart.content-type", "application/octet-stream");
+      mff.assertAttributeExists("http.multipart.size");
+      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+    }
+
+     private byte[] generateRandomBinaryData(int i) {
+      byte[] bytes = new byte[100];
+      new Random().nextBytes(bytes);
+      return bytes;
+    }
+     private File createTextFile(String fileName, String... lines) throws IOException {
+      File file = new File(fileName);
+      file.deleteOnExit();
+      for (String string : lines) {
+        Files.append(string, file, Charsets.UTF_8);
+      }
+      return file;
+    }
+     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
+      Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
+      Assert.assertTrue(optional.isPresent());
+      return optional.get();
     }
 }

@@ -134,6 +134,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .defaultValue(String.valueOf(HttpServletResponse.SC_OK))
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
+    public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
+        .name("max-request-size")
+        .displayName("Max Request Size")
+        .description("The maximal size of the request")
+        .required(true)
+        .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+        .defaultValue("10485760")
+        .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
@@ -145,6 +153,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
     public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
     public static final String CONTEXT_ATTRIBUTE_RETURN_CODE = "returnCode";
+    public static final String CONTEXT_ATTRIBUTE_MAX_REQUEST_SIZE = "maxRequestSize";
 
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
@@ -166,6 +175,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         descriptors.add(RETURN_CODE);
+        descriptors.add(MAX_REQUEST_SIZE);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -214,6 +224,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
+        long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asLong();
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
@@ -295,7 +306,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
-        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE,returnCode);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MAX_REQUEST_SIZE, maxRequestSize);
 
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
