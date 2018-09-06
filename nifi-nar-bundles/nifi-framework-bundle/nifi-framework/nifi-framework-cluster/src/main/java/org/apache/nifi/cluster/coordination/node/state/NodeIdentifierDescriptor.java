@@ -2,6 +2,10 @@ package org.apache.nifi.cluster.coordination.node.state;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 public class NodeIdentifierDescriptor {
     private String id;
     private String apiAddress;
@@ -14,7 +18,7 @@ public class NodeIdentifierDescriptor {
     private Integer siteToSitePort;
     private Integer siteToSiteHttpApiPort;
     private Boolean siteToSiteSecure;
-    private String nodeDn;
+    private Set<String> nodeIdentities;
     private boolean localNodeIdentifier;
 
     public String getId() {
@@ -105,12 +109,12 @@ public class NodeIdentifierDescriptor {
         this.siteToSiteSecure = siteToSiteSecure;
     }
 
-    public String getNodeDn() {
-        return nodeDn;
+    public Set<String> getNodeIdentities() {
+        return nodeIdentities;
     }
 
-    public void setNodeDn(final String nodeDn) {
-        this.nodeDn = nodeDn;
+    public void setNodeIdentities(final Set<String> nodeIdentities) {
+        this.nodeIdentities = Collections.unmodifiableSet(new HashSet<>(nodeIdentities));
     }
 
     public boolean isLocalNodeIdentifier() {
@@ -132,7 +136,7 @@ public class NodeIdentifierDescriptor {
         descriptor.setSiteToSitePort(nodeId.getSiteToSitePort());
         descriptor.setSiteToSiteHttpApiPort(nodeId.getSiteToSiteHttpApiPort());
         descriptor.setSiteToSiteSecure(nodeId.isSiteToSiteSecure());
-        descriptor.setNodeDn(nodeId.getDN());
+        descriptor.setNodeIdentities(nodeId.getNodeIdentities());
         descriptor.setLoadBalanceAddress(nodeId.getLoadBalanceAddress());
         descriptor.setLoadBalancePort(nodeId.getLoadBalancePort());
         descriptor.setLocalNodeIdentifier(localNodeId);
@@ -141,6 +145,6 @@ public class NodeIdentifierDescriptor {
 
     public NodeIdentifier toNodeIdentifier() {
         return new NodeIdentifier(getId(), getApiAddress(), getApiPort(), getSocketAddress(), getSocketPort(), getLoadBalanceAddress(), getLoadBalancePort(),
-            getSiteToSiteAddress(), getSiteToSitePort(), getSiteToSiteHttpApiPort(), getSiteToSiteSecure(), getNodeDn());
+            getSiteToSiteAddress(), getSiteToSitePort(), getSiteToSiteHttpApiPort(), getSiteToSiteSecure(), getNodeIdentities());
     }
 }

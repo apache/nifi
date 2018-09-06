@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import org.apache.commons.lang3.StringUtils;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import org.apache.commons.lang3.StringUtils;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A node identifier denoting the coordinates of a flow controller that is
@@ -99,7 +102,7 @@ public class NodeIdentifier {
     private final Boolean siteToSiteSecure;
 
 
-    private final String nodeDn;
+    private final Set<String> nodeIdentities;
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
                           final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
@@ -112,7 +115,7 @@ public class NodeIdentifier {
     }
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, final String dn) {
+        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, final Set<String> nodeIdentities) {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
@@ -136,7 +139,7 @@ public class NodeIdentifier {
         this.socketPort = socketPort;
         this.loadBalanceAddress = loadBalanceAddress;
         this.loadBalancePort = loadBalancePort;
-        this.nodeDn = dn;
+        this.nodeIdentities = nodeIdentities == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(nodeIdentities));
         this.siteToSiteAddress = siteToSiteAddress == null ? apiAddress : siteToSiteAddress;
         this.siteToSitePort = siteToSitePort;
         this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
@@ -154,7 +157,7 @@ public class NodeIdentifier {
         this.socketPort = 0;
         this.loadBalanceAddress = null;
         this.loadBalancePort = 0;
-        this.nodeDn = null;
+        this.nodeIdentities = Collections.emptySet();
         this.siteToSiteAddress = null;
         this.siteToSitePort = null;
         this.siteToSiteHttpApiPort = null;
@@ -165,8 +168,8 @@ public class NodeIdentifier {
         return id;
     }
 
-    public String getDN() {
-        return nodeDn;
+    public Set<String> getNodeIdentities() {
+        return nodeIdentities;
     }
 
     public String getApiAddress() {

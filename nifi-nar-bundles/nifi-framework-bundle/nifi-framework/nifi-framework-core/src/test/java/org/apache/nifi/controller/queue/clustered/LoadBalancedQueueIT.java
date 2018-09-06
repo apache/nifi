@@ -84,8 +84,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (clientDn, connection) -> {};
-    private final LoadBalanceAuthorizer NEVER_AUTHORIZED = (clientDn, connection) -> {
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> {};
+    private final LoadBalanceAuthorizer NEVER_AUTHORIZED = nodeIds -> {
         throw new NotAuthorizedException("Intentional Unit Test Failure - Not Authorized");
     };
 

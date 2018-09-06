@@ -127,12 +127,12 @@ public interface ClusterCoordinator {
      * <code>true</code> if the node is blocked, <code>false</code> if the node is
      * allowed through the firewall or if there is no firewall configured
      *
-     * @param hostname the hostname of the node that is attempting to connect to the cluster
+     * @param nodeIdentities the identities of the node that is attempting to connect to the cluster
      *
      * @return <code>true</code> if the node is blocked, <code>false</code> if the node is
      *         allowed through the firewall or if there is no firewall configured
      */
-    boolean isBlockedByFirewall(String hostname);
+    boolean isBlockedByFirewall(Set<String> nodeIdentities);
 
     /**
      * Reports that some event occurred that is relevant to the cluster

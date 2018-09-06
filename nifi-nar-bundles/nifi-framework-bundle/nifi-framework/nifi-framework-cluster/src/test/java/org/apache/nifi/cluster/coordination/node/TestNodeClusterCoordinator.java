@@ -164,7 +164,7 @@ public class TestNodeClusterCoordinator {
 
         coordinator.setConnected(true);
 
-        final ProtocolMessage protocolResponse = coordinator.handle(requestMsg);
+        final ProtocolMessage protocolResponse = coordinator.handle(requestMsg, Collections.emptySet());
         assertNotNull(protocolResponse);
         assertTrue(protocolResponse instanceof ConnectionResponseMessage);
 
@@ -411,7 +411,7 @@ public class TestNodeClusterCoordinator {
         final NodeStatusChangeMessage msg = new NodeStatusChangeMessage();
         msg.setNodeId(nodeId1);
         msg.setNodeConnectionStatus(oldStatus);
-        coordinator.handle(msg);
+        coordinator.handle(msg, Collections.emptySet());
 
         // Ensure that no status change message was send
         Thread.sleep(1000);
@@ -427,7 +427,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
         crm.setConnectionRequest(connectionRequest);
 
-        final ProtocolMessage response = coordinator.handle(crm);
+        final ProtocolMessage response = coordinator.handle(crm, Collections.emptySet());
         assertNotNull(response);
         assertTrue(response instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage responseMessage = (ConnectionResponseMessage) response;
@@ -438,7 +438,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
         crm2.setConnectionRequest(conRequest2);
 
-        final ProtocolMessage conflictingResponse = coordinator.handle(crm2);
+        final ProtocolMessage conflictingResponse = coordinator.handle(crm2, Collections.emptySet());
         assertNotNull(conflictingResponse);
         assertTrue(conflictingResponse instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage conflictingResponseMessage = (ConnectionResponseMessage) conflictingResponse;
@@ -460,7 +460,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
-        return coordinator.handle(requestMsg);
+        return coordinator.handle(requestMsg, Collections.emptySet());
     }
 
 

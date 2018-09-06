@@ -18,8 +18,6 @@ package org.apache.nifi.cluster.protocol.message;
 
 public abstract class ProtocolMessage {
 
-    private volatile String requestorDN;
-
     public static enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
@@ -41,22 +39,5 @@ public abstract class ProtocolMessage {
     }
 
     public abstract MessageType getType();
-
-    /**
-     * Sets the DN of the entity making the request
-     *
-     * @param dn dn of the entity making the request
-     */
-    public void setRequestorDN(final String dn) {
-        this.requestorDN = dn;
-    }
-
-    /**
-     * @return the DN of the entity that made the request, if using a secure
-     * socket. Otherwise, returns <code>null</code>
-     */
-    public String getRequestorDN() {
-        return requestorDN;
-    }
 
 }

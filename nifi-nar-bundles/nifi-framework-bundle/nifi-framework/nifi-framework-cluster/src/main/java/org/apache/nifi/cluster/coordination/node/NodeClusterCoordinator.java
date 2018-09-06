@@ -567,8 +567,18 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public boolean isBlockedByFirewall(final String hostname) {
-        return firewall != null && !firewall.isPermissible(hostname);
+    public boolean isBlockedByFirewall(final Set<String> nodeIdentities) {
+        if (firewall == null) {
+            return false;
+        }
+
+        for (final String nodeId : nodeIdentities) {
+            if (firewall.isPermissible(nodeId)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -641,7 +651,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private NodeIdentifier getElectedActiveCoordinatorNode(final boolean warnOnError) {
-        final String electedNodeAddress;
+        String electedNodeAddress;
         try {
             electedNodeAddress = getElectedActiveCoordinatorAddress();
         } catch (final NoClusterCoordinatorException ncce) {
@@ -649,10 +659,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             return null;
         }
 
-        if (electedNodeAddress == null) {
+        if (electedNodeAddress == null || electedNodeAddress.trim().isEmpty()) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
+
+        electedNodeAddress = electedNodeAddress.trim();
 
         final int colonLoc = electedNodeAddress.indexOf(':');
         if (colonLoc < 1) {
@@ -919,10 +931,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public ProtocolMessage handle(final ProtocolMessage protocolMessage) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage protocolMessage, final Set<String> nodeIdentities) throws ProtocolException {
         switch (protocolMessage.getType()) {
             case CONNECTION_REQUEST:
-                return handleConnectionRequest((ConnectionRequestMessage) protocolMessage);
+                return handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
             case NODE_STATUS_CHANGE:
                 handleNodeStatusChange((NodeStatusChangeMessage) protocolMessage);
                 return null;
@@ -1035,28 +1047,37 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return resolvedNodeId;
     }
 
-    private ConnectionResponseMessage handleConnectionRequest(final ConnectionRequestMessage requestMessage) {
+    private ConnectionResponseMessage handleConnectionRequest(final ConnectionRequestMessage requestMessage, final Set<String> nodeIdentities) {
         final NodeIdentifier proposedIdentifier = requestMessage.getConnectionRequest().getProposedNodeIdentifier();
-        final NodeIdentifier withRequestorDn = addRequestorDn(proposedIdentifier, requestMessage.getRequestorDN());
+        final NodeIdentifier withNodeIdentities = addNodeIdentities(proposedIdentifier, nodeIdentities);
         final DataFlow dataFlow = requestMessage.getConnectionRequest().getDataFlow();
-        final ConnectionRequest requestWithDn = new ConnectionRequest(withRequestorDn, dataFlow);
+        final ConnectionRequest requestWithNodeIdentities = new ConnectionRequest(withNodeIdentities, dataFlow);
 
         // Resolve Node identifier.
         final NodeIdentifier resolvedNodeId = resolveNodeId(proposedIdentifier);
 
+        if (isBlockedByFirewall(nodeIdentities)) {
+            // if the socket address is not listed in the firewall, then return a null response
+            logger.info("Firewall blocked connection request from node " + resolvedNodeId + " with Node Identities " + nodeIdentities);
+            final ConnectionResponse response = ConnectionResponse.createBlockedByFirewallResponse();
+            final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
+            responseMessage.setConnectionResponse(response);
+            return responseMessage;
+        }
+
         if (requireElection) {
-            final DataFlow electedDataFlow = flowElection.castVote(dataFlow, withRequestorDn);
+            final DataFlow electedDataFlow = flowElection.castVote(dataFlow, withNodeIdentities);
             if (electedDataFlow == null) {
-                logger.info("Received Connection Request from {}; responding with Flow Election In Progress message", withRequestorDn);
+                logger.info("Received Connection Request from {}; responding with Flow Election In Progress message", withNodeIdentities);
                 return createFlowElectionInProgressResponse();
             } else {
-                logger.info("Received Connection Request from {}; responding with DataFlow that was elected", withRequestorDn);
-                return createConnectionResponse(requestWithDn, resolvedNodeId, electedDataFlow);
+                logger.info("Received Connection Request from {}; responding with DataFlow that was elected", withNodeIdentities);
+                return createConnectionResponse(requestWithNodeIdentities, resolvedNodeId, electedDataFlow);
             }
         }
 
-        logger.info("Received Connection Request from {}; responding with my DataFlow", withRequestorDn);
-        return createConnectionResponse(requestWithDn, resolvedNodeId);
+        logger.info("Received Connection Request from {}; responding with my DataFlow", withNodeIdentities);
+        return createConnectionResponse(requestWithNodeIdentities, resolvedNodeId);
     }
 
     private ConnectionResponseMessage createFlowElectionInProgressResponse() {
@@ -1082,15 +1103,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
 
     private ConnectionResponseMessage createConnectionResponse(final ConnectionRequest request, final NodeIdentifier resolvedNodeIdentifier, final DataFlow clusterDataFlow) {
-        if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
-            // if the socket address is not listed in the firewall, then return a null response
-            logger.info("Firewall blocked connection request from node " + resolvedNodeIdentifier);
-            final ConnectionResponse response = ConnectionResponse.createBlockedByFirewallResponse();
-            final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
-            responseMessage.setConnectionResponse(response);
-            return responseMessage;
-        }
-
         if (clusterDataFlow == null) {
             final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
             responseMessage.setConnectionResponse(new ConnectionResponse(5, "The cluster dataflow is not yet available"));
@@ -1117,12 +1129,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
 
-    private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
+    private NodeIdentifier addNodeIdentities(final NodeIdentifier nodeId, final Set<String> nodeIdentities) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
                 nodeId.getSocketAddress(), nodeId.getSocketPort(),
                 nodeId.getLoadBalanceAddress(), nodeId.getLoadBalancePort(),
                 nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
-                nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), dn);
+                nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), nodeIdentities);
     }
 
     @Override

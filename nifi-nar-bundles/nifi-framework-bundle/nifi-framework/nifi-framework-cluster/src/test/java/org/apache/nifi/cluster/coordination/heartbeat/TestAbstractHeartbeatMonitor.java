@@ -273,7 +273,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized boolean isBlockedByFirewall(String hostname) {
+        public synchronized boolean isBlockedByFirewall(Set<String> nodeIds) {
             return false;
         }
 

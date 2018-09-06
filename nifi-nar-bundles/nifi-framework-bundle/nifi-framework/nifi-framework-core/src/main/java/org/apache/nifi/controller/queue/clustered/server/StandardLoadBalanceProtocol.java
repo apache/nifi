@@ -62,7 +62,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +117,26 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
 
         String peerDescription = socket.getInetAddress().toString();
+        if (socket instanceof SSLSocket) {
+            final SSLSession sslSession = ((SSLSocket) socket).getSession();
+
+            final Set<String> certIdentities;
+            try {
+                certIdentities = getCertificateIdentities(sslSession);
+
+                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
+                peerDescription = CertificateUtils.extractUsername(dn);
+            } catch (final CertificateException e) {
+                throw new IOException("Failed to extract Client Certificate", e);
+            }
+
+            logger.debug("Connection received from peer {}. Will perform authorization against Client Identities '{}'",
+                peerDescription, certIdentities);
+
+            authorizer.authorize(certIdentities);
+            logger.debug("Client Identities {} are authorized to load balance data", certIdentities);
+        }
+
         final int version = negotiateProtocolVersion(in, out, peerDescription);
 
         if (version == SOCKET_CLOSED) {
@@ -129,23 +148,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        final Set<String> certIdentities;
-        if (socket instanceof SSLSocket) {
-            final SSLSession sslSession = ((SSLSocket) socket).getSession();
-
-            try {
-                certIdentities = getCertificateIdentities(sslSession);
-
-                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
-                peerDescription = CertificateUtils.extractUsername(dn);
-            } catch (final CertificateException e) {
-                throw new IOException("Failed to extract Client Certificate", e);
-            }
-        } else {
-            certIdentities = null;
-        }
-
-        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName(), certIdentities);
+        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName());
     }
 
     private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
@@ -215,8 +218,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion,
-                                    final String nodeName, final Collection<String> clientIdentities) throws IOException {
+    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion, final String nodeName) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);
         final long startTimestamp = System.currentTimeMillis();
 
@@ -235,12 +237,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             logger.error("Attempted to receive FlowFiles from Peer {} for Connection with ID {} but no connection exists with that ID", peerDescription, connectionId);
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but no Connection exists with that ID");
         }
-
-        logger.debug("Transaction from peer {} is for Connection ID {}; will perform authorization against Client Identities '{}' and this Connection ID",
-                peerDescription, connectionId, clientIdentities);
-
-        authorizer.authorize(clientIdentities, connection);
-        logger.debug("Client Identities {} are authorized to transfer data to Connection with ID '{}'", clientIdentities, connectionId);
 
         final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
         if (!(flowFileQueue instanceof LoadBalancedFlowFileQueue)) {

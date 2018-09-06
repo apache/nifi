@@ -390,7 +390,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
-    public ProtocolMessage handle(final ProtocolMessage request) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage request, final Set<String> nodeIdentities) throws ProtocolException {
         final long startNanos = System.nanoTime();
         try {
             switch (request.getType()) {

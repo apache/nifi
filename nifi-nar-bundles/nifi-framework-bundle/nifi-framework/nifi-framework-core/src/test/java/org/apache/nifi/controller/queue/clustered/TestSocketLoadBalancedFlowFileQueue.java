@@ -128,7 +128,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
     }
 
     private NodeIdentifier createNodeIdentifier() {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", nodePort++, "localhost", nodePort++, "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, "dn");
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", nodePort++, "localhost", nodePort++,
+            "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, Collections.emptySet());
     }
 
     @Test
@@ -322,7 +323,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final Set<NodeIdentifier> updatedNodeIdentifiers = new HashSet<>(nodeIds);
         // Add a Node Identifier with an of ID consisting of a bunch of Z's so that the new partition will be Partition Number 3.
-        updatedNodeIdentifiers.add(new NodeIdentifier("ZZZZZZZZZZZZZZ", "localhost", nodePort++, "localhost", nodePort++, "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, "dn"));
+        updatedNodeIdentifiers.add(new NodeIdentifier("ZZZZZZZZZZZZZZ", "localhost", nodePort++, "localhost", nodePort++,
+            "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, Collections.emptySet()));
 
         queue.setNodeIdentifiers(updatedNodeIdentifiers, false);
 

@@ -57,7 +57,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (clientDn, connection) -> {};
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> {};
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;
@@ -179,7 +179,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -239,7 +239,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -301,7 +301,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException eof) {
             // expected
@@ -346,7 +346,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(COMPLETE_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -396,7 +396,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException e) {
             // expected
@@ -443,7 +443,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(ABORT_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -490,7 +490,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test", Collections.singleton("clientDn"));
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);

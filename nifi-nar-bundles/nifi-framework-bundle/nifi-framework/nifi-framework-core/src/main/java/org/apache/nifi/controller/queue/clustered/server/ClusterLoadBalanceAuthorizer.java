@@ -2,7 +2,6 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
@@ -11,8 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(ClusterLoadBalanceAuthorizer.class);
@@ -26,11 +23,9 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     }
 
     @Override
-    public void authorize(final Collection<String> clientIdentities, final Connection connection) throws NotAuthorizedException {
-        requireNonNull(connection);
-
+    public void authorize(final Collection<String> clientIdentities) throws NotAuthorizedException {
         if (clientIdentities == null) {
-            logger.debug("Client DN is null, so assuming that Load Balancing communications are not secure. Authorizing client to add data to Connection with ID {}", connection.getIdentifier());
+            logger.debug("Client Identities is null, so assuming that Load Balancing communications are not secure. Authorizing client to participate in Load Balancing");
             return;
         }
 
@@ -40,16 +35,16 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
 
         for (final String clientId : clientIdentities) {
             if (nodeIds.contains(clientId)) {
-                logger.debug("Client ID '{}' is in the list of Nodes in the Cluster. Authorizing Client to add data to Connection with ID {}", clientId, connection);
+                logger.debug("Client ID '{}' is in the list of Nodes in the Cluster. Authorizing Client to Load Balance data", clientId);
                 return;
             }
         }
 
-        final String message = String.format("Authorization failed for Client ID's %s to write to Connection %s because none of the ID's are known Cluster Node Identifiers",
-                clientIdentities, connection.getIdentifier());
+        final String message = String.format("Authorization failed for Client ID's %s to Load Balance data because none of the ID's are known Cluster Node Identifiers",
+                clientIdentities);
 
         logger.warn(message);
         eventReporter.reportEvent(Severity.WARNING, "Load Balanced Connections", message);
-        throw new NotAuthorizedException("Client ID's " + clientIdentities + " are not authorized to write data to Connection with ID " + connection.getIdentifier());
+        throw new NotAuthorizedException("Client ID's " + clientIdentities + " are not authorized to Load Balance data");
     }
 }

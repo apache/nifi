@@ -29,6 +29,7 @@ import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -198,7 +199,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
 
         // Do not process heartbeat if it's blocked by firewall.
-        if (clusterCoordinator.isBlockedByFirewall(nodeId.getSocketAddress())) {
+        if (clusterCoordinator.isBlockedByFirewall(Collections.singleton(nodeId.getSocketAddress()))) {
             clusterCoordinator.reportEvent(nodeId, Severity.WARNING, "Firewall blocked received heartbeat. Issuing disconnection request.");
 
             // request node to disconnect
