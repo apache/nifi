@@ -66,11 +66,13 @@
                 <groupId>com.bazaarvoice.jolt</groupId>
                 <artifactId>jolt-core</artifactId>
                 <version>${jolt.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
                 <artifactId>json-utils</artifactId>
                 <version>${jolt.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>javax.servlet.jsp</groupId>
@@ -86,11 +88,6 @@
                 <groupId>javax.servlet.jsp.jstl</groupId>
                 <artifactId>javax.servlet.jsp.jstl-api</artifactId>
                 <version>1.2.1</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
-                <version>3.1.0</version>
             </dependency>
             <dependency>
                 <groupId>javax.ws.rs</groupId>
@@ -130,6 +127,7 @@
                 <groupId>org.glassfish.jersey.inject</groupId>
                 <artifactId>jersey-hk2</artifactId>
                 <version>${jersey.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.test-framework.providers</groupId>
