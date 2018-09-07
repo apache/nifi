@@ -865,6 +865,11 @@ public interface TestRunner {
     boolean removeProperty(String property);
 
     /**
+     * Clears all set properties from the {@link ProcessContext}.
+     */
+    void clearProperties();
+
+    /**
      * Returns a {@link List} of all {@link ProvenanceEventRecord}s that were
      * emitted by the Processor
      *

@@ -209,6 +209,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         return false;
     }
 
+    public void clearProperties() {
+        Map<PropertyDescriptor, String> properties = getProperties();
+        for (Map.Entry<PropertyDescriptor, String> e : properties.entrySet()) {
+            removeProperty(e.getKey());
+        }
+    }
+
     @Override
     public void yield() {
         yieldCalled = true;
