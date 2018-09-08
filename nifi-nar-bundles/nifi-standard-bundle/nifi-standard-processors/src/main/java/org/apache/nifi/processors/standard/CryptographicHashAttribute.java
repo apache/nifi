@@ -74,7 +74,7 @@ public class CryptographicHashAttribute extends AbstractProcessor {
             "Fail if missing attributes",
             "Route to failure if there are attributes configured for hashing that are not present in the flowfile");
 
-    private static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("character_set")
             .description("The Character Set used to encode the attribute being hashed")
             .required(true)

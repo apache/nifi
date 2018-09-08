@@ -29,6 +29,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
@@ -112,6 +113,70 @@ class HashServiceTest extends GroovyTestCase {
 
         // Assert
         assert utf8Hash != utf16Hash
+    }
+
+    /**
+     * This test ensures that the service properly handles UTF-16 encoded data to return it without the Big Endian Byte Order Mark (BOM). Java treats UTF-16 encoded data without a BOM as Big Endian by default on decoding, but when <em>encoding</em>, it inserts a BE BOM in the data.
+     *
+     * Examples:
+     *
+     * "apachenifi"
+     *
+     * *     UTF-8: 0x61 0x70 0x61 0x63 0x68 0x65 0x6E 0x69 0x66 0x69
+     * *    UTF-16: 0xFE 0xFF 0x00 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69
+     * *  UTF-16LE: 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69 0x00
+     * *  UTF-16BE: 0x00 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69
+     *
+     * The result of "UTF-16" decoding should have the 0xFE 0xFF stripped on return by encoding in UTF-16BE directly, which will not insert a BOM.
+     *
+     * See also: <a href="https://unicode.org/faq/utf_bom.html#bom10">https://unicode.org/faq/utf_bom.html#bom10</a>
+     */
+    @Test
+    void testHashValueShouldHandleUTF16BOMIssue() {
+        // Arrange
+        HashAlgorithm algorithm = HashAlgorithm.SHA256
+        final String KNOWN_VALUE = "apachenifi"
+
+        List<Charset> charsets = [StandardCharsets.UTF_8, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE]
+
+        charsets.each { Charset charset ->
+            logger.info("[${charset.name().padLeft(9)}]: ${printHexBytes(KNOWN_VALUE, charset)}")
+        }
+
+        final def EXPECTED_SHA_256_HASHES = [
+                "utf_8"   : "dc4bd945723b9c234f1be408e8ceb78660b481008b8ab5b71eb2aa3b4f08357a",
+                "utf_16"  : "f370019c2a41a8285077beb839f7566240e2f0ca970cb67aed5836b89478df91",
+                "utf_16be": "f370019c2a41a8285077beb839f7566240e2f0ca970cb67aed5836b89478df91",
+                "utf_16le": "7e285dc64d3a8c3cb4e04304577eebbcb654f2245373874e48e597a8b8f15aff",
+        ]
+        EXPECTED_SHA_256_HASHES.each { k, hash ->
+            logger.expected("SHA-256(${k.padLeft(9)}(${KNOWN_VALUE})) = ${hash}")
+        }
+
+        // Act
+        charsets.each { Charset charset ->
+            // Calculate the expected hash value given the character set
+            String hash = HashService.hashValue(algorithm, KNOWN_VALUE, charset)
+            logger.info("${algorithm.name}(${KNOWN_VALUE}, ${charset.name().padLeft(9)}) = ${hash}")
+
+            // Assert
+            assert hash == EXPECTED_SHA_256_HASHES[translateEncodingToMapKey(charset.name())]
+        }
+    }
+
+    /**
+     * Returns a {@link String} containing the hex-encoded bytes in the format "0xAB 0xCD ...".
+     *
+     * @param data the String to convert
+     * @param charset the {@link Charset} to use
+     * @return the formatted string
+     */
+    private static String printHexBytes(String data, Charset charset) {
+        data.getBytes(charset).collect { "0x${Hex.toHexString([it] as byte[]).toUpperCase()}" }.join(" ")
+    }
+
+    static String translateEncodingToMapKey(String charsetName) {
+        charsetName.toLowerCase().replaceAll(/[-\/]/, '_')
     }
 
     @Test
@@ -289,7 +354,7 @@ class HashServiceTest extends GroovyTestCase {
     void testShouldBuildHashAlgorithmAllowableValues() throws Exception {
         // Arrange
         final def EXPECTED_ALGORITHMS = HashAlgorithm.values()
-        logger.info("The consistent list of hash algorithms available [${EXPECTED_ALGORITHMS.size()}]: \n${EXPECTED_ALGORITHMS.collect { "\t${it.name}" }.join("\n") }")
+        logger.info("The consistent list of hash algorithms available [${EXPECTED_ALGORITHMS.size()}]: \n${EXPECTED_ALGORITHMS.collect { "\t${it.name}" }.join("\n")}")
 
         // Act
         def allowableValues = HashService.buildHashAlgorithmAllowableValues()

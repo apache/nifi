@@ -32,6 +32,8 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -276,5 +278,78 @@ class CryptographicHashAttributeTest extends GroovyTestCase {
                 flowFile.assertAttributeNotExists("${missingAttribute}_${algorithm.name}")
             }
         }
+    }
+
+    @Test
+    void testShouldCalculateHashWithVariousCharacterEncodings() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
+
+        // Create attributes
+        def attributes = [test_attribute: "apachenifi"]
+        def attributeKeys = attributes.keySet()
+
+        HashAlgorithm algorithm = HashAlgorithm.MD5
+
+        List<Charset> charsets = [StandardCharsets.UTF_8, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE]
+
+        final def EXPECTED_MD5_HASHES = [
+                "utf_8"   : "a968b5ec1d52449963dcc517789baaaf",
+                "utf_16"  : "b8413d18f7e64042bb0322a1cd61eba2",
+                "utf_16be": "b8413d18f7e64042bb0322a1cd61eba2",
+                "utf_16le": "91c3b67f9f8ae77156f21f271cc09121",
+        ]
+        EXPECTED_MD5_HASHES.each { k, hash ->
+            logger.expected("MD5(${k.padLeft(9)}(${attributes["test_attribute"]})) = ${hash}")
+        }
+
+        charsets.each { Charset charset ->
+            // Calculate the expected hash value given the character set
+            final EXPECTED_HASH = HashService.hashValue(algorithm, attributes["test_attribute"], charset)
+            logger.expected("${algorithm.name}(${attributes["test_attribute"]}, ${charset.name()}) = ${EXPECTED_HASH}")
+
+            // Sanity check
+            assert EXPECTED_HASH == EXPECTED_MD5_HASHES[translateEncodingToMapKey(charset.name())]
+
+            // Reset the processor
+            runner.clearProperties()
+            runner.clearProvenanceEvents()
+            runner.clearTransferState()
+
+            // Set the properties
+            logger.info("Setting hash algorithm to ${algorithm.name}")
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
+
+            logger.info("Setting character set to ${charset.name()}")
+            runner.setProperty(CryptographicHashAttribute.CHARACTER_SET, charset.name())
+
+            // Add the desired dynamic properties
+            attributeKeys.each { String attr ->
+                runner.setProperty(attr, "${attr}_${algorithm.name}")
+            }
+
+            // Insert the attributes in the mock flowfile
+            runner.enqueue(new byte[0], attributes)
+
+            // Act
+            runner.run(1)
+
+            // Assert
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 1)
+
+            final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_SUCCESS)
+
+            // Extract the generated attributes from the flowfile
+            MockFlowFile flowFile = successfulFlowfiles.first()
+            String hashedAttribute = flowFile.getAttribute("test_attribute_${algorithm.name}")
+            logger.info("flowfile.test_attribute_${algorithm.name} = ${hashedAttribute}")
+
+            assert hashedAttribute == EXPECTED_HASH
+        }
+    }
+
+    static String translateEncodingToMapKey(String charsetName) {
+        charsetName.toLowerCase().replaceAll(/[-\/]/, '_')
     }
 }
