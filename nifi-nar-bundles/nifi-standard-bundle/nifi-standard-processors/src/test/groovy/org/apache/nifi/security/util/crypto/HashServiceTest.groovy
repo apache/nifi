@@ -160,23 +160,8 @@ class HashServiceTest extends GroovyTestCase {
             logger.info("${algorithm.name}(${KNOWN_VALUE}, ${charset.name().padLeft(9)}) = ${hash}")
 
             // Assert
-            assert hash == EXPECTED_SHA_256_HASHES[translateEncodingToMapKey(charset.name())]
+            assert hash == EXPECTED_SHA_256_HASHES[translateStringToMapKey(charset.name())]
         }
-    }
-
-    /**
-     * Returns a {@link String} containing the hex-encoded bytes in the format "0xAB 0xCD ...".
-     *
-     * @param data the String to convert
-     * @param charset the {@link Charset} to use
-     * @return the formatted string
-     */
-    private static String printHexBytes(String data, Charset charset) {
-        data.getBytes(charset).collect { "0x${Hex.toHexString([it] as byte[]).toUpperCase()}" }.join(" ")
-    }
-
-    static String translateEncodingToMapKey(String charsetName) {
-        charsetName.toLowerCase().replaceAll(/[-\/]/, '_')
     }
 
     @Test
@@ -302,7 +287,7 @@ class HashServiceTest extends GroovyTestCase {
 
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
-            String key = translateAlgorithmNameToMapKey(algorithmName)
+            String key = translateStringToMapKey(algorithmName)
             assert EXPECTED_HASHES[key] == hash
         }
     }
@@ -345,7 +330,7 @@ class HashServiceTest extends GroovyTestCase {
 
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
-            String key = translateAlgorithmNameToMapKey(algorithmName)
+            String key = translateStringToMapKey(algorithmName)
             assert EXPECTED_HASHES[key] == hash
         }
     }
@@ -420,12 +405,23 @@ class HashServiceTest extends GroovyTestCase {
 
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
-            String key = translateAlgorithmNameToMapKey(algorithmName)
+            String key = translateStringToMapKey(algorithmName)
             assert EXPECTED_HASHES[key] == hash
         }
     }
 
-    private static String translateAlgorithmNameToMapKey(String algorithmName) {
-        algorithmName.toLowerCase().replaceAll(/[-\/]/, '_')
+    /**
+     * Returns a {@link String} containing the hex-encoded bytes in the format "0xAB 0xCD ...".
+     *
+     * @param data the String to convert
+     * @param charset the {@link Charset} to use
+     * @return the formatted string
+     */
+    private static String printHexBytes(String data, Charset charset) {
+        data.getBytes(charset).collect { "0x${Hex.toHexString([it] as byte[]).toUpperCase()}" }.join(" ")
+    }
+
+    private static String translateStringToMapKey(String string) {
+        string.toLowerCase().replaceAll(/[-\/]/, '_')
     }
 }
