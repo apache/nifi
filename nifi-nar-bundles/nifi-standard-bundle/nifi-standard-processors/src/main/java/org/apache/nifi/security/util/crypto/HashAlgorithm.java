@@ -84,9 +84,11 @@ public enum HashAlgorithm {
      * * SHA-512 (SHA2)
      * * SHA-512/224 (SHA2)
      * * SHA-512/256 (SHA2)
+     * * SHA3-224
      * * SHA3-256
      * * SHA3-384
      * * SHA3-512
+     * * Blake2b-160
      * * Blake2b-256
      * * Blake2b-384
      * * Blake2b-512
@@ -103,6 +105,11 @@ public enum HashAlgorithm {
         return (!BROKEN_ALGORITHMS.contains(name));
     }
 
+    /**
+     * Returns {@code true} if this hash algorithm is Blake2, as it requires different initialization through BouncyCastle.
+     *
+     * @return true if this algorithm is in the Blake2 family
+     */
     public boolean isBlake2() {
         return name.contains("BLAKE2");
     }
