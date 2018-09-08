@@ -76,8 +76,9 @@ public class CryptographicHashAttribute extends AbstractProcessor {
 
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("character_set")
-            .description("The Character Set used to encode the attribute being hashed")
+            .description("The Character Set used to decode the attribute being hashed -- this applies to the incoming data encoding, not the resulting hash encoding. ")
             .required(true)
+            .allowableValues(HashService.buildCharacterSetAllowableValues())
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue("UTF-8")
             .build();
