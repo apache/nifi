@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -45,6 +46,8 @@ import org.slf4j.LoggerFactory;
 public class HashService {
     private static final Logger logger = LoggerFactory.getLogger(HashService.class);
     private static final int BUFFER_SIZE = 8192;
+    private static final String UTF_16_DESCRIPTION = "This character set normally decodes using an optional BOM at the beginning of the data but encodes by inserting a BE BOM. " +
+        "For hashing, it will be replaced with UTF-16BE. ";
 
     /**
      * Returns an array of {@link AllowableValue} elements for each {@link HashAlgorithm}. The
@@ -64,6 +67,34 @@ public class HashService {
     }
 
     /**
+     * Returns an array of {@link AllowableValue} elements for each {@link Charset}. Only the charsets in {@link StandardCharsets} are returned to be consistent across JVM instances.
+     *
+     * @return an ordered {@code AllowableValue[]} containing the values
+     */
+    public static AllowableValue[] buildCharacterSetAllowableValues() {
+        final List<Charset> charsets = getSupportedCharsets();
+        return charsets.stream().map(cs ->
+                 new AllowableValue(cs.name(),
+                         cs.displayName(),
+                         cs == StandardCharsets.UTF_16 ? UTF_16_DESCRIPTION : cs.displayName())
+        ).toArray(AllowableValue[]::new);
+    }
+
+    /**
+     * Returns a {@link List} of supported {@link Charset}s on this platform. This is not a complete list, as only the charsets in {@link StandardCharsets} are returned to be consistent across JVM instances.
+     *
+     * @return the list of charsets
+     */
+    public static List<Charset> getSupportedCharsets() {
+        return Arrays.asList(StandardCharsets.US_ASCII,
+                StandardCharsets.ISO_8859_1,
+                StandardCharsets.UTF_8,
+                StandardCharsets.UTF_16BE,
+                StandardCharsets.UTF_16LE,
+                StandardCharsets.UTF_16);
+    }
+
+    /**
      * Returns the hash of the specified value. This method uses an {@link java.io.InputStream} to perform the operation in a streaming manner for large inputs.
      *
      * @param algorithm the hash algorithm to use
@@ -77,6 +108,7 @@ public class HashService {
         if (value == null) {
             throw new IllegalArgumentException("The value cannot be null");
         }
+        // The Blake2 algorithms are instantiated differently and rely on BouncyCastle
         if (algorithm.isBlake2()) {
             return Hex.encodeHexString(blake2HashStreaming(algorithm, value));
         } else {

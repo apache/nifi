@@ -357,6 +357,36 @@ class HashServiceTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldBuildCharacterSetAllowableValues() throws Exception {
+        // Arrange
+        final def EXPECTED_CHARACTER_SETS = [
+                StandardCharsets.US_ASCII,
+                StandardCharsets.ISO_8859_1,
+                StandardCharsets.UTF_8,
+                StandardCharsets.UTF_16BE,
+                StandardCharsets.UTF_16LE,
+                StandardCharsets.UTF_16,
+        ]
+        logger.info("The consistent list of character sets available [${EXPECTED_CHARACTER_SETS.size()}]: \n${EXPECTED_CHARACTER_SETS.collect { "\t${it.name()}" }.join("\n")}")
+
+        def expectedDescriptions = ["UTF-16": "This character set normally decodes using an optional BOM at the beginning of the data but encodes by inserting a BE BOM. For hashing, it will be replaced with UTF-16BE. "]
+
+        // Act
+        def allowableValues = HashService.buildCharacterSetAllowableValues()
+
+        // Assert
+        assert allowableValues instanceof AllowableValue[]
+
+        def valuesList = allowableValues as List<AllowableValue>
+        assert valuesList.size() == EXPECTED_CHARACTER_SETS.size()
+        EXPECTED_CHARACTER_SETS.each { Charset charset ->
+            def matchingValue = valuesList.find { it.value == charset.name() }
+            assert matchingValue.displayName == charset.name()
+            assert matchingValue.description == (expectedDescriptions[charset.name()] ?: charset.displayName())
+        }
+    }
+
+    @Test
     void testShouldHashValueFromStream() throws Exception {
         // Arrange
 
