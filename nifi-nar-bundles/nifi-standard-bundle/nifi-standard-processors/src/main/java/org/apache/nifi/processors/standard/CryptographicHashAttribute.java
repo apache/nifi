@@ -101,7 +101,7 @@ public class CryptographicHashAttribute extends AbstractProcessor {
             .description("The cryptographic hash algorithm to use. Note that not all of the algorithms available are recommended for use (some are provided for legacy use). " +
                     "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
             .required(true)
-            .allowableValues(buildHashAlgorithmAllowableValues())
+            .allowableValues(HashService.buildHashAlgorithmAllowableValues())
             .defaultValue(HashAlgorithm.SHA256.getName())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -128,16 +128,6 @@ public class CryptographicHashAttribute extends AbstractProcessor {
     private final static Set<Relationship> relationships;
 
     private final static List<PropertyDescriptor> properties;
-
-    private static AllowableValue[] buildHashAlgorithmAllowableValues() {
-        final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
-        List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
-        for (HashAlgorithm algorithm : hashAlgorithms) {
-            allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.buildAllowableValueDescription()));
-        }
-
-        return allowableValues.toArray(new AllowableValue[0]);
-    }
 
     private final AtomicReference<Map<String, String>> attributeToGenerateNameMapRef = new AtomicReference<>(Collections.emptyMap());
 
