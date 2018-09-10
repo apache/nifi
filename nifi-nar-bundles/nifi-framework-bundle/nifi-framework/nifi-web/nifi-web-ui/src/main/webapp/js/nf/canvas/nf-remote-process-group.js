@@ -659,7 +659,7 @@
     };
 
     var hasIssues = function (d) {
-        return !nfCommon.isEmpty(d.component.authorizationIssues) || !nfCommon.isEmpty(d.component.validationErrors);
+        return d.status.validationStatus === 'INVALID';
     };
 
     var getIssues = function (d) {
@@ -723,7 +723,6 @@
         // authorization issues
         // --------------------
 
-        // TODO - only consider state from the status
         // update the process groups transmission status
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
@@ -731,7 +730,7 @@
                 if (d.permissions.canRead || d.operatePermissions.canWrite) {
                     if (hasIssues(d)) {
                         icon = '\uf071';
-                    } else if (d.component.transmitting === true) {
+                    } else if (d.status.transmissionStatus === 'Transmitting') {
                         icon = '\uf140';
                     } else {
                         icon = '\ue80a';
@@ -742,7 +741,7 @@
             .attr('font-family', function (d) {
                 var family = '';
                 if (d.permissions.canRead || d.operatePermissions.canWrite) {
-                    if (hasIssues(d) || d.component.transmitting) {
+                    if (hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
                         family = 'FontAwesome';
                     } else {
                         family = 'flowfont';
@@ -754,17 +753,17 @@
                 return (d.permissions.canRead || d.operatePermissions.canWrite) && hasIssues(d);
             })
             .classed('transmitting', function (d) {
-                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.component.transmitting === true;
+                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
             .classed('not-transmitting', function (d) {
-                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.component.transmitting === false;
+                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (d) {
                 // get the tip
                 var tip = d3.select('#authorization-issues-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if ((d.permissions.canRead || d.operatePermissions.canWrite) && hasIssues(d)) {
+                if (d.permissions.canRead && hasIssues(d)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#remote-process-group-tooltips').append('div')

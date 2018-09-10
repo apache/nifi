@@ -626,7 +626,7 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (nfCanvasUtils.canRead(selection) === false && nfCanvasUtils.canOperate(selection) === false) {
+        if (nfCanvasUtils.canRead(selection) === false) {
             return false;
         }
 

@@ -29,13 +29,14 @@ import java.util.Objects;
  * A base type for request/response entities.
  */
 @XmlRootElement(name = "componentEntity")
-public class ComponentEntity extends Entity {
+public class ComponentEntity extends Entity implements OperationPermissible {
 
     private RevisionDTO revision;
     private String id;
     private String uri;
     private PositionDTO position;
     private PermissionsDTO permissions;
+    private PermissionsDTO operatePermissions;
     private List<BulletinEntity> bulletins;
     private Boolean disconnectedNodeAcknowledged;
 
@@ -115,6 +116,22 @@ public class ComponentEntity extends Entity {
 
     public void setPermissions(PermissionsDTO permissions) {
         this.permissions = permissions;
+    }
+
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO permissions) {
+        this.operatePermissions = permissions;
     }
 
     /**

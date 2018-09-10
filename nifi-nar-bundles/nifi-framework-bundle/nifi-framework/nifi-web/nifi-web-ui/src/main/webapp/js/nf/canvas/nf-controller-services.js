@@ -955,11 +955,11 @@
                     }
                 }
 
-                if (canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
+                if (isDisabled && canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
                     markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange"></div>';
                 }
 
-                if (canWriteControllerServiceParent(dataContext)) {
+                if (isDisabled && canWriteControllerServiceParent(dataContext)) {
                     markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove"></div>';
                 }
 

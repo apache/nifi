@@ -134,7 +134,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
-            OperationAuthorizable.isAuthorized(remoteProcessGroup, authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            remoteProcessGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the remote process group

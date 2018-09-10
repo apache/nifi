@@ -1006,10 +1006,6 @@
         };
 
         var reportingTaskRunStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead && !dataContext.operatePermissions.canWrite) {
-                return '';
-            }
-
             // determine the appropriate label
             var icon = '', label = '';
             if (dataContext.status.validationStatus === 'VALIDATING') {
@@ -1046,33 +1042,37 @@
             var markup = '';
 
             var canWrite = dataContext.permissions.canWrite;
-            var canOperate = dataContext.operatePermissions.canWrite;
-            if (canWrite || canOperate) {
-                if (dataContext.status.runStatus === 'RUNNING') {
+            var canRead = dataContext.permissions.canRead;
+            var canOperate = dataContext.operatePermissions.canWrite || canWrite;
+            var isStopped = dataContext.status.runStatus === 'STOPPED';
+
+            if (dataContext.status.runStatus === 'RUNNING') {
+                if (canOperate) {
                     markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop"></div>';
-                } else if (dataContext.status.runStatus === 'STOPPED' || dataContext.status.runStatus === 'DISABLED') {
-
-                    if (canWrite) {
-                        markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
-                    }
-
-                    // support starting when stopped and no validation errors
-                    if (dataContext.status.runStatus === 'STOPPED' && dataContext.status.validationStatus === 'VALID') {
-                        markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
-                    }
-
-                    if (canWrite && dataContext.component.multipleVersionsAvailable === true) {
-                        markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
-                    }
-
-                    if (nfCommon.canModifyController()) {
-                        markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash"></div>';
-                    }
                 }
 
-                if (canWrite && dataContext.component.persistsState === true) {
-                    markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks"></div>';
+            } else if (isStopped || dataContext.status.runStatus === 'DISABLED') {
+
+                if (canRead && canWrite) {
+                    markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
                 }
+
+                // support starting when stopped and no validation errors
+                if (canOperate && dataContext.status.runStatus === 'STOPPED' && dataContext.status.validationStatus === 'VALID') {
+                    markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
+                }
+
+                if (canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
+                    markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
+                }
+
+                if (nfCommon.canModifyController()) {
+                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash"></div>';
+                }
+            }
+
+            if (canRead && canWrite && dataContext.component.persistsState === true) {
+                markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks"></div>';
             }
 
             // allow policy configuration conditionally
