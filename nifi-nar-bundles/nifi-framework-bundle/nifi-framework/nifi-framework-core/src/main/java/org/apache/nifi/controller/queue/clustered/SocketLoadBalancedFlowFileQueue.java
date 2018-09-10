@@ -88,7 +88,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// TODO: We look at DN and Subject Alternative Names, but we don't account for wildcard certs....
 public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue implements LoadBalancedFlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(SocketLoadBalancedFlowFileQueue.class);
     private static final int NODE_SWAP_THRESHOLD = 1000;
