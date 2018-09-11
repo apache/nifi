@@ -39,8 +39,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -431,16 +430,9 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
         throw new IllegalArgumentException("Cannot create object of type " + paramType + " using input " + paramValue);
     }
 
-    @OnUnscheduled
+    @OnStopped
     public void stop() {
         super.stop();
         statementCache.clear();
     }
-
-    @OnShutdown
-    public void shutdown() {
-        super.stop();
-        statementCache.clear();
-    }
-
 }

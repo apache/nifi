@@ -176,86 +176,38 @@ public class PutCassandraQLTest {
         setUpStandardTestConfig();
         testRunner.setProperty(PutCassandraQL.STATEMENT_CACHE_SIZE, "1");
 
-        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
-                new HashMap<String, String>() {
-                    {
-                        put("cql.args.1.type", "int");
-                        put("cql.args.1.value", "1");
-                        put("cql.args.2.type", "text");
-                        put("cql.args.2.value", "Joe");
-                        put("cql.args.3.type", "text");
-                        // No value for arg 3 to test setNull
-                        put("cql.args.4.type", "map<text,text>");
-                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
-                        put("cql.args.5.type", "list<boolean>");
-                        put("cql.args.5.value", "[true,false,true]");
-                        put("cql.args.6.type", "set<double>");
-                        put("cql.args.6.value", "{1.0, 2.0}");
-                        put("cql.args.7.type", "bigint");
-                        put("cql.args.7.value", "20000000");
-                        put("cql.args.8.type", "float");
-                        put("cql.args.8.value", "1.0");
-                        put("cql.args.9.type", "blob");
-                        put("cql.args.9.value", "0xDEADBEEF");
-                        put("cql.args.10.type", "timestamp");
-                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+        HashMap<String, String> testData = new HashMap<>();
+        testData.put("cql.args.1.type", "int");
+        testData.put("cql.args.1.value", "1");
+        testData.put("cql.args.2.type", "text");
+        testData.put("cql.args.2.value", "Joe");
+        testData.put("cql.args.3.type", "text");
+        // No value for arg 3 to test setNull
+        testData.put("cql.args.4.type", "map<text,text>");
+        testData.put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+        testData.put("cql.args.5.type", "list<boolean>");
+        testData.put("cql.args.5.value", "[true,false,true]");
+        testData.put("cql.args.6.type", "set<double>");
+        testData.put("cql.args.6.value", "{1.0, 2.0}");
+        testData.put("cql.args.7.type", "bigint");
+        testData.put("cql.args.7.value", "20000000");
+        testData.put("cql.args.8.type", "float");
+        testData.put("cql.args.8.value", "1.0");
+        testData.put("cql.args.9.type", "blob");
+        testData.put("cql.args.9.value", "0xDEADBEEF");
+        testData.put("cql.args.10.type", "timestamp");
+        testData.put("cql.args.10.value", "2016-07-01T15:21:05Z");
 
-                    }
-                });
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                testData);
 
         testRunner.enqueue("INSERT INTO newusers (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
-                new HashMap<String, String>() {
-                    {
-                        put("cql.args.1.type", "int");
-                        put("cql.args.1.value", "1");
-                        put("cql.args.2.type", "text");
-                        put("cql.args.2.value", "Joe");
-                        put("cql.args.3.type", "text");
-                        // No value for arg 3 to test setNull
-                        put("cql.args.4.type", "map<text,text>");
-                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
-                        put("cql.args.5.type", "list<boolean>");
-                        put("cql.args.5.value", "[true,false,true]");
-                        put("cql.args.6.type", "set<double>");
-                        put("cql.args.6.value", "{1.0, 2.0}");
-                        put("cql.args.7.type", "bigint");
-                        put("cql.args.7.value", "20000000");
-                        put("cql.args.8.type", "float");
-                        put("cql.args.8.value", "1.0");
-                        put("cql.args.9.type", "blob");
-                        put("cql.args.9.value", "0xDEADBEEF");
-                        put("cql.args.10.type", "timestamp");
-                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+                testData);
 
-                    }
-                });
-
+        // Change it up a bit, the same statement is executed with different data
+        testData.put("cql.args.1.value", "2");
         testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
-                new HashMap<String, String>() {
-                    {
-                        put("cql.args.1.type", "int");
-                        put("cql.args.1.value", "1");
-                        put("cql.args.2.type", "text");
-                        put("cql.args.2.value", "Joe");
-                        put("cql.args.3.type", "text");
-                        // No value for arg 3 to test setNull
-                        put("cql.args.4.type", "map<text,text>");
-                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
-                        put("cql.args.5.type", "list<boolean>");
-                        put("cql.args.5.value", "[true,false,true]");
-                        put("cql.args.6.type", "set<double>");
-                        put("cql.args.6.value", "{1.0, 2.0}");
-                        put("cql.args.7.type", "bigint");
-                        put("cql.args.7.value", "20000000");
-                        put("cql.args.8.type", "float");
-                        put("cql.args.8.value", "1.0");
-                        put("cql.args.9.type", "blob");
-                        put("cql.args.9.value", "0xDEADBEEF");
-                        put("cql.args.10.type", "timestamp");
-                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
-
-                    }
-                });
+                testData);
 
         testRunner.enqueue("INSERT INTO users (user_id) VALUES ('user_id data');");
 
