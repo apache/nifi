@@ -81,7 +81,9 @@ public class HashService {
     }
 
     /**
-     * Returns a {@link List} of supported {@link Charset}s on this platform. This is not a complete list, as only the charsets in {@link StandardCharsets} are returned to be consistent across JVM instances.
+     * Returns a {@link List} of supported {@link Charset}s on this platform. This is not a complete
+     * list, as only the charsets in {@link StandardCharsets} are returned to be consistent across
+     * JVM instances.
      *
      * @return the list of charsets
      */

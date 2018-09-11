@@ -199,7 +199,8 @@ public class CryptographicHashAttribute extends AbstractProcessor {
         }
         if (relevantAttributes.size() != attributeToGeneratedNameMap.size()) {
             if (PartialAttributePolicy.valueOf(context.getProperty(PARTIAL_ATTR_ROUTE_POLICY).getValue()) == PartialAttributePolicy.PROHIBIT) {
-                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, getMissingKeysString(relevantAttributes.keySet(), attributeToGeneratedNameMap.keySet())});
+                logger.info("Routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile,
+                        getMissingKeysString(relevantAttributes.keySet(), attributeToGeneratedNameMap.keySet())});
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
