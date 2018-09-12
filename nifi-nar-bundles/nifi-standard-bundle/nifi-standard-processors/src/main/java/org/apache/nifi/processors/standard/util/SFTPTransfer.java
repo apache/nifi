@@ -188,7 +188,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-	final boolean symlink = this.ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
+        final boolean symlink  = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();

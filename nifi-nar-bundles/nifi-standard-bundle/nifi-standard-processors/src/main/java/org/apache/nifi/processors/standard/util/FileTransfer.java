@@ -143,7 +143,7 @@ public interface FileTransfer extends Closeable {
         .build();
     public static final PropertyDescriptor FOLLOW_SYMLINK = new PropertyDescriptor.Builder()
         .name("Follow symlink")
-        .description("If true, will pull even symbolic files and also from arbitrarily nested symbolic subdirectories; otherwise, will not read symbolic files and will not traverse symbolic link subdirectories")
+        .description("If true, will pull even symbolic files and also nested symbolic subdirectories; otherwise, will not read symbolic files and will not traverse symbolic link subdirectories")
         .required(true)
         .defaultValue("false")
         .allowableValues("true", "false")
