@@ -112,7 +112,9 @@ public class PutMongo extends AbstractMongoProcessor {
         .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
         .defaultValue(UPDATE_WITH_DOC.getValue())
         .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
-                "or specify a document that contains update operators like $set and $unset")
+                "or specify a document that contains update operators like $set and $unset.
+                When with operators mode is enabled, the flowfile content is expected to be the operator part
+                for example: {$set:{"key": "value"},$inc:{"count":1234}} and Update query has to be the record to be updated")
         .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
