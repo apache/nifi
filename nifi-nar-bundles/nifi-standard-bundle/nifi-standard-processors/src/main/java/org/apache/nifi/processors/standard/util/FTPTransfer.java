@@ -204,6 +204,7 @@ public class FTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final boolean symlink = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
@@ -255,11 +256,13 @@ public class FTPTransfer implements FileTransfer {
             final File newFullPath = new File(path, filename);
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
-            if (recurse && file.isDirectory()) {
+            // if is a directory and we're supposed to recurse
+            // OR if is a link and we're supposed to follow symlink
+            if ((recurse && file.isDirectory()) || (symlink && file.isSymbolicLink())) {
                 try {
                     listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
+                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
                 }
             }
 
