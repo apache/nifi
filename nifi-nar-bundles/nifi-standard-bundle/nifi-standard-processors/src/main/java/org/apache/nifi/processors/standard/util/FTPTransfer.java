@@ -257,23 +257,14 @@ public class FTPTransfer implements FileTransfer {
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
             // if is a directory and we're supposed to recurse
-            if (recurse && file.isDirectory()) {
+            // OR if is a link and we're supposed to follow symlink
+            if ((recurse && file.isDirectory()) || (symlink && file.isSymbolicLink())) {
                 try {
                     listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
+                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
                 }
             }
-
-            // if is a link and we're supposed to follow symlink
-            if (symlink && file.isSymbolicLink()) {
-                try {
-                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
-                } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this symlink", e);
-                }
-            }
-
 
             // if is not a directory and is not a link and it matches
             // FILE_FILTER_REGEX - then let's add it

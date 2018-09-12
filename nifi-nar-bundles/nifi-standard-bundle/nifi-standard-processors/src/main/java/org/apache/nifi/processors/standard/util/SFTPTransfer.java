@@ -212,8 +212,8 @@ public class SFTPTransfer implements FileTransfer {
         final ChannelSftp sftp = getChannel(null);
         final boolean isPathMatch = pathFilterMatches;
 
+        //subDirs list is used for both 'sub directories' and 'symlinks'
         final List<LsEntry> subDirs = new ArrayList<>();
-        final List<LsEntry> links = new ArrayList<>();
         try {
             final LsEntrySelector filter = new LsEntrySelector() {
                 @Override
@@ -233,14 +233,9 @@ public class SFTPTransfer implements FileTransfer {
                     }
 
                     // if is a directory and we're supposed to recurse
-                    if (recurse && entry.getAttrs().isDir()) {
+                    // OR if is a link and we're supposed to follow symlink
+                    if ((recurse && entry.getAttrs().isDir()) || (symlink && entry.getAttrs().isLink())){
                         subDirs.add(entry);
-                        return LsEntrySelector.CONTINUE;
-                    }
-
-                    // if is a link and we're supposed to follow symlink
-                    if (symlink && entry.getAttrs().isLink()) {
-                        links.add(entry);
                         return LsEntrySelector.CONTINUE;
                     }
 
@@ -286,19 +281,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing);
             } catch (final IOException e) {
-                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
-            }
-        }
-
-        for (final LsEntry entry : links) {
-            final String entryFilename = entry.getFilename();
-            final File newFullPath = new File(path, entryFilename);
-            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
-
-            try {
-                getListing(newFullForwardPath, depth + 1, maxResults, listing);
-            } catch (final IOException e) {
-                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this link", e);
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
             }
         }
 
