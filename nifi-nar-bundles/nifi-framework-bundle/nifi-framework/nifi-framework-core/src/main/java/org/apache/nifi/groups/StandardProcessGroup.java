@@ -963,7 +963,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public Collection<ProcessorNode> getProcessors() {
         readLock.lock();
         try {
-            return new HashSet<>(processors.values());
+            return new ArrayList<>(processors.values());
         } finally {
             readLock.unlock();
         }
