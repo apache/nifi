@@ -79,6 +79,7 @@ public class ListFTP extends ListFileTransfer {
         properties.add(REMOTE_PATH);
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(FTPTransfer.RECURSIVE_SEARCH);
+        properties.add(FTPTransfer.FOLLOW_SYMLINK);
         properties.add(FTPTransfer.FILE_FILTER_REGEX);
         properties.add(FTPTransfer.PATH_FILTER_REGEX);
         properties.add(FTPTransfer.IGNORE_DOTTED_FILES);

@@ -83,6 +83,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(REMOTE_PATH);
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(SFTPTransfer.RECURSIVE_SEARCH);
+        properties.add(SFTPTransfer.FOLLOW_SYMLINK);
         properties.add(SFTPTransfer.FILE_FILTER_REGEX);
         properties.add(SFTPTransfer.PATH_FILTER_REGEX);
         properties.add(SFTPTransfer.IGNORE_DOTTED_FILES);

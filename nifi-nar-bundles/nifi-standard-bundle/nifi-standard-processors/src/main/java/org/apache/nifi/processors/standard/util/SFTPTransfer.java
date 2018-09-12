@@ -188,6 +188,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+	final boolean symlink = this.ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
@@ -212,6 +213,7 @@ public class SFTPTransfer implements FileTransfer {
         final boolean isPathMatch = pathFilterMatches;
 
         final List<LsEntry> subDirs = new ArrayList<>();
+        final List<LsEntry> links = new ArrayList<>();
         try {
             final LsEntrySelector filter = new LsEntrySelector() {
                 @Override
@@ -233,6 +235,12 @@ public class SFTPTransfer implements FileTransfer {
                     // if is a directory and we're supposed to recurse
                     if (recurse && entry.getAttrs().isDir()) {
                         subDirs.add(entry);
+                        return LsEntrySelector.CONTINUE;
+                    }
+
+                    // if is a link and we're supposed to follow symlink
+                    if (symlink && entry.getAttrs().isLink()) {
+                        links.add(entry);
                         return LsEntrySelector.CONTINUE;
                     }
 
@@ -281,6 +289,19 @@ public class SFTPTransfer implements FileTransfer {
                 logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
             }
         }
+
+        for (final LsEntry entry : links) {
+            final String entryFilename = entry.getFilename();
+            final File newFullPath = new File(path, entryFilename);
+            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
+
+            try {
+                getListing(newFullForwardPath, depth + 1, maxResults, listing);
+            } catch (final IOException e) {
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this link", e);
+            }
+        }
+
     }
 
     private FileInfo newFileInfo(final LsEntry entry, String path) {
