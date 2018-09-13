@@ -1443,26 +1443,16 @@
         };
 
         // ensure appropriate access
-        if (controllerServiceEntity.permissions.canRead === false) {
-
-            // We could let the user to 'enable' the CS if 'Service Only' is selected.
-            // However, the CS won't be disabled by the same user as they can't see referencing components.
-            // That partially available user experience can be worse than not allowing all. So, we don't allow here.
+        if (scope === config.serviceAndReferencingComponents && hasUnauthorizedReferencingComponent(controllerServiceEntity)) {
             setCloseButton();
 
             nfDialog.showOkDialog({
                 headerText: 'Controller Service',
-                dialogContent: 'Unable to enable due to a lack of read permission to see referencing components.'
-            });
-
-            return;
-
-        } else if (scope === config.serviceAndReferencingComponents && hasUnauthorizedReferencingComponent(controllerServiceEntity)) {
-            setCloseButton();
-
-            nfDialog.showOkDialog({
-                headerText: 'Controller Service',
-                dialogContent: 'Unable to enable due to unauthorized referencing components.'
+                dialogContent: controllerServiceEntity.permissions.canRead === false
+                                    // Unknown references.
+                                    ? 'Unable to enable due to a lack of read permission to see referencing components.'
+                                    // Unauthorized references.
+                                    : 'Unable to enable due to unauthorized referencing components.'
             });
             return;
         }
