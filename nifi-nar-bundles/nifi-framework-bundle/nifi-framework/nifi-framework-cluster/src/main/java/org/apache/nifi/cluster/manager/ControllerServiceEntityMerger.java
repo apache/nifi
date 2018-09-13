@@ -138,9 +138,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                 for (final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity : nodeReferencingComponents) {
                     final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getComponent();
 
-                    final Boolean canRead = nodeReferencingComponentEntity.getPermissions().getCanRead();
-                    final Boolean canOperate = nodeReferencingComponentEntity.getOperatePermissions().getCanWrite();
-                    if (canRead || canOperate) {
+                    if (nodeReferencingComponentEntity.getPermissions().getCanRead()) {
                         // handle active thread counts
                         if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
                             final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
@@ -174,7 +172,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
             for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
                 final PermissionsDTO permissions = permissionsHolder.get(referencingComponent.getId());
                 final PermissionsDTO operatePermissions = operatePermissionsHolder.get(referencingComponent.getId());
-                if (safeCanRead(permissions) || safeCanRead(operatePermissions)) {
+                if (permissions != null && permissions.getCanRead() != null && permissions.getCanRead()) {
                     final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
                     if (activeThreadCount != null) {
                         referencingComponent.getComponent().setActiveThreadCount(activeThreadCount);
@@ -218,10 +216,6 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         }
     }
 
-    private static boolean safeCanRead(PermissionsDTO permissions) {
-        return permissions != null && permissions.getCanRead() != null && permissions.getCanRead();
-    }
-
     private static void mergeControllerServiceReferencingComponent(ControllerServiceReferencingComponentEntity clientEntity, Map<NodeIdentifier,
             ControllerServiceReferencingComponentEntity> nodeEntities) {
         final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
@@ -232,18 +226,10 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         for (Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerServiceReferencingComponentEntity nodeEntity = entry.getValue();
-            final ControllerServiceReferencingComponentDTO nodeComponent = nodeEntity.getComponent();
-            if (nodeComponent == null) {
-                continue;
-            }
-
-            if (nodeComponent.getDescriptors() != null) {
-                nodeComponent.getDescriptors().values().stream().forEach(propertyDescriptor -> {
-                    propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
-                });
-            }
-
-            nodeReferencingComponentsMap.put(nodeIdentifier, nodeComponent.getReferencingComponents());
+            nodeEntity.getComponent().getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
+            });
+            nodeReferencingComponentsMap.put(nodeIdentifier, nodeEntity.getComponent().getReferencingComponents());
         }
 
         // merge property descriptors

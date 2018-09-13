@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.entity.OperationPermissible;
 import org.apache.nifi.web.api.entity.Permissible;
 
 import java.util.ArrayList;
@@ -50,10 +49,7 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
                     entity.getOperatePermissions());
         }
 
-        final Boolean canRead = clientEntity.getPermissions().getCanRead();
-        final Boolean canOperate = clientEntity.getOperatePermissions().getCanWrite();
-
-        if (canRead) {
+        if (clientEntity.getPermissions().getCanRead()) {
             final Map<NodeIdentifier, List<BulletinEntity>> bulletinEntities = new HashMap<>();
             for (final Map.Entry<NodeIdentifier, ? extends ComponentEntity> entry : entityMap.entrySet()) {
                 final NodeIdentifier nodeIdentifier = entry.getKey();
@@ -75,13 +71,10 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
             if (clientEntity.getBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
                 clientEntity.setBulletins(clientEntity.getBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
             }
-        } else {
-            clientEntity.setBulletins(null);
-        }
 
-        if (canRead || canOperate) {
             mergeComponents(clientEntity, entityMap);
         } else {
+            clientEntity.setBulletins(null);
             clientEntity.setComponent(null); // unchecked warning suppressed
         }
     }
