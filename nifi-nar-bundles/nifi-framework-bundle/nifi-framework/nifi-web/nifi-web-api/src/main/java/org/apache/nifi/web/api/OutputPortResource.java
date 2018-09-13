@@ -378,11 +378,6 @@ public class OutputPortResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
-        // Create port DTO to verify if it can be updated.
-        final PortDTO portDTO = new PortDTO();
-        portDTO.setId(id);
-        portDTO.setState(requestRunStatus.getState());
-
         return withWriteLock(
                 serviceFacade,
                 requestRunStatus,
@@ -393,16 +388,24 @@ public class OutputPortResource extends ApplicationResource {
                     final Authorizable authorizable = lookup.getOutputPort(id);
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
                 },
-                () -> serviceFacade.verifyUpdateOutputPort(portDTO),
+                () -> serviceFacade.verifyUpdateOutputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {
                     // update the input port
-                    final PortEntity entity = serviceFacade.updateOutputPort(revision, portDTO);
+                    final PortEntity entity = serviceFacade.updateOutputPort(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingOutputPortEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
     }
+
+    private PortDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final PortDTO dto = new PortDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
+    }
+
     // setters
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {

@@ -729,11 +729,6 @@ public class ProcessorResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
-        // Create processor DTO to verify if it can be updated.
-        final ProcessorDTO requestProcessorDTO = new ProcessorDTO();
-        requestProcessorDTO.setId(id);
-        requestProcessorDTO.setState(requestRunStatus.getState());
-
         return withWriteLock(
                 serviceFacade,
                 requestRunStatus,
@@ -744,15 +739,22 @@ public class ProcessorResource extends ApplicationResource {
                     final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
                 },
-                () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
+                () -> serviceFacade.verifyUpdateProcessor(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {
                     // update the processor
-                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingProcessorEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private ProcessorDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final ProcessorDTO dto = new ProcessorDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

@@ -500,11 +500,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         final Revision requestRevision = getRevision(requestRemotePortRunStatusEntity.getRevision(), id);
-        final RemoteProcessGroupPortDTO remoteProcessGroupPort = new RemoteProcessGroupPortDTO();
-        remoteProcessGroupPort.setId(portId);
-        remoteProcessGroupPort.setGroupId(id);
-        remoteProcessGroupPort.setTransmitting(shouldTransmit(requestRemotePortRunStatusEntity));
-
         return withWriteLock(
                 serviceFacade,
                 requestRemotePortRunStatusEntity,
@@ -513,10 +508,11 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
                     OperationAuthorizable.isAuthorized(remoteProcessGroup, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyUpdateRemoteProcessGroupInputPort(id, remoteProcessGroupPort),
-                (revision, remoteProcessGroupPortEntity) -> {
+                () -> serviceFacade.verifyUpdateRemoteProcessGroupInputPort(id, createPortDTOWithDesiredRunStatus(portId, id, requestRemotePortRunStatusEntity)),
+                (revision, remotePortRunStatusEntity) -> {
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, id, remoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, id,
+                            createPortDTOWithDesiredRunStatus(portId, id, remotePortRunStatusEntity));
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
@@ -529,6 +525,14 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private RemoteProcessGroupPortDTO createPortDTOWithDesiredRunStatus(final String portId, final String groupId, final RemotePortRunStatusEntity entity) {
+        final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
+        dto.setId(portId);
+        dto.setGroupId(groupId);
+        dto.setTransmitting(shouldTransmit(entity));
+        return dto;
     }
 
     /**
@@ -596,11 +600,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRemotePortRunStatusEntity.getRevision(), id);
-        final RemoteProcessGroupPortDTO remoteProcessGroupPort = new RemoteProcessGroupPortDTO();
-        remoteProcessGroupPort.setId(portId);
-        remoteProcessGroupPort.setGroupId(id);
-        remoteProcessGroupPort.setTransmitting(shouldTransmit(requestRemotePortRunStatusEntity));
-
         return withWriteLock(
                 serviceFacade,
                 requestRemotePortRunStatusEntity,
@@ -609,10 +608,11 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
                     OperationAuthorizable.isAuthorized(remoteProcessGroup, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyUpdateRemoteProcessGroupOutputPort(id, remoteProcessGroupPort),
-                (revision, remoteProcessGroupPortEntity) -> {
+                () -> serviceFacade.verifyUpdateRemoteProcessGroupOutputPort(id, createPortDTOWithDesiredRunStatus(portId, id, requestRemotePortRunStatusEntity)),
+                (revision, remotePortRunStatusEntity) -> {
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, id, remoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, id,
+                            createPortDTOWithDesiredRunStatus(portId, id, remotePortRunStatusEntity));
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
@@ -808,9 +808,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRemotePortRunStatusEntity.getRevision(), id);
-        final RemoteProcessGroupDTO remoteProcessGroupDTO = new RemoteProcessGroupDTO();
-        remoteProcessGroupDTO.setId(id);
-        remoteProcessGroupDTO.setTransmitting(shouldTransmit(requestRemotePortRunStatusEntity));
         return withWriteLock(
                 serviceFacade,
                 requestRemotePortRunStatusEntity,
@@ -819,16 +816,24 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     Authorizable authorizable = lookup.getRemoteProcessGroup(id);
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyUpdateRemoteProcessGroup(remoteProcessGroupDTO),
-                (revision, remoteProcessGroupEntity) -> {
+                () -> serviceFacade.verifyUpdateRemoteProcessGroup(createDTOWithDesiredRunStatus(id, requestRemotePortRunStatusEntity)),
+                (revision, remotePortRunStatusEntity) -> {
                     // update the specified remote process group
-                    final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, remoteProcessGroupDTO);
+                    final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, createDTOWithDesiredRunStatus(id, remotePortRunStatusEntity));
                     populateRemainingRemoteProcessGroupEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
     }
+
+    private RemoteProcessGroupDTO createDTOWithDesiredRunStatus(final String id, final RemotePortRunStatusEntity entity) {
+        final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
+        dto.setId(id);
+        dto.setTransmitting(shouldTransmit(entity));
+        return dto;
+    }
+
 
     private boolean shouldTransmit(RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
         return "TRANSMITTING".equals(requestRemotePortRunStatusEntity.getState());

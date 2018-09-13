@@ -377,11 +377,6 @@ public class InputPortResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
-        // Create port DTO to verify if it can be updated.
-        final PortDTO portDTO = new PortDTO();
-        portDTO.setId(id);
-        portDTO.setState(requestRunStatus.getState());
-
         return withWriteLock(
                 serviceFacade,
                 requestRunStatus,
@@ -392,15 +387,22 @@ public class InputPortResource extends ApplicationResource {
                     final Authorizable authorizable = lookup.getInputPort(id);
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
                 },
-                () -> serviceFacade.verifyUpdateInputPort(portDTO),
+                () -> serviceFacade.verifyUpdateInputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {
                     // update the input port
-                    final PortEntity entity = serviceFacade.updateInputPort(revision, portDTO);
+                    final PortEntity entity = serviceFacade.updateInputPort(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingInputPortEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private PortDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final PortDTO dto = new PortDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

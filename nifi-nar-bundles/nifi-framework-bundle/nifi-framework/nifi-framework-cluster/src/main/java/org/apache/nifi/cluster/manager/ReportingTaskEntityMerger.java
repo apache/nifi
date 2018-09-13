@@ -73,11 +73,9 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeReportingTask.getValidationErrors());
 
                 // aggregate the property descriptors
-                if (nodeReportingTask.getDescriptors() != null) {
-                    nodeReportingTask.getDescriptors().values().stream().forEach(propertyDescriptor -> {
-                        propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
-                    });
-                }
+                nodeReportingTask.getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                    propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
+                });
             }
         }
 

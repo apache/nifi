@@ -605,10 +605,6 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
-        // Create DTO to verify if it can be updated.
-        final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
-        reportingTaskDTO.setId(id);
-        reportingTaskDTO.setState(requestRunStatus.getState());
         return withWriteLock(
                 serviceFacade,
                 requestRunStatus,
@@ -618,15 +614,22 @@ public class ReportingTaskResource extends ApplicationResource {
                     final Authorizable authorizable = lookup.getReportingTask(id).getAuthorizable();
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyUpdateReportingTask(reportingTaskDTO),
-                (revision, reportingTaskEntity) -> {
+                () -> serviceFacade.verifyUpdateReportingTask(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
+                (revision, reportingTaskRunStatusEntity) -> {
                     // update the reporting task
-                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDTO);
+                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, createDTOWithDesiredRunStatus(id, reportingTaskRunStatusEntity.getState()));
                     populateRemainingReportingTaskEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private ReportingTaskDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

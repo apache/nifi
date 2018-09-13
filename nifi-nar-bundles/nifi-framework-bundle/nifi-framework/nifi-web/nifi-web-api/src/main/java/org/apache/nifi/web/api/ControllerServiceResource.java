@@ -801,10 +801,6 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
-        // Create DTO to verify if it can be updated.
-        final ControllerServiceDTO controllerServiceDTO = new ControllerServiceDTO();
-        controllerServiceDTO.setId(id);
-        controllerServiceDTO.setState(requestRunStatus.getState());
         return withWriteLock(
                 serviceFacade,
                 requestRunStatus,
@@ -814,15 +810,22 @@ public class ControllerServiceResource extends ApplicationResource {
                     final Authorizable authorizable = lookup.getControllerService(id).getAuthorizable();
                     OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> serviceFacade.verifyUpdateControllerService(controllerServiceDTO),
+                () -> serviceFacade.verifyUpdateControllerService(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {
                     // update the controller service
-                    final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerServiceDTO);
+                    final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingControllerServiceEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private ControllerServiceDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final ControllerServiceDTO dto = new ControllerServiceDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters
