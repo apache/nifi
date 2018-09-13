@@ -50,7 +50,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
     static final String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
     static final String WRITE_CONCERN_MAJORITY = "MAJORITY";
 
-    protected static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
+    public  static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
             .name("mongo-uri")
             .displayName("Mongo URI")
             .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
@@ -58,7 +58,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(Validation.DOCUMENT_VALIDATOR)
             .build();
-    protected static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
+    public  static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
             .name("mongo-db-name")
             .displayName("Mongo Database Name")
             .description("The name of the database to use")
@@ -66,7 +66,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    protected static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
+    public  static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
             .name("mongo-collection-name")
             .displayName("Mongo Collection Name")
             .description("The name of the collection to use")
