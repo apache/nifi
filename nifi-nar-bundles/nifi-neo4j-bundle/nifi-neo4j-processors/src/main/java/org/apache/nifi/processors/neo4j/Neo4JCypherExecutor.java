@@ -51,7 +51,7 @@ import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.summary.ResultSummary;
 import org.neo4j.driver.v1.summary.SummaryCounters;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @EventDriven
@@ -97,6 +97,8 @@ public class Neo4JCypherExecutor extends AbstractNeo4JCypherExecutor {
 
         propertyDescriptors = Collections.unmodifiableList(tempDescriptors);
     }
+
+    protected ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -148,15 +150,16 @@ public class Neo4JCypherExecutor extends AbstractNeo4JCypherExecutor {
 
             getLogger().debug("Result of query {} is {}", new Object [] { query, returnValue });
 
-            Gson gson = new Gson();
-
-            String json = gson.toJson(returnValue);
+            String json = mapper.writeValueAsString(returnValue);
 
             ByteArrayInputStream bios = new ByteArrayInputStream(json.getBytes(Charset.defaultCharset()));
             session.importFrom(bios, flowFile);
 
             final long endTimeMillis = System.currentTimeMillis();
-            getLogger().debug("Executed statement with result {}", new Object[] {statementResult});
+
+            if ( getLogger().isDebugEnabled() ) {
+                getLogger().debug("Executed statement with result {}", new Object[] {statementResult});
+            }
 
             flowFile = populateAttributes(session, flowFile, statementResult, returnValue.size());
 

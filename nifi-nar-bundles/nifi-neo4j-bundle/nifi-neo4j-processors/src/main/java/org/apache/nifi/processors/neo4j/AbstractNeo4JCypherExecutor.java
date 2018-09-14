@@ -29,6 +29,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Config;
@@ -221,7 +222,7 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
             neo4JDriver = getDriver(context);
         } catch(Exception e) {
             getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
-            throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
+            throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
         getLogger().info("Neo4JCypherExecutor connection created for url {}",
                 new Object[] {connectionUrl});
@@ -247,10 +248,11 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
 
         configBuilder.withConnectionLivenessCheckTimeout(context.getProperty(IDLE_TIME_BEFORE_CONNECTION_TEST).asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
-        if ( context.getProperty(ENCRYPTION).asBoolean() )
+        if ( context.getProperty(ENCRYPTION).asBoolean() ) {
             configBuilder.withEncryption();
-        else
+        } else {
             configBuilder.withoutEncryption();
+        }
 
         PropertyValue trustStrategy = context.getProperty(TRUST_STRATEGY);
         if ( trustStrategy.isSet() ) {

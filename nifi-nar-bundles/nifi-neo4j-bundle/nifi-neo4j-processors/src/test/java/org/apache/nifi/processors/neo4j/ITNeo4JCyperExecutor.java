@@ -84,8 +84,9 @@ public class ITNeo4JCyperExecutor {
     @After
     public void tearDown() throws Exception {
         runner = null;
-        if (driver != null)
+        if (driver != null) {
             driver.close();
+        }
         driver = null;
     }
 
@@ -187,7 +188,7 @@ public class ITNeo4JCyperExecutor {
 
     @Test
     public void testCreateTwoNodesWithReturn() throws Exception {
-        runner.setProperty(AbstractNeo4JCypherExecutor.QUERY, "create (m:Person { name:'abc'}) create (n:Person { name : 'pqr'})");
+        runner.setProperty(AbstractNeo4JCypherExecutor.QUERY, "create (m:Person { name:'abc'}) create (n:Person { name : 'pqr'}) return n.name, m.name");
 
         runner.enqueue(new byte[] {});
         runner.run(1,false,true);
@@ -204,7 +205,7 @@ public class ITNeo4JCyperExecutor {
         assertEquals("0",flowFiles.get(0).getAttribute(Neo4JCypherExecutor.RELATIONS_CREATED));
         assertEquals("0",flowFiles.get(0).getAttribute(Neo4JCypherExecutor.RELATIONS_DELETED));
         assertEquals("2",flowFiles.get(0).getAttribute(Neo4JCypherExecutor.PROPERTIES_SET));
-        assertEquals("0",flowFiles.get(0).getAttribute(Neo4JCypherExecutor.ROWS_RETURNED));
+        assertEquals("1",flowFiles.get(0).getAttribute(Neo4JCypherExecutor.ROWS_RETURNED));
 
         assertEquals("0",flowFiles.get(1).getAttribute(Neo4JCypherExecutor.LABELS_ADDED));
         assertEquals("0",flowFiles.get(1).getAttribute(Neo4JCypherExecutor.NODES_CREATED));
