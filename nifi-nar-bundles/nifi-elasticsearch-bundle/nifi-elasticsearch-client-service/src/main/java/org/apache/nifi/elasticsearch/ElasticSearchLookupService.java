@@ -75,7 +75,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
     private final List<PropertyDescriptor> DESCRIPTORS;
 
-    ElasticSearchLookupService() {
+    public ElasticSearchLookupService() {
         List<PropertyDescriptor> _desc = new ArrayList<>();
         _desc.addAll(super.getSupportedPropertyDescriptors());
         _desc.add(CLIENT_SERVICE);
