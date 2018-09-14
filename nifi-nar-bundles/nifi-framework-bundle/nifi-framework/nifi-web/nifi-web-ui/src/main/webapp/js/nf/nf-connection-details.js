@@ -21,20 +21,23 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common',
+                'nf.ClusterSummary',
                 'nf.ErrorHandler'],
-            function ($, nfCommon, nfErrorHandler) {
-                return (nf.ConnectionDetails = factory($, nfCommon, nfErrorHandler));
+            function ($, nfCommon, nfClusterSummary, nfErrorHandler) {
+                return (nf.ConnectionDetails = factory($, nfCommon, nfClusterSummary, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionDetails = factory(require('jquery'),
             require('nf.Common'),
+            require('nf.ClusterSummary'),
             require('nf.ErrorHandler')));
     } else {
         nf.ConnectionDetails = factory(root.$,
             root.nf.Common,
+            root.nf.ClusterSummary,
             root.nf.ErrorHandler);
     }
-}(this, function ($, nfCommon, nfErrorHandler) {
+}(this, function ($, nfCommon, nfClusterSummary, nfErrorHandler) {
     'use strict';
 
     /**
@@ -427,9 +430,12 @@
                         $('#read-only-relationship-names').css('border-width', '0').empty();
 
                         // clear the connection settings
-                        $('#read-only-flow-file-expiration').text('');
-                        $('#read-only-back-pressure-object-threshold').text('');
-                        $('#read-only-back-pressure-data-size-threshold').text('');
+                        nfCommon.clearField('read-only-flow-file-expiration');
+                        nfCommon.clearField('read-only-back-pressure-object-threshold');
+                        nfCommon.clearField('read-only-back-pressure-data-size-threshold');
+                        nfCommon.clearField('read-only-load-balance-strategy');
+                        nfCommon.clearField('read-only-load-balance-partition-attribute');
+                        nfCommon.clearField('read-only-load-balance-compression');
                         $('#read-only-prioritizers').empty();
                     },
                     open: function () {
@@ -446,6 +452,7 @@
          * @argument {string} connectionId      The connection id
          */
         showDetails: function (groupId, connectionId) {
+
             // get the group details
             var groupXhr = $.ajax({
                 type: 'GET',
@@ -521,6 +528,27 @@
                         nfCommon.populateField('read-only-flow-file-expiration', connection.flowFileExpiration);
                         nfCommon.populateField('read-only-back-pressure-object-threshold', connection.backPressureObjectThreshold);
                         nfCommon.populateField('read-only-back-pressure-data-size-threshold', connection.backPressureDataSizeThreshold);
+                        nfCommon.populateField('read-only-load-balance-strategy', nfCommon.getComboOptionText(nfCommon.loadBalanceStrategyOptions, connection.loadBalanceStrategy));
+                        nfCommon.populateField('read-only-load-balance-partition-attribute', connection.loadBalancePartitionAttribute);
+                        nfCommon.populateField('read-only-load-balance-compression', nfCommon.getComboOptionText(nfCommon.loadBalanceCompressionOptions, connection.loadBalanceCompression));
+
+                        // Show the appropriate load-balance configurations
+                        if (nfClusterSummary.isConnectedToCluster()) {
+                            if (connection.loadBalanceStrategy === 'PARTITION_BY_ATTRIBUTE') {
+                                $('#read-only-load-balance-partition-attribute-setting').show();
+                            } else {
+                                $('#read-only-load-balance-partition-attribute-setting').hide();
+                            }
+                            if (connection.loadBalanceStrategy === 'DO_NOT_LOAD_BALANCE') {
+                                $('#read-only-load-balance-compression-setting').hide();
+                            } else {
+                                $('#read-only-load-balance-compression-setting').show();
+                            }
+                            $('#read-only-load-balance-settings').show();
+                        } else {
+                            $('#read-only-load-balance-settings').hide();
+                        }
+
 
                         // prioritizers
                         if (nfCommon.isDefinedAndNotNull(connection.prioritizers) && connection.prioritizers.length > 0) {
