@@ -526,7 +526,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 lookup -> {
                     requestReferencingRevisions.entrySet().stream().forEach(e -> {
                         final Authorizable controllerService = lookup.getControllerServiceReferencingComponent(id, e.getKey());
-                        OperationAuthorizable.authorize(controllerService, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorizeOperation(controllerService, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> serviceFacade.verifyUpdateControllerServiceReferencingComponents(requestUpdateReferenceRequest.getId(), verifyScheduledState, verifyControllerServiceState),
@@ -808,7 +808,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 lookup -> {
                     // authorize the service
                     final Authorizable authorizable = lookup.getControllerService(id).getAuthorizable();
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateControllerService(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {

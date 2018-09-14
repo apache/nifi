@@ -506,7 +506,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
-                    OperationAuthorizable.isAuthorized(remoteProcessGroup, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    OperationAuthorizable.authorizeOperation(remoteProcessGroup, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroupInputPort(id, createPortDTOWithDesiredRunStatus(portId, id, requestRemotePortRunStatusEntity)),
                 (revision, remotePortRunStatusEntity) -> {
@@ -606,7 +606,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
-                    OperationAuthorizable.isAuthorized(remoteProcessGroup, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    OperationAuthorizable.authorizeOperation(remoteProcessGroup, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroupOutputPort(id, createPortDTOWithDesiredRunStatus(portId, id, requestRemotePortRunStatusEntity)),
                 (revision, remotePortRunStatusEntity) -> {
@@ -814,7 +814,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     Authorizable authorizable = lookup.getRemoteProcessGroup(id);
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroup(createDTOWithDesiredRunStatus(id, requestRemotePortRunStatusEntity)),
                 (revision, remotePortRunStatusEntity) -> {

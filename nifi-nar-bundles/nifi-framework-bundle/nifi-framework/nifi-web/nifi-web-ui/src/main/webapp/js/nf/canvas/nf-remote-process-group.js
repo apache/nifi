@@ -727,36 +727,32 @@
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
                 var icon = '';
-                if (d.permissions.canRead || d.operatePermissions.canWrite) {
-                    if (hasIssues(d)) {
-                        icon = '\uf071';
-                    } else if (d.status.transmissionStatus === 'Transmitting') {
-                        icon = '\uf140';
-                    } else {
-                        icon = '\ue80a';
-                    }
+                if (hasIssues(d)) {
+                    icon = '\uf071';
+                } else if (d.status.transmissionStatus === 'Transmitting') {
+                    icon = '\uf140';
+                } else {
+                    icon = '\ue80a';
                 }
                 return icon;
             })
             .attr('font-family', function (d) {
                 var family = '';
-                if (d.permissions.canRead || d.operatePermissions.canWrite) {
-                    if (hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
-                        family = 'FontAwesome';
-                    } else {
-                        family = 'flowfont';
-                    }
+                if (hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
+                    family = 'FontAwesome';
+                } else {
+                    family = 'flowfont';
                 }
                 return family;
             })
             .classed('invalid', function (d) {
-                return (d.permissions.canRead || d.operatePermissions.canWrite) && hasIssues(d);
+                return hasIssues(d);
             })
             .classed('transmitting', function (d) {
-                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
+                return !hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
             .classed('not-transmitting', function (d) {
-                return (d.permissions.canRead || d.operatePermissions.canWrite) && !hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
+                return !hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (d) {
                 // get the tip

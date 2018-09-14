@@ -385,7 +385,7 @@ public class InputPortResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                     final Authorizable authorizable = lookup.getInputPort(id);
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, user);
                 },
                 () -> serviceFacade.verifyUpdateInputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {

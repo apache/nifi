@@ -628,7 +628,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
                         .filter(getProcessorFilter.get())
-                        .filter(processor -> OperationAuthorizable.isAuthorized(processor, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
                         });
@@ -636,7 +636,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
                     .filter(getPortFilter.get())
-                        .filter(inputPort -> OperationAuthorizable.isAuthorized(inputPort, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
                         });
@@ -644,7 +644,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
                         .filter(getPortFilter.get())
-                        .filter(outputPort -> OperationAuthorizable.isAuthorized(outputPort, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
                         });
@@ -687,7 +687,7 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        OperationAuthorizable.authorize(connectable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorizeOperation(connectable, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> {

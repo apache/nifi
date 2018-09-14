@@ -386,7 +386,7 @@ public class OutputPortResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                     final Authorizable authorizable = lookup.getOutputPort(id);
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, user);
                 },
                 () -> serviceFacade.verifyUpdateOutputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {

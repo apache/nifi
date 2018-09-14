@@ -240,7 +240,7 @@ public class ProcessorResource extends ApplicationResource {
             requestProcessorEntity,
             lookup -> {
                 final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
-                OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyTerminateProcessor(id),
             processorEntity -> {
@@ -737,7 +737,7 @@ public class ProcessorResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                     final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, user);
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, user);
                 },
                 () -> serviceFacade.verifyUpdateProcessor(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {

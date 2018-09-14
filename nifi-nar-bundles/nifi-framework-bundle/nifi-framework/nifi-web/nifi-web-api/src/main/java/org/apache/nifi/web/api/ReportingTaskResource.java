@@ -612,7 +612,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 lookup -> {
                     // authorize reporting task
                     final Authorizable authorizable = lookup.getReportingTask(id).getAuthorizable();
-                    OperationAuthorizable.authorize(authorizable, authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateReportingTask(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, reportingTaskRunStatusEntity) -> {

@@ -56,14 +56,14 @@ public class OperationAuthorizable implements Authorizable, EnforcePolicyPermiss
     }
 
     /**
-     * <p>Authorize the request action with the resource using base authorizable and operation authorizable combination.</p>
+     * <p>Authorize the request operation action with the resource using base authorizable and operation authorizable combination.</p>
      *
-     * <p>This method authorizes the request with the base authorizable first. If the request is allowed, then finish authorization.
-     * If base authorizable denies the request, then it checks if the user has WRITE permission for '/operation/{componentType}/{id}'.</p>
+     * <p>This method authorizes the request with the base authorizable first with WRITE action. If the request is allowed, then finish authorization.
+     * If the base authorizable denies the request, then it checks if the user has WRITE permission for '/operation/{componentType}/{id}'.</p>
      */
-    public static void authorize(final Authorizable baseAuthorizable, final Authorizer authorizer, final RequestAction requestAction, final NiFiUser user) {
+    public static void authorizeOperation(final Authorizable baseAuthorizable, final Authorizer authorizer, final NiFiUser user) {
         try {
-            baseAuthorizable.authorize(authorizer, requestAction, user);
+            baseAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
         } catch (AccessDeniedException e) {
             logger.debug("Authorization failed with {}. Try authorizing with OperationAuthorizable.", baseAuthorizable, e);
             // Always use WRITE action for operation.
@@ -75,10 +75,10 @@ public class OperationAuthorizable implements Authorizable, EnforcePolicyPermiss
     /**
      * Check if the request is authorized.
      *
-     * @return True if the request is allowed by the base authorizable, or the user has WRITE permission for '/operation/{componentType}/id'.
+     * @return True if the WRITE request is allowed by the base authorizable, or the user has WRITE permission for '/operation/{componentType}/id'.
      */
-    public static boolean isAuthorized(final Authorizable baseAuthorizable, final Authorizer authorizer, final RequestAction requestAction, final NiFiUser user) {
-        return baseAuthorizable.isAuthorized(authorizer, requestAction, user)
+    public static boolean isOperationAuthorized(final Authorizable baseAuthorizable, final Authorizer authorizer, final NiFiUser user) {
+        return baseAuthorizable.isAuthorized(authorizer, RequestAction.WRITE, user)
                 || new OperationAuthorizable(baseAuthorizable).isAuthorized(authorizer, RequestAction.WRITE, user);
     }
 
