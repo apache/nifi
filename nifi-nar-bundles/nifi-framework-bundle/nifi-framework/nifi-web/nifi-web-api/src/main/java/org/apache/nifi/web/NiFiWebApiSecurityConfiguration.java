@@ -43,6 +43,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 /**
  * NiFi Web Api Spring security
@@ -89,6 +94,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
+                .cors().and()
                 .rememberMe().disable()
                 .authorizeRequests()
                     .anyRequest().fullyAuthenticated()
@@ -110,6 +116,16 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
         // anonymous
         http.anonymous().authenticationFilter(anonymousFilterBean());
+    }
+
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/process-groups/*/templates/upload", configuration);
+        return source;
     }
 
     @Bean
