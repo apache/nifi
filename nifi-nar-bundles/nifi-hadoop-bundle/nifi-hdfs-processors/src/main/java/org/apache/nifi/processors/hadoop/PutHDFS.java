@@ -272,7 +272,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
                     } catch (IOException e) {
-                      boolean tgtExpired = hasCause(e, GSSException.class,gsse -> GSSException.NO_CRED == gsse.getMajor());
+                      boolean tgtExpired = hasCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
                       if (tgtExpired) {
                         getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flow file %s",
                             putFlowFile.getAttribute(CoreAttributes.UUID.key())));
