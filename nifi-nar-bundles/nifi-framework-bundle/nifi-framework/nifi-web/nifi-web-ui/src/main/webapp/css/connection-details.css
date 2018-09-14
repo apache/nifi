@@ -22,7 +22,7 @@
     z-index: 1301;
     display: none;
     width: 700px;
-    height: 400px;
+    height: 500px;
 }
 
 #connection-details div.configuration-tab {
@@ -40,4 +40,16 @@
 #connection-details div.relationship-name {
     display: inline-block;
     line-height: normal;
+}
+
+.multi-column-settings {
+    display: flex;
+}
+
+.multi-column-settings .setting {
+    flex-grow: 1;
+}
+
+.multi-column-settings .separator {
+    min-width: 5px;
 }

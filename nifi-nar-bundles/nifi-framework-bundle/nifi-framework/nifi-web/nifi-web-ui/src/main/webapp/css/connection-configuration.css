@@ -123,3 +123,15 @@ div.undefined {
     height: 32px;
     padding: 0px 10px;
 }
+
+.multi-column-settings {
+    display: flex;
+}
+
+.multi-column-settings .setting {
+    flex-grow: 1;
+}
+
+.multi-column-settings .separator {
+    min-width: 5px;
+}

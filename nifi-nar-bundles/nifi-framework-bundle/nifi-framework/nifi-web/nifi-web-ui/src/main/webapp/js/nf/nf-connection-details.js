@@ -430,6 +430,9 @@
                         $('#read-only-flow-file-expiration').text('');
                         $('#read-only-back-pressure-object-threshold').text('');
                         $('#read-only-back-pressure-data-size-threshold').text('');
+                        $('#read-only-load-balance-strategy').text('');
+                        $('#read-only-load-balance-partition-attribute').text('');
+                        $('#read-only-load-balance-compression').text('');
                         $('#read-only-prioritizers').empty();
                     },
                     open: function () {
@@ -521,6 +524,27 @@
                         nfCommon.populateField('read-only-flow-file-expiration', connection.flowFileExpiration);
                         nfCommon.populateField('read-only-back-pressure-object-threshold', connection.backPressureObjectThreshold);
                         nfCommon.populateField('read-only-back-pressure-data-size-threshold', connection.backPressureDataSizeThreshold);
+                        nfCommon.populateField('read-only-load-balance-strategy', nfCommon.getComboOptionText($('#load-balance-strategy-combo'), connection.loadBalanceStrategy));
+                        nfCommon.populateField('read-only-load-balance-partition-attribute', connection.loadBalancePartitionAttribute);
+                        nfCommon.populateField('read-only-load-balance-compression', nfCommon.getComboOptionText($('#load-balance-compression-combo'), connection.loadBalanceCompression));
+
+                        // Show the appropriate load-balance configurations
+                        if (nf.ClusterSummary.isClustered()) {
+                            if (connection.loadBalanceStrategy === 'PARTITION_BY_ATTRIBUTE') {
+                                $('#read-only-load-balance-partition-attribute-setting').show();
+                            } else {
+                                $('#read-only-load-balance-partition-attribute-setting').hide();
+                            }
+                            if (connection.loadBalanceStrategy === 'DO_NOT_LOAD_BALANCE') {
+                                $('#read-only-load-balance-compression-setting').hide();
+                            } else {
+                                $('#read-only-load-balance-compression-setting').show();
+                            }
+                            $('#read-only-load-balance-settings').show();
+                        } else {
+                            $('#read-only-load-balance-settings').hide();
+                        }
+
 
                         // prioritizers
                         if (nfCommon.isDefinedAndNotNull(connection.prioritizers) && connection.prioritizers.length > 0) {
