@@ -272,14 +272,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
                     } catch (IOException e) {
-                      boolean tgtExpired = hasCause(e, GSSException.class, gsse -> "Failed to find any Kerberos tgt".equals(gsse.getMinorString()));
+                      boolean tgtExpired = hasCause(e, GSSException.class,gsse -> GSSException.NO_CRED == gsse.getMajor());
                       if (tgtExpired) {
                         getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flow file %s",
                             putFlowFile.getAttribute(CoreAttributes.UUID.key())));
                         session.rollback(true);
                       } else {
                         getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
-                        session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                        session.transfer(putFlowFile, REL_FAILURE);
                       }
                     }
 
