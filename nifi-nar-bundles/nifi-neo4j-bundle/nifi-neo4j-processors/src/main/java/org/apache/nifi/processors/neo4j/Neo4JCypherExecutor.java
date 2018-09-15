@@ -148,7 +148,9 @@ public class Neo4JCypherExecutor extends AbstractNeo4JCypherExecutor {
 
             List<Map<String, Object>> returnValue = statementResult.list().stream().map(i -> i.asMap()).collect(Collectors.toList());
 
-            getLogger().debug("Result of query {} is {}", new Object [] { query, returnValue });
+            if ( getLogger().isDebugEnabled() ) {
+                getLogger().debug("Result of query {} is {}", new Object [] { query, returnValue });
+            }
 
             String json = mapper.writeValueAsString(returnValue);
 
