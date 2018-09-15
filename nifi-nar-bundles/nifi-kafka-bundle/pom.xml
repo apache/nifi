@@ -25,9 +25,9 @@
     <properties>
       <kafka8.version>0.8.2.2</kafka8.version>
       <kafka9.version>0.9.0.1</kafka9.version>
-      <kafka10.version>0.10.2.1</kafka10.version>
-      <kafka11.version>0.11.0.1</kafka11.version>
-      <kafka1.0.version>1.0.0</kafka1.0.version>
+      <kafka10.version>0.10.2.2</kafka10.version>
+      <kafka11.version>0.11.0.3</kafka11.version>
+      <kafka1.0.version>1.0.2</kafka1.0.version>
       <kafka2.0.version>2.0.0</kafka2.0.version>
     </properties>
 
