@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 #    Licensed to the Apache Software Foundation (ASF) under one or more
 #    contributor license agreements.  See the NOTICE file distributed with
@@ -57,6 +57,12 @@ case ${AUTH} in
 
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
+        ;;
+    oidc)
+        echo 'Enabling LDAP user authentication'
+ 
+        . "${scripts_dir}/secure.sh"
+        . "${scripts_dir}/openid.sh"
         ;;
     *)
         if [ ! -z "${NIFI_WEB_PROXY_HOST}" ]; then
