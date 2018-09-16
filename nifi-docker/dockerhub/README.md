@@ -144,6 +144,42 @@ volume to provide certificates on the host system to the container instance.
     -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
+### Standalone Instance, OIDC
+In this configuration, the user will need to provide certificates and the associated configuration information.
+Of particular note, is the `AUTH` environment variable which is set to `oidc`.  Additionally, the user must
+provide a username as provided by the configured oidc server in the `INITIAL_ADMIN_IDENTITY` environment
+variable if wants to authenticate by oidc. This value will be used to seed the instance with an initial user
+with administrative privileges.  Finally, this command makes use of a volume to provide certificates on the host
+system to the container instance.
+
+#### For a minimal, connection to an OIDC server using SIMPLE authentication:
+
+    docker run --name nifi \
+      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -v /home/kerberos:/opt/kerberos
+      -p 8443:8443 \
+      -e AUTH=kerberos \
+      -e KEYSTORE_PATH=/opt/certs/keystore.jks \
+      -e KEYSTORE_TYPE=JKS \
+      -e KEYSTORE_PASSWORD=QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs \
+      -e TRUSTSTORE_PATH=/opt/certs/truststore.jks \
+      -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
+      -e TRUSTSTORE_TYPE=JKS \
+      -e INITIAL_ADMIN_IDENTITY='sarthak.sahu@example.com' \
+      -e OIDC_DISCOVERY_URL=https://oidcserver:8666/auth/realms/nifi/.well-known/openid-configuration \
+      -e OIDC_CONNECT_TIMEOUT="5 secs" \
+      -e OIDC_READ_TIMEOUT="5 secs" \
+      -e OIDC_CLIENT_ID=nifi \
+      -e OIDC_CLIENT_SECRET=81bb7537-b9e2-4dc6-9600-d5178a04736f \
+      -e OIDC_PREF_JWSALGO=RS256 \
+      -d \
+      apache/nifi:latest
+
+#### The following, optional environment variables may be added to the above command when connecting to a self-signed OIDC server.
+
+      -e OIDC_PROVIDER_TRUSTSTORE_PATH=/opt/certs/keycerts_ip_san \
+      -e OIDC_PROVIDER_TRUSTSTORE_PASSWD=keycloak \
+
 #### Clustering can be enabled by using the following properties to Docker environment variable mappings.
 
 ##### nifi.properties
