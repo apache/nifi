@@ -156,7 +156,6 @@ system to the container instance.
 
     docker run --name nifi \
       -v /User/dreynolds/certs/localhost:/opt/certs \
-      -v /home/kerberos:/opt/kerberos
       -p 8443:8443 \
       -e AUTH=kerberos \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
