@@ -21,7 +21,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,7 +34,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
-import org.bson.Document;
 
 import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
@@ -43,11 +41,10 @@ import java.util.List;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
-    "Provides a controller service that wraps most of the functionality of the MongoDB driver."
+    "Provides a controller service that configures a connection to MongoDB and provides access to that connection to " +
+    "other Mongo-related components."
 )
 public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
-    private MongoDatabase db;
-    private MongoCollection<Document> col;
     private String uri;
 
     @OnEnabled
