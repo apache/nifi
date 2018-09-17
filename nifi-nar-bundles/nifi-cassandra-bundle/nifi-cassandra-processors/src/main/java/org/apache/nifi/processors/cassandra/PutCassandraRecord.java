@@ -30,8 +30,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -48,9 +46,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +57,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Tags({"cassandra", "cql", "put", "insert", "update", "set", "record"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Writes the content of the incoming FlowFile as individual records to Apache Cassandra using native protocol version 3 or higher.")
+@CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
+        "configured 'Record Reader' and writes them to Apache Cassandra using native protocol version 3 or higher.")
 public class PutCassandraRecord extends AbstractCassandraProcessor {
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
@@ -88,7 +85,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .description("Specifies the number of 'Insert statements' to be grouped together to execute as a batch (BatchStatement)")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
 
@@ -99,6 +96,12 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .allowableValues(BatchStatement.Type.values())
             .defaultValue(BatchStatement.Type.LOGGED.toString())
             .required(false)
+            .build();
+
+    static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractCassandraProcessor.CONSISTENCY_LEVEL)
+            .allowableValues(ConsistencyLevel.SERIAL.name(), ConsistencyLevel.LOCAL_SERIAL.name())
+            .defaultValue(ConsistencyLevel.SERIAL.name())
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
@@ -142,7 +145,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
         final String cassandraTable = context.getProperty(TABLE).evaluateAttributeExpressions(inputFlowFile).getValue();
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final String batchStatementType = context.getProperty(BATCH_STATEMENT_TYPE).getValue();
         final String serialConsistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
 
@@ -165,7 +168,14 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             while((record = reader.nextRecord()) != null) {
                 Map<String, Object> recordContentMap = (Map<String, Object>) DataTypeUtils
                         .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                Insert insertQuery = QueryBuilder.insertInto(cassandraTable);
+                Insert insertQuery;
+
+                if (cassandraTable.contains(".")) {
+                    String keyspaceAndTable[] = cassandraTable.split("\\.");
+                    insertQuery = QueryBuilder.insertInto(keyspaceAndTable[0], keyspaceAndTable[1]);
+                } else {
+                    insertQuery = QueryBuilder.insertInto(cassandraTable);
+                }
                 for (String fieldName : schema.getFieldNames()) {
                     insertQuery.value(fieldName, recordContentMap.get(fieldName));
                 }
@@ -186,16 +196,17 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             error = true;
             getLogger().error("Unable to write the records into Cassandra table due to {}", new Object[] {e});
             session.transfer(inputFlowFile, REL_FAILURE);
+        } finally {
+            if (!error) {
+                stopWatch.stop();
+                long duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+                String transitUri = "cassandra://" + connectionSession.getCluster().getMetadata().getClusterName() + "." + cassandraTable;
+
+                session.getProvenanceReporter().send(inputFlowFile, transitUri, "Inserted " + recordsAdded.get() + " records", duration);
+                session.transfer(inputFlowFile, REL_SUCCESS);
+            }
         }
 
-        if (!error) {
-            stopWatch.stop();
-            long duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-            String transitUri = "cassandra://" + connectionSession.getCluster().getMetadata().getClusterName();
-
-            session.getProvenanceReporter().send(inputFlowFile, transitUri, "Inserted " + recordsAdded.get() + " records", duration);
-            session.transfer(inputFlowFile, REL_SUCCESS);
-        }
     }
 
     @OnUnscheduled
@@ -206,34 +217,6 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     @OnShutdown
     public void shutdown() {
         super.stop();
-    }
-
-    @Override
-    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> validationResults = new ArrayList<>();
-
-        String serialConsistencyLevel = validationContext.getProperty(CONSISTENCY_LEVEL).getValue();
-        if (!(serialConsistencyLevel.equalsIgnoreCase("SERIAL"))
-                && !(serialConsistencyLevel.equalsIgnoreCase("LOCAL_SERIAL"))) {
-            validationResults.add(new ValidationResult.Builder()
-                    .valid(false)
-                    .explanation("only 'SERIAL' and 'LOCAL_SERIAL' consistency levels are supported")
-                    .subject(CONSISTENCY_LEVEL.getDisplayName())
-                    .build());
-        }
-
-        if (!validationContext.getProperty(KEYSPACE).isSet() && !(validationContext.getProperty(TABLE).isExpressionLanguagePresent())) {
-            if (!validationContext.getProperty(TABLE).getValue().contains(".")) {
-                validationResults.add(new ValidationResult.Builder()
-                        .valid(false)
-                        .explanation("if " + KEYSPACE.getDisplayName() + " is not set, " + TABLE.getDisplayName() + " should have the " +
-                                "keyspace name prepended in the form of <keyspace>.<table>")
-                        .subject(KEYSPACE.getDisplayName())
-                        .build());
-            }
-        }
-
-        return validationResults;
     }
 
 }

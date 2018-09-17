@@ -152,44 +152,6 @@ public class PutCassandraRecordTest {
         testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
     }
 
-    @Test
-    public void testSupportedSerialConsistencyLevel() throws InitializationException {
-        setUpStandardTestConfig();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "ANY");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "ONE");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "TWO");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "THREE");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "QUORUM");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "ALL");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "LOCAL_QUORUM");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "EACH_QUORUM");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "LOCAL_ONE");
-        testRunner.assertNotValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "SERIAL");
-        testRunner.assertValid();
-
-        testRunner.setProperty(PutCassandraRecord.CONSISTENCY_LEVEL, "LOCAL_SERIAL");
-        testRunner.assertValid();
-    }
-
     private static class MockPutCassandraRecord extends PutCassandraRecord {
         private Exception exceptionToThrow = null;
         private Session mockSession = mock(Session.class);
