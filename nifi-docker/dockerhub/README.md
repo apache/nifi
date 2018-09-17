@@ -177,7 +177,7 @@ system to the container instance.
 
 #### The following, optional environment variables may be added to the above command when connecting to a self-signed OIDC server.
 
-      -e OIDC_PROVIDER_TRUSTSTORE_PATH=/opt/certs/keycerts_ip_san \
+      -e OIDC_PROVIDER_TRUSTSTORE_PATH=/opt/certs/keycloak_truststore \
       -e OIDC_PROVIDER_TRUSTSTORE_PASSWD=keycloak \
 
 #### Clustering can be enabled by using the following properties to Docker environment variable mappings.
