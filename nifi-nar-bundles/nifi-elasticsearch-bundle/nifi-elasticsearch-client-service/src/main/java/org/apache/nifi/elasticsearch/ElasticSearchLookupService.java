@@ -18,13 +18,17 @@
 package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -39,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Record> {
@@ -84,6 +89,8 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         DESCRIPTORS = Collections.unmodifiableList(_desc);
     }
 
+    private volatile ConcurrentHashMap<String, RecordPath> mappings;
+
     @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -92,12 +99,47 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         type  = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
         mapper = new ObjectMapper();
 
+        List<PropertyDescriptor> dynamic = context.getProperties().entrySet().stream()
+            .filter( e -> e.getKey().isDynamic())
+            .map(e -> e.getKey())
+            .collect(Collectors.toList());
+
+        Map<String, RecordPath> _temp = new HashMap<>();
+        for (PropertyDescriptor desc : dynamic) {
+            String value = context.getProperty(desc).getValue();
+            String name  = desc.getName();
+            _temp.put(name, RecordPath.compile(value));
+        }
+
+        mappings = new ConcurrentHashMap<>(_temp);
+
         super.onEnabled(context);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
+    }
+
+    @Override
+    public PropertyDescriptor getSupportedDynamicPropertyDescriptor(String name) {
+        return new PropertyDescriptor.Builder()
+            .name(name)
+            .addValidator((subject, input, context) -> {
+                ValidationResult.Builder builder = new ValidationResult.Builder();
+                try {
+                    JsonPath.parse(input);
+                    builder.valid(true);
+                } catch (Exception ex) {
+                    builder.explanation(ex.getMessage())
+                        .valid(false)
+                        .subject(subject);
+                }
+
+                return builder.build();
+            })
+            .dynamic(true)
+            .build();
     }
 
     @Override
@@ -126,22 +168,6 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         } catch (Exception ex) {
             getLogger().error("Error during lookup.", ex);
             throw new LookupFailureException(ex);
-        }
-    }
-
-    private RecordSchema getSchemaFromCoordinates(Map<String, Object> coordinates) {
-        Map<String, String> variables = coordinates.entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
-        try {
-            return getSchema(variables, null);
-        } catch (SchemaNotFoundException | IOException e) {
-            if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Could not load schema, will create one from the results.", e);
-            }
-            return null;
         }
     }
 
@@ -186,7 +212,13 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
         RecordSchema toUse = getSchema(context, source, null);
 
-        return new MapRecord(toUse, source);
+        Record record = new MapRecord(toUse, source);
+
+        if (mappings.size() > 0) {
+            record = applyMappings(record, source);
+        }
+
+        return record;
     }
 
     Map<String, Object> getNested(String key, Object value) {
@@ -238,12 +270,37 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             } else {
                 final Map<String, Object> source = (Map)response.getHits().get(0).get("_source");
                 RecordSchema toUse = getSchema(context, source, null);
-                return new MapRecord(toUse, source);
+                Record record = new MapRecord(toUse, source);
+
+                if (mappings.size() > 0) {
+                    record = applyMappings(record, source);
+                }
+
+                return record;
             }
 
         } catch (Exception e) {
             throw new LookupFailureException(e);
         }
+    }
+
+    private Record applyMappings(Record record, Map<String, Object> source) {
+        Record _rec = new MapRecord(record.getSchema(), new HashMap<>());
+
+        mappings.entrySet().forEach(entry -> {
+            try {
+                Object o = JsonPath.read(source, entry.getKey());
+                RecordPath path = entry.getValue();
+                Optional<FieldValue> first = path.evaluate(_rec).getSelectedFields().findFirst();
+                if (first.isPresent()) {
+                    first.get().updateValue(o);
+                }
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        return _rec;
     }
 
     @Override

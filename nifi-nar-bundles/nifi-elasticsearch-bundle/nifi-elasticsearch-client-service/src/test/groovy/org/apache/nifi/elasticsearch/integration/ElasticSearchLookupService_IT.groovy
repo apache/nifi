@@ -21,8 +21,10 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService
 import org.apache.nifi.lookup.LookupFailureException
+import org.apache.nifi.record.path.RecordPath
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.schemaregistry.services.SchemaRegistry
+import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.Record
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.serialization.record.type.RecordDataType
@@ -168,6 +170,12 @@ class ElasticSearchLookupService_IT {
         Assert.assertNotNull(response)
         Record rec = response.get()
         Record subRec = getSubRecord(rec, "subField")
+
+        def r2 = new MapRecord(rec.schema, [:])
+        def path = RecordPath.compile("/subField/longField")
+        def result = path.evaluate(r2)
+        result.selectedFields.findFirst().get().updateValue(1234567890L)
+
         Assert.assertNotNull(rec)
         Assert.assertNotNull(subRec)
         Assert.assertEquals("Hello, world", rec.getValue("msg"))
@@ -180,5 +188,24 @@ class ElasticSearchLookupService_IT {
         RecordSchema schema = rec.schema
         RecordSchema subSchema = ((RecordDataType)schema.getField(fieldName).get().dataType).childSchema
         rec.getAsRecord(fieldName, subSchema)
+    }
+
+    @Test
+    void testMappings() {
+        runner.disableControllerService(lookupService)
+        runner.setProperty(lookupService, "\$.subField.longField", "/longField2")
+        runner.setProperty(lookupService, '$.subField.dateField', '/dateField2')
+        runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "nested_complex")
+        runner.enableControllerService(lookupService)
+
+        def coordinates = ["msg": "Hello, world"]
+        def result = lookupService.lookup(coordinates)
+        Assert.assertTrue(result.isPresent())
+        def rec = result.get()
+        ["dateField": "2018-08-14T10:08:00Z", "longField": 150000L].each { field ->
+            def value = rec.getValue(field.key)
+            Assert.assertEquals(field.value, value)
+        }
     }
 }
