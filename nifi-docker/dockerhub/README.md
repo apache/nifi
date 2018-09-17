@@ -149,7 +149,7 @@ In this configuration, the user will need to provide certificates and the associ
 Of particular note, is the `AUTH` environment variable which is set to `oidc`.  Additionally, the user must
 provide a username as provided by the configured oidc server in the `INITIAL_ADMIN_IDENTITY` environment
 variable if wants to authenticate by oidc. This value will be used to seed the instance with an initial user
-with administrative privileges.  Finally, this command makes use of a volume to provide certificates on the host
+with administrative privileges. Finally, this command makes use of a volume to provide certificates on the host
 system to the container instance.
 
 #### For a minimal, connection to an OIDC server using SIMPLE authentication:
