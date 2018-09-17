@@ -23,7 +23,9 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -36,7 +38,9 @@ import java.security.Security
 @RunWith(JUnit4.class)
 class HashServiceTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(HashServiceTest.class)
-    static private final String LARGE_FILE_PATH = "src/test/resources/HashServiceTest/largefile.txt"
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder()
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -49,10 +53,6 @@ class HashServiceTest extends GroovyTestCase {
 
     @AfterClass
     static void tearDownOnce() throws Exception {
-        File largeFile = new File(LARGE_FILE_PATH)
-        if (largeFile.exists()) {
-            largeFile.deleteOnExit()
-        }
     }
 
     @Before
@@ -393,10 +393,11 @@ class HashServiceTest extends GroovyTestCase {
         // No command-line md2sum tool available
         def algorithms = HashAlgorithm.values() - HashAlgorithm.MD2
 
-        File inputFile = new File(LARGE_FILE_PATH)
+        File inputFile = temporaryFolder.newFile()
 
         // Generates a file with "apachenifi" 10 times per line for 10_000 lines (11 bytes * 10 * 10_000 ~= 1 MiB)
         if (!inputFile.exists() || inputFile.length() == 0) {
+            inputFile.createNewFile()
             10_000.times { int i ->
                 inputFile << "${i.toString().padLeft(5)}: ${"apachenifi " * 10}\n"
             }
