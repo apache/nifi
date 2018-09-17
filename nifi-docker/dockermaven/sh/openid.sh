@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 #    Licensed to the Apache Software Foundation (ASF) under one or more
 #    contributor license agreements.  See the NOTICE file distributed with
@@ -35,15 +35,15 @@ prop_replace 'nifi.security.user.oidc.client.id'               "${OIDC_CLIENT_ID
 prop_replace 'nifi.security.user.oidc.client.secret'           "${OIDC_CLIENT_SECRET}"
 prop_replace 'nifi.security.user.oidc.preferred.jwsalgorithm'  "${OIDC_PREF_JWSALGO}"
 
-if [ -v OIDC_PROVIDER_TRUSTSTORE_PATH ] && [ ! -z "$OIDC_PROVIDER_TRUSTSTORE_PATH" ]; then
+if [ ! -z "$OIDC_PROVIDER_TRUSTSTORE_PATH" ]; then
     if [ ! -f "${OIDC_PROVIDER_TRUSTSTORE_PATH}" ]; then
         echo "Truststore file specified (${OIDC_PROVIDER_TRUSTSTORE_PATH}) does not exist."
         exit 1
     fi
     : ${OIDC_PROVIDER_TRUSTSTORE_PASSWD:?"Must specify password for turststore."}
     echo  "Setting env for self-signed certificate."
-    echo  "java.arg.100=-Djavax.net.ssl.trustStore=${OIDC_PROVIDER_TRUSTSTORE_PATH}" >> ${NIFI_HOME}/conf/bootstrap.conf
-    echo  "java.arg.101=-Djavax.net.ssl.trustStorePassword=${OIDC_PROVIDER_TRUSTSTORE_PASSWD}" >> ${NIFI_HOME}/conf/bootstrap.conf
+    echo  "java.arg.oidcProvideTrustStore=-Djavax.net.ssl.trustStore=${OIDC_PROVIDER_TRUSTSTORE_PATH}" >> ${NIFI_HOME}/conf/bootstrap.conf
+    echo  "java.arg.oidcProvideTrustStorePwd=-Djavax.net.ssl.trustStorePassword=${OIDC_PROVIDER_TRUSTSTORE_PASSWD}" >> ${NIFI_HOME}/conf/bootstrap.conf
 else
     echo  "INFO: No self-signed certificate provided."
 fi
