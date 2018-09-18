@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +34,6 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.collect.ImmutableList;
@@ -73,7 +70,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
     @Override
     protected final Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final Collection<ValidationResult> results = new ArrayList<>();
+        final Collection<ValidationResult> results = super.customValidate(validationContext);
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
         customValidate(validationContext, results);
         return results;
@@ -96,30 +93,10 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
                         .setMaxAttempts(retryCount)
                         .build());
 
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, () -> {
-            final String proxyHost = context.getProperty(PROXY_HOST).getValue();
-            final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
-            if (proxyHost != null && proxyPort != null && proxyPort > 0) {
-                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-                final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
-                componentProxyConfig.setProxyServerHost(proxyHost);
-                componentProxyConfig.setProxyServerPort(proxyPort);
-                componentProxyConfig.setProxyUserName(proxyUser);
-                componentProxyConfig.setProxyUserPassword(proxyPassword);
-                return componentProxyConfig;
-            }
-            return ProxyConfiguration.DIRECT_CONFIGURATION;
-        });
-
         if (!projectId.isEmpty()) {
             storageOptionsBuilder.setProjectId(projectId);
         }
 
-        final ProxyAwareTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
-        storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(transportFactory).build());
-
-        return  storageOptionsBuilder.build();
+        return  storageOptionsBuilder.setTransportOptions(getTransportOptions(context)).build();
     }
 }
