@@ -1069,9 +1069,8 @@ public final class DtoFactory {
         final Collection<RemoteProcessGroupStatus> childRemoteProcessGroupStatusCollection = processGroupStatus.getRemoteProcessGroupStatus();
         if (childRemoteProcessGroupStatusCollection != null) {
             for (final RemoteProcessGroupStatus childRemoteProcessGroupStatus : childRemoteProcessGroupStatusCollection) {
-                final RemoteProcessGroup childRemoteProcessGroup = processGroup.getRemoteProcessGroup(childRemoteProcessGroupStatus.getId());
-                final RemoteProcessGroupStatusDTO childRemoteProcessGroupStatusDto = createRemoteProcessGroupStatusDto(childRemoteProcessGroup, childRemoteProcessGroupStatus);
-                final RemoteProcessGroup remoteProcessGroup = processGroup.findRemoteProcessGroup(childRemoteProcessGroupStatusDto.getId());
+                final RemoteProcessGroup remoteProcessGroup = processGroup.findRemoteProcessGroup(childRemoteProcessGroupStatus.getId());
+                final RemoteProcessGroupStatusDTO childRemoteProcessGroupStatusDto = createRemoteProcessGroupStatusDto(remoteProcessGroup, childRemoteProcessGroupStatus);
                 final PermissionsDTO remoteProcessGroupPermissions = createPermissionsDto(remoteProcessGroup);
                 childRemoteProcessGroupStatusDtoCollection.add(entityFactory.createRemoteProcessGroupStatusSnapshotEntity(childRemoteProcessGroupStatusDto.getAggregateSnapshot(),
                         remoteProcessGroupPermissions));
