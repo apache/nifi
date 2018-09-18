@@ -40,6 +40,7 @@ import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalPartitionPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalQueuePartition;
+import org.apache.nifi.controller.queue.clustered.partition.NonLocalPartitionPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.QueuePartition;
 import org.apache.nifi.controller.queue.clustered.partition.RebalancingPartition;
 import org.apache.nifi.controller.queue.clustered.partition.RemoteQueuePartition;
@@ -113,6 +114,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private QueuePartition[] queuePartitions;
     private FlowFilePartitioner partitioner;
     private boolean stopped = true;
+    private boolean offloaded = false;
 
 
     public SocketLoadBalancedFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
@@ -202,6 +204,19 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
 
         setFlowFilePartitioner(partitioner);
+    }
+
+    @Override
+    public void offloadQueue() {
+        if (clusterCoordinator == null) {
+            // Not clustered, so don't change partitions
+            return;
+        }
+
+        offloaded = true;
+
+        // TODO need to be able to reset the partitioner to the previous partitioner if this node is reconnected to the cluster
+        setFlowFilePartitioner(new NonLocalPartitionPartitioner());
     }
 
     public synchronized void startLoadBalancing() {
@@ -548,6 +563,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             // If nothing is changing, then just return
             if (!forceUpdate && this.nodeIdentifiers.equals(updatedNodeIdentifiers)) {
                 logger.debug("{} Not going to rebalance Queue even though setNodeIdentifiers was called, because the new set of Node Identifiers is the same as the existing set", this);
+                return;
+            }
+
+            if (offloaded) {
+                logger.debug("{} Not going to rebalance Queue even though setNodeIdentifiers was called, because the queue has been offloaded", this);
                 return;
             }
 
@@ -962,6 +982,20 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 updatedNodeIds.add(nodeId);
 
                 logger.debug("Node Identifier {} added to cluster. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);
+                setNodeIdentifiers(updatedNodeIds, false);
+            } finally {
+                partitionWriteLock.unlock();
+            }
+        }
+
+        @Override
+        public void onNodeOffloaded(final NodeIdentifier nodeId) {
+            partitionWriteLock.lock();
+            try {
+                final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+                updatedNodeIds.remove(nodeId);
+
+                logger.debug("Node Identifier {} offloaded. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);
                 setNodeIdentifiers(updatedNodeIds, false);
             } finally {
                 partitionWriteLock.unlock();

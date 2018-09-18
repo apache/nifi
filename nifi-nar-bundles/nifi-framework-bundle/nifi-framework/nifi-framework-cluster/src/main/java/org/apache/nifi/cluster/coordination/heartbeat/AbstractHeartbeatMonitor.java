@@ -228,6 +228,12 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             return;
         }
 
+        if (NodeConnectionState.OFFLOADED == connectionState) {
+            // Cluster Coordinator believes that node is offloaded, but let the node reconnect
+            clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node that is offloaded. " +
+                    "Marking as Disconnected and requesting that Node reconnect to cluster");
+            clusterCoordinator.requestNodeConnect(nodeId, null);
+        }
         if (NodeConnectionState.DISCONNECTED == connectionState) {
             // ignore heartbeats from nodes disconnected by means other than lack of heartbeat, unless it is
             // the only node. We allow it if it is the only node because if we have a one-node cluster, then
@@ -249,7 +255,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 default: {
                     // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
                     logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
-                    clusterCoordinator.requestNodeDisconnect(nodeId, disconnectionCode, connectionStatus.getDisconnectReason());
+                    clusterCoordinator.requestNodeDisconnect(nodeId, disconnectionCode, connectionStatus.getReason());
                     removeHeartbeat(nodeId);
                     break;
                 }

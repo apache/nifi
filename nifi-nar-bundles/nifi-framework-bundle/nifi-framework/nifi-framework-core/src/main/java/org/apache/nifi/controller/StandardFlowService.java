@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -36,6 +37,7 @@ import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
@@ -44,12 +46,14 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.NarClassLoaders;
@@ -381,6 +385,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public boolean canHandle(final ProtocolMessage msg) {
         switch (msg.getType()) {
             case RECONNECTION_REQUEST:
+            case OFFLOAD_REQUEST:
             case DISCONNECTION_REQUEST:
             case FLOW_REQUEST:
                 return true;
@@ -414,6 +419,22 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     t.start();
 
                     return new ReconnectionResponseMessage();
+                }
+                case OFFLOAD_REQUEST: {
+                    final Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                handleOffloadRequest((OffloadMessage) request);
+                            } catch (InterruptedException e) {
+                                throw new ProtocolException("Could not complete offload request", e);
+                            }
+                        }
+                    }, "Offload Flow Files from Node");
+                    t.setDaemon(true);
+                    t.start();
+
+                    return null;
                 }
                 case DISCONNECTION_REQUEST: {
                     final Thread t = new Thread(new Runnable() {
@@ -561,7 +582,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private FlowResponseMessage handleFlowRequest(final FlowRequestMessage request) throws ProtocolException {
         readLock.lock();
         try {
-            logger.info("Received flow request message from manager.");
+            logger.info("Received flow request message from cluster coordinator.");
 
             // create the response
             final FlowResponseMessage response = new FlowResponseMessage();
@@ -631,7 +652,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private void handleReconnectionRequest(final ReconnectionRequestMessage request) {
         try {
-            logger.info("Processing reconnection request from manager.");
+            logger.info("Processing reconnection request from cluster coordinator.");
 
             // reconnect
             ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
@@ -662,8 +683,48 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
+    private void handleOffloadRequest(final OffloadMessage request) throws InterruptedException {
+        logger.info("Received offload request message from cluster coordinator with explanation: " + request.getExplanation());
+        offload(request.getExplanation());
+    }
+
+    private void offload(final String explanation) throws InterruptedException {
+        writeLock.lock();
+        try {
+
+            logger.info("Offloading node due to " + explanation);
+
+            // mark node as offloading
+            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADING, OffloadCode.OFFLOADED, explanation));
+            // request to stop all processors on node
+            controller.stopAllProcessors();
+            // request to stop all remote process groups
+            controller.getRootGroup().findAllRemoteProcessGroups().forEach(RemoteProcessGroup::stopTransmitting);
+            // terminate all processors
+            controller.getRootGroup().findAllProcessors()
+                    // filter stream, only stopped processors can be terminated
+                    .stream().filter(pn -> pn.getScheduledState() == ScheduledState.STOPPED)
+                    .forEach(pn -> pn.getProcessGroup().terminateProcessor(pn));
+            // offload all queues on node
+            controller.getAllQueues().forEach(FlowFileQueue::offloadQueue);
+            // wait for rebalance of flowfiles on all queues
+            while (controller.getControllerStatus().getQueuedCount() > 0) {
+                logger.debug("Offloading queues on node {}, remaining queued count: {}", getNodeId(), controller.getControllerStatus().getQueuedCount());
+                Thread.sleep(1000);
+            }
+            // finish offload
+            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED, OffloadCode.OFFLOADED, explanation));
+            clusterCoordinator.finishNodeOffload(getNodeId());
+
+            logger.info("Node offloaded due to " + explanation);
+
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
     private void handleDisconnectionRequest(final DisconnectMessage request) {
-        logger.info("Received disconnection request message from manager with explanation: " + request.getExplanation());
+        logger.info("Received disconnection request message from cluster coordinator with explanation: " + request.getExplanation());
         disconnect(request.getExplanation());
     }
 
@@ -829,11 +890,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         }
                     } else if (response.getRejectionReason() != null) {
                         logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
-                        // set response to null and treat a firewall blockage the same as getting no response from manager
+                        // set response to null and treat a firewall blockage the same as getting no response from cluster coordinator
                         response = null;
                         break;
                     } else {
-                        // we received a successful connection response from manager
+                        // we received a successful connection response from cluster coordinator
                         break;
                     }
                 } catch (final NoClusterCoordinatorException ncce) {

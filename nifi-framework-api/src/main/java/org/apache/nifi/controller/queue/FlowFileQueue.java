@@ -267,6 +267,8 @@ public interface FlowFileQueue {
 
     void setLoadBalanceStrategy(LoadBalanceStrategy strategy, String partitioningAttribute);
 
+    void offloadQueue();
+
     LoadBalanceStrategy getLoadBalanceStrategy();
 
     void setLoadBalanceCompression(LoadBalanceCompression compression);

@@ -14,18 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.cluster.manager.exception;
 
-package org.apache.nifi.cluster.coordination;
+/**
+ * Represents the exceptional case when a HTTP request that may change a node's dataflow is to be replicated while one or more nodes are offloaded.
+ *
+ */
+public class OffloadedNodeMutableRequestException extends MutableRequestException {
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
+    public OffloadedNodeMutableRequestException() {
+    }
 
-public interface ClusterTopologyEventListener {
+    public OffloadedNodeMutableRequestException(String msg) {
+        super(msg);
+    }
 
-    void onNodeAdded(NodeIdentifier nodeId);
+    public OffloadedNodeMutableRequestException(Throwable cause) {
+        super(cause);
+    }
 
-    void onNodeOffloaded(NodeIdentifier nodeId);
-
-    void onNodeRemoved(NodeIdentifier nodeId);
-
-    void onLocalNodeIdentifierSet(NodeIdentifier localNodeId);
+    public OffloadedNodeMutableRequestException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }

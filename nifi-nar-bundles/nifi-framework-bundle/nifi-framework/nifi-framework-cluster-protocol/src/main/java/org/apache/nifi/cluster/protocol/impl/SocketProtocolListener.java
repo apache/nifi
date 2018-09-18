@@ -24,6 +24,7 @@ import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -210,6 +211,8 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                 return ((ConnectionRequestMessage) message).getConnectionRequest().getProposedNodeIdentifier();
             case HEARTBEAT:
                 return ((HeartbeatMessage) message).getHeartbeat().getNodeIdentifier();
+            case OFFLOAD_REQUEST:
+                return ((OffloadMessage) message).getNodeId();
             case DISCONNECTION_REQUEST:
                 return ((DisconnectMessage) message).getNodeId();
             case FLOW_REQUEST:

@@ -15,17 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination;
+package org.apache.nifi.cluster.coordination.node;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
+/**
+ * An enumeration of the reasons that a node may be offloaded
+ */
+public enum OffloadCode {
 
-public interface ClusterTopologyEventListener {
+    /**
+     * A user explicitly offloaded the node
+     */
+    OFFLOADED("Node Offloaded");
 
-    void onNodeAdded(NodeIdentifier nodeId);
+    private final String description;
 
-    void onNodeOffloaded(NodeIdentifier nodeId);
+    OffloadCode(final String description) {
+        this.description = description;
+    }
 
-    void onNodeRemoved(NodeIdentifier nodeId);
-
-    void onLocalNodeIdentifierSet(NodeIdentifier localNodeId);
+    @Override
+    public String toString() {
+        return description;
+    }
 }

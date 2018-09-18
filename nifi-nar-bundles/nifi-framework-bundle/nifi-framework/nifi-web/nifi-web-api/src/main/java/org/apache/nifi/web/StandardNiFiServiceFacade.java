@@ -47,6 +47,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -1124,6 +1125,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         if (NodeConnectionState.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterCoordinator.requestNodeConnect(nodeId, userDn);
+        } else if (NodeConnectionState.OFFLOADING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
+            clusterCoordinator.requestNodeOffload(nodeId, OffloadCode.OFFLOADED,
+                    "User " + userDn + " requested that node be offloaded");
         } else if (NodeConnectionState.DISCONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.USER_DISCONNECTED,
                     "User " + userDn + " requested that node be disconnected from cluster");
@@ -4702,7 +4706,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
-        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
+        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.OFFLOADED) && !nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
             throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId + " because it is not disconnected, current state = " + nodeConnectionStatus.getState());
         }
 
