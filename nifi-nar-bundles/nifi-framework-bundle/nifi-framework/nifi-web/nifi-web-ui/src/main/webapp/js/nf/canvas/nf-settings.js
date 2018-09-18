@@ -1066,7 +1066,7 @@
                     markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
                 }
 
-                if (nfCommon.canModifyController()) {
+                if (canRead && canWrite && nfCommon.canModifyController()) {
                     markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash"></div>';
                 }
             }

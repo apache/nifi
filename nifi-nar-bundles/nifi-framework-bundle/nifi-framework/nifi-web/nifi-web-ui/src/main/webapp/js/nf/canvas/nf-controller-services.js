@@ -959,7 +959,7 @@
                     markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange"></div>';
                 }
 
-                if (isDisabled && canWriteControllerServiceParent(dataContext)) {
+                if (isDisabled && canRead && canWrite && canWriteControllerServiceParent(dataContext)) {
                     markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove"></div>';
                 }
 
