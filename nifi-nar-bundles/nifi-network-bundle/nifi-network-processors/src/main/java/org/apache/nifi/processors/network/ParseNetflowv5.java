@@ -18,8 +18,8 @@ import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getHeade
 import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecordFields;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,19 +43,18 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.network.parser.Netflowv5Parser;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -75,12 +74,16 @@ public class ParseNetflowv5 extends AbstractProcessor {
     // Add mapper
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static final String DESTINATION_CONTENT = "flowfile-content";
-    public static final String DESTINATION_ATTRIBUTES = "flowfile-attribute";
+    public static final String FLOWFILE_CONTENT = "flowfile-content";
+    public static final String FLOWFILE_ATTRIBUTE = "flowfile-attribute";
+    public static final AllowableValue DESTINATION_CONTENT = new AllowableValue(FLOWFILE_CONTENT, FLOWFILE_CONTENT,
+            "Parsed data routes as flowfile JSON content");
+    public static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue(FLOWFILE_ATTRIBUTE, FLOWFILE_ATTRIBUTE,
+            "Parsed data routes as flowfile attributes");
     public static final PropertyDescriptor FIELDS_DESTINATION = new PropertyDescriptor.Builder().name("FIELDS_DESTINATION").displayName("Parsed fields destination")
             .description("Indicates whether the results of the parser are written " + "to the FlowFile content or a FlowFile attribute; if using " + DESTINATION_ATTRIBUTES
                     + ", fields will be populated as attributes. If set to " + DESTINATION_CONTENT + ", the netflowv5 field will be converted into a flat JSON object.")
-            .required(true).allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTES).defaultValue(DESTINATION_CONTENT).build();
+            .required(true).allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTES).defaultValue(DESTINATION_CONTENT.getDisplayName()).build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Any FlowFile that could not be parsed as a netflowv5 message will be transferred to this Relationship without any attributes being added").build();
@@ -108,29 +111,26 @@ public class ParseNetflowv5 extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final ComponentLog logger = getLogger();
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         final OptionalInt portNumber = resolvePort(flowFile);
-        final Netflowv5Parser parser = new Netflowv5Parser(portNumber);
-
-        final byte[] buffer = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, buffer);
-            }
-        });
+        final Netflowv5Parser parser = new Netflowv5Parser(portNumber);    
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        session.exportTo(flowFile, baos);
+        final byte[] buffer = baos.toByteArray();        
 
         final int processedRecord;
         try {
             processedRecord = parser.parse(buffer);
-            getLogger().debug("Parsed {} records from the packet", new Object[] { processedRecord });
+            if(logger.isDebugEnabled()) {
+                logger.debug("Parsed {} records from the packet", new Object[] { processedRecord });
+            }
         } catch (Throwable e) {
-            getLogger().error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] { e, flowFile });
+            logger.error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] { e, flowFile });
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -138,13 +138,13 @@ public class ParseNetflowv5 extends AbstractProcessor {
         try {
             final List<FlowFile> multipleRecords = new ArrayList<>();
             switch (destination) {
-            case DESTINATION_ATTRIBUTES:
-                final Map<String, String> attributes = new HashMap<>();
-                generateKV(multipleRecords, session, flowFile, attributes, parser, processedRecord);
-                break;
-            case DESTINATION_CONTENT:
-                generateJSON(multipleRecords, session, flowFile, parser, processedRecord, buffer);
-                break;
+                case FLOWFILE_ATTRIBUTE:
+                    final Map<String, String> attributes = new HashMap<>();
+                    generateKV(multipleRecords, session, flowFile, attributes, parser, processedRecord);
+                    break;
+                case FLOWFILE_CONTENT:
+                    generateJSON(multipleRecords, session, flowFile, parser, processedRecord);
+                    break;
             }
             // Create a provenance event recording the routing to success
             multipleRecords.forEach(recordFlowFile -> session.getProvenanceReporter().route(recordFlowFile, REL_SUCCESS));
@@ -156,7 +156,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             session.commit();
         } catch (Exception e) {
             // The flowfile has failed parsing & validation, routing to failure
-            getLogger().error("Failed to parse {} as a netflowv5 message due to {}; routing to failure", new Object[] { flowFile, e });
+            logger.error("Failed to parse {} as a netflowv5 message due to {}; routing to failure", new Object[] { flowFile, e });
             // Create a provenance event recording the routing to failure
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
@@ -167,7 +167,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
         }
     }
 
-    private void generateJSON(final List<FlowFile> multipleRecords, final ProcessSession session, final FlowFile flowFile, final Netflowv5Parser parser, final int processedRecord, final byte[] buffer)
+    private void generateJSON(final List<FlowFile> multipleRecords, final ProcessSession session, final FlowFile flowFile, final Netflowv5Parser parser, final int processedRecord)
             throws JsonProcessingException {
         int numberOfRecords = processedRecord;
         FlowFile recordFlowFile = flowFile;
@@ -178,7 +178,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             results.set("port", mapper.valueToTree(parser.getPortNumber()));
             results.set("format", mapper.valueToTree("netflowv5"));
 
-            recordFlowFile = session.clone(flowFile);
+            recordFlowFile = session.create(flowFile);
             // Add JSON Objects
             generateJSONUtil(results, parser, record++);
 
@@ -192,8 +192,6 @@ public class ParseNetflowv5 extends AbstractProcessor {
             });
             // Adjust the FlowFile mime.type attribute
             recordFlowFile = session.putAttribute(recordFlowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-            // Update the provenance for good measure
-            session.getProvenanceReporter().modifyContent(recordFlowFile, "Replaced content with parsed netflowv5 fields and values");
             multipleRecords.add(recordFlowFile);
         }
     }
@@ -212,7 +210,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             for (int i = 0; i < fieldname.length; i++) {
                 attributes.put("netflowv5.record." + fieldname[i], String.valueOf(fieldvalue[i]));
             }
-            recordFlowFile = session.clone(flowFile);
+            recordFlowFile = session.create(flowFile);
             recordFlowFile = session.putAllAttributes(recordFlowFile, attributes);
             multipleRecords.add(recordFlowFile);
         }
@@ -220,8 +218,9 @@ public class ParseNetflowv5 extends AbstractProcessor {
 
     private OptionalInt resolvePort(final FlowFile flowFile) {
         final String port;
-        if ((port = flowFile.getAttribute("udp.port")) != null)
+        if ((port = flowFile.getAttribute("udp.port")) != null) {
             return OptionalInt.of(Integer.parseInt(port));
+        }
         return OptionalInt.empty();
     }
 
