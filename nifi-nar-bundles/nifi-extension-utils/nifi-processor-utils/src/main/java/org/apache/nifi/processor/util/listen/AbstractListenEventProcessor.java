@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processor.util.listen;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 import static org.apache.nifi.processor.util.listen.ListenerProperties.LOCAL_IP_ADDRESS;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -40,6 +43,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -132,6 +136,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(NETWORK_INTF_NAME);
         descriptors.add(LOCAL_IP_ADDRESS);
         descriptors.add(PORT);
         descriptors.add(RECV_BUFFER_SIZE);
@@ -175,19 +180,60 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return descriptors;
     }
 
+    /**
+     * In order to add custom validation at sub-classes, implement {@link #customValidate(ValidationContext, Collection)} method.
+     */
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+
+        String netIntfNameStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        String nicIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
+
+        if (!StringUtils.isEmpty(netIntfNameStr) && !StringUtils.isEmpty(nicIPAddressStr)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(NETWORK_INTF_NAME.getDisplayName())
+                    .explanation(NETWORK_INTF_NAME.getDisplayName() + " cannot be provided when selecting " + LOCAL_IP_ADDRESS.getDisplayName())
+                    .valid(false)
+                    .build());
+            results.add(new ValidationResult.Builder()
+                    .subject(LOCAL_IP_ADDRESS.getDisplayName())
+                    .explanation(LOCAL_IP_ADDRESS.getDisplayName() + " cannot be provided when selecting " + NETWORK_INTF_NAME.getDisplayName())
+                    .valid(false)
+                    .build());
+        }
+
+        customValidate(context, results);
+        return results;
+    }
+
+
+    /**
+     * Sub-classes can add custom validation by implementing this method.
+     * @param validationContext the validation context
+     * @param validationResults add custom validation result to this collection
+     */
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> validationResults) {
+
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
 
-        final String nicIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-
+        final String netIntfNameStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final String lclIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
+        String nicIPAddressStr = new String();
         InetAddress nicIPAddress = null;
-        if (!StringUtils.isEmpty(nicIPAddressStr)) {
+        if (!StringUtils.isEmpty(netIntfNameStr)) {
+            NetworkInterface netIF = NetworkInterface.getByName(netIntfNameStr);
+            nicIPAddress = netIF.getInetAddresses().nextElement();
+        } else if (!StringUtils.isEmpty(lclIPAddressStr)) {
             try {
-                nicIPAddress = InetAddress.getByName(nicIPAddressStr);
+                nicIPAddress = InetAddress.getByName(lclIPAddressStr);
             } catch (UnknownHostException e) {
             }
         }

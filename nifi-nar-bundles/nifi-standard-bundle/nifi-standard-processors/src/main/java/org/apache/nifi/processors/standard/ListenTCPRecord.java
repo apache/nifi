@@ -74,6 +74,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 import static org.apache.nifi.processor.util.listen.ListenerProperties.LOCAL_IP_ADDRESS;
 
 @SupportsBatching
@@ -204,6 +205,7 @@ public class ListenTCPRecord extends AbstractProcessor {
     static final List<PropertyDescriptor> PROPERTIES;
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(ListenerProperties.NETWORK_INTF_NAME);
         props.add(ListenerProperties.LOCAL_IP_ADDRESS);
         props.add(PORT);
         props.add(MAX_SOCKET_BUFFER_SIZE);
@@ -268,7 +270,14 @@ public class ListenTCPRecord extends AbstractProcessor {
 
         // if the Network Interface Property wasn't provided then a null InetAddress will indicate to bind to all interfaces
         final InetAddress nicAddress;
-        final String nicAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
+        final String netIntfNameStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final String lclIPAddressStr = context.getProperty(LOCAL_IP_ADDRESS).evaluateAttributeExpressions().getValue();
+        String nicAddressStr = new String();
+        if (!StringUtils.isEmpty(netIntfNameStr)) {
+            nicAddressStr = netIntfNameStr;
+        } else {
+            nicAddressStr = lclIPAddressStr;
+        }
         if (!StringUtils.isEmpty(nicAddressStr)) {
             NetworkInterface netIF = NetworkInterface.getByName(nicAddressStr);
             nicAddress = netIF.getInetAddresses().nextElement();

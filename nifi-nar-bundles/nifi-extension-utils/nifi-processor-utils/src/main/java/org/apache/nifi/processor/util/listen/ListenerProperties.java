@@ -35,6 +35,7 @@ import java.util.Set;
  */
 public class ListenerProperties {
 
+    private static final Set<String> interfaceSet = new HashSet<>();
     private static final Set<String> ipSet = new HashSet<>();
 
     static {
@@ -42,6 +43,7 @@ public class ListenerProperties {
             final Enumeration<NetworkInterface> interfaceEnum = NetworkInterface.getNetworkInterfaces();
             while (interfaceEnum.hasMoreElements()) {
                 final NetworkInterface ifc = interfaceEnum.nextElement();
+                interfaceSet.add(ifc.getName());
 
                 final Enumeration<InetAddress> ipEnum = ifc.getInetAddresses();
                 while (ipEnum.hasMoreElements()) {
@@ -52,6 +54,44 @@ public class ListenerProperties {
         } catch (SocketException e) {
         }
     }
+
+    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder()
+            .name("Local Network Interface")
+            .description("The name of a local network interface to be used to restrict listening to a specific LAN.")
+            .addValidator(new Validator() {
+                @Override
+                public ValidationResult validate(String subject, String input, ValidationContext context) {
+                    ValidationResult result = new ValidationResult.Builder()
+                            .subject("Local Network Interface").valid(true).input(input).build();
+                    if (interfaceSet.contains(input.toLowerCase())) {
+                        return result;
+                    }
+
+                    String message;
+                    String realValue = input;
+                    try {
+                        if (context.isExpressionLanguagePresent(input)) {
+                            AttributeExpression ae = context.newExpressionLanguageCompiler().compile(input);
+                            realValue = ae.evaluate();
+                        }
+
+                        if (interfaceSet.contains(realValue.toLowerCase())) {
+                            return result;
+                        }
+
+                        message = realValue + " is not a valid network name. Valid names are " + interfaceSet.toString();
+
+                    } catch (IllegalArgumentException e) {
+                        message = "Not a valid AttributeExpression: " + e.getMessage();
+                    }
+                    result = new ValidationResult.Builder().subject("Local Network Interface")
+                            .valid(false).input(input).explanation(message).build();
+
+                    return result;
+                }
+            })
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     public static final PropertyDescriptor LOCAL_IP_ADDRESS = new PropertyDescriptor.Builder()
             .name("Local IP Address")
