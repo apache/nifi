@@ -47,11 +47,13 @@ public final class Netflowv5Parser {
     }
 
     public final int parse(final byte[] buffer) throws Throwable {
-        if( !isValid(buffer.length) )
+        if( !isValid(buffer.length) ) {
             throw new Exception("Invalid Packet Length");
+		}
         final int version = toInt(buffer, 0, 2);
-        if( version != 5 )
+        if( version != 5 ) {
             throw new Exception("Version mismatch");
+		}
         final int count = toInt(buffer, 2, 2);
 
         headerData = new Object[headerField.length];

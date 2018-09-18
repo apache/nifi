@@ -54,11 +54,11 @@
             <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <!-- Dependency marked as provided, not test, because we have assertion 
+            <!-- Dependency marked as compile, not test, because we have assertion
             methods in our MockSession & MockFlowFile -->
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

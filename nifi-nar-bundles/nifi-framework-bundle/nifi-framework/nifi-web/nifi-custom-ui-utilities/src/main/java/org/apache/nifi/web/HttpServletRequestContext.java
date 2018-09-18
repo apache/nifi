@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
  * An implementation of the ConfigurationRequestContext that retrieves configuration
  * from a HttpServletRequest instance.
  */
+@SuppressWarnings("deprecation")
 public class HttpServletRequestContext implements NiFiWebRequestContext {
 
     private static final String ID_PARAM = "id";

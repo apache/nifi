@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,13 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Ignore;
-
 import org.junit.Test;
 
 public class TestScanContent {
@@ -59,7 +57,7 @@ public class TestScanContent {
         final String[] terms = new String[]{"hello", "good-bye"};
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        try (final DataOutputStream dictionaryOut = new DataOutputStream(baos);) {
+        try (final DataOutputStream dictionaryOut = new DataOutputStream(baos)) {
             for (final String term : terms) {
                 final byte[] termBytes = term.getBytes("UTF-8");
                 dictionaryOut.writeInt(termBytes.length);

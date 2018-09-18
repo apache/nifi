@@ -19,9 +19,9 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -301,16 +301,16 @@ public class ITListenSyslog {
 
     private void checkFlowFile(final MockFlowFile flowFile, final int port, final String protocol) {
         flowFile.assertContentEquals(VALID_MESSAGE.replace("\n", ""));
-        Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.PRIORITY.key()));
-        Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SEVERITY.key()));
-        Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.FACILITY.key()));
-        Assert.assertEquals(TIME, flowFile.getAttribute(SyslogAttributes.TIMESTAMP.key()));
-        Assert.assertEquals(HOST, flowFile.getAttribute(SyslogAttributes.HOSTNAME.key()));
-        Assert.assertEquals(BODY, flowFile.getAttribute(SyslogAttributes.BODY.key()));
-        Assert.assertEquals("true", flowFile.getAttribute(SyslogAttributes.VALID.key()));
-        Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(SyslogAttributes.PORT.key()));
-        Assert.assertEquals(protocol, flowFile.getAttribute(SyslogAttributes.PROTOCOL.key()));
-        Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SENDER.key())));
+        Assert.assertEquals(PRI, flowFile.getAttribute(SyslogAttributes.SYSLOG_PRIORITY.key()));
+        Assert.assertEquals(SEV, flowFile.getAttribute(SyslogAttributes.SYSLOG_SEVERITY.key()));
+        Assert.assertEquals(FAC, flowFile.getAttribute(SyslogAttributes.SYSLOG_FACILITY.key()));
+        Assert.assertEquals(TIME, flowFile.getAttribute(SyslogAttributes.SYSLOG_TIMESTAMP.key()));
+        Assert.assertEquals(HOST, flowFile.getAttribute(SyslogAttributes.SYSLOG_HOSTNAME.key()));
+        Assert.assertEquals(BODY, flowFile.getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        Assert.assertEquals("true", flowFile.getAttribute(SyslogAttributes.SYSLOG_VALID.key()));
+        Assert.assertEquals(String.valueOf(port), flowFile.getAttribute(SyslogAttributes.SYSLOG_PORT.key()));
+        Assert.assertEquals(protocol, flowFile.getAttribute(SyslogAttributes.SYSLOG_PROTOCOL.key()));
+        Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SYSLOG_SENDER.key())));
     }
 
     /**

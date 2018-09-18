@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -97,8 +98,8 @@ public class CredentialsFactory {
      *
      * @throws IOException if there is an issue accessing the credential files
      */
-    public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties) throws IOException {
+    public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties, final HttpTransportFactory transportFactory) throws IOException {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(properties);
-        return primaryStrategy.getGoogleCredentials(properties);
+        return primaryStrategy.getGoogleCredentials(properties, transportFactory);
     }
 }

@@ -24,6 +24,7 @@ import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
 import org.apache.nifi.atlas.reporting.ITReportLineageToAtlas;
 import org.apache.nifi.atlas.resolver.ClusterResolvers;
 import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.junit.Test;
@@ -49,7 +50,7 @@ import static org.mockito.Mockito.when;
 public class TestNiFiRemotePort {
 
     @Test
-    public void testRemoteInputPort() {
+    public void testRemoteInputPortHTTP() {
         final String componentType = "Remote Input Port";
         final String transitUri = "http://0.example.com:8080/nifi-api/data-transfer/input-ports/port-guid/transactions/tx-guid/flow-files";
         final ProvenanceEventRecord sendEvent = Mockito.mock(ProvenanceEventRecord.class);
@@ -89,7 +90,7 @@ public class TestNiFiRemotePort {
     }
 
     @Test
-    public void testRemoteOutputPort() {
+    public void testRemoteOutputPortHTTP() {
         final String componentType = "Remote Output Port";
         final String transitUri = "http://0.example.com:8080/nifi-api/data-transfer/output-ports/port-guid/transactions/tx-guid/flow-files";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
@@ -123,5 +124,85 @@ public class TestNiFiRemotePort {
         assertEquals("port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
+    @Test
+    public void testRemoteInputPortRAW() {
+        final String componentType = "Remote Input Port";
+        // The UUID in a Transit Uri is a FlowFile UUID
+        final String transitUri = "nifi://0.example.com:8081/580b7989-a80b-4089-b25b-3f5e0103af82";
+        final ProvenanceEventRecord sendEvent = Mockito.mock(ProvenanceEventRecord.class);
+        when(sendEvent.getEventId()).thenReturn(123L);
+        // Component Id is an UUID of the RemoteGroupPort instance acting as a S2S client.
+        when(sendEvent.getComponentId()).thenReturn("s2s-client-component-guid");
+        when(sendEvent.getComponentType()).thenReturn(componentType);
+        when(sendEvent.getTransitUri()).thenReturn(transitUri);
+        when(sendEvent.getEventType()).thenReturn(ProvenanceEventType.SEND);
+        when(sendEvent.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key())).thenReturn("remote-port-guid");
+
+        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
+        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+
+        final List<ConnectionStatus> connections = new ArrayList<>();
+        final ConnectionStatus connection = new ConnectionStatus();
+        connection.setDestinationId("s2s-client-component-guid");
+        connection.setDestinationName("inputPortA");
+        connections.add(connection);
+
+        final AnalysisContext context = Mockito.mock(AnalysisContext.class);
+        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.findConnectionTo(matches("s2s-client-component-guid"))).thenReturn(connections);
+
+        final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, sendEvent.getEventType());
+        assertNotNull(analyzer);
+
+        final DataSetRefs refs = analyzer.analyze(context, sendEvent);
+        assertEquals(0, refs.getInputs().size());
+        assertEquals(1, refs.getOutputs().size());
+        assertEquals(1, refs.getComponentIds().size());
+        // Should report connected componentId.
+        assertTrue(refs.getComponentIds().contains("s2s-client-component-guid"));
+
+        Referenceable ref = refs.getOutputs().iterator().next();
+        assertEquals(TYPE_NIFI_INPUT_PORT, ref.getTypeName());
+        assertEquals("inputPortA", ref.get(ATTR_NAME));
+        assertEquals("remote-port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+    }
+
+    @Test
+    public void testRemoteOutputPortRAW() {
+        final String componentType = "Remote Output Port";
+        // The UUID in a Transit Uri is a FlowFile UUID
+        final String transitUri = "nifi://0.example.com:8081/232018cc-a147-40c6-b148-21f9f814e93c";
+        final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
+        // Component Id is an UUID of the RemoteGroupPort instance acting as a S2S client.
+        when(record.getComponentId()).thenReturn("s2s-client-component-guid");
+        when(record.getComponentType()).thenReturn(componentType);
+        when(record.getTransitUri()).thenReturn(transitUri);
+        when(record.getEventType()).thenReturn(ProvenanceEventType.RECEIVE);
+        when(record.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key())).thenReturn("remote-port-guid");
+
+        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
+        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+
+        final List<ConnectionStatus> connections = new ArrayList<>();
+        final ConnectionStatus connection = new ConnectionStatus();
+        connection.setSourceId("s2s-client-component-guid");
+        connection.setSourceName("outputPortA");
+        connections.add(connection);
+
+        final AnalysisContext context = Mockito.mock(AnalysisContext.class);
+        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.findConnectionFrom(matches("s2s-client-component-guid"))).thenReturn(connections);
+
+        final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(componentType, transitUri, record.getEventType());
+        assertNotNull(analyzer);
+
+        final DataSetRefs refs = analyzer.analyze(context, record);
+        assertEquals(1, refs.getInputs().size());
+        assertEquals(0, refs.getOutputs().size());
+        Referenceable ref = refs.getInputs().iterator().next();
+        assertEquals(TYPE_NIFI_OUTPUT_PORT, ref.getTypeName());
+        assertEquals("outputPortA", ref.get(ATTR_NAME));
+        assertEquals("remote-port-guid@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+    }
 
 }

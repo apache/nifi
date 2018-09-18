@@ -17,91 +17,92 @@
 
 package org.apache.nifi.controller.status.history;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 public enum ProcessorStatusDescriptor {
-    BYTES_READ(new StandardMetricDescriptor<ProcessorStatus>(
+    BYTES_READ(
         "bytesRead",
         "Bytes Read (5 mins)",
         "The total number of bytes read from the Content Repository by this Processor in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesRead())),
+        ProcessorStatus::getBytesRead),
 
-    BYTES_WRITTEN(new StandardMetricDescriptor<ProcessorStatus>(
+    BYTES_WRITTEN(
         "bytesWritten",
         "Bytes Written (5 mins)",
         "The total number of bytes written to the Content Repository by this Processor in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesWritten())),
+        ProcessorStatus::getBytesWritten),
 
-    BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessorStatus>(
+    BYTES_TRANSFERRED(
         "bytesTransferred",
         "Bytes Transferred (5 mins)",
         "The total number of bytes read from or written to the Content Repository by this Processor in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesRead() + s.getBytesWritten())),
+        s -> s.getBytesRead() + s.getBytesWritten()),
 
-    INPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>(
+    INPUT_BYTES(
         "inputBytes",
         "Bytes In (5 mins)",
         "The cumulative size of all FlowFiles that this Processor has pulled from its queues in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getInputBytes())),
+        ProcessorStatus::getInputBytes),
 
-    INPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>(
+    INPUT_COUNT(
         "inputCount",
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that this Processor has pulled from its queues in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getInputCount()))),
+        s -> Long.valueOf(s.getInputCount())),
 
-    OUTPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>(
+    OUTPUT_BYTES(
         "outputBytes",
         "Bytes Out (5 mins)",
         "The cumulative size of all FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getOutputBytes())),
+        ProcessorStatus::getOutputBytes),
 
-    OUTPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>(
+    OUTPUT_COUNT(
         "outputCount",
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getOutputCount()))),
+        s -> Long.valueOf(s.getOutputCount())),
 
-    TASK_COUNT(new StandardMetricDescriptor<ProcessorStatus>(
+    TASK_COUNT(
         "taskCount",
         "Tasks (5 mins)",
         "The number of tasks that this Processor has completed in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getInvocations()))),
+        s -> Long.valueOf(s.getInvocations())),
 
-    TASK_MILLIS(new StandardMetricDescriptor<ProcessorStatus>(
+    TASK_MILLIS(
         "taskMillis",
         "Total Task Duration (5 mins)",
         "The total number of thread-milliseconds that the Processor has used to complete its tasks in the past 5 minutes",
         Formatter.DURATION,
-        s -> TimeUnit.MILLISECONDS.convert(s.getProcessingNanos(), TimeUnit.NANOSECONDS))),
+        s -> TimeUnit.MILLISECONDS.convert(s.getProcessingNanos(), TimeUnit.NANOSECONDS)),
 
-    TASK_NANOS(new StandardMetricDescriptor<ProcessorStatus>(
+    TASK_NANOS(
         "taskNanos",
         "Total Task Time (nanos)",
         "The total number of thread-nanoseconds that the Processor has used to complete its tasks in the past 5 minutes",
         Formatter.COUNT,
-        ProcessorStatus::getProcessingNanos), false),
+        ProcessorStatus::getProcessingNanos,
+        false),
 
-    FLOWFILES_REMOVED(new StandardMetricDescriptor<ProcessorStatus>(
+    FLOWFILES_REMOVED(
         "flowFilesRemoved",
         "FlowFiles Removed (5 mins)",
         "The total number of FlowFiles removed by this Processor in the last 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getFlowFilesRemoved()))),
+        s -> Long.valueOf(s.getFlowFilesRemoved())),
 
-    AVERAGE_LINEAGE_DURATION(new StandardMetricDescriptor<ProcessorStatus>(
+    AVERAGE_LINEAGE_DURATION(
         "averageLineageDuration",
         "Average Lineage Duration (5 mins)",
         "The average amount of time that a FlowFile took to process (from receipt until this Processor finished processing it) in the past 5 minutes.",
@@ -114,23 +115,24 @@ public enum ProcessorStatusDescriptor {
                 int count = 0;
 
                 for (final StatusSnapshot snapshot : values) {
-                    final long removed = snapshot.getStatusMetrics().get(FLOWFILES_REMOVED.getDescriptor()).longValue();
-                    final long outputCount = snapshot.getStatusMetrics().get(OUTPUT_COUNT.getDescriptor()).longValue();
+                    final long removed = snapshot.getStatusMetric(FLOWFILES_REMOVED.getDescriptor()).longValue();
+                    final long outputCount = snapshot.getStatusMetric(OUTPUT_COUNT.getDescriptor()).longValue();
                     final long processed = removed + outputCount;
 
                     count += processed;
 
-                    final long avgMillis = snapshot.getStatusMetrics().get(AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue();
+                    final long avgMillis = snapshot.getStatusMetric(AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue();
                     final long totalMillis = avgMillis * processed;
                     millis += totalMillis;
                 }
 
                 return count == 0 ? 0 : millis / count;
             }
-        }
-    )),
+        },
+        true
+    ),
 
-    AVERAGE_TASK_NANOS(new StandardMetricDescriptor<ProcessorStatus>(
+    AVERAGE_TASK_NANOS(
         "averageTaskNanos",
         "Average Task Duration (nanoseconds)",
         "The average number of nanoseconds it took this Processor to complete a task, over the past 5 minutes",
@@ -143,12 +145,12 @@ public enum ProcessorStatusDescriptor {
                 int invocations = 0;
 
                 for (final StatusSnapshot snapshot : values) {
-                    final Long taskNanos = snapshot.getStatusMetrics().get(TASK_NANOS.getDescriptor());
+                    final Long taskNanos = snapshot.getStatusMetric(TASK_NANOS.getDescriptor());
                     if (taskNanos != null) {
                         procNanos += taskNanos.longValue();
                     }
 
-                    final Long taskInvocations = snapshot.getStatusMetrics().get(TASK_COUNT.getDescriptor());
+                    final Long taskInvocations = snapshot.getStatusMetric(TASK_COUNT.getDescriptor());
                     if (taskInvocations != null) {
                         invocations += taskInvocations.intValue();
                     }
@@ -160,21 +162,37 @@ public enum ProcessorStatusDescriptor {
 
                 return procNanos / invocations;
             }
-        }));
+        },
+        true
+    );
 
 
 
     private final MetricDescriptor<ProcessorStatus> descriptor;
     private final boolean visible;
 
-    private ProcessorStatusDescriptor(final MetricDescriptor<ProcessorStatus> descriptor) {
-        this(descriptor, true);
+    ProcessorStatusDescriptor(final String field, final String label, final String description,
+                              final MetricDescriptor.Formatter formatter, final ValueMapper<ProcessorStatus> valueFunction) {
+
+        this(field, label, description, formatter, valueFunction, true);
     }
 
-    private ProcessorStatusDescriptor(final MetricDescriptor<ProcessorStatus> descriptor, final boolean visible) {
-        this.descriptor = descriptor;
+    ProcessorStatusDescriptor(final String field, final String label, final String description,
+                              final MetricDescriptor.Formatter formatter, final ValueMapper<ProcessorStatus> valueFunction, final boolean visible) {
+
+        this.descriptor = new StandardMetricDescriptor<>(this::ordinal, field, label, description, formatter, valueFunction);
         this.visible = visible;
     }
+
+    ProcessorStatusDescriptor(final String field, final String label, final String description,
+                              final MetricDescriptor.Formatter formatter, final ValueMapper<ProcessorStatus> valueFunction,
+                              final ValueReducer<StatusSnapshot, Long> reducer, final boolean visible) {
+
+        this.descriptor = new StandardMetricDescriptor<>(this::ordinal, field, label, description, formatter, valueFunction, reducer);
+        this.visible = visible;
+    }
+
+
 
     public String getField() {
         return descriptor.getField();

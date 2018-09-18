@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.controller.tasks;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -35,8 +31,8 @@ import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.scheduling.ConnectableProcessContext;
-import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.LifecycleState;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.ComponentLog;
@@ -50,6 +46,10 @@ import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Continually runs a <code>{@link Connectable}</code> component as long as the component has work to do.
@@ -267,10 +267,10 @@ public class ConnectableTask {
                 final long processingNanos = System.nanoTime() - startNanos;
 
                 try {
-                    final StandardFlowFileEvent procEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+                    final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
                     procEvent.setProcessingNanos(processingNanos);
                     procEvent.setInvocations(invocationCount);
-                    repositoryContext.getFlowFileEventRepository().updateRepository(procEvent);
+                    repositoryContext.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
                 } catch (final IOException e) {
                     logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString());
                     logger.error("", e);

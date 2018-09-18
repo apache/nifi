@@ -38,6 +38,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -115,6 +116,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
+
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -329,14 +333,15 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             }
             try (final ResultSet resultSet = st.executeQuery(selectQuery)) {
                 int fragmentIndex=0;
+                // Max values will be updated in the state property map by the callback
+                final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
+
                 while(true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
 
                     FlowFile fileToProcess = session.create();
                     try {
                         fileToProcess = session.write(fileToProcess, out -> {
-                            // Max values will be updated in the state property map by the callback
-                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
                             try {
                                 nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, maxValCollector));
                             } catch (SQLException | RuntimeException e) {
@@ -355,8 +360,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                         fileToProcess = session.putAttribute(fileToProcess, RESULT_TABLENAME, tableName);
                         fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
                         if(maxRowsPerFlowFile > 0) {
-                            fileToProcess = session.putAttribute(fileToProcess, "fragment.identifier", fragmentIdentifier);
-                            fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
+                            fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_ID, fragmentIdentifier);
+                            fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                         }
 
                         logger.info("{} contains {} Avro records; transferring to 'success'",
@@ -373,7 +378,10 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     } else {
                         // If there were no rows returned, don't send the flowfile
                         session.remove(fileToProcess);
-                        context.yield();
+                        // If no rows and this was first FlowFile, yield
+                        if(fragmentIndex == 0){
+                            context.yield();
+                        }
                         break;
                     }
 
@@ -392,6 +400,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                         break;
                     }
                 }
+
+                // Apply state changes from the Max Value tracker
+                maxValCollector.applyStateChanges();
 
                 // Even though the maximum value and total count are known at this point, to maintain consistent behavior if Output Batch Size is set, do not store the attributes
                 if (outputBatchSize == 0) {
@@ -450,7 +461,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         if (StringUtils.isEmpty(sqlQuery)) {
             query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
         } else {
-            query = getWrappedQuery(sqlQuery, tableName);
+            query = getWrappedQuery(dbAdapter, sqlQuery, tableName);
         }
 
         List<String> whereClauses = new ArrayList<>();
@@ -492,12 +503,17 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
         DatabaseAdapter dbAdapter;
-        Map<String, String> newColMap;
+        final Map<String, String> newColMap;
+        final Map<String, String> originalState;
         String tableName;
 
         public MaxValueResultSetRowCollector(String tableName, Map<String, String> stateMap, DatabaseAdapter dbAdapter) {
             this.dbAdapter = dbAdapter;
-            newColMap = stateMap;
+            this.originalState = stateMap;
+
+            this.newColMap = new HashMap<>();
+            this.newColMap.putAll(stateMap);
+
             this.tableName = tableName;
         }
 
@@ -535,6 +551,11 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             } catch (ParseException | SQLException e) {
                 throw new IOException(e);
             }
+        }
+
+        @Override
+        public void applyStateChanges() {
+            this.originalState.putAll(this.newColMap);
         }
     }
 }

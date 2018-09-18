@@ -73,7 +73,8 @@ import org.apache.nifi.serialization.record.RecordSet;
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
     + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
-    + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ")
+    + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
+    expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success.")
 @SeeAlso({PublishKafka_1_0.class, ConsumeKafka_1_0.class, ConsumeKafkaRecord_1_0.class})
@@ -293,6 +294,7 @@ public class PublishKafkaRecord_1_0 extends AbstractProcessor {
             .name(propertyDescriptorName)
             .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ProducerConfig.class))
             .dynamic(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     }
 

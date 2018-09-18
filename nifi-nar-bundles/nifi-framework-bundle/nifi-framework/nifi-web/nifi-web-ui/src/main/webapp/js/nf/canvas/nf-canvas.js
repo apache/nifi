@@ -81,6 +81,8 @@
     var MIN_SCALE = 0.2;
     var MIN_SCALE_TO_RENDER = 0.6;
 
+    var DEFAULT_PAGE_TITLE = '';
+
     var polling = false;
     var allowPageRefresh = false;
     var groupId = 'root';
@@ -165,6 +167,22 @@
             nfNgBridge.digest();
             nfNgBridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
             nfNgBridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
+
+            // set page title to the name of the root processor group
+            var rootBreadcrumb = breadcrumb;
+            while(rootBreadcrumb.parentBreadcrumb != null) {
+                rootBreadcrumb = rootBreadcrumb.parentBreadcrumb
+            }
+
+            if(DEFAULT_PAGE_TITLE == ''){
+                DEFAULT_PAGE_TITLE = document.title;
+            }
+
+            if(rootBreadcrumb.permissions.canRead){
+                document.title = rootBreadcrumb.breadcrumb.name;
+            } else {
+                document.title = DEFAULT_PAGE_TITLE;
+            }
 
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);

@@ -107,6 +107,7 @@ public class PasswordBasedEncryptor implements Encryptor {
         return new DecryptCallback();
     }
 
+    @SuppressWarnings("deprecation")
     private class DecryptCallback implements StreamCallback {
 
         public DecryptCallback() {
@@ -121,8 +122,8 @@ public class PasswordBasedEncryptor implements Encryptor {
             byte[] salt;
             try {
                 // NiFi legacy code determined the salt length based on the cipher block size
-                if (cipherProvider instanceof NiFiLegacyCipherProvider) {
-                    salt = ((NiFiLegacyCipherProvider) cipherProvider).readSalt(encryptionMethod, in);
+                if (cipherProvider instanceof org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) {
+                    salt = ((org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) cipherProvider).readSalt(encryptionMethod, in);
                 } else {
                     salt = cipherProvider.readSalt(in);
                 }
@@ -151,6 +152,7 @@ public class PasswordBasedEncryptor implements Encryptor {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private class EncryptCallback implements StreamCallback {
 
         public EncryptCallback() {
@@ -164,8 +166,8 @@ public class PasswordBasedEncryptor implements Encryptor {
             // Generate salt
             byte[] salt;
             // NiFi legacy code determined the salt length based on the cipher block size
-            if (cipherProvider instanceof NiFiLegacyCipherProvider) {
-                salt = ((NiFiLegacyCipherProvider) cipherProvider).generateSalt(encryptionMethod);
+            if (cipherProvider instanceof org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) {
+                salt = ((org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) cipherProvider).generateSalt(encryptionMethod);
             } else {
                 salt = cipherProvider.generateSalt();
             }

@@ -260,7 +260,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 if (StringUtils.isEmpty(sqlQuery)) {
                     query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
                 } else {
-                    StringBuilder sbQuery = getWrappedQuery(sqlQuery, tableName);
+                    StringBuilder sbQuery = getWrappedQuery(dbAdapter, sqlQuery, tableName);
                     sbQuery.append(" WHERE 1=0");
 
                     query = sbQuery.toString();
@@ -312,8 +312,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         }
     }
 
-    protected static StringBuilder getWrappedQuery(String sqlQuery, String tableName){
-       return new StringBuilder("SELECT * FROM (" + sqlQuery + ") AS " + tableName);
+    protected static StringBuilder getWrappedQuery(DatabaseAdapter dbAdaper, String sqlQuery, String tableName) {
+       return new StringBuilder("SELECT * FROM (" + sqlQuery + ") " + dbAdaper.getTableAliasClause(tableName));
     }
 
     protected static String getMaxValueFromRow(ResultSet resultSet,

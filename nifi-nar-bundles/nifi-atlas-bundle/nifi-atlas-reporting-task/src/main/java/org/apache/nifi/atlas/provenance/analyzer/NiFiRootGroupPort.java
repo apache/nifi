@@ -54,7 +54,7 @@ public class NiFiRootGroupPort extends NiFiS2S {
         final String type = isInputPort ? TYPE_NIFI_INPUT_PORT : TYPE_NIFI_OUTPUT_PORT;
         final String rootPortId = event.getComponentId();
 
-        final S2STransitUrl s2sUrl = parseTransitURL(event.getTransitUri(), context.getClusterResolver());
+        final S2SPort s2SPort = analyzeS2SPort(event, context.getClusterResolver());
 
         // Find connections connecting to/from the remote port.
         final List<ConnectionStatus> connections = isInputPort
@@ -69,7 +69,7 @@ public class NiFiRootGroupPort extends NiFiS2S {
         final ConnectionStatus connection = connections.get(0);
         final Referenceable ref = new Referenceable(type);
         ref.set(ATTR_NAME, isInputPort ? connection.getSourceName() : connection.getDestinationName());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2sUrl.clusterName, rootPortId));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(s2SPort.clusterName, rootPortId));
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
     }
@@ -77,5 +77,10 @@ public class NiFiRootGroupPort extends NiFiS2S {
     @Override
     public String targetComponentTypePattern() {
         return "^(In|Out)put Port$";
+    }
+
+    @Override
+    protected String getRawProtocolPortId(ProvenanceEventRecord event) {
+        return event.getComponentId();
     }
 }

@@ -174,6 +174,10 @@ public class TestXMLRecordSetWriter {
         runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
 
         runner.setProperty(writer, XMLRecordSetWriter.ARRAY_WRAPPING, XMLRecordSetWriter.USE_PROPERTY_AS_WRAPPER);
+        runner.assertNotValid(writer);
+
+        runner.setProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME, "array-tag-name");
+        runner.assertValid(writer);
 
         runner.enableControllerService(writer);
         runner.enqueue("");

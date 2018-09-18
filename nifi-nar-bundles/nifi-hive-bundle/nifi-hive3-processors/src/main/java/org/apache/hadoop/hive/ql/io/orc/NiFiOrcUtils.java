@@ -24,8 +24,8 @@ import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.io.DateWritableV2;
+import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
@@ -113,10 +113,16 @@ public class NiFiOrcUtils {
                 return new BytesWritable(((ByteBuffer) o).array());
             }
             if (o instanceof Timestamp) {
-                return new TimestampWritable((Timestamp) o);
+                Timestamp t = (Timestamp) o;
+                org.apache.hadoop.hive.common.type.Timestamp timestamp = new org.apache.hadoop.hive.common.type.Timestamp();
+                timestamp.setTimeInMillis(t.getTime(), t.getNanos());
+                return new TimestampWritableV2(timestamp);
             }
             if (o instanceof Date) {
-                return new DateWritable((Date) o);
+                Date d = (Date) o;
+                org.apache.hadoop.hive.common.type.Date date = new org.apache.hadoop.hive.common.type.Date();
+                date.setTimeInMillis(d.getTime());
+                return new DateWritableV2(date);
             }
             if (o instanceof Object[]) {
                 Object[] objArray = (Object[]) o;

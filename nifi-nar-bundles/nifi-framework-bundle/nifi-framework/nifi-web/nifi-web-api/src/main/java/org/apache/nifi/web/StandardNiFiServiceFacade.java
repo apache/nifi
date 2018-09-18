@@ -2222,17 +2222,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
     }
 
-    private Set<ComponentNode> findAllReferencingComponents(final ControllerServiceReference reference) {
-        final Set<ComponentNode> referencingComponents = new HashSet<>(reference.getReferencingComponents());
-
-        for (final ComponentNode referencingComponent : reference.getReferencingComponents()) {
-            if (referencingComponent instanceof ControllerServiceNode) {
-                referencingComponents.addAll(findAllReferencingComponents(((ControllerServiceNode) referencingComponent).getReferences()));
-            }
-        }
-
-        return referencingComponents;
-    }
 
     @Override
     public ControllerServiceReferencingComponentsEntity updateControllerServiceReferencingComponents(
@@ -2257,7 +2246,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         }
 
                         // ensure the revision for all referencing components is included regardless of whether they were updated in this request
-                        for (final ComponentNode component : findAllReferencingComponents(updatedReference)) {
+                        for (final ComponentNode component : updatedReference.findRecursiveReferences(ComponentNode.class)) {
                             updatedRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
                         }
 
@@ -2282,9 +2271,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (component instanceof ControllerServiceNode) {
                 final ControllerServiceNode node = (ControllerServiceNode) component;
                 if (!visited.contains(node)) {
+                    visited.add(node);
                     findControllerServiceReferencingComponentIdentifiers(node.getReferences(), visited);
                 }
-                visited.add(node);
             }
         }
     }

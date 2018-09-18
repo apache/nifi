@@ -17,12 +17,18 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
@@ -35,6 +41,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.TestJdbcHugeStream;
 import org.apache.nifi.reporting.InitializationException;
@@ -193,6 +200,96 @@ public class TestExecuteSQL {
     }
 
     @Test
+    public void testWithOutputBatching() throws SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        for (int i = 0; i < 1000; i++) {
+            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
+        }
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
+        runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "5");
+        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
+
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
+        firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
+        firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
+
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+    }
+
+    @Test
+    public void testMaxRowsPerFlowFile() throws SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        for (int i = 0; i < 1000; i++) {
+            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
+        }
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
+        runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "0");
+        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
+
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
+        firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
+        firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
+
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+    }
+
+    @Test
     public void testInsertStatementCreatesFlowFile() throws SQLException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -272,6 +369,33 @@ public class TestExecuteSQL {
         // There should be no flow files on either relationship
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 0);
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testWithSqlExceptionErrorProcessingResultSet() throws Exception {
+        DBCPService dbcp = mock(DBCPService.class);
+        Connection conn = mock(Connection.class);
+        when(dbcp.getConnection(any(Map.class))).thenReturn(conn);
+        when(dbcp.getIdentifier()).thenReturn("mockdbcp");
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(conn.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.execute()).thenReturn(true);
+        ResultSet rs = mock(ResultSet.class);
+        when(statement.getResultSet()).thenReturn(rs);
+        // Throw an exception the first time you access the ResultSet, this is after the flow file to hold the results has been created.
+        when(rs.getMetaData()).thenThrow(SQLException.class);
+
+        runner.addControllerService("mockdbcp", dbcp, new HashMap<>());
+        runner.enableControllerService(dbcp);
+        runner.setProperty(ExecuteSQL.DBCP_SERVICE, "mockdbcp");
+
+        runner.setIncomingConnection(true);
+        runner.enqueue("SELECT 1");
+        runner.run();
+
+        runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 1);
+        runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
     }
 
     public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String,String> attrs, final boolean setQueryProperty)

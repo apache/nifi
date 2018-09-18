@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.controller.repository.metrics;
 
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.StandardRepositoryStatusReport;
+
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class RingBufferEventRepository implements FlowFileEventRepository {
 
@@ -38,8 +38,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public void updateRepository(final FlowFileEvent event) {
-        final String componentId = event.getComponentIdentifier();
+    public void updateRepository(final FlowFileEvent event, final String componentId) {
         final EventContainer eventContainer = componentEventMap.computeIfAbsent(componentId, id -> new SecondPrecisionEventContainer(numMinutes));
         eventContainer.addEvent(event);
     }
@@ -48,10 +47,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     public StandardRepositoryStatusReport reportTransferEvents(final long sinceEpochMillis) {
         final StandardRepositoryStatusReport report = new StandardRepositoryStatusReport();
 
-        componentEventMap.entrySet().stream()
-            .map(entry -> entry.getValue().generateReport(entry.getKey(), sinceEpochMillis))
-            .forEach(event -> report.addReportEntry(event));
-
+        componentEventMap.forEach((componentId, container) -> report.addReportEntry(container.generateReport(sinceEpochMillis), componentId));
         return report;
     }
 

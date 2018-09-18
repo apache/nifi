@@ -36,13 +36,14 @@ import org.junit.Test;
 public class ITPutSQS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
+    private final String QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000";
 
     @Test
     public void testSimplePut() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
         runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSQS.TIMEOUT, "30 secs");
-        runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000");
+        runner.setProperty(PutSQS.QUEUE_URL, QUEUE_URL);
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         final Map<String, String> attrs = new HashMap<>();
@@ -58,13 +59,12 @@ public class ITPutSQS {
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
 
         runner.setProperty(PutSQS.TIMEOUT, "30 secs");
-        String queueUrl = "Add queue url here";
-        runner.setProperty(PutSQS.QUEUE_URL, queueUrl);
+        runner.setProperty(PutSQS.QUEUE_URL, QUEUE_URL);
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);

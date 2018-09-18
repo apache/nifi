@@ -1000,8 +1000,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         TableInfo tableInfo = null;
         if (jdbcConnection != null) {
             try (Statement s = jdbcConnection.createStatement()) {
-                s.execute("USE " + key.getDatabaseName());
-                ResultSet rs = s.executeQuery("SELECT * FROM " + key.getTableName() + " LIMIT 0");
+                s.execute("USE `" + key.getDatabaseName() + "`");
+                ResultSet rs = s.executeQuery("SELECT * FROM `" + key.getTableName() + "` LIMIT 0");
                 ResultSetMetaData rsmd = rs.getMetaData();
                 int numCols = rsmd.getColumnCount();
                 List<ColumnDefinition> columnDefinitions = new ArrayList<>();

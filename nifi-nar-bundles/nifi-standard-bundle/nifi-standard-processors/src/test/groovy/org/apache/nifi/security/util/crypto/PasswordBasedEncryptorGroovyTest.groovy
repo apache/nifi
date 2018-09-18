@@ -21,7 +21,6 @@ import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
-import org.apache.nifi.stream.io.ByteArrayOutputStream
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assume

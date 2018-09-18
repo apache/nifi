@@ -132,20 +132,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     private final static List<PropertyDescriptor> propertyDescriptors;
 
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully created FlowFile from CQL query result set.")
-            .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("CQL query execution failed.")
-            .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
-            .description("A FlowFile is transferred to this relationship if the query cannot be completed but attempting "
-                    + "the operation again may succeed.")
-            .build();
-
     private final static Set<Relationship> relationships;
 
     /*

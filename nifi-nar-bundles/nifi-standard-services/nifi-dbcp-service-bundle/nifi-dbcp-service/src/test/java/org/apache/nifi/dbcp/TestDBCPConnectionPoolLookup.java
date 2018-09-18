@@ -125,15 +125,12 @@ public class TestDBCPConnectionPoolLookup {
         // enable lookup service with no services registered, verify not valid
         runner = TestRunners.newTestRunner(TestProcessor.class);
         runner.addControllerService("dbcp-lookup", dbcpLookupService);
-        runner.enableControllerService(dbcpLookupService);
         runner.assertNotValid(dbcpLookupService);
 
         final String dbcpServiceAIdentifier = "dbcp-a";
         runner.addControllerService(dbcpServiceAIdentifier, dbcpServiceA);
-        runner.enableControllerService(dbcpServiceA);
 
         // register a service and now verify valid
-        runner.disableControllerService(dbcpLookupService);
         runner.setProperty(dbcpLookupService, "a", dbcpServiceAIdentifier);
         runner.enableControllerService(dbcpLookupService);
         runner.assertValid(dbcpLookupService);
@@ -144,7 +141,6 @@ public class TestDBCPConnectionPoolLookup {
         runner = TestRunners.newTestRunner(TestProcessor.class);
         runner.addControllerService("dbcp-lookup", dbcpLookupService);
         runner.setProperty(dbcpLookupService, "dbcp-lookup", "dbcp-lookup");
-        runner.enableControllerService(dbcpLookupService);
         runner.assertNotValid(dbcpLookupService);
     }
 

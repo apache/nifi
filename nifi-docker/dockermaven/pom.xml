@@ -40,7 +40,8 @@
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <NIFI_VERSION>${project.version}</NIFI_VERSION>
-                                        <NIFI_BINARY>target/nifi-${nifi.version}-bin.tar.gz</NIFI_BINARY>
+                                        <NIFI_BINARY>target/nifi-${nifi.version}-bin.zip</NIFI_BINARY>
+                                        <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${nifi.version}-bin.zip</NIFI_TOOLKIT_BINARY>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
                                     <tag>${project.version}-dockermaven</tag>
@@ -59,8 +60,24 @@
                                 <configuration>
                                     <target name="copy assembly to nifi-docker for image build">
                                         <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
-                                            <fileset dir="${project.basedir}/../../nifi-assembly/target" includes="*.tar.gz">
-                                                <include name="*.tar.gz" />
+                                            <fileset dir="${project.basedir}/../../nifi-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>copy-toolkit-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy toolkit assembly to nifi-docker for image build">
+                                        <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/../../nifi-toolkit/nifi-toolkit-assembly/target" includes="*.zip">
+                                                <include name="*.zip" />
                                             </fileset>
                                         </copy>
                                     </target>

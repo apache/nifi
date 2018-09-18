@@ -19,12 +19,11 @@ package org.apache.nifi.processors.evtx.parser;
 
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
-import org.apache.commons.io.Charsets;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -182,7 +181,7 @@ public class BinaryReader {
      */
     public String readWString(int length) {
         int numBytes = length * 2;
-        String result = Charsets.UTF_16LE.decode(ByteBuffer.wrap(bytes, position, numBytes)).toString();
+        String result = StandardCharsets.UTF_16LE.decode(ByteBuffer.wrap(bytes, position, numBytes)).toString();
         position += numBytes;
         return result;
     }

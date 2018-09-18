@@ -17,18 +17,13 @@
 package org.apache.nifi.toolkit.admin.client
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.nifi.security.util.CertificateUtils
+import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.apache.nifi.util.NiFiProperties
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import javax.naming.ldap.LdapName
-import javax.naming.ldap.Rdn
-import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLPeerUnverifiedException
-import javax.net.ssl.SSLSession
 import javax.net.ssl.TrustManagerFactory
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.ClientBuilder
@@ -38,10 +33,7 @@ import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
 import java.security.UnrecoverableKeyException
-import java.security.cert.Certificate
 import java.security.cert.CertificateException
-import java.security.cert.CertificateParsingException
-import java.security.cert.X509Certificate
 
 class NiFiClientFactory implements ClientFactory{
 
@@ -83,13 +75,12 @@ class NiFiClientFactory implements ClientFactory{
         final ClientBuilder clientBuilder = ClientBuilder.newBuilder();
 
         if (sslContext != null) {
-            clientBuilder.sslContext(sslContext).hostnameVerifier(new NiFiHostnameVerifier());
+            clientBuilder.sslContext(sslContext).hostnameVerifier(new DefaultHostnameVerifier());
         }
 
         return clientBuilder.build();
 
     }
-
 
     static SSLContext createSslContext(
             final String keystore, final char[] keystorePasswd, final String keystoreType,
@@ -121,50 +112,6 @@ class NiFiClientFactory implements ClientFactory{
         return sslContext;
     }
 
-    static class NiFiHostnameVerifier implements HostnameVerifier {
 
-        @Override
-        public boolean verify(final String hostname, final SSLSession ssls) {
-
-            if (ssls.getPeerCertificates() != null && ssls.getPeerCertificates().length > 0) {
-
-                try {
-                    final Certificate peerCertificate = ssls.getPeerCertificates()[0]
-                    final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(peerCertificate)
-                    final String dn = x509Cert.getSubjectDN().getName().trim()
-
-                    final LdapName ln = new LdapName(dn)
-                    final boolean match = ln.getRdns().any { Rdn rdn -> rdn.getType().equalsIgnoreCase("CN") && rdn.getValue().toString().equalsIgnoreCase(hostname)}
-                    return match || getSubjectAlternativeNames(x509Cert).any { String san -> san.equalsIgnoreCase(hostname) }
-
-                } catch (final SSLPeerUnverifiedException | CertificateParsingException ex ) {
-                    logger.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
-                }
-
-            }else{
-                logger.warn("Peer certificates not found on ssl session ");
-            }
-
-            return false
-        }
-
-        private List<String> getSubjectAlternativeNames(final X509Certificate certificate) throws CertificateParsingException {
-            final Collection<List<?>> altNames = certificate.getSubjectAlternativeNames()
-
-            if (altNames == null) {
-                return new ArrayList<>()
-            }
-
-            final List<String> result = new ArrayList<>()
-            for (final List<?> generalName : altNames) {
-                final Object value = generalName.get(1)
-                if (value instanceof String) {
-                    result.add(((String) value).toLowerCase())
-                }
-            }
-
-            return result
-        }
-    }
 
 }

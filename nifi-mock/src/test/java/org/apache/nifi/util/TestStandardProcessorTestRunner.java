@@ -207,6 +207,42 @@ public class TestStandardProcessorTestRunner {
         assertTrue("onPropertyModified has not been called", ((SimpleTestService) testService).isOpmCalled());
     }
 
+    @Test
+    public void testProcessorNameShouldBeSet() {
+        final AddAttributeProcessor proc = new AddAttributeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc, "TestName");
+        assertEquals("TestName",runner.getProcessContext().getName());
+    }
+
+    @Test
+    public void testProcessorInvalidWhenControllerServiceDisabled() {
+        final ControllerService testService = new RequiredPropertyTestService();
+        final AddAttributeProcessor proc = new AddAttributeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        final String serviceIdentifier = "test";
+        final String pdName = "name";
+        final String pdValue = "exampleName";
+        try {
+            runner.addControllerService(serviceIdentifier, testService);
+        } catch (InitializationException e) {
+            fail(e.getMessage());
+        }
+
+        // controller service invalid due to no value on required property; processor must also be invalid
+        runner.assertNotValid(testService);
+        runner.assertNotValid();
+
+        // add required property; controller service valid but not enabled; processor must be invalid
+        runner.setProperty(testService, RequiredPropertyTestService.namePropertyDescriptor, pdValue);
+        runner.assertValid(testService);
+        runner.assertNotValid();
+
+        // enable controller service; processor now valid
+        runner.enableControllerService(testService);
+        runner.assertValid(testService);
+        runner.assertValid();
+    }
+
     private static class ProcessorWithOnStop extends AbstractProcessor {
 
         private int callsWithContext = 0;
@@ -328,6 +364,21 @@ public class TestStandardProcessorTestRunner {
 
         public boolean isOpmCalled() {
             return opmCalled;
+        }
+    }
+
+    private static class RequiredPropertyTestService extends AbstractControllerService {
+        private static final String PD_NAME = "name";
+        protected static final  PropertyDescriptor namePropertyDescriptor = new PropertyDescriptor.Builder()
+                .name(PD_NAME)
+                .displayName("Controller Service Name")
+                .required(true)
+                .sensitive(false)
+                .allowableValues("exampleName", "anotherExampleName")
+                .build();
+
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return Arrays.asList(namePropertyDescriptor);
         }
     }
 }

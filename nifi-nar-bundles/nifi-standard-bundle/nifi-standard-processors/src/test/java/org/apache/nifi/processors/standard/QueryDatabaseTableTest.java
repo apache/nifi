@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -1282,6 +1283,51 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         runner.run();
+    }
+
+    @Test
+    public void testWithExceptionAfterSomeRowsProcessed() throws SQLException {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, NULL, 1)");
+        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (2, 1, 1)");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_NULL_INT");
+        runner.setProperty(AbstractDatabaseFetchProcessor.MAX_VALUE_COLUMN_NAMES, "id");
+
+        // Override adapter with one that fails after the first row is processed
+        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), new GenericDatabaseAdapter() {
+            boolean fail = false;
+            @Override
+            public String getName() {
+                if(!fail) {
+                    fail = true;
+                    return super.getName();
+                }
+                throw new DataFileWriter.AppendWriteException(null);
+            }
+        });
+        runner.run();
+        assertTrue(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
+        // State should not have been updated
+        runner.getStateManager().assertStateNotSet("test_null_int@!@id", Scope.CLUSTER);
+
+        // Restore original (working) adapter and run again
+        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), dbAdapter);
+        runner.run();
+        assertFalse(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
+        runner.getStateManager().assertStateEquals("test_null_int@!@id", "2", Scope.CLUSTER);
     }
 
     private long getNumberOfRecordsFromStream(InputStream in) throws IOException {

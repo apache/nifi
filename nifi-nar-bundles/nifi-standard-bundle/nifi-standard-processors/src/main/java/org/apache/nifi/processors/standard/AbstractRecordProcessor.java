@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -64,6 +65,17 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         .required(true)
         .build();
 
+    static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
+            .name("include-zero-record-flowfiles")
+            .displayName("Include Zero Record FlowFiles")
+            .description("When converting an incoming FlowFile, if the conversion results in no data, "
+                    + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles that are successfully transformed will be routed to this relationship")
@@ -99,6 +111,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).isSet()? context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean():true;
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -142,7 +155,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         }
 
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.transfer(flowFile, REL_SUCCESS);
+        if(!includeZeroRecordFlowFiles && recordCount.get() == 0){
+            session.remove(flowFile);
+        } else {
+            session.transfer(flowFile, REL_SUCCESS);
+        }
 
         final int count = recordCount.get();
         session.adjustCounter("Records Processed", count, false);

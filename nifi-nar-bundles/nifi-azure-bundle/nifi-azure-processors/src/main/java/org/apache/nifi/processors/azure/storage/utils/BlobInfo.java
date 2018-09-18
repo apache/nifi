@@ -209,4 +209,9 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     public long getTimestamp() {
         return getLastModifiedTime();
     }
+
+    @Override
+    public long getSize() {
+        return length;
+    }
 }

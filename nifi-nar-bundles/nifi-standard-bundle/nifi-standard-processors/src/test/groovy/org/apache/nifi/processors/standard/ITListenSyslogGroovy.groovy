@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard
 
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.ProcessSessionFactory
-import org.apache.nifi.processors.standard.syslog.SyslogParser
+import org.apache.nifi.syslog.parsers.SyslogParser
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.util.encoders.Hex
@@ -33,8 +33,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 @RunWith(JUnit4.class)
-class ListenSyslogGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ListenSyslogGroovyTest.class)
+class ITListenSyslogGroovy extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(ITListenSyslogGroovy.class)
 
     static final String ZERO_LENGTH_MESSAGE = "     \n"
 

@@ -16,23 +16,22 @@
  */
 package org.apache.nifi.remote.protocol;
 
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransactionCompletion;
-import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransactionCompletion;
+import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class SiteToSiteTestUtils {
     public static DataPacket createDataPacket(String contents) {
