@@ -23,6 +23,7 @@ import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import javax.crypto.Cipher;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,7 +37,6 @@ import org.apache.nifi.security.util.crypto.CipherProvider;
 import org.apache.nifi.security.util.crypto.CipherProviderFactory;
 import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
-import org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  * </p>
  */
+@SuppressWarnings("deprecation")
 public class StringEncryptor {
     private static final Logger logger = LoggerFactory.getLogger(StringEncryptor.class);
 
@@ -185,13 +186,18 @@ public class StringEncryptor {
 
         final String sensitivePropAlgorithmVal = niFiProperties.getProperty(NF_SENSITIVE_PROPS_ALGORITHM);
         final String sensitivePropProviderVal = niFiProperties.getProperty(NF_SENSITIVE_PROPS_PROVIDER);
-        final String sensitivePropValueNifiPropVar = niFiProperties.getProperty(NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
+        String sensitivePropValueNifiPropVar = niFiProperties.getProperty(NF_SENSITIVE_PROPS_KEY);
+        // TODO: This method should be removed in 2.0.0 and replaced globally with the String, String, String method
+        if (StringUtils.isBlank(sensitivePropValueNifiPropVar)) {
+            printBlankKeyWarning();
+            sensitivePropValueNifiPropVar = DEFAULT_SENSITIVE_PROPS_KEY;
+        }
 
         return createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
     }
 
     /**
-     * Creates an instance of the NiFi sensitive property encryptor.
+     * Creates an instance of the NiFi sensitive property encryptor. If the password is blank, the default will be used and an error will be printed to the log.
      *
      * @param algorithm the encryption (and key derivation) algorithm ({@link EncryptionMethod#algorithm})
      * @param provider  the JCA Security provider ({@link EncryptionMethod#provider})
@@ -207,11 +213,29 @@ public class StringEncryptor {
             throw new EncryptionException(NF_SENSITIVE_PROPS_PROVIDER + " must be set");
         }
 
+        // Can't throw an exception because users who have not populated a key expect fallback to default.
+        // TODO: This should be removed in 2.0.0 and replaced with strict enforcement of a explicit unique key
         if (StringUtils.isBlank(password)) {
-            throw new EncryptionException(NF_SENSITIVE_PROPS_KEY + " must be set");
+            printBlankKeyWarning();
+            password = DEFAULT_SENSITIVE_PROPS_KEY;
         }
 
         return new StringEncryptor(algorithm, provider, password);
+    }
+
+    private static void printBlankKeyWarning() {
+        logger.error(StringUtils.repeat("*", 80));
+        logger.error(centerString("A blank sensitive properties key was provided"));
+        logger.error(centerString("Specify a unique key in nifi.properties"));
+        logger.error(centerString("for nifi.sensitive.props.key"));
+        logger.error(centerString(""));
+        logger.error(centerString("The Encrypt Config Tool in NiFi Toolkit can be used to"));
+        logger.error(centerString("migrate the flow to the new key"));
+        logger.error(StringUtils.repeat("*", 80));
+    }
+
+    private static String centerString(String msg) {
+        return "*" + StringUtils.center(msg, 78, " ") + "*";
     }
 
     protected void initialize() {
@@ -249,7 +273,7 @@ public class StringEncryptor {
 
     private boolean passwordIsValid(PBEKeySpec password) {
         try {
-            return password.getPassword() != null;
+            return password.getPassword().length > 0;
         } catch (IllegalStateException | NullPointerException e) {
             return false;
         }
@@ -297,8 +321,8 @@ public class StringEncryptor {
         // Generate salt
         byte[] salt;
         // NiFi legacy code determined the salt length based on the cipher block size
-        if (pbecp instanceof NiFiLegacyCipherProvider) {
-            salt = ((NiFiLegacyCipherProvider) pbecp).generateSalt(encryptionMethod);
+        if (pbecp instanceof org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) {
+            salt = ((org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) pbecp).generateSalt(encryptionMethod);
         } else {
             salt = pbecp.generateSalt();
         }
@@ -382,7 +406,7 @@ public class StringEncryptor {
         }
     }
 
-    private byte[] decryptPBE(byte[] cipherBytes) throws DecoderException {
+    private byte[] decryptPBE(byte[] cipherBytes) {
         PBECipherProvider pbecp = (PBECipherProvider) cipherProvider;
         final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
 
@@ -451,5 +475,104 @@ public class StringEncryptor {
 
     protected static boolean providerIsValid(String provider) {
         return SUPPORTED_PROVIDERS.contains(provider);
+    }
+
+    /**
+     * Returns {@code true} if the two {@code StringEncryptor} objects are logically equivalent.
+     * This requires the same {@code algorithm}, {@code provider}, {@code encoding}, and
+     * {@code key}/{@code password}.
+     * <p>
+     * A {@code ciphertext} generated by one object can be decrypted by a separate object if they are equal as determined by this method.
+     *
+     * @param o the other StringEncryptor
+     * @return true if these instances are equal
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StringEncryptor that = (StringEncryptor) o;
+        return Objects.equals(algorithm, that.algorithm)
+                && Objects.equals(provider, that.provider)
+                && Objects.equals(encoding, that.encoding)
+                && secretsAreEqual(that.password, that.key);
+    }
+
+    /**
+     * Returns true if the provided {@code password} and {@code key} match those contained in this {@code StringEncryptor}. This method does <strong>not</strong> compare {@code password == key}.
+     * <p>
+     * Internally, uses {@link #isPBEKeySpecEqual(PBEKeySpec, PBEKeySpec)} and {@link SecretKeySpec#equals(Object)}.
+     *
+     * @param otherPassword the password {@link PBEKeySpec}
+     * @param otherKey      the key {@link SecretKeySpec}
+     * @return true if the passwords match and the keys match
+     */
+    private boolean secretsAreEqual(PBEKeySpec otherPassword, SecretKeySpec otherKey) {
+        // SecretKeySpec implements null-safe equals(), but PBEKeySpec does not
+        return isPBEKeySpecEqual(this.password, otherPassword) && Objects.equals(this.key, otherKey);
+    }
+
+    /**
+     * Returns true if the two {@link PBEKeySpec} objects are logically equivalent (same params and password).
+     *
+     * @param a a PBEKeySpec to compare
+     * @param b a PBEKeySpec to compare
+     * @return true if they can be used for encryption interchangeably
+     */
+    private static boolean isPBEKeySpecEqual(PBEKeySpec a, PBEKeySpec b) {
+        if (a != null) {
+            if (b == null) {
+                return false;
+            } else {
+                // Compare all the accessors that will not throw exceptions
+                boolean nonNullsEqual = a.getIterationCount() == b.getIterationCount()
+                        && a.getKeyLength() == b.getKeyLength()
+                        && Arrays.equals(a.getSalt(), b.getSalt());
+
+                // Compare the passwords using constant-time equality while catching exceptions
+                boolean passwordsEqual;
+                try {
+                    passwordsEqual = CryptoUtils.constantTimeEquals(a.getPassword(), b.getPassword());
+                } catch (IllegalStateException e) {
+                    logger.warn("Encountered an error trying to compare password equality (one or more passwords have been cleared)");
+                    // Assume any key spec with password cleared is unusable; return false
+                    return false;
+                }
+
+                // Logging for debug assistance
+                if (logger.isDebugEnabled()) {
+                    logger.debug("The PBEKeySpec objects have equal non-null elements ({}) and equal passwords ({})", new Object[]{String.valueOf(nonNullsEqual), String.valueOf(passwordsEqual)});
+                }
+                return nonNullsEqual && passwordsEqual;
+            }
+        } else {
+            // If here, a == null
+            return b == null;
+        }
+    }
+
+
+    /**
+     * Returns the hashcode of this object. Does not include {@code cipherProvider} in hashcode calculations.
+     *
+     * @return the hashcode
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(algorithm, provider, encoding, password, key);
+    }
+
+    /**
+     * Returns a String containing the {@code algorithm}, {@code provider}, {@code encoding}, and {@code cipherProvider} class name.
+     *
+     * @return a String representation of the object state
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("StringEncryptor using ").append(algorithm)
+                .append(" from ").append(provider)
+                .append(" with ").append(encoding).append(" encoding and cipher provider ")
+                .append(cipherProvider.getClass().getName());
+        return sb.toString();
     }
 }

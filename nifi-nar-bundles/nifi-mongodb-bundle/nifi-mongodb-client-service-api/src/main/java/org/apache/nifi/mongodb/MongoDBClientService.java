@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.controller.ControllerService;
 import org.bson.Document;
 
@@ -31,6 +32,7 @@ public interface MongoDBClientService extends ControllerService {
     void delete(Document query);
     boolean exists(Document query);
     Document findOne(Document query);
+    Document findOne(Document query, Document projection);
     List<Document> findMany(Document query);
     List<Document> findMany(Document query, int limit);
     List<Document> findMany(Document query, Document sort, int limit);
@@ -42,4 +44,6 @@ public interface MongoDBClientService extends ControllerService {
     void upsert(Document query, Document update);
     void dropDatabase();
     void dropCollection();
+
+    MongoDatabase getDatabase(String name);
 }

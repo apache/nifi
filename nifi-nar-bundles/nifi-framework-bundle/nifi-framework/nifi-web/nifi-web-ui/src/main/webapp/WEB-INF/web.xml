@@ -136,6 +136,31 @@
         <url-pattern>/login</url-pattern>
     </filter-mapping>
 
+    <!-- logout filter -->
+    <filter>
+        <filter-name>LogoutFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.LogoutFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>LogoutFilter</filter-name>
+        <url-pattern>/logout</url-pattern>
+    </filter-mapping>
+
+    <!-- catch all filter -->
+    <filter>
+        <filter-name>SanitizeContextPathFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.SanitizeContextPathFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>SanitizeContextPathFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+        <dispatcher>ASYNC</dispatcher>
+    </filter-mapping>
+
     <welcome-file-list>
         <welcome-file>canvas.jsp</welcome-file>
         <welcome-file>/WEB-INF/pages/canvas.jsp</welcome-file>

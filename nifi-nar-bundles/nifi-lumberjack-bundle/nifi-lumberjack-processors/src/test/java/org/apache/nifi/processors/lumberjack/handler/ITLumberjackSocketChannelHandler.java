@@ -27,10 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import javax.net.ssl.SSLContext;
 import javax.xml.bind.DatatypeConverter;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
@@ -45,9 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-
-
-
+@SuppressWarnings("deprecation")
 public class ITLumberjackSocketChannelHandler {
     private EventFactory<TestEvent> eventFactory;
     private ChannelHandlerFactory<TestEvent,AsyncChannelDispatcher> channelHandlerFactory;

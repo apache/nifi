@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -928,6 +929,29 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testProvenanceEventsHaveDurationFromSession() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile orig = session.get();
+        final FlowFile newFlowFile = session.create(orig);
+        session.getProvenanceReporter().fork(orig, Collections.singletonList(newFlowFile), 0L);
+        session.getProvenanceReporter().fetch(newFlowFile, "nowhere://");
+        session.getProvenanceReporter().send(newFlowFile, "nowhere://");
+        session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
+        session.commit();
+
+        List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 100000);
+        assertNotNull(events);
+        assertEquals(3, events.size()); // FETCH, SEND, and FORK
+        events.forEach((event) -> assertTrue(event.getEventDuration() > -1));
+    }
+
+    @Test
     public void testUuidAttributeCannotBeUpdated() {
         String originalUuid = "11111111-1111-1111-1111-111111111111";
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
@@ -1648,6 +1672,30 @@ public class TestStandardProcessSession {
 
         final List<FlowFile> flowFiles = session.get(7);
         assertEquals(7, flowFiles.size());
+    }
+
+    @Test
+    public void testBatchQueuedHaveSameQueuedTime() {
+        for (int i = 0; i < 100; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                    .id(i)
+                    .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                    .build();
+            this.flowFileQueue.put(flowFile);
+        }
+
+        final List<FlowFile> flowFiles = session.get(100);
+
+        // FlowFile Queued times should not match yet
+        assertNotEquals("Queued times should not be equal.", flowFiles.get(0).getLastQueueDate(), flowFiles.get(99).getLastQueueDate());
+
+        session.transfer(flowFiles, new Relationship.Builder().name("A").build());
+        session.commit();
+
+        final List<FlowFile> flowFilesUpdated = session.get(100);
+
+        // FlowFile Queued times should match
+        assertEquals("Queued times should be equal.", flowFilesUpdated.get(0).getLastQueueDate(), flowFilesUpdated.get(99).getLastQueueDate());
     }
 
     @Test

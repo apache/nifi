@@ -58,7 +58,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_
 public abstract class SchemaRegistryService extends AbstractControllerService {
 
     private volatile ConfigurationContext configurationContext;
-    private volatile SchemaAccessStrategy schemaAccessStrategy;
+    protected volatile SchemaAccessStrategy schemaAccessStrategy;
     private static InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
     private final List<AllowableValue> strategyList = Collections.unmodifiableList(Arrays.asList(
@@ -68,16 +68,20 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
         return getPropertyDescriptor(SCHEMA_ACCESS_STRATEGY.getName());
     }
 
+    protected PropertyDescriptor buildStrategyProperty(AllowableValue[] values) {
+        return new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
+            .allowableValues(values)
+            .defaultValue(getDefaultSchemaAccessStrategy().getValue())
+            .build();
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(2);
 
         final AllowableValue[] strategies = getSchemaAccessStrategyValues().toArray(new AllowableValue[0]);
-        properties.add(new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
-            .allowableValues(strategies)
-            .defaultValue(getDefaultSchemaAccessStrategy().getValue())
-            .build());
+        properties.add(buildStrategyProperty(strategies));
 
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);

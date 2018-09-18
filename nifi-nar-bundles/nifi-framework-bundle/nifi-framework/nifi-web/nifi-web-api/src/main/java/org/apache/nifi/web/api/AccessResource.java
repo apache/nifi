@@ -318,6 +318,37 @@ public class AccessResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
+    @Path("oidc/logout")
+    @ApiOperation(
+            value = "Performs a logout in the OpenId Provider.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        if (!oidcService.isOidcEnabled()) {
+            throw new IllegalStateException("OpenId Connect is not configured.");
+        }
+
+        URI endSessionEndpoint = oidcService.getEndSessionEndpoint();
+        String postLogoutRedirectUri = generateResourceUri("..", "nifi");
+
+        if (endSessionEndpoint == null) {
+            // handle the case, where the OpenID Provider does not have an end session endpoint
+            httpServletResponse.sendRedirect(postLogoutRedirectUri);
+        } else {
+            URI logoutUri = UriBuilder.fromUri(endSessionEndpoint)
+                    .queryParam("post_logout_redirect_uri", postLogoutRedirectUri)
+                    .build();
+            httpServletResponse.sendRedirect(logoutUri.toString());
+        }
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
     @Path("knox/request")
     @ApiOperation(
             value = "Initiates a request to authenticate through Apache Knox.",
@@ -370,6 +401,19 @@ public class AccessResource extends ApplicationResource {
         }
 
         httpServletResponse.sendRedirect(getNiFiUri());
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("knox/logout")
+    @ApiOperation(
+            value = "Performs a logout in the Apache Knox.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    public void knoxLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        String redirectPath = generateResourceUri("..", "nifi", "login");
+        httpServletResponse.sendRedirect(redirectPath.toString());
     }
 
     /**
@@ -721,7 +765,7 @@ public class AccessResource extends ApplicationResource {
      * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
      *
      * @param cookies the cookies
-     * @param name the name of the cookie
+     * @param name    the name of the cookie
      * @return the value of the corresponding cookie, or null if the cookie does not exist
      */
     private String getCookieValue(final Cookie[] cookies, final String name) {
@@ -742,7 +786,7 @@ public class AccessResource extends ApplicationResource {
 
     private String getNiFiUri() {
         final String nifiApiUrl = generateResourceUri();
-        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl,"/nifi-api");
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
         return baseUrl + "/nifi";
     }
 

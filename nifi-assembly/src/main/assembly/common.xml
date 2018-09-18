@@ -21,7 +21,7 @@
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib/bootstrap</outputDirectory>
             <directoryMode>0770</directoryMode>
-            <fileMode>0660</fileMode>
+            <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>nifi-bootstrap</include>

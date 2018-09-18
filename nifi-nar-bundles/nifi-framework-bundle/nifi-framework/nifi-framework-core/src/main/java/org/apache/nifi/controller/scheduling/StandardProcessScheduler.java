@@ -319,7 +319,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @Override
             public Future<?> scheduleTask(final Callable<?> task) {
                 lifecycleState.incrementActiveThreadCount(null);
-                return componentMonitoringThreadPool.submit(task);
+                return componentLifeCycleThreadPool.submit(task);
             }
 
             @Override

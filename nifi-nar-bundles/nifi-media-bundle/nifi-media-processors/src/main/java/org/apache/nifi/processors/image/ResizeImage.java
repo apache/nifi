@@ -19,6 +19,7 @@ package org.apache.nifi.processors.image;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -174,7 +175,13 @@ public class ResizeImage extends AbstractProcessor {
                         if (scaledImage instanceof BufferedImage) {
                             scaledBufferedImg = (BufferedImage) scaledImage;
                         } else {
-                            scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), image.getType());
+                            // Determine image type, since calling image.getType may return 0
+                            int imageType = BufferedImage.TYPE_INT_ARGB;
+                            if(image.getTransparency() == Transparency.OPAQUE) {
+                                imageType = BufferedImage.TYPE_INT_RGB;
+                            }
+
+                            scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), imageType);
                             final Graphics2D graphics = scaledBufferedImg.createGraphics();
                             try {
                                 graphics.drawImage(scaledImage, 0, 0, null);

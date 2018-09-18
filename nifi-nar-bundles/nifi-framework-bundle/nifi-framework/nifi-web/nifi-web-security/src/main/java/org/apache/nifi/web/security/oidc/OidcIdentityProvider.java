@@ -50,6 +50,13 @@ public interface OidcIdentityProvider {
     URI getAuthorizationEndpoint();
 
     /**
+     * Returns the URI for the end session endpoint.
+     *
+     * @return uri for the end session endpoint
+     */
+    URI getEndSessionEndpoint();
+
+    /**
      * Returns the scopes supported by the OIDC provider.
      *
      * @return support scopes

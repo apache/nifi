@@ -44,14 +44,73 @@ public class TestResizeImage {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
+        MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        byte[] data = mff.toByteArray();
+
+        BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        assertEquals(64, img.getWidth());
+        assertEquals(64, img.getHeight());
+        File out = new File("target/smooth.jpg");
+        ImageIO.write(img, "JPG", out);
+
+        runner.clearTransferState();
+
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_FAST);
+
+        runner.enqueue(Paths.get("src/test/resources/simple.jpg"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        data = mff.toByteArray();
+
+        img = ImageIO.read(new ByteArrayInputStream(data));
+        assertEquals(64, img.getWidth());
+        assertEquals(64, img.getHeight());
+        out = new File("target/fast.jpg");
+        ImageIO.write(img, "JPG", out);
+    }
+
+    @Test
+    public void testEnlarge() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "600");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "600");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_SMOOTH);
+
+        runner.enqueue(Paths.get("src/test/resources/photoshop-8x12-32colors-alpha.gif"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
+        MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        byte[] data = mff.toByteArray();
+
+        BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        assertEquals(600, img.getWidth());
+        assertEquals(600, img.getHeight());
+        File out = new File("target/enlarge.png");
+        ImageIO.write(img, "PNG", out);
+    }
+
+
+    @Test
+    public void testResizePNG() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "64");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "64");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_SMOOTH);
+
+        runner.enqueue(Paths.get("src/test/resources/mspaint-8x10.png"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
         final byte[] data = mff.toByteArray();
 
         final BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
         assertEquals(64, img.getWidth());
         assertEquals(64, img.getHeight());
-        final File out = new File("target/simple.jpg");
-        ImageIO.write(img, "JPG", out);
+        final File out = new File("target/mspaint-8x10resized.png");
+        ImageIO.write(img, "PNG", out);
     }
-
 }

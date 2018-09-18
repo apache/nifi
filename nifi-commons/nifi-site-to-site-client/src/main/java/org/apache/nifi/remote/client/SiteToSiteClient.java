@@ -146,7 +146,7 @@ public interface SiteToSiteClient extends Closeable {
      * new client created.
      * </p>
      */
-    public static class Builder implements Serializable {
+    class Builder implements Serializable {
 
         private static final long serialVersionUID = -4954962284343090219L;
 
@@ -728,6 +728,7 @@ public interface SiteToSiteClient extends Closeable {
     }
 
 
+    @SuppressWarnings("deprecation")
     class StandardSiteToSiteClientConfig implements SiteToSiteClientConfig, Serializable {
 
         private static final long serialVersionUID = 1L;

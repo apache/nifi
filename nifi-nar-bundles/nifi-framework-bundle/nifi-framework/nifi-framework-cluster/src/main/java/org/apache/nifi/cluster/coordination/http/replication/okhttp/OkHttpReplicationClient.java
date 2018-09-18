@@ -17,6 +17,42 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonInclude.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import okhttp3.Call;
+import okhttp3.ConnectionPool;
+import okhttp3.Headers;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
+import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
+import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.stream.io.GZIPOutputStream;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StreamUtils;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -36,46 +72,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
-import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
-import org.apache.nifi.framework.security.util.SslContextFactory;
-import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.stream.io.GZIPOutputStream;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StreamUtils;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonInclude.Value;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-
-import okhttp3.Call;
-import okhttp3.ConnectionPool;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
     private static final Set<String> gzipEncodings = Stream.of("gzip", "x-gzip").collect(Collectors.toSet());
@@ -86,14 +82,14 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
     private final ObjectMapper jsonCodec = new ObjectMapper();
     private final OkHttpClient okHttpClient;
 
-    public OkHttpReplicationClient(final NiFiProperties properties, final HostnameVerifier hostnameVerifier) {
+    public OkHttpReplicationClient(final NiFiProperties properties) {
         jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
         jsonCodec.setAnnotationIntrospector(new JaxbAnnotationIntrospector(jsonCodec.getTypeFactory()));
 
         jsonSerializer = new JsonEntitySerializer(jsonCodec);
         xmlSerializer = new XmlEntitySerializer();
 
-        okHttpClient = createOkHttpClient(properties, hostnameVerifier);
+        okHttpClient = createOkHttpClient(properties);
     }
 
     @Override
@@ -274,13 +270,13 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
             final String[] acceptEncodingTokens = rawAcceptEncoding.split(",");
             return Stream.of(acceptEncodingTokens)
                 .map(String::trim)
-                .filter(enc -> StringUtils.isNotEmpty(enc))
+                .filter(StringUtils::isNotEmpty)
                 .map(String::toLowerCase)
                 .anyMatch(gzipEncodings::contains);
         }
     }
 
-    private OkHttpClient createOkHttpClient(final NiFiProperties properties, final HostnameVerifier hostnameVerifier) {
+    private OkHttpClient createOkHttpClient(final NiFiProperties properties) {
         final String connectionTimeout = properties.getClusterNodeConnectionTimeout();
         final long connectionTimeoutMs = FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         final String readTimeout = properties.getClusterNodeReadTimeout();
@@ -290,16 +286,11 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         okHttpClientBuilder.connectTimeout(connectionTimeoutMs, TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(readTimeoutMs, TimeUnit.MILLISECONDS);
         okHttpClientBuilder.followRedirects(true);
-        final int connectionPoolSize = properties.getClusterNodeMaxConcurrentRequests();
-        okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
+        okHttpClientBuilder.connectionPool(new ConnectionPool(0, 5, TimeUnit.MINUTES));
 
         final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
         if (tuple != null) {
             okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
-        }
-
-        if (hostnameVerifier != null) {
-            okHttpClientBuilder.hostnameVerifier(hostnameVerifier);
         }
 
         return okHttpClientBuilder.build();

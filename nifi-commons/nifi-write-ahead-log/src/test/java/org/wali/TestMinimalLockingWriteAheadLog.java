@@ -48,13 +48,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("deprecation")
 public class TestMinimalLockingWriteAheadLog {
     private static final Logger logger = LoggerFactory.getLogger(TestMinimalLockingWriteAheadLog.class);
 
@@ -119,7 +119,7 @@ public class TestMinimalLockingWriteAheadLog {
             }
         };
 
-        final WriteAheadRepository<Object> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, (SyncListener) null);
+        final WriteAheadRepository<Object> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, null);
         try {
             final Collection<Object> initialRecs = repo.recoverRecords();
             assertTrue(initialRecs.isEmpty());
@@ -131,7 +131,7 @@ public class TestMinimalLockingWriteAheadLog {
             repo.shutdown();
         }
 
-        final WriteAheadRepository<Object> secondRepo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, (SyncListener) null);
+        final WriteAheadRepository<Object> secondRepo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serde, null);
         try {
             secondRepo.recoverRecords();
         } finally {

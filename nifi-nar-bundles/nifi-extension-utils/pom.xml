@@ -31,6 +31,7 @@
         <module>nifi-hadoop-utils</module>
         <module>nifi-processor-utils</module>
         <module>nifi-reporting-utils</module>
+        <module>nifi-syslog-utils</module>
     </modules>
 
 </project>

@@ -315,6 +315,35 @@ public class ITProcessGroupAccessControl {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
     }
 
+    /**
+     * Ensures malicious string inputs added to the end of a process group
+     * are handled safely and a stack trace is not returned.
+     *
+     * @throws Exception ex
+     */
+    @Test
+    public void testProcessGroupRejectMaliciousString() throws Exception {
+        final ProcessGroupEntity entity = createProcessGroup(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
+
+        final String updatedName = "Updated name" + count++;
+        final String maliciousString = "z--><qss>;<script>alert(\"hello\")</script>";
+        final String maliciousErrorMessage = "The request was rejected because the URL contained a potentially malicious String \";\"";
+
+        // attempt to update the name
+        entity.getRevision().setClientId(READ_WRITE_CLIENT_ID);
+        entity.getComponent().setName(updatedName);
+
+        // perform the request
+        final Response response = updateProcessGroup(helper.getReadWriteUser(), entity, maliciousString);
+        String maliciousStringResponse = response.readEntity(String.class);
+
+        // ensure successful response
+        assertEquals(500, response.getStatus());
+
+        // verify
+        assertEquals(maliciousErrorMessage, maliciousStringResponse);
+    }
+
     private ProcessGroupEntity getRandomProcessGroup(final NiFiTestUser user) throws Exception {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
@@ -336,6 +365,13 @@ public class ITProcessGroupAccessControl {
         Iterator<ProcessGroupEntity> processGroupIter = processGroups.iterator();
         assertTrue(processGroupIter.hasNext());
         return processGroupIter.next();
+    }
+
+    private Response updateProcessGroup(final NiFiTestUser user, final ProcessGroupEntity entity, final String urlParameter) throws Exception {
+        final String url = helper.getBaseUrl() + "/process-groups/" + entity.getId() + urlParameter;
+
+        // perform the request
+        return user.testPut(url, entity);
     }
 
     private Response updateProcessGroup(final NiFiTestUser user, final ProcessGroupEntity entity) throws Exception {

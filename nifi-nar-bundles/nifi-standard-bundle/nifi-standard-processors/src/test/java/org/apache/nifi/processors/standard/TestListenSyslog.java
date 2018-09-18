@@ -25,11 +25,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
-import org.apache.nifi.processors.standard.syslog.SyslogEvent;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.SyslogEvent;
+import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -98,9 +98,9 @@ public class TestListenSyslog {
             runner.assertAllFlowFilesTransferred(ListenSyslog.REL_SUCCESS, 1);
 
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
-            Assert.assertEquals("0", flowFile.getAttribute(SyslogAttributes.PORT.key()));
-            Assert.assertEquals(ListenSyslog.UDP_VALUE.getValue(), flowFile.getAttribute(SyslogAttributes.PROTOCOL.key()));
-            Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SENDER.key())));
+            Assert.assertEquals("0", flowFile.getAttribute(SyslogAttributes.SYSLOG_PORT.key()));
+            Assert.assertEquals(ListenSyslog.UDP_VALUE.getValue(), flowFile.getAttribute(SyslogAttributes.SYSLOG_PROTOCOL.key()));
+            Assert.assertTrue(!StringUtils.isBlank(flowFile.getAttribute(SyslogAttributes.SYSLOG_SENDER.key())));
 
             final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
             final String[] splits = content.split("\\|");

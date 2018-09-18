@@ -95,6 +95,10 @@ public class StandardProcessorTestRunner implements TestRunner {
     private boolean enforceReadStreamsClosed = true;
 
     StandardProcessorTestRunner(final Processor processor) {
+        this(processor, null);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -102,7 +106,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
-        this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
+        this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);
@@ -686,6 +690,16 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is not disabled");
         }
 
+        // ensure controller service is valid before enabling
+        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+
+        for (final ValidationResult result : results) {
+            if (!result.isValid()) {
+                throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is in an invalid state: " + result.toString());
+            }
+        }
+
         try {
             final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
@@ -712,7 +726,9 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void removeControllerService(final ControllerService service) {
-        disableControllerService(service);
+        if (context.getControllerServiceLookup().isControllerServiceEnabled(service)) {
+            disableControllerService(service);
+        }
 
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnRemoved.class, service);
@@ -806,6 +822,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public boolean removeProperty(String property) {
         return context.removeProperty(property);
+    }
+
+    @Override
+    public void clearProperties() {
+        context.clearProperties();
     }
 
     @Override

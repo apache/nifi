@@ -19,10 +19,10 @@ package org.apache.nifi.processors;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -61,7 +61,7 @@ public class WriteResourceToStream extends AbstractProcessor {
         final InputStream resourceStream = Thread.currentThread()
                 .getContextClassLoader().getResourceAsStream("file.txt");
         try {
-            this.resourceData = IOUtils.toString(resourceStream);
+            this.resourceData = IOUtils.toString(resourceStream, Charset.defaultCharset());
         } catch (IOException e) {
             throw new RuntimeException("Unable to load resources", e);
         } finally {
@@ -93,7 +93,7 @@ public class WriteResourceToStream extends AbstractProcessor {
 
                 @Override
                 public void process(OutputStream out) throws IOException {
-                    IOUtils.write(resourceData, out);
+                    IOUtils.write(resourceData, out, Charset.defaultCharset());
 
                 }
             });

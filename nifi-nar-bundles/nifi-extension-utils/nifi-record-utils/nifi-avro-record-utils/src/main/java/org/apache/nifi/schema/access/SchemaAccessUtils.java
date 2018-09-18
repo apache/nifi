@@ -50,7 +50,7 @@ public class SchemaAccessUtils {
         "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single "
             + "'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. "
             + "This is based on version 3.2.x of the Confluent Schema Registry.");
-
+    public static final AllowableValue INFER_SCHEMA = new AllowableValue("infer", "Infer from Result");
 
     public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
             .name("schema-registry")

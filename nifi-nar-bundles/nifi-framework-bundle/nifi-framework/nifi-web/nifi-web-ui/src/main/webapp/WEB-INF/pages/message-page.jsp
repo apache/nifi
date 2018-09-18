@@ -17,18 +17,11 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
-    <%
-        String contextPath = request.getHeader("X-ProxyContextPath");
-        if (contextPath == null) {
-            contextPath = request.getHeader("X-Forwarded-Context");
-        }
-        if (contextPath == null) {
-            contextPath = "";
-        }
-        if (contextPath.endsWith("/")) {
-            contextPath = contextPath.substring(0, contextPath.length() - 1);
-        }
-    %>
+<%
+    // Sanitize the contextPath to ensure it is on this server
+    // rather than getting it from the header directly
+    String contextPath = request.getAttribute("contextPath").toString();
+%>
     <head>
         <title><%= request.getAttribute("title") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("title").toString()) %></title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />

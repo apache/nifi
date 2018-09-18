@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.documentation.example;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -45,12 +50,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Tags({"one", "two", "three"})
 @CapabilityDescription("This is a processor that is used to test documentation.")
@@ -104,6 +103,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .defaultValue("0 sec")
             .build();
 
+    @SuppressWarnings("deprecation")
     public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
             .name("Optional Property")
             .description("This is a property you can use or not")
@@ -111,6 +111,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .expressionLanguageSupported(true) // test documentation of deprecated method
             .build();
 
+    @SuppressWarnings("deprecation")
     public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
             .name("Type")
             .description("This is the type of something that you can choose.  It has several possible values")

@@ -26,6 +26,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -652,6 +653,64 @@ public class ITReportLineageToAtlas {
 
     }
 
+    /**
+     * A client NiFi sends FlowFiles to a remote NiFi using RAW protocol.
+     */
+    private void testS2SSendRAW(TestConfiguration tc) throws Exception {
+        final ProvenanceRecords prs = tc.provenanceRecords;
+        prs.add(pr("ca71e4d9-2a4f-3970", "Generate A", CREATE));
+        prs.add(pr("c439cdca-e989-3491", "Generate C", CREATE));
+        prs.add(pr("b775b657-5a5b-3708", "GetTwitter", CREATE));
+
+        // The remote port GUID is different than the Remote Input Ports.
+        final SimpleProvenanceRecord sendEvent1 = pr("f31a6b53-3077-4c59", "Remote Input Port", SEND,
+                "nifi://nifi.example.com:8081/d668805a-0ad0-44d1-aa65-ac362bf06e10");
+        sendEvent1.getAttributes().put(SiteToSiteAttributes.S2S_PORT_ID.key(), "77919f59-533e-35a3-0000-000000000000");
+        prs.add(sendEvent1);
+
+        final SimpleProvenanceRecord sendEvent2 = pr("f31a6b53-3077-4c59", "Remote Input Port", SEND,
+                "nifi://nifi.example.com:8081/d4ec2459-d903-4a73-a09e-853f9997d3fb");
+        sendEvent2.getAttributes().put(SiteToSiteAttributes.S2S_PORT_ID.key(), "77919f59-533e-35a3-0000-000000000000");
+        prs.add(sendEvent2);
+
+        prs.add(pr("f31a6b53-3077-4c59", "Remote Input Port", DROP)); // C
+        prs.add(pr("f31a6b53-3077-4c59", "Remote Input Port", DROP)); // Twitter
+
+        // Generate C created a FlowFile, then it's sent via S2S
+        tc.addLineage(createLineage(prs, 1, 3, 5));
+        // GetTwitter created a FlowFile, then it's sent via S2S
+        tc.addLineage(createLineage(prs, 2, 4, 6));
+
+        test(tc);
+
+        waitNotificationsGetDelivered();
+
+        final Lineage lineage = getLineage();
+
+        final Node flow = lineage.findNode("nifi_flow", "S2SSendRAW", "S2SSendRAW@example");
+        final Node pathA = lineage.findNode("nifi_flow_path", "Generate A", "ca71e4d9-2a4f-3970");
+        final Node pathB = lineage.findNode("nifi_flow_path", "Generate B", "333255b6-eb02-3056");
+        final Node pathC = lineage.findNode("nifi_flow_path", "Generate C", "c439cdca-e989-3491");
+        final Node pathT = lineage.findNode("nifi_flow_path", "GetTwitter", "b775b657-5a5b-3708");
+        final Node pathI = lineage.findNode("nifi_flow_path", "InactiveProcessor", "7033f311-ac68-3cab");
+        // UpdateAttribute has multiple incoming paths, so it generates a queue to receive those.
+        final Node queueU = lineage.findNode("nifi_queue", "queue", "c5392447-e9f1-33ad");
+        final Node pathU = lineage.findNode("nifi_flow_path", "UpdateAttribute", "c5392447-e9f1-33ad");
+
+        // These are starting paths.
+        lineage.assertLink(flow, pathA);
+        lineage.assertLink(flow, pathB);
+        lineage.assertLink(flow, pathC);
+        lineage.assertLink(flow, pathT);
+        lineage.assertLink(flow, pathI);
+
+        // Multiple paths connected to the same path.
+        lineage.assertLink(pathB, queueU);
+        lineage.assertLink(pathC, queueU);
+        lineage.assertLink(queueU, pathU);
+
+    }
+
     @Test
     public void testS2SSendSimple() throws Exception {
         final TestConfiguration tc = new TestConfiguration("S2SSend");
@@ -711,6 +770,65 @@ public class ITReportLineageToAtlas {
         lineage.assertLink(genT, pathT);
     }
 
+    @Test
+    public void testS2SSendSimpleRAW() throws Exception {
+        final TestConfiguration tc = new TestConfiguration("S2SSendRAW");
+
+        testS2SSendRAW(tc);
+
+        final Lineage lineage = getLineage();
+
+        // The FlowFile created by Generate A has not been finished (by DROP event, but SIMPLE_PATH strategy can report it.
+        final Node pathA = lineage.findNode("nifi_flow_path", "Generate A", "ca71e4d9-2a4f-3970");
+        final Node genA = lineage.findNode("nifi_data", "Generate A", "ca71e4d9-2a4f-3970");
+        lineage.assertLink(genA, pathA);
+
+        final Node pathC = lineage.findNode("nifi_flow_path", "Generate C", "c439cdca-e989-3491");
+        final Node pathT = lineage.findNode("nifi_flow_path", "GetTwitter", "b775b657-5a5b-3708");
+
+        // Generate C and GetTwitter have reported proper SEND lineage to the input port.
+        final Node remoteInputPortD = lineage.findNode("nifi_input_port", "input", "77919f59-533e-35a3");
+        final Node remoteInputPortP = lineage.findNode("nifi_flow_path", "Remote Input Port", "f31a6b53-3077-4c59");
+        final Node remoteInputPortQ = lineage.findNode("nifi_queue", "queue", "f31a6b53-3077-4c59");
+        lineage.assertLink(pathC, remoteInputPortQ);
+        lineage.assertLink(pathT, remoteInputPortQ);
+        lineage.assertLink(remoteInputPortQ, remoteInputPortP);
+        lineage.assertLink(remoteInputPortP, remoteInputPortD);
+
+        // nifi_data is created for each obscure input processor.
+        final Node genC = lineage.findNode("nifi_data", "Generate C", "c439cdca-e989-3491");
+        final Node genT = lineage.findNode("nifi_data", "GetTwitter", "b775b657-5a5b-3708");
+        lineage.assertLink(genC, pathC);
+        lineage.assertLink(genT, pathT);
+    }
+
+    @Test
+    public void testS2SSendCompleteRAW() throws Exception {
+        final TestConfiguration tc = new TestConfiguration("S2SSendRAW");
+        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+
+        testS2SSendRAW(tc);
+
+        final Lineage lineage = getLineage();
+
+        // Complete path has hash.
+        final Node pathC = lineage.findNode("nifi_flow_path", "Generate C, Remote Input Port",
+                "c439cdca-e989-3491-0000-000000000000::1605753423@example");
+        final Node pathT = lineage.findNode("nifi_flow_path", "GetTwitter, Remote Input Port",
+                "b775b657-5a5b-3708-0000-000000000000::3843156947@example");
+
+        // Generate C and GetTwitter have reported proper SEND lineage to the input port.
+        final Node remoteInputPort = lineage.findNode("nifi_input_port", "input", "77919f59-533e-35a3");
+        lineage.assertLink(pathC, remoteInputPort);
+        lineage.assertLink(pathT, remoteInputPort);
+
+        // nifi_data is created for each obscure input processor.
+        final Node genC = lineage.findNode("nifi_data", "Generate C", "c439cdca-e989-3491");
+        final Node genT = lineage.findNode("nifi_data", "GetTwitter", "b775b657-5a5b-3708");
+        lineage.assertLink(genC, pathC);
+        lineage.assertLink(genT, pathT);
+    }
+
     /**
      * A client NiFi gets FlowFiles from a remote NiFi.
      */
@@ -730,6 +848,50 @@ public class ITReportLineageToAtlas {
         final Lineage lineage = getLineage();
 
         final Node flow = lineage.findNode("nifi_flow", "S2SGet", "S2SGet@example");
+        final Node pathL = lineage.findNode("nifi_flow_path", "LogAttribute", "97cc5b27-22f3-3c3b");
+        final Node pathP = lineage.findNode("nifi_flow_path", "PutFile", "4f3bfa4c-6427-3aac");
+        final Node pathU = lineage.findNode("nifi_flow_path", "UpdateAttribute", "bb530e58-ee14-3cac");
+
+        // These entities should be created by notification.
+        final Node remoteOutputPortDataSet = lineage.findNode("nifi_output_port", "output", "392e7343-3950-329b");
+        final Node remoteOutputPortProcess = lineage.findNode("nifi_flow_path", "Remote Output Port", "7375f8f6-4604-468d");
+        final Node queueL = lineage.findNode("nifi_queue", "queue", "97cc5b27-22f3-3c3b");
+        final Node queueP = lineage.findNode("nifi_queue", "queue", "4f3bfa4c-6427-3aac");
+        final Node queueU = lineage.findNode("nifi_queue", "queue", "bb530e58-ee14-3cac");
+
+        lineage.assertLink(remoteOutputPortDataSet, remoteOutputPortProcess);
+
+        lineage.assertLink(flow, remoteOutputPortProcess);
+        lineage.assertLink(remoteOutputPortProcess, queueL);
+        lineage.assertLink(remoteOutputPortProcess, queueP);
+        lineage.assertLink(remoteOutputPortProcess, queueU);
+
+        lineage.assertLink(queueL, pathL);
+        lineage.assertLink(queueP, pathP);
+        lineage.assertLink(queueU, pathU);
+
+    }
+
+    /**
+     * A client NiFi gets FlowFiles from a remote NiFi using RAW protocol.
+     */
+    @Test
+    public void testS2SGetRAW() throws Exception {
+        final TestConfiguration tc = new TestConfiguration("S2SGetRAW");
+        final ProvenanceRecords prs = tc.provenanceRecords;
+        // The remote port GUID is different than the Remote Output Ports.
+        final SimpleProvenanceRecord receiveEvent = pr("7375f8f6-4604-468d", "Remote Output Port", RECEIVE,
+                "nifi://nifi.example.com:8081/7f1a5d65-65bb-4473-b1a4-4a742d9af4a7");
+        receiveEvent.getAttributes().put(SiteToSiteAttributes.S2S_PORT_ID.key(), "392e7343-3950-329b-0000-000000000000");
+        prs.add(receiveEvent);
+
+        test(tc);
+
+        waitNotificationsGetDelivered();
+
+        final Lineage lineage = getLineage();
+
+        final Node flow = lineage.findNode("nifi_flow", "S2SGetRAW", "S2SGetRAW@example");
         final Node pathL = lineage.findNode("nifi_flow_path", "LogAttribute", "97cc5b27-22f3-3c3b");
         final Node pathP = lineage.findNode("nifi_flow_path", "PutFile", "4f3bfa4c-6427-3aac");
         final Node pathU = lineage.findNode("nifi_flow_path", "UpdateAttribute", "bb530e58-ee14-3cac");
@@ -810,6 +972,60 @@ public class ITReportLineageToAtlas {
         lineage.assertLink(inputPort, path);
     }
 
+    /**
+     * A remote NiFi transfers FlowFiles to remote client NiFis using RAW protocol.
+     * This NiFi instance owns RootProcessGroup output port.
+     */
+    @Test
+    public void testS2STransferRAW() throws Exception {
+        final TestConfiguration tc = new TestConfiguration("S2STransfer");
+
+        final ProvenanceRecords prs = tc.provenanceRecords;
+        prs.add(pr("392e7343-3950-329b", "Output Port", SEND,
+                "nifi://nifi.example.com:8081/580b7989-a80b-4089-b25b-3f5e0103af82"));
+
+        test(tc);
+
+        waitNotificationsGetDelivered();
+
+        final Lineage lineage = getLineage();
+
+        final Node flow = lineage.findNode("nifi_flow", "S2STransfer", "S2STransfer@example");
+        final Node path = lineage.findNode("nifi_flow_path", "GenerateFlowFile, output", "1b9f81db-a0fd-389a");
+        final Node outputPort = lineage.findNode("nifi_output_port", "output", "392e7343-3950-329b");
+
+        lineage.assertLink(flow, path);
+        lineage.assertLink(path, outputPort);
+    }
+
+    /**
+     * A remote NiFi receives FlowFiles from remote client NiFis using RAW protocol.
+     * This NiFi instance owns RootProcessGroup input port.
+     */
+    @Test
+    public void testS2SReceiveRAW() throws Exception {
+        final TestConfiguration tc = new TestConfiguration("S2SReceive");
+
+        final ProvenanceRecords prs = tc.provenanceRecords;
+        prs.add(pr("77919f59-533e-35a3", "Input Port", RECEIVE,
+                "nifi://nifi.example.com:8081/232018cc-a147-40c6-b148-21f9f814e93c"));
+
+        test(tc);
+
+        waitNotificationsGetDelivered();
+
+        final Lineage lineage = getLineage();
+
+        final Node flow = lineage.findNode("nifi_flow", "S2SReceive", "S2SReceive@example");
+        final Node path = lineage.findNode("nifi_flow_path", "input, UpdateAttribute", "77919f59-533e-35a3");
+        final Node inputPort = lineage.findNode("nifi_input_port", "input", "77919f59-533e-35a3");
+
+        lineage.assertLink(flow, path);
+        lineage.assertLink(flow, inputPort);
+
+        lineage.assertLink(inputPort, path);
+    }
+
     @Test
     public void testS2SReceiveAndSendCombination() throws Exception {
         testS2SReceive();
@@ -847,6 +1063,70 @@ public class ITReportLineageToAtlas {
 
         final Node remoteFlow = lineage.findNode("nifi_flow", "S2STransfer", "S2STransfer@example");
         final Node localFlow = lineage.findNode("nifi_flow", "S2SGet", "S2SGet@example");
+        final Node remoteGen = lineage.findNode("nifi_flow_path", "GenerateFlowFile, output", "1b9f81db-a0fd-389a");
+        final Node outputPort = lineage.findNode("nifi_output_port", "output", "392e7343-3950-329b");
+
+        final Node remoteOutputPortP = lineage.findNode("nifi_flow_path", "Remote Output Port", "7375f8f6-4604-468d");
+        final Node queueL = lineage.findNode("nifi_queue", "queue", "97cc5b27-22f3-3c3b");
+        final Node queueP = lineage.findNode("nifi_queue", "queue", "4f3bfa4c-6427-3aac");
+        final Node queueU = lineage.findNode("nifi_queue", "queue", "bb530e58-ee14-3cac");
+        final Node pathL = lineage.findNode("nifi_flow_path", "LogAttribute", "97cc5b27-22f3-3c3b");
+        final Node pathP = lineage.findNode("nifi_flow_path", "PutFile", "4f3bfa4c-6427-3aac");
+        final Node pathU = lineage.findNode("nifi_flow_path", "UpdateAttribute", "bb530e58-ee14-3cac");
+
+        // Remote flow owns the outputPort and transfer data generated by GenerateFlowFile.
+        lineage.assertLink(remoteFlow, remoteGen);
+        lineage.assertLink(remoteGen, outputPort);
+
+        // The Remote Output Port path in local flow gets data from the remote.
+        lineage.assertLink(localFlow, remoteOutputPortP);
+        lineage.assertLink(outputPort, remoteOutputPortP);
+        lineage.assertLink(remoteOutputPortP, queueL);
+        lineage.assertLink(remoteOutputPortP, queueP);
+        lineage.assertLink(remoteOutputPortP, queueU);
+        lineage.assertLink(queueL, pathL);
+        lineage.assertLink(queueP, pathP);
+        lineage.assertLink(queueU, pathU);
+
+    }
+
+    @Test
+    public void testS2SReceiveAndSendCombinationRAW() throws Exception {
+        testS2SReceiveRAW();
+        testS2SSendSimpleRAW();
+
+        final Lineage lineage = getLineage();
+
+        final Node remoteFlow = lineage.findNode("nifi_flow", "S2SReceive", "S2SReceive@example");
+        final Node localFlow = lineage.findNode("nifi_flow", "S2SSendRAW", "S2SSendRAW@example");
+        final Node remoteInputPortQ = lineage.findNode("nifi_queue", "queue", "f31a6b53-3077-4c59");
+        final Node remoteInputPortP = lineage.findNode("nifi_flow_path", "Remote Input Port", "f31a6b53-3077-4c59");
+        final Node inputPort = lineage.findNode("nifi_input_port", "input", "77919f59-533e-35a3");
+        final Node pathC = lineage.findNode("nifi_flow_path", "Generate C", "c439cdca-e989-3491");
+        final Node pathT = lineage.findNode("nifi_flow_path", "GetTwitter", "b775b657-5a5b-3708");
+
+        // Remote flow owns the inputPort.
+        lineage.assertLink(remoteFlow, inputPort);
+
+        // These paths within local flow sends data to the remote flow through the remote input port.
+        lineage.assertLink(localFlow, pathC);
+        lineage.assertLink(localFlow, pathT);
+        lineage.assertLink(pathC, remoteInputPortQ);
+        lineage.assertLink(pathT, remoteInputPortQ);
+        lineage.assertLink(remoteInputPortQ, remoteInputPortP);
+        lineage.assertLink(remoteInputPortP, inputPort);
+
+    }
+
+    @Test
+    public void testS2STransferAndGetCombinationRAW() throws Exception {
+        testS2STransferRAW();
+        testS2SGetRAW();
+
+        final Lineage lineage = getLineage();
+
+        final Node remoteFlow = lineage.findNode("nifi_flow", "S2STransfer", "S2STransfer@example");
+        final Node localFlow = lineage.findNode("nifi_flow", "S2SGetRAW", "S2SGetRAW@example");
         final Node remoteGen = lineage.findNode("nifi_flow_path", "GenerateFlowFile, output", "1b9f81db-a0fd-389a");
         final Node outputPort = lineage.findNode("nifi_output_port", "output", "392e7343-3950-329b");
 

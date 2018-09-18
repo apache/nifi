@@ -17,24 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.KeystoreType;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
-import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
-import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
-import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
-import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
-import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
-import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
-import org.bouncycastle.asn1.x509.Extensions;
-import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
-import org.bouncycastle.util.io.pem.PemWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -44,9 +26,29 @@ import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
+import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
+import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
+import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
+import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
+import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
+import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
+import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.apache.nifi.util.StringUtils;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
+import org.bouncycastle.util.io.pem.PemWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TlsToolkitStandalone {
     public static final String NIFI_KEY = "nifi-key";
@@ -65,6 +67,7 @@ public class TlsToolkitStandalone {
     }
 
     public void createNifiKeystoresAndTrustStores(StandaloneConfig standaloneConfig) throws GeneralSecurityException, IOException {
+        // TODO: This 200 line method should be refactored, as it is difficult to test the various validations separately from the filesystem interaction and generation logic
         File baseDir = standaloneConfig.getBaseDir();
         if (!baseDir.exists() && !baseDir.mkdirs()) {
             throw new IOException(baseDir + " doesn't exist and unable to create it.");
@@ -96,10 +99,35 @@ public class TlsToolkitStandalone {
                 certificate = TlsHelper.parseCertificate(pemEncodedCertificate);
             }
             try (FileReader pemEncodedKeyPair = new FileReader(nifiKey)) {
-                caKeyPair = TlsHelper.parseKeyPair(pemEncodedKeyPair);
+                caKeyPair = TlsHelper.parseKeyPairFromReader(pemEncodedKeyPair);
             }
 
-            certificate.verify(caKeyPair.getPublic());
+            // TODO: Do same in client/server
+            // Load additional signing certificates from config
+            List<X509Certificate> signingCertificates = new ArrayList<>();
+
+            // Read the provided additional CA certificate if it exists and extract the certificate
+            if (!StringUtils.isBlank(standaloneConfig.getAdditionalCACertificate())) {
+                X509Certificate signingCertificate;
+                final File additionalCACertFile = new File(standaloneConfig.getAdditionalCACertificate());
+                if (!additionalCACertFile.exists()) {
+                    throw new IOException("The additional CA certificate does not exist at " + additionalCACertFile.getAbsolutePath());
+                }
+                try (FileReader pemEncodedCACertificate = new FileReader(additionalCACertFile)) {
+                    signingCertificate = TlsHelper.parseCertificate(pemEncodedCACertificate);
+                }
+                signingCertificates.add(signingCertificate);
+            }
+
+            // Support self-signed CA certificates
+            signingCertificates.add(certificate);
+
+            boolean signatureValid = TlsHelper.verifyCertificateSignature(certificate, signingCertificates);
+
+            if (!signatureValid) {
+                throw new SignatureException("The signing certificate was not signed by any known certificates");
+            }
+
             if (!caKeyPair.getPublic().equals(certificate.getPublicKey())) {
                 throw new IOException("Expected " + nifiKey + " to correspond to CA certificate at " + nifiCert);
             }

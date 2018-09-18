@@ -528,7 +528,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         try {
             // update event repository
             final Connectable connectable = context.getConnectable();
-            final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+            final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
             flowFileEvent.setBytesRead(checkpoint.bytesRead);
             flowFileEvent.setBytesWritten(checkpoint.bytesWritten);
             flowFileEvent.setContentSizeIn(checkpoint.contentSizeIn);
@@ -553,10 +553,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final Map<String, Long> counters = combineCounters(checkpoint.countersOnCommit, checkpoint.immediateCounters);
             flowFileEvent.setCounters(counters);
 
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
 
-            for (final FlowFileEvent connectionEvent : checkpoint.connectionCounts.values()) {
-                context.getFlowFileEventRepository().updateRepository(connectionEvent);
+            for (final Map.Entry<String, StandardFlowFileEvent> entry : checkpoint.connectionCounts.entrySet()) {
+                context.getFlowFileEventRepository().updateRepository(entry.getValue(), entry.getKey());
             }
         } catch (final IOException ioe) {
             LOG.error("FlowFile Event Repository failed to update", ioe);
@@ -737,6 +737,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             flowFileRecordMap.put(flowFile.getAttribute(CoreAttributes.UUID.key()), flowFile);
         }
 
+        final long commitNanos = System.nanoTime();
         final List<ProvenanceEventRecord> autoTermEvents = checkpoint.autoTerminatedEvents;
         final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
             final Iterator<ProvenanceEventRecord> recordsToSubmitIterator = recordsToSubmit.iterator();
@@ -761,9 +762,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                             // the representation of the FlowFile as it is committed, as this is the only way in which it really
                             // exists in our system -- all other representations are volatile representations that have not been
                             // exposed.
-                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, rawEvent.getEventType() != ProvenanceEventType.SEND);
+                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, rawEvent.getEventType() != ProvenanceEventType.SEND, commitNanos);
                         } else if (autoTermIterator != null && autoTermIterator.hasNext()) {
-                            return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true);
+                            return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true, commitNanos);
                         }
 
                         throw new NoSuchElementException();
@@ -796,7 +797,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public StandardProvenanceEventRecord enrich(final ProvenanceEventRecord rawEvent, final FlowFile flowFile) {
+    public StandardProvenanceEventRecord enrich(final ProvenanceEventRecord rawEvent, final FlowFile flowFile, final long commitNanos) {
         verifyTaskActive();
 
         final StandardRepositoryRecord repoRecord = records.get(flowFile);
@@ -829,11 +830,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         recordBuilder.setAttributes(repoRecord.getOriginalAttributes(), repoRecord.getUpdatedAttributes());
+        if (rawEvent.getEventDuration() < 0) {
+            recordBuilder.setEventDuration(TimeUnit.NANOSECONDS.toMillis(commitNanos - repoRecord.getStartNanos()));
+        }
         return recordBuilder.build();
     }
 
     private StandardProvenanceEventRecord enrich(
-        final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
+        final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records,
+        final boolean updateAttributes, final long commitNanos) {
         final StandardProvenanceEventRecord.Builder recordBuilder = new StandardProvenanceEventRecord.Builder().fromEvent(rawEvent);
         final FlowFileRecord eventFlowFile = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
         if (eventFlowFile != null) {
@@ -861,18 +866,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (originalQueue != null) {
                 recordBuilder.setSourceQueueIdentifier(originalQueue.getIdentifier());
             }
-        }
 
-        if (updateAttributes) {
-            final FlowFileRecord flowFileRecord = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
-            if (flowFileRecord != null) {
-                final StandardRepositoryRecord record = records.get(flowFileRecord);
-                if (record != null) {
-                    recordBuilder.setAttributes(record.getOriginalAttributes(), record.getUpdatedAttributes());
-                }
+            if (updateAttributes) {
+                recordBuilder.setAttributes(repoRecord.getOriginalAttributes(), repoRecord.getUpdatedAttributes());
+            }
+
+            if (rawEvent.getEventDuration() < 0) {
+                recordBuilder.setEventDuration(TimeUnit.NANOSECONDS.toMillis(commitNanos - repoRecord.getStartNanos()));
             }
         }
-
         return recordBuilder.build();
     }
 
@@ -1050,14 +1052,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         final Connectable connectable = context.getConnectable();
-        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
+        final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent();
         flowFileEvent.setBytesRead(bytesRead);
         flowFileEvent.setBytesWritten(bytesWritten);
         flowFileEvent.setCounters(immediateCounters);
 
         // update event repository
         try {
-            context.getFlowFileEventRepository().updateRepository(flowFileEvent);
+            context.getFlowFileEventRepository().updateRepository(flowFileEvent, connectable.getIdentifier());
         } catch (final Exception e) {
             LOG.error("Failed to update FlowFileEvent Repository due to " + e);
             if (LOG.isDebugEnabled()) {
@@ -1456,7 +1458,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void incrementConnectionInputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent(id));
+        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
         connectionEvent.setContentSizeIn(connectionEvent.getContentSizeIn() + bytes);
         connectionEvent.setFlowFilesIn(connectionEvent.getFlowFilesIn() + flowFileCount);
     }
@@ -1466,7 +1468,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void incrementConnectionOutputCounts(final String connectionId, final int flowFileCount, final long bytes) {
-        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent(id));
+        final StandardFlowFileEvent connectionEvent = connectionCounts.computeIfAbsent(connectionId, id -> new StandardFlowFileEvent());
         connectionEvent.setContentSizeOut(connectionEvent.getContentSizeOut() + bytes);
         connectionEvent.setFlowFilesOut(connectionEvent.getFlowFilesOut() + flowFileCount);
     }
@@ -1861,10 +1863,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return newFile;
     }
 
-    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+    private void updateLastQueuedDate(final StandardRepositoryRecord record, final Long lastQueueDate) {
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent())
-            .lastQueued(System.currentTimeMillis(), enqueuedIndex.getAndIncrement()).build();
+                .lastQueued(lastQueueDate, enqueuedIndex.getAndIncrement()).build();
         record.setWorking(newFile);
+    }
+
+    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+        updateLastQueuedDate(record, System.currentTimeMillis());
     }
 
     @Override
@@ -1938,11 +1944,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final int multiplier = Math.max(1, numDestinations);
 
+        final long queuedTime = System.currentTimeMillis();
         long contentSize = 0L;
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = records.get(flowFile);
             record.setTransferRelationship(relationship);
-            updateLastQueuedDate(record);
+            updateLastQueuedDate(record, queuedTime);
 
             contentSize += flowFile.getSize();
         }

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManager;
@@ -90,14 +91,14 @@ public class StandardControllerServiceProviderIT {
      * https://issues.apache.org/jira/browse/NIFI-1143
      */
     @Test(timeout = 120000)
-    public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
+    public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException, ExecutionException {
         final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
         for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);
         }
     }
 
-    public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) {
+    public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) throws InterruptedException, ExecutionException {
         final FlowController controller = Mockito.mock(FlowController.class);
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
@@ -136,7 +137,7 @@ public class StandardControllerServiceProviderIT {
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE_2.getName(), "4");
 
-        provider.enableControllerService(serviceNode4);
+        provider.enableControllerService(serviceNode4).get();
         provider.enableReferencingServices(serviceNode4);
 
         // Verify that the services are either ENABLING or ENABLED, and wait for all of them to become ENABLED.
