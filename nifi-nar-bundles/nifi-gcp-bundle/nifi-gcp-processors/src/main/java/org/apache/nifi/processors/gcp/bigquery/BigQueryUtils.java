@@ -17,24 +17,24 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 
 /**
- *
+ * Util class for schema manipulation
  */
-public class BqUtils {
-    private final static Type gsonSchemaType = new TypeToken<List<Map>>() {
-    }.getType();
+public class BigQueryUtils {
+
+    private final static Type gsonSchemaType = new TypeToken<List<Map>>() { }.getType();
 
     public static Field mapToField(Map fMap) {
         String typeStr = fMap.get("type").toString();
@@ -77,7 +77,7 @@ public class BqUtils {
         } else {
             Gson gson = new Gson();
             List<Map> fields = gson.fromJson(schemaStr, gsonSchemaType);
-            return Schema.of(BqUtils.listToFields(fields));
+            return Schema.of(BigQueryUtils.listToFields(fields));
         }
     }
 

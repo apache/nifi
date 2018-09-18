@@ -22,15 +22,21 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.common.collect.ImmutableList;
+
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +46,9 @@ import java.util.Set;
  * Base class for creating processors that connect to GCP BiqQuery service
  */
 public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> {
+
     static final int BUFFER_SIZE = 65536;
+
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder().name("success")
                     .description("FlowFiles are routed to this relationship after a successful Google BigQuery operation.")
@@ -53,8 +61,8 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    public static final PropertyDescriptor DATASET = new PropertyDescriptor
-            .Builder().name(BigQueryAttributes.DATASET_ATTR)
+    public static final PropertyDescriptor DATASET = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.DATASET_ATTR)
             .displayName("Dataset")
             .description(BigQueryAttributes.DATASET_DESC)
             .required(true)
@@ -63,8 +71,8 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor
-            .Builder().name(BigQueryAttributes.TABLE_NAME_ATTR)
+    public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.TABLE_NAME_ATTR)
             .displayName("Table Name")
             .description(BigQueryAttributes.TABLE_NAME_DESC)
             .required(true)
@@ -73,22 +81,22 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TABLE_SCHEMA = new PropertyDescriptor
-            .Builder().name(BigQueryAttributes.TABLE_SCHEMA_ATTR)
+    public static final PropertyDescriptor TABLE_SCHEMA = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.TABLE_SCHEMA_ATTR)
             .displayName("Table Schema")
             .description(BigQueryAttributes.TABLE_SCHEMA_DESC)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor
-            .Builder().name(BigQueryAttributes.JOB_READ_TIMEOUT_ATTR)
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.JOB_READ_TIMEOUT_ATTR)
             .displayName("Read Timeout")
             .description(BigQueryAttributes.JOB_READ_TIMEOUT_DESC)
             .required(true)
             .defaultValue("5 minutes")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -101,6 +109,10 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
                 .addAll(super.getSupportedPropertyDescriptors())
+                .add(DATASET)
+                .add(TABLE_NAME)
+                .add(TABLE_SCHEMA)
+                .add(READ_TIMEOUT)
                 .build();
     }
 
@@ -109,14 +121,40 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
         final Integer retryCount = Integer.valueOf(context.getProperty(RETRY_COUNT).getValue());
 
-        BigQueryOptions.Builder builder = BigQueryOptions.newBuilder().setCredentials(credentials);
+        final BigQueryOptions.Builder builder = BigQueryOptions.newBuilder();
 
         if (!StringUtils.isBlank(projectId)) {
             builder.setProjectId(projectId);
         }
 
-        return builder
+        return builder.setCredentials(credentials)
                 .setRetrySettings(RetrySettings.newBuilder().setMaxAttempts(retryCount).build())
+                .setTransportOptions(getTransportOptions(context))
                 .build();
     }
+
+    @Override
+    protected final Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Collection<ValidationResult> results = super.customValidate(validationContext);
+        ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
+
+        final boolean projectId = validationContext.getProperty(PROJECT_ID).isSet();
+        if (!projectId) {
+            results.add(new ValidationResult.Builder()
+                    .subject(PROJECT_ID.getName())
+                    .valid(false)
+                    .explanation("The Project ID must be set for this processor.")
+                    .build());
+        }
+
+        customValidate(validationContext, results);
+        return results;
+    }
+
+    /**
+     * If sub-classes needs to implement any custom validation, override this method then add validation result to the results.
+     */
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    }
+
 }
