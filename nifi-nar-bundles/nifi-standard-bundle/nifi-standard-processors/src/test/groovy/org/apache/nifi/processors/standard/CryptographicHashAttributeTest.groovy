@@ -281,6 +281,63 @@ class CryptographicHashAttributeTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldRouteToSuccessOnAllowPartial() {
+        // Arrange
+        def algorithms = HashAlgorithm.values()
+
+        final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
+
+        // Create attributes for username (empty string) and date (null)
+        def attributes = [
+                username: ""
+        ]
+        def attributeKeys = attributes.keySet()
+
+        algorithms.each { HashAlgorithm algorithm ->
+            final EXPECTED_USERNAME_HASH = HashService.hashValue(algorithm, attributes["username"])
+            logger.expected("${algorithm.name.padLeft(11)}(${attributes["username"]}) = ${EXPECTED_USERNAME_HASH}")
+            final EXPECTED_DATE_HASH = null
+            logger.expected("${algorithm.name.padLeft(11)}(${attributes["date"]}) = ${EXPECTED_DATE_HASH}")
+
+            // Reset the processor
+            runner.clearProperties()
+            runner.clearProvenanceEvents()
+            runner.clearTransferState()
+
+            // Set the algorithm
+            logger.info("Setting hash algorithm to ${algorithm.name}")
+            runner.setProperty(CryptographicHashAttribute.HASH_ALGORITHM, algorithm.name)
+
+            // Set to fail if there are missing attributes
+            runner.setProperty(CryptographicHashAttribute.PARTIAL_ATTR_ROUTE_POLICY, CryptographicHashAttribute.PartialAttributePolicy.ALLOW.name())
+
+            // Add the desired dynamic properties
+            attributeKeys.each { String attr ->
+                runner.setProperty(attr, "${attr}_${algorithm.name}")
+            }
+
+            // Insert the attributes in the mock flowfile
+            runner.enqueue(new byte[0], attributes)
+
+            // Act
+            runner.run(1)
+
+            // Assert
+            runner.assertTransferCount(CryptographicHashAttribute.REL_FAILURE, 0)
+            runner.assertTransferCount(CryptographicHashAttribute.REL_SUCCESS, 1)
+
+            final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(CryptographicHashAttribute.REL_SUCCESS)
+
+            // Extract the generated attributes from the flowfile
+            MockFlowFile flowFile = successfulFlowFiles.first()
+            logger.info("Successful flowfile has attributes ${flowFile.attributes}")
+            attributeKeys.each { String attribute ->
+                flowFile.assertAttributeExists("${attribute}_${algorithm.name}")
+            }
+        }
+    }
+
+    @Test
     void testShouldCalculateHashWithVariousCharacterEncodings() {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(new CryptographicHashAttribute())
