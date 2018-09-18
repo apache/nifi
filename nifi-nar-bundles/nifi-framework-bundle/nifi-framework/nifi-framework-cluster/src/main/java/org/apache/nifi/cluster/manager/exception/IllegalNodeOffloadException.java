@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.cluster.manager.exception;
 
-package org.apache.nifi.cluster.coordination;
+/**
+ * Represents the exceptional case when an offload request is issued to a node that cannot be offloaded (e.g., not currently disconnected).
+ */
+public class IllegalNodeOffloadException extends IllegalClusterStateException {
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
+    public IllegalNodeOffloadException() {
+    }
 
-public interface ClusterTopologyEventListener {
+    public IllegalNodeOffloadException(String msg) {
+        super(msg);
+    }
 
-    void onNodeAdded(NodeIdentifier nodeId);
+    public IllegalNodeOffloadException(Throwable cause) {
+        super(cause);
+    }
 
-    void onNodeOffloaded(NodeIdentifier nodeId);
-
-    void onNodeRemoved(NodeIdentifier nodeId);
-
-    void onLocalNodeIdentifierSet(NodeIdentifier localNodeId);
+    public IllegalNodeOffloadException(String msg, Throwable cause) {
+        super(msg, cause);
+    }
 }
