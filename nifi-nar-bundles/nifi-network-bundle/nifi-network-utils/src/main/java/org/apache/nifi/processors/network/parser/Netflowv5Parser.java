@@ -15,7 +15,6 @@
 package org.apache.nifi.processors.network.parser;
 
 import java.util.OptionalInt;
-
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toShort;
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toInt;
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toLong;
@@ -48,8 +47,11 @@ public final class Netflowv5Parser {
     }
 
     public final int parse(final byte[] buffer) throws Throwable {
+        if( !isValid(buffer.length) )
+            throw new Exception("Invalid Packet Length");
         final int version = toInt(buffer, 0, 2);
-        assert version == 5 : "Version mismatch";
+        if( version != 5 )
+            throw new Exception("Version mismatch");
         final int count = toInt(buffer, 2, 2);
 
         headerData = new Object[headerField.length];
@@ -94,22 +96,27 @@ public final class Netflowv5Parser {
     private final Object parseField(final byte[] buffer, final int startOffset, final int length, final int type) {
         Object value = null;
         switch (type) {
-        case SHORT_TYPE:
-            value = toShort(buffer, startOffset, length);
-            break;
-        case INTEGER_TYPE:
-            value = toInt(buffer, startOffset, length);
-            break;
-        case LONG_TYPE:
-            value = toLong(buffer, startOffset, length);
-            break;
-        case IPV4_TYPE:
-            value = toIPV4(buffer, startOffset, length);
-            break;
-        default:
-            break;
+            case SHORT_TYPE:
+                value = toShort(buffer, startOffset, length);
+                break;
+            case INTEGER_TYPE:
+                value = toInt(buffer, startOffset, length);
+                break;
+            case LONG_TYPE:
+                value = toLong(buffer, startOffset, length);
+                break;
+            case IPV4_TYPE:
+                value = toIPV4(buffer, startOffset, length);
+                break;
+            default:
+                break;
         }
         return value;
+    }
+
+    private boolean isValid(final int length) {
+        final int minPacketSize = HEADER_SIZE; // Only HEADER available
+        return length >= minPacketSize && length <=  65536;
     }
 
     public int getPortNumber() {

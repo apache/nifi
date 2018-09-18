@@ -39,6 +39,11 @@ public class TestNetflowv5Parser {
             // Record 3
             10, 0, 0, 2, 10, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 5, 0, 0, 0, 1, 0, 0, 0, 64, 4, -49, 40, -60, 4, -48, 19, 36, 16, -110, 0, 80, 0, 0, 17, 1, 0, 2, 0, 3, 32, 31, 0, 2 };
     private static final int sample2RecordCount = 3;
+    private static final byte invalidVersion[] = {
+            // Header
+            0, 9, 0, 1, 4, -48, 19, 36, 88, 71, -44, 73, 0, 0, 0, 0, 0, 0, 17, -22, 0, 0, 0, 0,
+            // Record 1
+            10, 0, 0, 2, 10, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 5, 0, 0, 0, 1, 0, 0, 0, 64, 4, -49, 40, -60, 4, -48, 19, 36, 16, -110, 0, 80, 0, 0, 17, 1, 0, 2, 0, 3, 32, 31, 0, 0 };
 
     @Test
     public void testParsingSingleRecord() throws Throwable {
@@ -70,6 +75,16 @@ public class TestNetflowv5Parser {
         final Netflowv5Parser parser = new Netflowv5Parser(OptionalInt.empty());
         try {
             parser.parse("invalid data".getBytes());
+        } catch (Throwable e) {
+            Assert.assertTrue(e.getMessage().contains("Invalid Packet Length"));
+        }
+    }
+
+    @Test
+    public void testInvalidVersion() {
+        final Netflowv5Parser parser = new Netflowv5Parser(OptionalInt.empty());
+        try {
+            parser.parse(invalidVersion);
         } catch (Throwable e) {
             Assert.assertTrue(e.getMessage().contains("Version mismatch"));
         }
