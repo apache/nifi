@@ -119,20 +119,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     private final static List<PropertyDescriptor> propertyDescriptors;
 
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully executed CQL statement.")
-            .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("CQL statement execution failed.")
-            .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
-            .description("A FlowFile is transferred to this relationship if the statement cannot be executed successfully but "
-                    + "attempting the operation again may succeed.")
-            .build();
-
     private final static Set<Relationship> relationships;
 
     private static final Pattern CQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("cql\\.args\\.(\\d+)\\.type");
