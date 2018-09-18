@@ -84,12 +84,31 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
         .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
         .dynamicallyModifiesClasspath(true)
         .build();
+    static final PropertyDescriptor PRINCIPAL = new Builder()
+        .name("java.naming.security.principal")
+        .displayName("JNDI Principal")
+        .description("The Principal to use when authenticating with JNDI")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    static final PropertyDescriptor CREDENTIALS = new Builder()
+        .name("java.naming.security.credentials")
+        .displayName("Credentials")
+        .description("The Credentials to use when authenticating with JNDI")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .addValidator(Validator.VALID)
+        .sensitive(true)
+        .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
         INITIAL_NAMING_FACTORY_CLASS,
         NAMING_PROVIDER_URL,
         CONNECTION_FACTORY_NAME,
-        NAMING_FACTORY_LIBRARIES);
+        NAMING_FACTORY_LIBRARIES,
+        PRINCIPAL,
+        CREDENTIALS);
 
     private ConnectionFactory connectionFactory;
 
@@ -131,9 +150,19 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
         try {
             final ConfigurationContext context = getConfigurationContext();
 
-            final Hashtable env = new Hashtable();
+            final Hashtable<String, String> env = new Hashtable<>();
             env.put(Context.INITIAL_CONTEXT_FACTORY, context.getProperty(INITIAL_NAMING_FACTORY_CLASS).evaluateAttributeExpressions().getValue().trim());
             env.put(Context.PROVIDER_URL, context.getProperty(NAMING_PROVIDER_URL).evaluateAttributeExpressions().getValue().trim());
+
+            final String principal = context.getProperty(PRINCIPAL).evaluateAttributeExpressions().getValue();
+            if (principal != null) {
+                env.put(Context.SECURITY_PRINCIPAL, principal);
+            }
+
+            final String credentials = context.getProperty(CREDENTIALS).getValue();
+            if (credentials != null) {
+                env.put(Context.SECURITY_CREDENTIALS, credentials);
+            }
 
             context.getProperties().keySet().forEach(descriptor -> {
                 if (descriptor.isDynamic()) {
