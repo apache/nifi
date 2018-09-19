@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.dbcp;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -200,8 +200,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
 
-        dataSource.setMaxWait(maxWaitMillis);
-        dataSource.setMaxActive(maxTotal);
+        dataSource.setMaxWaitMillis(maxWaitMillis);
+        dataSource.setMaxTotal(maxTotal);
 
         if (validationQuery!=null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
