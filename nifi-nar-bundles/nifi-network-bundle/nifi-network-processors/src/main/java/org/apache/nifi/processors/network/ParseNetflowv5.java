@@ -121,7 +121,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
         final Netflowv5Parser parser = new Netflowv5Parser(portNumber);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         session.exportTo(flowFile, baos);
-        final byte[] buffer = baos.toByteArray();        
+        final byte[] buffer = baos.toByteArray();
 
         final int processedRecord;
         try {

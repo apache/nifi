@@ -21,7 +21,7 @@ import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toLo
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toIPV4;
 
 /**
- * Networkv5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
+ * NetworkV5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
  * <a href="https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html">Netflowv5</a>
  */
 public final class Netflowv5Parser {
@@ -49,11 +49,11 @@ public final class Netflowv5Parser {
     public final int parse(final byte[] buffer) throws Throwable {
         if( !isValid(buffer.length) ) {
             throw new Exception("Invalid Packet Length");
-		}
+        }
         final int version = toInt(buffer, 0, 2);
         if( version != 5 ) {
             throw new Exception("Version mismatch");
-		}
+        }
         final int count = toInt(buffer, 2, 2);
 
         headerData = new Object[headerField.length];
