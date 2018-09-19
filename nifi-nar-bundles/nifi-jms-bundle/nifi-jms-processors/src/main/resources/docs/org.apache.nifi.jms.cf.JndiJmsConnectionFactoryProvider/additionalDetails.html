@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>JMSConnectionFactoryProvider</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Description:</h2>
+<p>
+    This ControllerService allows users to reference a JMS Connection Factory that has already been established and
+    made available via Java Naming and Directory Interface (JNDI) Server. Please see documentation from your JMS Vendor in order
+    to understand the appropriate values to configure for this service.
+</p>
+<p>
+    A Connection Factory in Java is typically obtained via JNDI in code like below. The comments have been added in to explain how
+    this maps to the Controller Service's configuration.
+</p>
+<pre>
+<code>
+Hashtable env = new Hashtable();
+env.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_NAMING_FACTORY_CLASS); // Value for this comes from the "Initial Naming Factory Class" property.
+env.put(Context.PROVIDER_URL, NAMING_PROVIDER_URL); // Value for this comes from the "Naming Provider URL" property.
+env.put("My-Environment-Variable", "Environment-Variable-Value"); // This is accomplished by added a user-defined property with name "My-Environment-Variable" and value "Environment-Variable-Value"
+
+Context initialContext = new InitialContext(env);
+ConnectionFactory connectionFactory = initialContext.lookup(CONNECTION_FACTORY_NAME); // Value for Connection Factory name comes from "Connection Factory Name" property
+</code>
+</pre>
+
+<p>
+    It is also important to note that, in order for this to work, the class named by the Initial Naming Factory Class must be available on the classpath.
+    In NiFi, this is accomplished by setting the "Naming Factory Libraries" property to point to one or more .jar files or directories (comma-separated values).
+</p>
+
+<p>
+    When the Controller Service is disabled and then re-enabled, it will perform the JNDI lookup again. Once the Connection Factory has been obtained, though,
+    it will not perform another JNDI lookup until the service is disabled.
+</p>
+
+
+<h2>Example:</h2>
+
+<p>
+    As an example, the following configuration may be used to connect to Active MQ's JMS Broker, using the Connection Factory provided via their embedded JNDI server:
+</p>
+
+<table>
+    <thead>
+        <th>Property Name</th>
+        <th>Property Value</th>
+    </thead>
+    <tbody>
+      <tr>
+          <td>Initial Naming Factory Class</td>
+          <td>org.apache.activemq.jndi.ActiveMQInitialContextFactory</td>
+      </tr>
+      <tr>
+          <td>Naming Provider URL</td>
+          <td>tcp://jms-broker:61616</td>
+      </tr>
+      <tr>
+          <td>Connection Factory Name</td>
+          <td>ConnectionFactory</td>
+      </tr>
+      <tr>
+          <td>Naming Factory Libraries</td>
+          <td>/opt/apache-activemq-5.15.2/lib/</td>
+      </tr>
+    </tbody>
+</table>
+
+<p>
+    The above example assumes that there exists as host that is accessible with hostname "jms-broker" and that is running Apache ActiveMQ on port 61616 and also that
+    the jar containing the org.apache.activemq.jndi.ActiveMQInitialContextFactory class can be found within the /opt/apache-activemq-5.15.2/lib/ directory.
+</p>
+
+</body>
+</html>
