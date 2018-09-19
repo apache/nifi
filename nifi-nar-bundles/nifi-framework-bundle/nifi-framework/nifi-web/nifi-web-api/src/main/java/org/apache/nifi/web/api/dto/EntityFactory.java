@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ReportingTaskStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
@@ -197,13 +199,14 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
+    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
         final ProcessorStatusDTO status, final List<BulletinEntity> bulletins) {
 
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setInputRequirement(dto.getInputRequirement());
@@ -216,11 +219,13 @@ public final class EntityFactory {
         return entity;
     }
 
-    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PortStatusDTO status, final List<BulletinEntity> bulletins) {
+    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
+                                       final PortStatusDTO status, final List<BulletinEntity> bulletins) {
         final PortEntity entity = new PortEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
@@ -429,12 +434,14 @@ public final class EntityFactory {
         return entity;
     }
 
-    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
+    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision,
+                                                                   final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
                                                                    final RemoteProcessGroupStatusDTO status, final List<BulletinEntity> bulletins) {
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
@@ -448,11 +455,13 @@ public final class EntityFactory {
         return entity;
     }
 
-    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+    public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision,
+                                                                           final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
         final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setRemoteProcessGroupPort(dto);
@@ -468,12 +477,21 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
+    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision,
+                                                         final PermissionsDTO permissions, final PermissionsDTO operatePermissions, final List<BulletinEntity> bulletins) {
         final ReportingTaskEntity entity = new ReportingTaskEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
+
+            final ReportingTaskStatusDTO status = new ReportingTaskStatusDTO();
+            status.setRunStatus(dto.getState());
+            status.setValidationStatus(dto.getValidationStatus());
+            status.setActiveThreadCount(dto.getActiveThreadCount());
+            entity.setStatus(status);
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
@@ -495,13 +513,22 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
+    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision,
+                                                                 final PermissionsDTO permissions, final PermissionsDTO operatePermissions, final List<BulletinEntity> bulletins) {
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
+            entity.setParentGroupId(dto.getParentGroupId());
             entity.setPosition(dto.getPosition());
+
+            final ControllerServiceStatusDTO status = new ControllerServiceStatusDTO();
+            status.setRunStatus(dto.getState());
+            status.setValidationStatus(dto.getValidationStatus());
+            entity.setStatus(status);
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
@@ -510,12 +537,13 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
-        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+    public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(final String id,
+        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);

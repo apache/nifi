@@ -33,6 +33,7 @@ public class RemoteProcessGroupStatusDTO {
     private String targetUri;
     private String transmissionStatus;
     private Date statsLastRefreshed;
+    private String validationStatus;
 
     private RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots;
@@ -119,4 +120,17 @@ public class RemoteProcessGroupStatusDTO {
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
+
+    @ApiModelProperty(value = "Indicates whether the component is valid, invalid, or still in the process of validating" +
+            " (i.e., it is unknown whether or not the component is valid)",
+            readOnly = true,
+            allowableValues = "VALID, INVALID, VALIDATING")
+    public String getValidationStatus() {
+        return validationStatus;
+    }
+
+    public void setValidationStatus(String validationStatus) {
+        this.validationStatus = validationStatus;
+    }
+
 }

@@ -442,6 +442,33 @@ public final class ResourceFactory {
     }
 
     /**
+     * Gets a Resource for accessing component operations.
+     *
+     * @param resource      The resource being accessed
+     * @return              The resource
+     */
+    public static Resource getOperationResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource type must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return ResourceType.Operation.getValue() + resource.getIdentifier();
+            }
+
+            @Override
+            public String getName() {
+                return "Operations for" + resource.getName();
+            }
+
+            @Override
+            public String getSafeDescription() {
+                return "Operations for" + resource.getSafeDescription();
+            }
+        };
+    }
+
+    /**
      * Gets a Resource for accessing a component configuration.
      *
      * @param resourceType  The type of resource being accessed
