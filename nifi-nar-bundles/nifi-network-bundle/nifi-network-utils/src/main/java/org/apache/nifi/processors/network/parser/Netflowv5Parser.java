@@ -21,7 +21,7 @@ import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toLo
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toIPV4;
 
 /**
- * NetworkV5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
+ * Networkv5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see
  * <a href="https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html">Netflowv5</a>
  */
 public final class Netflowv5Parser {
