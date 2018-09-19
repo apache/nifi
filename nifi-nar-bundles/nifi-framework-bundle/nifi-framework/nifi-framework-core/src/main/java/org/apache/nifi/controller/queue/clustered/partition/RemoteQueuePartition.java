@@ -153,6 +153,12 @@ public class RemoteQueuePartition implements QueuePartition {
         final TransactionFailureCallback failureCallback = new TransactionFailureCallback() {
             @Override
             public void onTransactionFailed(final List<FlowFileRecord> flowFiles, final Exception cause, final TransactionPhase phase) {
+                // In the case of failure, we need to acknowledge the FlowFiles that were removed from the queue,
+                // and then put the FlowFiles back, or transfer them to another partition. We do not call
+                // flowFileQueue#onTransfer in the case of failure, though, because the size of the FlowFileQueue itself
+                // has not changed. They FlowFiles were just re-queued or moved between partitions.
+                priorityQueue.acknowledge(flowFiles);
+
                 if (cause instanceof ContentNotFoundException) {
                     // Handle ContentNotFound by creating a RepositoryRecord for the FlowFile and marking as aborted, then updating the
                     // FlowFiles and Provenance Repositories accordingly. This follows the same pattern as StandardProcessSession so that
@@ -170,24 +176,29 @@ public class RemoteQueuePartition implements QueuePartition {
                         updateRepositories(Collections.emptyList(), Collections.singleton(repoRecord));
 
                         // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
-                        // Otherwise, transfer just those FlowFiles that we failed to send.
+                        // In either case, transfer those FlowFiles that we failed to send.
                         if (phase == TransactionPhase.CONNECTING) {
                             failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
-                        } else {
-                            failureDestination.putAll(successfulFlowFiles, partitioner);
                         }
+                        failureDestination.putAll(successfulFlowFiles, partitioner);
+
+                        flowFileQueue.onTransfer(Collections.singleton(flowFile)); // Want to ensure that we update queue size because FlowFile won't be re-queued.
 
                         return;
                     }
                 }
 
                 // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
-                // Otherwise, transfer just those FlowFiles that we failed to send.
+                // In either case, transfer those FlowFiles that we failed to send.
                 if (phase == TransactionPhase.CONNECTING) {
                     failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
-                } else {
-                    failureDestination.putAll(flowFiles, partitioner);
                 }
+                failureDestination.putAll(flowFiles, partitioner);
+            }
+
+            @Override
+            public boolean isRebalanceOnFailure() {
+                return failureDestination.isRebalanceOnFailure(partitioner);
             }
         };
 
@@ -196,16 +207,20 @@ public class RemoteQueuePartition implements QueuePartition {
             public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent) {
                 // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
                 // with the queue so that its size remains accurate.
-                updateRepositories(flowFilesSent, Collections.emptyList());
                 priorityQueue.acknowledge(flowFilesSent);
                 flowFileQueue.onTransfer(flowFilesSent);
+                updateRepositories(flowFilesSent, Collections.emptyList());
             }
         };
 
         clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, priorityQueue::isEmpty, this::getFlowFile,
-            failureCallback, successCallback, flowFileQueue.getLoadBalanceCompression());
+            failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression);
 
         running = true;
+    }
+
+    public void onRemoved() {
+        clientRegistry.unregister(flowFileQueue.getIdentifier(), nodeIdentifier);
     }
 
 

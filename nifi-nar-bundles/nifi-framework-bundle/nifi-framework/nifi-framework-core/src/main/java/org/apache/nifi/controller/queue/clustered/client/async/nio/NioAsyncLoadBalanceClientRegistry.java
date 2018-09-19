@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
@@ -40,8 +41,8 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
     private final NioAsyncLoadBalanceClientFactory clientFactory;
     private final int clientsPerNode;
 
-    private Map<NodeIdentifier, Set<NioAsyncLoadBalanceClient>> clientMap = new HashMap<>();
-    private Set<NioAsyncLoadBalanceClient> allClients = new CopyOnWriteArraySet<>();
+    private Map<NodeIdentifier, Set<AsyncLoadBalanceClient>> clientMap = new HashMap<>();
+    private Set<AsyncLoadBalanceClient> allClients = new CopyOnWriteArraySet<>();
     private boolean running = false;
 
     public NioAsyncLoadBalanceClientRegistry(final NioAsyncLoadBalanceClientFactory clientFactory, final int clientsPerNode) {
@@ -51,33 +52,37 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
 
     @Override
     public synchronized void register(final String connectionId, final NodeIdentifier nodeId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
-                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback, final LoadBalanceCompression compression) {
-        Set<NioAsyncLoadBalanceClient> clients = clientMap.get(nodeId);
+                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
+                                      final Supplier<LoadBalanceCompression> compressionSupplier) {
+
+        Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);
         if (clients == null) {
             clients = registerClients(nodeId);
         }
 
-        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compression));
+        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier));
         logger.debug("Registered Connection with ID {} to send to Node {}", connectionId, nodeId);
     }
 
 
     @Override
     public synchronized void unregister(final String connectionId, final NodeIdentifier nodeId) {
-        final Set<NioAsyncLoadBalanceClient> clients = clientMap.get(nodeId);
+        final Set<AsyncLoadBalanceClient> clients = clientMap.remove(nodeId);
         if (clients == null) {
             return;
         }
 
         clients.forEach(client -> client.unregister(connectionId));
+
+        allClients.removeAll(clients);
         logger.debug("Un-registered Connection with ID {} so that it will no longer send data to Node {}", connectionId, nodeId);
     }
 
-    private Set<NioAsyncLoadBalanceClient> registerClients(final NodeIdentifier nodeId) {
-        final Set<NioAsyncLoadBalanceClient> clients = new HashSet<>();
+    private Set<AsyncLoadBalanceClient> registerClients(final NodeIdentifier nodeId) {
+        final Set<AsyncLoadBalanceClient> clients = new HashSet<>();
 
         for (int i=0; i < clientsPerNode; i++) {
-            final NioAsyncLoadBalanceClient client = clientFactory.createClient(nodeId);
+            final AsyncLoadBalanceClient client = clientFactory.createClient(nodeId);
             clients.add(client);
 
             logger.debug("Added client {} for communicating with Node {}", client, nodeId);
@@ -87,13 +92,13 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
         allClients.addAll(clients);
 
         if (running) {
-            clients.forEach(NioAsyncLoadBalanceClient::start);
+            clients.forEach(AsyncLoadBalanceClient::start);
         }
 
         return clients;
     }
 
-    public synchronized Set<NioAsyncLoadBalanceClient> getAllClients() {
+    public synchronized Set<AsyncLoadBalanceClient> getAllClients() {
         return allClients;
     }
 
@@ -103,7 +108,7 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
         }
 
         running = true;
-        allClients.forEach(NioAsyncLoadBalanceClient::start);
+        allClients.forEach(AsyncLoadBalanceClient::start);
     }
 
     public synchronized void stop() {
@@ -112,6 +117,6 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
         }
 
         running = false;
-        allClients.forEach(NioAsyncLoadBalanceClient::stop);
+        allClients.forEach(AsyncLoadBalanceClient::stop);
     }
 }

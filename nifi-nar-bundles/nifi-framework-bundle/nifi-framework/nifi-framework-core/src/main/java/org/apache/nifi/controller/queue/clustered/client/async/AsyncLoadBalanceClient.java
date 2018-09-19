@@ -18,6 +18,12 @@
 package org.apache.nifi.controller.queue.clustered.client.async;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+
+import java.io.IOException;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 public interface AsyncLoadBalanceClient {
 
@@ -26,5 +32,21 @@ public interface AsyncLoadBalanceClient {
     void start();
 
     void stop();
+
+    void register(String connectionId, BooleanSupplier emptySupplier, Supplier<FlowFileRecord> flowFileSupplier,
+                  TransactionFailureCallback failureCallback, TransactionCompleteCallback successCallback,
+                  Supplier<LoadBalanceCompression> compressionSupplier);
+
+    void unregister(String connectionId);
+
+    boolean isRunning();
+
+    boolean isPenalized();
+
+    void nodeDisconnected();
+
+    void nodeStatusUnknown();
+
+    boolean communicate() throws IOException;
 
 }

@@ -411,7 +411,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         builder.setLineageStartDate(flowFile.getLineageStartDate());
         builder.setComponentId(getIdentifier());
         builder.setComponentType("Connection");
-        builder.setAttributes(flowFile.getAttributes(), Collections.<String, String> emptyMap());
+        builder.setAttributes(flowFile.getAttributes(), Collections.emptyMap());
         builder.setDetails("FlowFile Queue emptied by " + requestor);
         builder.setSourceQueueIdentifier(getIdentifier());
 
@@ -430,8 +430,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     @Override
     public synchronized void setLoadBalanceStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
-        if (strategy == LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE && partitioningAttribute == null) {
-            throw new IllegalArgumentException("Cannot set Load Balance Strategy to " + strategy + " without providing a Partitioning Attribute");
+        if (strategy == LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE && !FlowFile.KeyValidator.isValid(partitioningAttribute)) {
+            throw new IllegalArgumentException("Cannot set Load Balance Strategy to " + strategy + " without providing a valid Partitioning Attribute");
         }
 
         this.loadBalanceStrategy = strategy;

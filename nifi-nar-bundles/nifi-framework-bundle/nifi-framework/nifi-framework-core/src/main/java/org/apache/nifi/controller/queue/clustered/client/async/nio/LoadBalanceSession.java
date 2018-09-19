@@ -19,7 +19,6 @@ package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
-import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
 import org.apache.nifi.controller.queue.clustered.TransactionThreshold;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
@@ -72,7 +71,7 @@ public class LoadBalanceSession {
     private final int timeoutMillis;
     private final String peerDescription;
     private final String connectionId;
-    private final TransactionThreshold transactionThreshold = new SimpleLimitThreshold(1000, 10_000_000L);
+    private final TransactionThreshold transactionThreshold;
 
     final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
     private int protocolVersion = 1;
@@ -90,7 +89,7 @@ public class LoadBalanceSession {
     private long readTimeout;
 
     public LoadBalanceSession(final RegisteredPartition partition, final FlowFileContentAccess contentAccess, final LoadBalanceFlowFileCodec flowFileCodec, final PeerChannel peerChannel,
-                              final int timeoutMillis) {
+                              final int timeoutMillis, final TransactionThreshold transactionThreshold) {
         this.partition = partition;
         this.flowFileSupplier = partition.getFlowFileRecordSupplier();
         this.connectionId = partition.getConnectionId();
@@ -103,6 +102,7 @@ public class LoadBalanceSession {
             throw new IllegalArgumentException();
         }
         this.timeoutMillis = timeoutMillis;
+        this.transactionThreshold = transactionThreshold;
     }
 
     public RegisteredPartition getPartition() {

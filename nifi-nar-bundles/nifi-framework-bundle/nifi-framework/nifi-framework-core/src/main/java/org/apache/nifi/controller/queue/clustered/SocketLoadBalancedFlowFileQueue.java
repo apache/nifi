@@ -268,7 +268,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                 partitionReadLock.lock();
                 try {
-                    if (!partitionerUsed.equals(partitioner) || partitioner.isRebalanceOnFailure()) {
+                    if (isRebalanceOnFailure(partitionerUsed)) {
                         logger.debug("Transferring {} FlowFiles to Rebalancing Partition from node {}", flowFiles.size(), nodeId);
                         rebalancingPartition.rebalance(flowFiles);
                     } else {
@@ -285,7 +285,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             public void putAll(final Function<String, FlowFileQueueContents> queueContentsFunction, final FlowFilePartitioner partitionerUsed) {
                 partitionReadLock.lock();
                 try {
-                    if (!partitionerUsed.equals(partitioner) || partitioner.isRebalanceOnFailure()) {
+                    if (isRebalanceOnFailure(partitionerUsed)) {
                         final FlowFileQueueContents contents = queueContentsFunction.apply(rebalancingPartition.getSwapPartitionName());
                         rebalancingPartition.rebalance(contents);
                         logger.debug("Transferring all {} FlowFiles and {} Swap Files queued for node {} to Rebalancing Partition",
@@ -294,6 +294,20 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                         logger.debug("Will not transfer FlowFiles queued for node {} to Rebalancing Partition because Partitioner {} indicates that the FlowFiles should stay where they are", nodeId,
                             partitioner);
                     }
+                } finally {
+                    partitionReadLock.unlock();
+                }
+            }
+
+            @Override
+            public boolean isRebalanceOnFailure(final FlowFilePartitioner partitionerUsed) {
+                partitionReadLock.lock();
+                try {
+                    if (!partitionerUsed.equals(partitioner)) {
+                        return true;
+                    }
+
+                    return partitioner.isRebalanceOnFailure();
                 } finally {
                     partitionReadLock.unlock();
                 }
@@ -342,6 +356,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             Set<String> partitionNamesToRecover;
             try {
                 partitionNamesToRecover = swapManager.getSwappedPartitionNames(this);
+                logger.debug("For {}, partition names to recover are {}", this, partitionNamesToRecover);
             } catch (final IOException ioe) {
                 logger.error("Failed to determine the names of the Partitions that have swapped FlowFiles for queue with ID {}.", getIdentifier(), ioe);
                 if (eventReporter != null) {
@@ -417,6 +432,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 final List<ResourceClaim> summaryResourceClaims = summary.getResourceClaims();
                 resourceClaims.addAll(summaryResourceClaims);
             }
+
+            adjustSize(totalQueueSize.getObjectCount(), totalQueueSize.getByteCount());
 
             return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims);
         } finally {
@@ -606,6 +623,15 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 }
             }
 
+            // Unregister any client for which the node was removed from the cluster
+            for (final NodeIdentifier removedNodeId : removedNodeIds) {
+                final QueuePartition removedPartition = partitionMap.get(removedNodeId);
+                if (removedPartition instanceof RemoteQueuePartition) {
+                    ((RemoteQueuePartition) removedPartition).onRemoved();
+                }
+            }
+
+
             this.nodeIdentifiers.clear();
             this.nodeIdentifiers.addAll(updatedNodeIdentifiers);
 
@@ -761,7 +787,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords);
-        onAbort(flowFiles);
+        onAbort(expiredRecords);
         return flowFiles;
     }
 

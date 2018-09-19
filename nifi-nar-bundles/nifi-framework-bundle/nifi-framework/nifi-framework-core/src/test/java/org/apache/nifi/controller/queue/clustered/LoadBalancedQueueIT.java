@@ -31,7 +31,7 @@ import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
-import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClient;
+import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientFactory;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientTask;
@@ -299,7 +299,7 @@ public class LoadBalancedQueueIT {
 
             flowFileQueue.stopLoadBalancing();
 
-            clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+            clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             Arrays.stream(servers).filter(Objects::nonNull).forEach(ConnectionLoadBalanceServer::stop);
         }
     }
@@ -399,7 +399,7 @@ public class LoadBalancedQueueIT {
                 }
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -487,7 +487,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -557,7 +557,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.CONTENTMISSING, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -647,7 +647,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -737,7 +737,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -824,7 +824,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -911,7 +911,7 @@ public class LoadBalancedQueueIT {
                 }
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -1001,7 +1001,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -1131,7 +1131,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(RepositoryRecordType.DELETE, clientRecord.getType());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();
@@ -1147,7 +1147,6 @@ public class LoadBalancedQueueIT {
         // Create the server
         final int timeoutMillis = 30000;
         final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, NEVER_AUTHORIZED);
-        final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
@@ -1198,7 +1197,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(2, flowFileQueue.size().getObjectCount());
             } finally {
                 flowFileQueue.stopLoadBalancing();
-                clientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
             }
         } finally {
             server.stop();

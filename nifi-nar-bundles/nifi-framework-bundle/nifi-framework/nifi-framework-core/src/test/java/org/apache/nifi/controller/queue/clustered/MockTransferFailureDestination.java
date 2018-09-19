@@ -29,6 +29,11 @@ import java.util.function.Function;
 public class MockTransferFailureDestination implements TransferFailureDestination {
     private List<FlowFileRecord> flowFilesTransferred = new ArrayList<>();
     private List<String> swapFilesTransferred = new ArrayList<>();
+    private final boolean rebalanceOnFailure;
+
+    public MockTransferFailureDestination(final boolean rebalanceOnFailure) {
+        this.rebalanceOnFailure = rebalanceOnFailure;
+    }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles, final FlowFilePartitioner partitionerUsed) {
@@ -44,6 +49,11 @@ public class MockTransferFailureDestination implements TransferFailureDestinatio
         final FlowFileQueueContents contents = queueContents.apply("unit-test");
         flowFilesTransferred.addAll(contents.getActiveFlowFiles());
         swapFilesTransferred.addAll(contents.getSwapLocations());
+    }
+
+    @Override
+    public boolean isRebalanceOnFailure(final FlowFilePartitioner partitionerUsed) {
+        return rebalanceOnFailure;
     }
 
     public List<String> getSwapFilesTransferred() {

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.web.api.dto.diagnostics;
 
 import io.swagger.annotations.ApiModelProperty;
@@ -23,55 +22,36 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import javax.xml.bind.annotation.XmlType;
 import java.util.List;
 
-@XmlType(name = "connectionDiagnostics")
+@XmlType(name="connectionDiagnostics")
 public class ConnectionDiagnosticsDTO {
     private ConnectionDTO connection;
-    private int totalFlowFileCount;
-    private long totalByteCount;
-    private LocalQueuePartitionDTO localQueuePartition;
-    private List<RemoteQueuePartitionDTO> remoteQueuePartitions;
+    private ConnectionDiagnosticsSnapshotDTO aggregateSnapshot;
+    private List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("Information about the Connection")
+    @ApiModelProperty(value = "Details about the connection", readOnly = true)
     public ConnectionDTO getConnection() {
         return connection;
     }
 
-    public void setConnection(ConnectionDTO connection) {
+    public void setConnection(final ConnectionDTO connection) {
         this.connection = connection;
     }
 
-    @ApiModelProperty("Total number of FlowFiles owned by the Connection")
-    public int getTotalFlowFileCount() {
-        return totalFlowFileCount;
+    @ApiModelProperty(value = "Aggregate values for all nodes in the cluster, or for this instance if not clustered", readOnly = true)
+    public ConnectionDiagnosticsSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setTotalFlowFileCount(int totalFlowFileCount) {
-        this.totalFlowFileCount = totalFlowFileCount;
+    public void setAggregateSnapshot(final ConnectionDiagnosticsSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles owned by this Connection")
-    public long getTotalByteCount() {
-        return totalByteCount;
+    @ApiModelProperty(value = "A list of values for each node in the cluster, if clustered.", readOnly = true)
+    public List<ConnectionDiagnosticsSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setTotalByteCount(long totalByteCount) {
-        this.totalByteCount = totalByteCount;
-    }
-
-    @ApiModelProperty("The local queue partition, from which components can pull FlowFiles on this node.")
-    public LocalQueuePartitionDTO getLocalQueuePartition() {
-        return localQueuePartition;
-    }
-
-    public void setLocalQueuePartition(LocalQueuePartitionDTO localQueuePartition) {
-        this.localQueuePartition = localQueuePartition;
-    }
-
-    public List<RemoteQueuePartitionDTO> getRemoteQueuePartitions() {
-        return remoteQueuePartitions;
-    }
-
-    public void setRemoteQueuePartitions(List<RemoteQueuePartitionDTO> remoteQueuePartitions) {
-        this.remoteQueuePartitions = remoteQueuePartitions;
+    public void setNodeSnapshots(final List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 }

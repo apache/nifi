@@ -828,6 +828,7 @@ public class SwappablePriorityQueue {
                 return null;
             }
 
+            logger.debug("Recovered {} Swap Files for {}: {}", swapLocations.size(), flowFileQueue, swapLocations);
             for (final String swapLocation : swapLocations) {
                 try {
                     final SwapSummary summary = swapManager.getSwapSummary(swapLocation);
@@ -885,7 +886,7 @@ public class SwappablePriorityQueue {
         }
     }
 
-    protected void incrementSwapQueueSize(final int count, final long bytes, final int fileCount) {
+    private void incrementSwapQueueSize(final int count, final long bytes, final int fileCount) {
         boolean updated = false;
         while (!updated) {
             final FlowFileQueueSize original = getFlowFileQueueSize();
@@ -900,7 +901,7 @@ public class SwappablePriorityQueue {
         }
     }
 
-    protected void incrementUnacknowledgedQueueSize(final int count, final long bytes) {
+    private void incrementUnacknowledgedQueueSize(final int count, final long bytes) {
         boolean updated = false;
         while (!updated) {
             final FlowFileQueueSize original = size.get();
@@ -940,13 +941,16 @@ public class SwappablePriorityQueue {
             swapLocations.addAll(queueContents.getSwapLocations());
             incrementSwapQueueSize(queueContents.getSwapSize().getObjectCount(), queueContents.getSwapSize().getByteCount(), queueContents.getSwapLocations().size());
         } finally {
-            writeLock.unlock("inheritSwapFiles");
+            writeLock.unlock("inheritQueueContents");
         }
     }
 
     public FlowFileQueueContents packageForRebalance(final String newPartitionName) {
         writeLock.lock();
         try {
+            final List<FlowFileRecord> activeRecords = new ArrayList<>(this.activeQueue);
+            activeRecords.addAll(this.swapQueue);
+
             final List<String> updatedSwapLocations = new ArrayList<>(swapLocations.size());
             for (final String swapLocation : swapLocations) {
                 try {
@@ -958,9 +962,8 @@ public class SwappablePriorityQueue {
             }
 
             this.swapLocations.clear();
-
-            final List<FlowFileRecord> activeRecords = new ArrayList<>(this.activeQueue);
             this.activeQueue.clear();
+            this.swapQueue.clear();
 
             this.swapMode = false;
 

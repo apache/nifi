@@ -29,8 +29,10 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -328,16 +330,25 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         final List<ProvenanceEventRecord> events = new ArrayList<>(flowFiles.size());
         for (final RemoteFlowFileRecord remoteFlowFile : flowFiles) {
-            final ProvenanceEventRecord provenanceEvent = new StandardProvenanceEventRecord.Builder()
-                    .fromFlowFile(remoteFlowFile.getFlowFile())
+            final FlowFileRecord flowFileRecord = remoteFlowFile.getFlowFile();
+
+            final ProvenanceEventBuilder provenanceEventBuilder = new StandardProvenanceEventRecord.Builder()
+                    .fromFlowFile(flowFileRecord)
                     .setEventType(ProvenanceEventType.RECEIVE)
                     .setTransitUri("nifi://" + nodeName + "/loadbalance/" + connectionId)
                     .setSourceSystemFlowFileIdentifier(remoteFlowFile.getRemoteUuid())
                     .setEventDuration(duration)
                     .setComponentId(connectionId)
-                    .setComponentType("Load Balanced Connection")
-                    .build();
+                    .setComponentType("Load Balanced Connection");
 
+            final ContentClaim contentClaim = flowFileRecord.getContentClaim();
+            if (contentClaim != null) {
+                final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+                provenanceEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                    contentClaim.getOffset() + flowFileRecord.getContentClaimOffset(), flowFileRecord.getSize());
+            }
+
+            final ProvenanceEventRecord provenanceEvent = provenanceEventBuilder.build();
             events.add(provenanceEvent);
         }
 

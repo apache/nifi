@@ -20,7 +20,9 @@ package org.apache.nifi.controller.queue.clustered.client.async.nio;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
+import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
 import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
+import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.junit.After;
@@ -40,6 +42,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.zip.CRC32;
@@ -51,6 +54,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestLoadBalanceSession {
+
+    private final TransactionFailureCallback NOP_FAILURE_CALLBACK = new TransactionFailureCallback() {
+        @Override
+        public void onTransactionFailed(final List<FlowFileRecord> flowFiles, final Exception cause, final TransactionPhase transactionPhase) {
+        }
+
+        @Override
+        public boolean isRebalanceOnFailure() {
+            return false;
+        }
+    };
 
     private ByteArrayOutputStream received;
     private ServerSocket serverSocket;
@@ -107,13 +121,14 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {}, LoadBalanceCompression.DO_NOT_COMPRESS);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
-        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
+        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
+            new SimpleLimitThreshold(100, 10_000_000));
 
         Thread.sleep(100L);
 
@@ -192,13 +207,14 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, (ff, cause, phase) -> {}, (ff) -> {}, LoadBalanceCompression.DO_NOT_COMPRESS);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
-        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000);
+        final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
+            new SimpleLimitThreshold(100, 10_000_000));
 
         Thread.sleep(100L);
 

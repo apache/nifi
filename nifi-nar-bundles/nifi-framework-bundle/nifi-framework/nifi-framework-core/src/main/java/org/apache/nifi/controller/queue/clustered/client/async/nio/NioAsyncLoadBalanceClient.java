@@ -20,6 +20,8 @@ package org.apache.nifi.controller.queue.clustered.client.async.nio;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
+import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
+import org.apache.nifi.controller.queue.clustered.TransactionThreshold;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
@@ -50,6 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 
@@ -70,12 +73,17 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final Map<String, RegisteredPartition> registeredPartitions = new HashMap<>();
     private final Queue<RegisteredPartition> partitionQueue = new LinkedBlockingQueue<>();
 
-    private final Lock lock = new ReentrantLock();
-
     // guarded by synchronizing on this
     private PeerChannel channel;
     private Selector selector;
     private SelectionKey selectionKey;
+
+    // While we use synchronization to guard most of the Class's state, we use a separate lock for the LoadBalanceSession.
+    // We do this because we need to atomically decide whether or not we are able to communicate over the socket with another node and if so, continue on and do so.
+    // However, we cannot do this within a synchronized block because if we did, then if Thread 1 were communicating with the remote node, and Thread 2 wanted to attempt
+    // to do so, it would have to wait until Thread 1 released the synchronization. Instead, we want Thread 2 to determine that the resource is not free and move on.
+    // I.e., we need to use the capability of Lock#tryLock, and the synchronized keyword does not offer this sort of functionality.
+    private final Lock loadBalanceSessionLock = new ReentrantLock();
     private LoadBalanceSession loadBalanceSession = null;
 
 
@@ -95,13 +103,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     public synchronized void register(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
-                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback, final LoadBalanceCompression compression) {
+                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
+                                      final Supplier<LoadBalanceCompression> compressionSupplier) {
 
         if (registeredPartitions.containsKey(connectionId)) {
             throw new IllegalStateException("Connection with ID " + connectionId + " is already registered");
         }
 
-        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compression);
+        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier);
         registeredPartitions.put(connectionId, partition);
         partitionQueue.add(partition);
     }
@@ -179,7 +188,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
         // Use #tryLock here so that if another thread is already communicating with this Client, this thread
         // will not block and wait but instead will just return so that the Thread Pool can proceed to the next Client.
-        if (!lock.tryLock()) {
+        if (!loadBalanceSessionLock.tryLock()) {
             return false;
         }
 
@@ -210,14 +219,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 }
             }
 
-            final LoadBalanceSession transaction = getActiveTransaction(readyPartition);
-            if (transaction == null) {
+            final LoadBalanceSession loadBalanceSession = getActiveTransaction(readyPartition);
+            if (loadBalanceSession == null) {
                 penalize();
                 return false;
             }
 
             selector.selectNow();
-            final boolean ready = (transaction.getDesiredReadinessFlag() & selectionKey.readyOps()) != 0;
+            final boolean ready = (loadBalanceSession.getDesiredReadinessFlag() & selectionKey.readyOps()) != 0;
             if (!ready) {
                 return false;
             }
@@ -226,14 +235,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             boolean success;
             do {
                 try {
-                    success = transaction.communicate();
+                    success = loadBalanceSession.communicate();
                 } catch (final Exception e) {
                     logger.error("Failed to communicate with Peer {}", nodeIdentifier.toString(), e);
                     eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to communicate with Peer " + nodeIdentifier + " when load balancing data for Connection with ID " +
-                        transaction.getPartition().getConnectionId() + " due to " + e);
+                        loadBalanceSession.getPartition().getConnectionId() + " due to " + e);
 
                     penalize();
-                    transaction.getPartition().getFailureCallback().onTransactionFailed(transaction.getFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
+                    loadBalanceSession.getPartition().getFailureCallback().onTransactionFailed(loadBalanceSession.getFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
                     close();
 
                     return false;
@@ -242,8 +251,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 anySuccess = anySuccess || success;
             } while (success);
 
-            if (transaction.isComplete()) {
-                transaction.getPartition().getSuccessCallback().onTransactionComplete(transaction.getFlowFilesSent());
+            if (loadBalanceSession.isComplete()) {
+                loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getFlowFilesSent());
             }
 
             return anySuccess;
@@ -252,18 +261,94 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             loadBalanceSession = null;
             throw e;
         } finally {
-            lock.unlock();
+            loadBalanceSessionLock.unlock();
         }
     }
 
+    /**
+     * If any FlowFiles have been transferred in an active session, fail the transaction. Otherwise, gather up to the Transaction Threshold's limits
+     * worth of FlowFiles and treat them as a failed transaction. In either case, terminate the session. This allows us to transfer FlowFiles from
+     * queue partitions where the partitioner indicates that the data should be rebalanced, but does so in a way that we don't immediately rebalance
+     * all FlowFiles. This is desirable in a case such as when we have a lot of data queued up in a connection and then a node temporarily disconnects.
+     * We don't want to then just push all data to other nodes. We'd rather push the data out to other nodes slowly while waiting for the disconnected
+     * node to reconnect. And if the node reconnects, we want to keep sending it data.
+     */
+    public void nodeDisconnected() {
+        if (!loadBalanceSessionLock.tryLock()) {
+            // If we are not able to obtain the loadBalanceSessionLock, we cannot access the load balance session.
+            return;
+        }
 
-    private synchronized RegisteredPartition getReadyPartition() {
+        try {
+            final LoadBalanceSession session = getFailoverSession();
+            if (session != null) {
+                loadBalanceSession = null;
+
+                logger.debug("Node {} disconnected so will terminate the Load Balancing Session", nodeIdentifier);
+                final List<FlowFileRecord> flowFilesSent = session.getFlowFilesSent();
+
+                if (!flowFilesSent.isEmpty()) {
+                    session.getPartition().getFailureCallback().onTransactionFailed(session.getFlowFilesSent(), TransactionFailureCallback.TransactionPhase.SENDING);
+                }
+
+                close();
+                penalize();
+                return;
+            }
+
+            // Obtain a partition that needs to be rebalanced on failure
+            final RegisteredPartition readyPartition = getReadyPartition(partition -> partition.getFailureCallback().isRebalanceOnFailure());
+            if (readyPartition == null) {
+                return;
+            }
+
+            partitionQueue.offer(readyPartition); // allow partition to be obtained again
+            final TransactionThreshold threshold = newTransactionThreshold();
+
+            final List<FlowFileRecord> flowFiles = new ArrayList<>();
+            while (!threshold.isThresholdMet()) {
+                final FlowFileRecord flowFile = readyPartition.getFlowFileRecordSupplier().get();
+                if (flowFile == null) {
+                    break;
+                }
+
+                flowFiles.add(flowFile);
+                threshold.adjust(1, flowFile.getSize());
+            }
+
+            logger.debug("Node {} not connected so failing {} FlowFiles for Load Balancing", nodeIdentifier, flowFiles.size());
+            readyPartition.getFailureCallback().onTransactionFailed(flowFiles, TransactionFailureCallback.TransactionPhase.SENDING);
+            penalize(); // Don't just transfer FlowFiles out of queue's partition as fast as possible, because the node may only be disconnected for a short time.
+        } finally {
+            loadBalanceSessionLock.unlock();
+        }
+    }
+
+    @Override
+    public void nodeStatusUnknown() {
+        penalize();
+    }
+
+    private synchronized LoadBalanceSession getFailoverSession() {
+        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+            return loadBalanceSession;
+        }
+
+        return null;
+    }
+
+
+    private RegisteredPartition getReadyPartition() {
+        return getReadyPartition(partition -> true);
+    }
+
+    private synchronized RegisteredPartition getReadyPartition(final Predicate<RegisteredPartition> filter) {
         final List<RegisteredPartition> polledPartitions = new ArrayList<>();
 
         try {
             RegisteredPartition partition;
             while ((partition = partitionQueue.poll()) != null) {
-                if (partition.isEmpty()) {
+                if (partition.isEmpty() || !filter.test(partition)) {
                     polledPartitions.add(partition);
                     continue;
                 }
@@ -287,12 +372,15 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             return null;
         }
 
-        loadBalanceSession = new LoadBalanceSession(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis);
+        loadBalanceSession = new LoadBalanceSession(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis, newTransactionThreshold());
         partitionQueue.offer(readyPartition);
 
         return loadBalanceSession;
     }
 
+    private TransactionThreshold newTransactionThreshold() {
+         return new SimpleLimitThreshold(1000, 10_000_000L);
+    }
 
     private synchronized boolean isConnectionEstablished() {
         return selector != null && channel != null && channel.isConnected();

@@ -26,6 +26,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -105,7 +106,10 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<ContentClaim>() {
             @Override
             public ContentClaim answer(final InvocationOnMock invocation) throws Throwable {
-                return Mockito.mock(ContentClaim.class);
+                final ContentClaim contentClaim = Mockito.mock(ContentClaim.class);
+                final ResourceClaim resourceClaim = Mockito.mock(ResourceClaim.class);
+                when(contentClaim.getResourceClaim()).thenReturn(resourceClaim);
+                return contentClaim;
             }
         }).when(contentRepo).create(Mockito.anyBoolean());
 

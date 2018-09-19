@@ -169,6 +169,7 @@ import org.apache.nifi.web.api.dto.action.details.MoveDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.PurgeDetailsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ClassLoaderDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
@@ -3356,9 +3357,16 @@ public final class DtoFactory {
         return dto;
     }
 
+
     private ConnectionDiagnosticsDTO createConnectionDiagnosticsDto(final Connection connection) {
         final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
         dto.setConnection(createConnectionDto(connection));
+        dto.setAggregateSnapshot(createConnectionDiagnosticsSnapshotDto(connection));
+        return dto;
+    }
+
+    private ConnectionDiagnosticsSnapshotDTO createConnectionDiagnosticsSnapshotDto(final Connection connection) {
+        final ConnectionDiagnosticsSnapshotDTO dto = new ConnectionDiagnosticsSnapshotDTO();
 
         final QueueDiagnostics queueDiagnostics = connection.getFlowFileQueue().getQueueDiagnostics();
 
@@ -3398,6 +3406,9 @@ public final class DtoFactory {
         dto.setSwapFlowFileCount(swapSize.getObjectCount());
         dto.setSwapFiles(queueDiagnostics.getSwapFileCount());
 
+        dto.setTotalByteCount(activeSize.getByteCount() + inFlightSize.getByteCount() + swapSize.getByteCount());
+        dto.setTotalFlowFileCount(activeSize.getObjectCount() + inFlightSize.getObjectCount() + swapSize.getObjectCount());
+
         dto.setAllActiveQueueFlowFilesPenalized(queueDiagnostics.isAllActiveFlowFilesPenalized());
         dto.setAnyActiveQueueFlowFilesPenalized(queueDiagnostics.isAnyActiveFlowFilePenalized());
 
@@ -3421,6 +3432,9 @@ public final class DtoFactory {
         dto.setSwapByteCount(swapSize.getByteCount());
         dto.setSwapFlowFileCount(swapSize.getObjectCount());
         dto.setSwapFiles(queueDiagnostics.getSwapFileCount());
+
+        dto.setTotalByteCount(activeSize.getByteCount() + inFlightSize.getByteCount() + swapSize.getByteCount());
+        dto.setTotalFlowFileCount(activeSize.getObjectCount() + inFlightSize.getObjectCount() + swapSize.getObjectCount());
 
         return dto;
     }

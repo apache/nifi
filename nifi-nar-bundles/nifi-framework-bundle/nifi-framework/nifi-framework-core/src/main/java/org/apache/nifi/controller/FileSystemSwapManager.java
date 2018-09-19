@@ -16,32 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -62,6 +36,33 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * <p>
  * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles
@@ -70,9 +71,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FileSystemSwapManager implements FlowFileSwapManager {
 
-    public static final int MINIMUM_SWAP_COUNT = 10000;
-    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
-    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
+    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+(\\..*?)?\\.swap");
+    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+(\\..*?)?\\.swap\\.part");
 
     public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
@@ -220,7 +220,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) throws IOException {
+    public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) {
         final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(final File dir, final String name) {
@@ -237,7 +237,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return Stream.of(swapFiles)
             .filter(swapFile -> queueId.equals(getOwnerQueueIdentifier(swapFile)))
             .map(this::getOwnerPartition)
-            .filter(partition -> partition != null)
+            .filter(Objects::nonNull)
             .collect(Collectors.toSet());
     }
 
@@ -268,8 +268,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
 
             // split the filename by dashes. The old filenaming scheme was "<timestamp>-<randomuuid>.swap" but the new naming scheme is
-            // "<timestamp>-<queue identifier>-<random uuid>.[partition name.]swap". If we have two dashes, then we can just check if the queue ID is equal
-            // to the id of the queue given and if not we can just move on.
+            // "<timestamp>-<queue identifier>-<random uuid>.[partition name.]swap".
             final String ownerQueueId = getOwnerQueueIdentifier(swapFile);
             if (ownerQueueId != null) {
                 if (!ownerQueueId.equals(flowFileQueue.getIdentifier())) {

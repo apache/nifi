@@ -1008,6 +1008,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    public boolean isStartAfterInitialization(final Connectable component) {
+        return startConnectablesAfterInitialization.contains(component) || startRemoteGroupPortsAfterInitialization.contains(component);
+    }
+
     private ContentRepository createContentRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final String implementationClassName = properties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION, DEFAULT_CONTENT_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
@@ -3596,6 +3600,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    public void stopTransmitting(final RemoteGroupPort remoteGroupPort) {
+        writeLock.lock();
+        try {
+            if (initialized.get()) {
+                remoteGroupPort.getRemoteProcessGroup().stopTransmitting(remoteGroupPort);
+            } else {
+                startRemoteGroupPortsAfterInitialization.remove(remoteGroupPort);
+            }
+        } finally {
+            writeLock.unlock("stopTransmitting");
+        }
+    }
+
     public void stopProcessor(final String parentGroupId, final String processorId) {
         final ProcessGroup group = lookupGroup(parentGroupId);
         final ProcessorNode node = group.getProcessor(processorId);
@@ -4451,8 +4468,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     heartbeat();
                 } else {
                     stateManagerProvider.disableClusterProvider();
-                    loadBalanceClientRegistry.stop();
-
                     setPrimary(false);
                 }
 

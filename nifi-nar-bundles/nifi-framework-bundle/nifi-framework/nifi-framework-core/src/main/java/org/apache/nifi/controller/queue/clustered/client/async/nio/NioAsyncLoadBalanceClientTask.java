@@ -21,6 +21,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
         while (running) {
             try {
                 boolean success = false;
-                for (final NioAsyncLoadBalanceClient client : clientRegistry.getAllClients()) {
+                for (final AsyncLoadBalanceClient client : clientRegistry.getAllClients()) {
                     if (!client.isRunning()) {
                         logger.trace("Client {} is not running so will not communicate with it", client);
                         continue;
@@ -59,9 +60,19 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
 
                     final NodeIdentifier clientNodeId = client.getNodeIdentifier();
                     final NodeConnectionStatus connectionStatus = clusterCoordinator.getConnectionStatus(clientNodeId);
+                    if (connectionStatus == null) {
+                        logger.debug("Could not determine Connection Status for Node with ID {}; will not communicate with it", clientNodeId);
+                        continue;
+                    }
+
                     final NodeConnectionState connectionState = connectionStatus.getState();
+                    if (connectionState == NodeConnectionState.DISCONNECTED || connectionState == NodeConnectionState.DISCONNECTING) {
+                        client.nodeDisconnected();
+                        continue;
+                    }
+
                     if (connectionState != NodeConnectionState.CONNECTED) {
-                        logger.trace("Node {} has a Connection State of {} so will not communicate with it", clientNodeId, connectionState);
+                        logger.debug("Client {} is for node that is not currently connected (state = {}) so will not communicate with node", client, connectionState);
                         continue;
                     }
 
@@ -80,8 +91,8 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
                 }
 
                 if (!success) {
-                    logger.trace("Was unable to communicate with any client. Will sleep for 1 millisecond.");
-                    Thread.sleep(1L);
+                    logger.trace("Was unable to communicate with any client. Will sleep for 10 milliseconds.");
+                    Thread.sleep(10L);
                 }
             } catch (final Exception e) {
                 logger.error("Failed to communicate with peer while trying to load balance data across the cluster", e);

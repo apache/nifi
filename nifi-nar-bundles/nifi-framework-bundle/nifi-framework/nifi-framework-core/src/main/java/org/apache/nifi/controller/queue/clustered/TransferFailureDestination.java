@@ -40,4 +40,12 @@ public interface TransferFailureDestination {
      * @param partitionerUsed the partitioner that was used to determine that the given FlowFiles should be grouped together in the first place
      */
     void putAll(Function<String, FlowFileQueueContents> queueContents, FlowFilePartitioner partitionerUsed);
+
+    /**
+     * Indicates whether or not FlowFiles will need to be rebalanced when transferred to the destination.
+     *
+     * @param  partitionerUsed the partitioner that was used to determine that FlowFiles should be grouped together in the first place
+     * @return <code>true</code> if FlowFiles will be rebalanced when transferred, <code>false</code> otherwise
+     */
+    boolean isRebalanceOnFailure(FlowFilePartitioner partitionerUsed);
 }

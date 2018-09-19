@@ -22,7 +22,13 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import java.util.List;
 
 public interface TransactionFailureCallback {
+    default void onTransactionFailed(final List<FlowFileRecord> flowFiles, final TransactionPhase transactionPhase) {
+        onTransactionFailed(flowFiles, null, transactionPhase);
+    }
+
     void onTransactionFailed(List<FlowFileRecord> flowFiles, Exception cause, TransactionPhase transactionPhase);
+
+    boolean isRebalanceOnFailure();
 
     enum TransactionPhase {
         /**

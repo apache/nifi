@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 public interface AsyncLoadBalanceClientRegistry {
     void register(String connectionId, NodeIdentifier nodeId, BooleanSupplier emptySupplier, Supplier<FlowFileRecord> flowFileSupplier, TransactionFailureCallback failureCallback,
-                  TransactionCompleteCallback successCallback, LoadBalanceCompression compression);
+                  TransactionCompleteCallback successCallback, Supplier<LoadBalanceCompression> compressionSupplier);
 
     void unregister(String connectionId, NodeIdentifier nodeId);
 }
