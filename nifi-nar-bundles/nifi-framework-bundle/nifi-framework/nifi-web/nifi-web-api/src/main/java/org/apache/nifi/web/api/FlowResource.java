@@ -538,8 +538,7 @@ public class FlowResource extends ApplicationResource {
             response = ScheduleComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled"),
-                    @Authorization(value = "Write - /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
+                    @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
             }
     )
     @ApiResponses(
@@ -732,7 +731,7 @@ public class FlowResource extends ApplicationResource {
         response = ActivateControllerServicesEntity.class,
         authorizations = {
             @Authorization(value = "Read - /flow"),
-            @Authorization(value = "Write - /{component-type}/{uuid} - For every service being enabled/disabled")
+            @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every service being enabled/disabled")
         })
     @ApiResponses(
             value = {
@@ -789,7 +788,7 @@ public class FlowResource extends ApplicationResource {
 
                 group.findAllControllerServices().stream()
                     .filter(filter)
-                    .filter(service -> service.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                    .filter(service -> OperationAuthorizable.isOperationAuthorized(service, authorizer, NiFiUserUtils.getNiFiUser()))
                     .forEach(service -> componentIds.add(service.getIdentifier()));
                 return componentIds;
             });
@@ -829,7 +828,7 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable authorizable = lookup.getControllerService(componentId).getAuthorizable();
-                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
             () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
