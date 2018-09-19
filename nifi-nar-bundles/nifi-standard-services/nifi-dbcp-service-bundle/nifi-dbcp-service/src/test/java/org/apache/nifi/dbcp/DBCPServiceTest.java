@@ -21,7 +21,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.h2.jdbc.JdbcSQLException;
 import org.h2.tools.Server;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -209,9 +208,6 @@ public class DBCPServiceTest {
         server.shutdown();
         server.start();
 
-        // Note!! We should get something like:
-        // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
-        exception.expect(JdbcSQLException.class);
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
             System.out.println(connection);
