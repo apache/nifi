@@ -461,7 +461,7 @@ public final class EntityFactory {
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
-            entity.setOperatePermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setRemoteProcessGroupPort(dto);
