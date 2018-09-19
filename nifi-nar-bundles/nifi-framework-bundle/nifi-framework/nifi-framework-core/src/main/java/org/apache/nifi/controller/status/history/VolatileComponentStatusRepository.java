@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -166,11 +167,32 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     private synchronized StatusHistory getStatusHistory(final String componentId, final boolean includeCounters, final Set<MetricDescriptor<?>> defaultMetricDescriptors) {
         final ComponentStatusHistory history = componentStatusHistories.get(componentId);
         if (history == null) {
-            return null;
+            return createEmptyStatusHistory();
         }
 
         final List<Date> dates = timestamps.asList();
         return history.toStatusHistory(dates, includeCounters, defaultMetricDescriptors);
+    }
+
+    private StatusHistory createEmptyStatusHistory() {
+        final Date dateGenerated = new Date();
+
+        return new StatusHistory() {
+            @Override
+            public Date getDateGenerated() {
+                return dateGenerated;
+            }
+
+            @Override
+            public Map<String, String> getComponentDetails() {
+                return Collections.emptyMap();
+            }
+
+            @Override
+            public List<StatusSnapshot> getStatusSnapshots() {
+                return Collections.emptyList();
+            }
+        };
     }
 
 
