@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.convertResultSetToAvroInputStream;
+import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.resultSetReturningMetadata;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -425,16 +427,7 @@ public class TestJdbcCommon {
         when(metadata.getPrecision(1)).thenReturn(dbPrecision);
         when(metadata.getScale(1)).thenReturn(expectedScale);
 
-        final ResultSet rs = mock(ResultSet.class);
-        when(rs.getMetaData()).thenReturn(metadata);
-
-        final AtomicInteger counter = new AtomicInteger(1);
-        Mockito.doAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                return counter.getAndDecrement() > 0;
-            }
-        }).when(rs).next();
+        final ResultSet rs = resultSetReturningMetadata(metadata);
 
         when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
 
@@ -587,27 +580,12 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn("t_int");
         when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = mock(ResultSet.class);
-        when(rs.getMetaData()).thenReturn(metadata);
-
-        final AtomicInteger counter = new AtomicInteger(1);
-        Mockito.doAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                return counter.getAndDecrement() > 0;
-            }
-        }).when(rs).next();
+        final ResultSet rs = resultSetReturningMetadata(metadata);
 
         final short s = 25;
         when(rs.getObject(Mockito.anyInt())).thenReturn(s);
 
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-        JdbcCommon.convertToAvroStream(rs, baos, false);
-
-        final byte[] serializedBytes = baos.toByteArray();
-
-        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+        final InputStream instream = convertResultSetToAvroInputStream(rs);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
@@ -615,6 +593,62 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals(Short.toString(s), record.get("t_int").toString());
+            }
+        }
+    }
+
+    @Test
+    public void testConvertToAvroStreamForUnsignedIntegerWithPrecision1ReturnedAsLong_NIFI5612() throws SQLException, IOException {
+        final String mockColumnName = "t_int";
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(metadata.isSigned(1)).thenReturn(false);
+        when(metadata.getPrecision(1)).thenReturn(1);
+        when(metadata.getColumnName(1)).thenReturn(mockColumnName);
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = resultSetReturningMetadata(metadata);
+
+        final Long ret = 0L;
+        when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
+
+        final InputStream instream = convertResultSetToAvroInputStream(rs);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertEquals(Long.toString(ret), record.get(mockColumnName).toString());
+            }
+        }
+    }
+
+    @Test
+    public void testConvertToAvroStreamForUnsignedIntegerWithPrecision10() throws SQLException, IOException {
+        final String mockColumnName = "t_int";
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(metadata.isSigned(1)).thenReturn(false);
+        when(metadata.getPrecision(1)).thenReturn(10);
+        when(metadata.getColumnName(1)).thenReturn(mockColumnName);
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = resultSetReturningMetadata(metadata);
+
+        final Long ret = 0L;
+        when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
+
+        final InputStream instream = convertResultSetToAvroInputStream(rs);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertEquals(Long.toString(ret), record.get(mockColumnName).toString());
             }
         }
     }
