@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.Security
+import java.text.SimpleDateFormat
 
 @RunWith(JUnit4.class)
 class CryptographicHashAttributeTest extends GroovyTestCase {
@@ -68,7 +69,7 @@ class CryptographicHashAttributeTest extends GroovyTestCase {
         // Create attributes for username and date
         def attributes = [
                 username: "alopresto",
-                date    : new Date().format("YYYY-MM-dd HH:mm:ss.SSS Z")
+                date    : new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS Z").format(new Date())
         ]
         def attributeKeys = attributes.keySet()
 

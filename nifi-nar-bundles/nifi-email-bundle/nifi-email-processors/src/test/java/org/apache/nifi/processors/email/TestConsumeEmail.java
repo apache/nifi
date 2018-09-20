@@ -19,6 +19,7 @@ package org.apache.nifi.processors.email;
 
 import com.icegreen.greenmail.user.GreenMailUser;
 import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetup;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -51,9 +52,14 @@ public class TestConsumeEmail {
     // Setup mock imap server
     @Before
     public void setUp() {
-        mockIMAP4Server = new GreenMail(ServerSetupTest.IMAP);
+        // The default is 1000ms/1s, which seems to not always be enough when running the full build.
+        ServerSetup imap = ServerSetupTest.IMAP.createCopy();
+        imap.setServerStartupTimeout(10000L);
+        ServerSetup pop3 = ServerSetupTest.POP3.createCopy();
+        pop3.setServerStartupTimeout(10000L);
+        mockIMAP4Server = new GreenMail(imap);
         mockIMAP4Server.start();
-        mockPOP3Server = new GreenMail(ServerSetupTest.POP3);
+        mockPOP3Server = new GreenMail(pop3);
         mockPOP3Server.start();
 
         imapUser = mockIMAP4Server.setUser("test@nifi.org", "nifiUserImap", "nifiPassword");

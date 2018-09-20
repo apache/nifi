@@ -136,6 +136,20 @@
         </repository>
     </repositories>
 
+    <pluginRepositories>
+    <pluginRepository>
+        <id>bintray</id>
+        <name>Groovy Bintray</name>
+        <url>https://dl.bintray.com/groovy/maven</url>
+        <releases>
+            <updatePolicy>never</updatePolicy>
+        </releases>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </pluginRepository>
+    </pluginRepositories>
+
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -224,8 +238,9 @@
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.13</version>
+                <version>2.5.7</version>
                 <scope>test</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.spockframework</groupId>
@@ -316,6 +331,7 @@
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
+            <type>pom</type>
         </dependency>
     </dependencies>
 
@@ -335,7 +351,7 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>2.9.2-01</version>
+                    <version>3.0.0-01</version>
                     <extensions>true</extensions>
                 </plugin>
                 <plugin>
@@ -475,12 +491,12 @@
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>2.9.2-01</version>
+                        <version>3.0.0-01</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>2.4.3-01</version>
+                        <version>2.5.2-01</version>
                     </dependency>
                 </dependencies>
             </plugin>
