@@ -566,8 +566,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         final HttpServletRequest request = container.getRequest();
 
         if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
-          final long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asLong();
-          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asInteger();
+          final long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).longValue();
+          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asDataSize(DataUnit.B).intValue()
           String tempDir = System.getProperty("java.io.tmpdir");
           request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, maxRequestSize, maxRequestSize, inMemoryFileSizeThreshold));
           try {
