@@ -91,11 +91,13 @@ import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.SchemaBuilder.NullDefault;
 import org.apache.avro.SchemaBuilder.UnionAccumulator;
 import org.apache.avro.file.CodecFactory;
+import org.apache.avro.UnresolvedUnionException;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -449,8 +451,11 @@ public class JdbcCommon {
                             } else {
                                 rec.put(i - 1, value);
                             }
+                        } else if ((value instanceof Long) && meta.getPrecision(i) < MAX_DIGITS_IN_INT) {
+                            int intValue = ((Long)value).intValue();
+                            rec.put(i-1, intValue);
                         } else {
-                            rec.put(i - 1, value);
+                            rec.put(i-1, value);
                         }
 
                     } else if (value instanceof Date) {
@@ -470,8 +475,22 @@ public class JdbcCommon {
                         rec.put(i - 1, value.toString());
                     }
                 }
-                dataFileWriter.append(rec);
-                nrOfRows += 1;
+                try {
+                    dataFileWriter.append(rec);
+                    nrOfRows += 1;
+                } catch (DataFileWriter.AppendWriteException awe) {
+                    Throwable rootCause = ExceptionUtils.getRootCause(awe);
+                    if(rootCause instanceof UnresolvedUnionException) {
+                        UnresolvedUnionException uue = (UnresolvedUnionException) rootCause;
+                        throw new RuntimeException(
+                                "Unable to resolve union for value " + uue.getUnresolvedDatum() +
+                                " with type " + uue.getUnresolvedDatum().getClass().getCanonicalName() +
+                                " while appending record " + rec,
+                                awe);
+                    } else {
+                        throw awe;
+                    }
+                }
 
                 if (options.maxRows > 0 && nrOfRows == options.maxRows)
                     break;
