@@ -137,10 +137,21 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
         .name("max-request-size")
         .displayName("Max Request Size")
-        .description("The maximal size of the request")
+        .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
+                + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
         .required(true)
-        .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-        .defaultValue("10485760")
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("1 MB")
+        .build();
+    public static final PropertyDescriptor IN_MEMORY_FILE_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
+        .name("in-memory-file-size-threshold")
+        .displayName("The threshold size, at which the contents of an incoming file would be written to disk. "
+                + "Only applies for requests with Content-Type: multipart/form-data. "
+                + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
+        .description("The threshold value for writing a file to disk.")
+        .required(true)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("512 KB")
         .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
@@ -154,6 +165,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
     public static final String CONTEXT_ATTRIBUTE_RETURN_CODE = "returnCode";
     public static final String CONTEXT_ATTRIBUTE_MAX_REQUEST_SIZE = "maxRequestSize";
+    public static final String CONTEXT_ATTRIBUTE_IN_MEMORY_FILE_SIZE_THRESHOLD = "inMemoryFileSizeThreshold";
 
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
@@ -176,6 +188,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         descriptors.add(RETURN_CODE);
         descriptors.add(MAX_REQUEST_SIZE);
+        descriptors.add(IN_MEMORY_FILE_SIZE_THRESHOLD);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -224,7 +237,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
-        long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asLong();
+        long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).longValue();
+        int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
@@ -308,6 +322,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MAX_REQUEST_SIZE, maxRequestSize);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_IN_MEMORY_FILE_SIZE_THRESHOLD, inMemoryFileSizeThreshold);
 
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
