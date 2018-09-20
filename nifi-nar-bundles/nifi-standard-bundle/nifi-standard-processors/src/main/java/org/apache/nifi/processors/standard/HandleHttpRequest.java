@@ -255,12 +255,22 @@ public class HandleHttpRequest extends AbstractProcessor {
     public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
             .name("max-request-size")
             .displayName("Max Request Size")
-            .description("The maximal size of the request")
+            .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
+                    + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("10485760")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("1 MB")
             .build();
-
+    public static final PropertyDescriptor IN_MEMORY_FILE_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
+            .name("in-memory-file-size-threshold")
+            .displayName("The threshold size, at which the contents of an incoming file would be written to disk. "
+                    + "Only applies for requests with Content-Type: multipart/form-data. "
+                    + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
+            .description("The threshold value for writing a file to disk.")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("512 KB")
+            .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All content that is received is routed to the 'success' relationship")
@@ -286,6 +296,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(CLIENT_AUTH);
         descriptors.add(CONTAINER_QUEUE_SIZE);
         descriptors.add(MAX_REQUEST_SIZE);
+        descriptors.add(IN_MEMORY_FILE_SIZE_THRESHOLD);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -556,7 +567,9 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
           final long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asLong();
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement("/tmp", maxRequestSize, maxRequestSize, 0));
+          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asInteger();
+          String tempDir = System.getProperty("java.io.tmpdir");
+          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, maxRequestSize, maxRequestSize, inMemoryFileSizeThreshold));
           try {
             List<Part> parts = ImmutableList.copyOf(request.getParts());
             int allPartsCount = parts.size();
