@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.hbase.io;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.util.RowSerializerUtil;
 

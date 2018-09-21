@@ -17,7 +17,7 @@
 package org.apache.nifi.web.server;
 
 import com.google.common.base.Strings;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.nifi.util.NiFiProperties;

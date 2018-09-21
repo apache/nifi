@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.7</version>
+            <version>3.8.1</version>
         </dependency>
         <!-- Other modules using nifi-hadoop-utils are expected to have the below dependencies available, typically through a NAR dependency -->
         <dependency>

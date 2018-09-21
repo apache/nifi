@@ -28,8 +28,8 @@ limitations under the License.
     <artifactId>nifi-hwx-schema-registry-service</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <hwx.registry.version>0.5.1</hwx.registry.version>
-        <jackson.version>2.9.5</jackson.version>
+        <hwx.registry.version>0.5.3</hwx.registry.version>
+        <jackson.version>2.9.7</jackson.version>
     </properties>
     <dependencies>
         <dependency>

@@ -49,7 +49,7 @@
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-parsers</artifactId>
-            <version>1.17</version>
+            <version>1.19</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
@@ -65,12 +65,6 @@
                     <artifactId>jsr-275</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <!-- Once Tika-Parsers 1.18 comes out this explicit dependency ref forcing 1.16.1 can be removed -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-            <version>1.16.1</version>
         </dependency>
     </dependencies>
     <build>

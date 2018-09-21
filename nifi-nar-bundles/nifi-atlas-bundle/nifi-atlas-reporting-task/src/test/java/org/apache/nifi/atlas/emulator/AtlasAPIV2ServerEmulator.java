@@ -171,8 +171,7 @@ public class AtlasAPIV2ServerEmulator {
                 final Object r;
                 switch (k) {
                     case "inputs":
-                    case "outputs":
-                    {
+                    case "outputs": {
                         // If a reference doesn't have guid, then find it.
                         r = resolveIOReference(v);
                     }
@@ -211,7 +210,7 @@ public class AtlasAPIV2ServerEmulator {
         httpConnector = new ServerConnector(server);
         httpConnector.setPort(21000);
 
-        server.setConnectors(new Connector[] {httpConnector});
+        server.setConnectors(new Connector[]{httpConnector});
 
         servletHandler.addServletWithMapping(TypeDefsServlet.class, "/types/typedefs/");
         servletHandler.addServletWithMapping(EntityBulkServlet.class, "/entity/bulk/");
@@ -334,6 +333,7 @@ public class AtlasAPIV2ServerEmulator {
     public static class EntityGuidServlet extends HttpServlet {
 
         private static Pattern URL_PATTERN = Pattern.compile(".+/guid/([^/]+)");
+
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             final Matcher matcher = URL_PATTERN.matcher(req.getRequestURI());
@@ -358,6 +358,7 @@ public class AtlasAPIV2ServerEmulator {
     public static class SearchByUniqueAttributeServlet extends HttpServlet {
 
         private static Pattern URL_PATTERN = Pattern.compile(".+/uniqueAttribute/type/([^/]+)");
+
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             // http://localhost:21000/api/atlas/v2/entity/uniqueAttribute/type/nifi_flow_path?attr:qualifiedName=2e9a2852-228f-379b-0000-000000000000@example
@@ -479,7 +480,6 @@ public class AtlasAPIV2ServerEmulator {
                 }
             }
 
-
             // Traverse entities those consume this entity as their input.
             final List<AtlasEntity> outGoings = Stream.of(outgoingEntities.getOrDefault(toTypedQname(s), Collections.emptyList()),
                     outgoingEntities.getOrDefault(s.getGuid(), Collections.emptyList())).flatMap(List::stream).collect(Collectors.toList());
@@ -567,7 +567,6 @@ public class AtlasAPIV2ServerEmulator {
                         traverse(seen, s, links, nodeIndices, outgoingEntities);
                     });
 
-
                 }
             }
 
@@ -596,7 +595,7 @@ public class AtlasAPIV2ServerEmulator {
                     // Group links by its target, and configure each weight value.
                     // E.g. 1 -> 3 and 2 -> 3, then 1 (0.5) -> 3 and 2 (0.5) -> 3.
                     ls.stream().collect(Collectors.groupingBy(Link::getTarget))
-                        .forEach((t, ls2SameTgt) -> ls2SameTgt.forEach(l -> l.setValue(1.0 / (double) ls2SameTgt.size())));
+                            .forEach((t, ls2SameTgt) -> ls2SameTgt.forEach(l -> l.setValue(1.0 / (double) ls2SameTgt.size())));
                 }
             });
 
