@@ -97,7 +97,7 @@
                     <artifactId>commons-lang</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>commons-lang3</groupId>
+                    <groupId>org.apache.commons</groupId>
                     <artifactId>commons-lang3</artifactId>
                 </exclusion>
                 <exclusion>

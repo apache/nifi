@@ -33,9 +33,9 @@
         <module>nifi-standard-web-test-utils</module>
     </modules>
     <properties>
-        <jackson.version>2.9.5</jackson.version>
+        <jackson.version>2.9.7</jackson.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <jolt.version>0.1.0</jolt.version>
+        <jolt.version>0.1.1</jolt.version>
         <jersey.version>2.26</jersey.version>
     </properties>
     <dependencyManagement>
@@ -170,27 +170,27 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.16.1</version>
+                <version>1.18</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.7</version>
+                <version>3.8.1</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.59</version>
+                <version>1.60</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpg-jdk15on</artifactId>
-                <version>1.59</version>
+                <version>1.60</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk15on</artifactId>
-                <version>1.59</version>
+                <version>1.60</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
@@ -230,7 +230,7 @@
             <dependency>
                 <groupId>org.tukaani</groupId>
                 <artifactId>xz</artifactId>
-                <version>1.6</version>
+                <version>1.8</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.saxon</groupId>
@@ -250,12 +250,12 @@
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.3</version>
+                <version>5.15.6</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-broker</artifactId>
-                <version>5.15.3</version>
+                <version>5.15.6</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -271,7 +271,7 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.17</version>
+                <version>1.19</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
@@ -281,7 +281,7 @@
             <dependency>
                 <groupId>com.burgstaller</groupId>
                 <artifactId>okhttp-digest</artifactId>
-                <version>1.13</version>
+                <version>1.18</version>
                 <type>jar</type>
             </dependency>
             <dependency>
@@ -297,7 +297,7 @@
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.7.2</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -330,7 +330,7 @@
             <dependency>
                 <groupId>com.github.wnameless</groupId>
                 <artifactId>json-flattener</artifactId>
-                <version>0.5.0</version>
+                <version>0.6.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.bval</groupId>
@@ -373,7 +373,7 @@
             <dependency>
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
-                <version>1.12.0</version>
+                <version>1.17.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
