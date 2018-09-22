@@ -80,12 +80,12 @@ class TestGetHTTPGroovy extends GroovyTestCase {
     private static final String TLS_1_URL = "https://nifi.apache.org/"
     private static final String TLS_1_1_URL = "https://nifi.apache.org/"
 
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
     private static final String CACERTS_PATH = "/Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/jre/lib/security/cacerts"
 
-    private static final String KEYSTORE_PASSWORD = "localtest"
-    private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String KEYSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
     private static final String CACERTS_PASSWORD = "changeit"
 
     private static Server server

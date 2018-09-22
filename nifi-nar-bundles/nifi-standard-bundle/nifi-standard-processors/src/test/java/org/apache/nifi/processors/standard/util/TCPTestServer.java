@@ -53,8 +53,8 @@ public class TCPTestServer implements Runnable {
     public synchronized void startServer(boolean ssl) throws Exception {
         if (!isServerRunning()) {
             if(ssl){
-                final SSLContext sslCtx = SslContextFactory.createSslContext("src/test/resources/localhost-ks.jks","localtest".toCharArray(), "JKS", "src/test/resources/localhost-ts.jks",
-                        "localtest".toCharArray(), "JKS", SslContextFactory.ClientAuth.REQUIRED, "TLS");
+                final SSLContext sslCtx = SslContextFactory.createSslContext("src/test/resources/keystore.jks","passwordpassword".toCharArray(), "JKS", "src/test/resources/truststore.jks",
+                        "passwordpassword".toCharArray(), "JKS", SslContextFactory.ClientAuth.REQUIRED, "TLS");
 
                 ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();
                 serverSocket = sslSocketFactory.createServerSocket(0, 0, ipAddress);

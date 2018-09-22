@@ -57,11 +57,11 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
 
     private static Map<String, String> createSslProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
+        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return map;
     }

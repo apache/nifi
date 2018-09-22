@@ -81,6 +81,4 @@ public class TestCustomNotificationService extends AbstractNotificationService {
         logger.info(context.getProperty(CUSTOM_USERNAME).evaluateAttributeExpressions().getValue());
         logger.info(context.getProperty(CUSTOM_PASSWORD).evaluateAttributeExpressions().getValue());
     }
-
-
 }

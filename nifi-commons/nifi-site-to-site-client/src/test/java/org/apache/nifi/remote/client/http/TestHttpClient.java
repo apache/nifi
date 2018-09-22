@@ -453,8 +453,8 @@ public class TestHttpClient {
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
         final SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
-        sslContextFactory.setKeyStorePassword("localtest");
+        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
+        sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
 
         httpConnector = new ServerConnector(server);
@@ -689,11 +689,11 @@ public class TestHttpClient {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
                 .timeout(3, TimeUnit.MINUTES)
-                .keystoreFilename("src/test/resources/certs/localhost-ks.jks")
-                .keystorePass("localtest")
+                .keystoreFilename("src/test/resources/certs/keystore.jks")
+                .keystorePass("passwordpassword")
                 .keystoreType(KeystoreType.JKS)
-                .truststoreFilename("src/test/resources/certs/localhost-ts.jks")
-                .truststorePass("localtest")
+                .truststoreFilename("src/test/resources/certs/truststore.jks")
+                .truststorePass("passwordpassword")
                 .truststoreType(KeystoreType.JKS)
                 ;
     }
@@ -707,13 +707,13 @@ public class TestHttpClient {
 
 
     @Test
-    public void testUnkownClusterUrl() throws Exception {
+    public void testUnknownClusterUrl() throws Exception {
 
         final URI uri = server.getURI();
 
         try (
             SiteToSiteClient client = getDefaultBuilder()
-                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/unkown")
+                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/unknown")
                 .portName("input-running")
                 .build()
         ) {
