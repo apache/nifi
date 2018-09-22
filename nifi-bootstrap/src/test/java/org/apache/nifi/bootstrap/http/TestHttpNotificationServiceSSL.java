@@ -42,12 +42,12 @@ public class TestHttpNotificationServiceSSL extends  TestHttpNotificationService
             "            <id>http-notification</id>\n"+
             "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
             "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/localhost-ts.jks</property>\n"+
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
             "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">localtest</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/localhost-ks.jks</property>\n"+
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
             "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\">localtest</property>\n"+
+            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
             "            <property name=\"testProp\">${literal('testing')}</property>\n"+
             "         </service>\n"+
             "</services>";
@@ -62,12 +62,12 @@ public class TestHttpNotificationServiceSSL extends  TestHttpNotificationService
         mockWebServer = new MockWebServer();
 
         final SSLContext sslContext = SslContextFactory.createSslContext(
-                "./src/test/resources/localhost-ks.jks",
-                "localtest".toCharArray(),
+                "./src/test/resources/keystore.jks",
+                "passwordpassword".toCharArray(),
                 null,
                 "JKS",
-                "./src/test/resources/localhost-ts.jks",
-                "localtest".toCharArray(),
+                "./src/test/resources/truststore.jks",
+                "passwordpassword".toCharArray(),
                 "JKS",
                 SslContextFactory.ClientAuth.REQUIRED,
                 "TLS");

@@ -123,11 +123,11 @@ public class TestListenTCP {
 
         // Make an SSLContext with a key and trust store to send the test messages
         final SSLContext clientSslContext = SslContextFactory.createSslContext(
-                "src/test/resources/localhost-ks.jks",
-                "localtest".toCharArray(),
+                "src/test/resources/keystore.jks",
+                "passwordpassword".toCharArray(),
                 "jks",
-                "src/test/resources/localhost-ts.jks",
-                "localtest".toCharArray(),
+                "src/test/resources/truststore.jks",
+                "passwordpassword".toCharArray(),
                 "jks",
                 org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf("NONE"),
                 "TLS");
@@ -156,8 +156,8 @@ public class TestListenTCP {
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
         final SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                "src/test/resources/localhost-ts.jks",
-                "localtest".toCharArray(),
+                "src/test/resources/truststore.jks",
+                "passwordpassword".toCharArray(),
                 "jks",
                 "TLS");
 
@@ -185,8 +185,8 @@ public class TestListenTCP {
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
         final SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                "src/test/resources/localhost-ts.jks",
-                "localtest".toCharArray(),
+                "src/test/resources/truststore.jks",
+                "passwordpassword".toCharArray(),
                 "jks",
                 "TLS");
 
@@ -261,11 +261,11 @@ public class TestListenTCP {
     private SSLContextService configureProcessorSslContextService() throws InitializationException {
         final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/localhost-ks.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
         runner.enableControllerService(sslContextService);
 

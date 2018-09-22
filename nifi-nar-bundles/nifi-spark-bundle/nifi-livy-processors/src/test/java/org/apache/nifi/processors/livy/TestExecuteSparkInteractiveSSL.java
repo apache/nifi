@@ -42,7 +42,7 @@ public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestB
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
 
-        // create the SSL properties, which basically store keystore / trustore information
+        // create the SSL properties, which basically store keystore / truststore information
         // this is used by the StandardSSLContextService and the Jetty Server
         sslProperties = createSslProperties();
 
@@ -101,11 +101,11 @@ public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestB
 
     private static Map<String, String> createSslProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
+        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return map;
     }

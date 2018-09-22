@@ -47,11 +47,11 @@ public class WebSocketClientExample {
 
         final CountDownLatch replyLatch = new CountDownLatch(1);
         final SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
-        sslContextFactory.setKeyStorePassword("localtest");
+        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
+        sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
-        sslContextFactory.setTrustStorePath("src/test/resources/certs/localhost-ks.jks");
-        sslContextFactory.setTrustStorePassword("localtest");
+        sslContextFactory.setTrustStorePath("src/test/resources/certs/truststore.jks");
+        sslContextFactory.setTrustStorePassword("passwordpassword");
         sslContextFactory.setTrustStoreType("JKS");
 
         WebSocketClient client = new WebSocketClient(sslContextFactory);

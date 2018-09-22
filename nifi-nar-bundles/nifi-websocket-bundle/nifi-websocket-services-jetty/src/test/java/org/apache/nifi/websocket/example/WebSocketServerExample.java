@@ -153,8 +153,8 @@ public class WebSocketServerExample {
         httpConnector.setPort(50010);
 
         final SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
-        sslContextFactory.setKeyStorePassword("localtest");
+        sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
+        sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
 
         final HttpConfiguration https = new HttpConfiguration();

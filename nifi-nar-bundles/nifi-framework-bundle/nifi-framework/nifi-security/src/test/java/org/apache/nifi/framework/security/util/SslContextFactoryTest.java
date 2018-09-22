@@ -35,22 +35,22 @@ public class SslContextFactoryTest {
     @Before
     public void setUp() throws Exception {
 
-        final File ksFile = new File(SslContextFactoryTest.class.getResource("/localhost-ks.jks").toURI());
-        final File trustFile = new File(SslContextFactoryTest.class.getResource("/localhost-ts.jks").toURI());
+        final File ksFile = new File(SslContextFactoryTest.class.getResource("/keystore.jks").toURI());
+        final File trustFile = new File(SslContextFactoryTest.class.getResource("/truststore.jks").toURI());
 
         authProps = mock(NiFiProperties.class);
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
-        when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("localtest");
+        when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
         when(authProps.getNeedClientAuth()).thenReturn(false);
 
         mutualAuthProps = mock(NiFiProperties.class);
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
-        when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("localtest");
+        when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn(trustFile.getAbsolutePath());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
-        when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("localtest");
+        when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
         when(mutualAuthProps.getNeedClientAuth()).thenReturn(true);
 
     }

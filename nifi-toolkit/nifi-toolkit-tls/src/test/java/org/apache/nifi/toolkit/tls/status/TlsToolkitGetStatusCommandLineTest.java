@@ -30,6 +30,10 @@ import static org.junit.Assert.fail;
 
 public class TlsToolkitGetStatusCommandLineTest {
 
+    private final String TRUSTSTORE_PATH = "src/test/resources/localhost/truststore.jks";
+    private final String TRUSTSTORE_PASSWORD = "passwordpassword";
+    private final String JKS_TYPE = "JKS";
+
     private TlsToolkitGetStatusCommandLine commandLine;
 
     @Before
@@ -53,9 +57,9 @@ public class TlsToolkitGetStatusCommandLineTest {
             final String urlStr = "https://localhost:8443/test";
             commandLine.parse(
                     "-u", urlStr,
-                    "-ts", "src/test/resources/localhost/truststore.jks",
-                    "-tst", "JKS",
-                    "-tsp", "t7rmn1fg8np2ck1sduqdd85opv");
+                    "-ts", TRUSTSTORE_PATH,
+                    "-tst", JKS_TYPE,
+                    "-tsp", TRUSTSTORE_PASSWORD);
 
             final GetStatusConfig config = commandLine.createConfig();
             Assert.assertNotNull(config);
@@ -75,9 +79,9 @@ public class TlsToolkitGetStatusCommandLineTest {
     public void testMissingUrl() {
         try {
             commandLine.parse(
-                    "-ts", "src/test/resources/localhost/truststore.jks",
-                    "-tst", "JKS",
-                    "-tsp", "t7rmn1fg8np2ck1sduqdd85opv");
+                    "-ts", TRUSTSTORE_PATH,
+                    "-tst", JKS_TYPE,
+                    "-tsp", TRUSTSTORE_PASSWORD);
 
             fail("Expected invalid args");
         } catch (CommandLineParseException e) {
@@ -92,8 +96,8 @@ public class TlsToolkitGetStatusCommandLineTest {
             commandLine.parse(
                     "-u", urlStr,
                     "-ts", "does/not/exist/truststore.jks",
-                    "-tst", "JKS",
-                    "-tsp", "t7rmn1fg8np2ck1sduqdd85opv");
+                    "-tst", JKS_TYPE,
+                    "-tsp", TRUSTSTORE_PASSWORD);
 
             fail("Expected invalid args");
         } catch (CommandLineParseException e) {
@@ -107,9 +111,9 @@ public class TlsToolkitGetStatusCommandLineTest {
             final String urlStr = "https://localhost:8443/test";
             commandLine.parse(
                     "-u", urlStr,
-                    "-ts", "src/test/resources/localhost/truststore.jks",
+                    "-ts", TRUSTSTORE_PATH,
                     "-tst", "INVALID",
-                    "-tsp", "t7rmn1fg8np2ck1sduqdd85opv");
+                    "-tsp", TRUSTSTORE_PASSWORD);
 
             fail("Expected invalid args");
         } catch (CommandLineParseException e) {
