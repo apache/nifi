@@ -55,6 +55,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.AvroUtil.CodecType;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
 
@@ -187,6 +188,16 @@ public class ExecuteSQL extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
+            .name("compression-format")
+            .displayName("Compression Format")
+            .description("Compression type to use when writing Avro files. Default is None.")
+            .allowableValues(CodecType.values())
+            .defaultValue(CodecType.NONE.toString())
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .build();
+
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
@@ -205,6 +216,7 @@ public class ExecuteSQL extends AbstractProcessor {
         pds.add(DEFAULT_SCALE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
+        pds.add(COMPRESSION_FORMAT);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -255,6 +267,8 @@ public class ExecuteSQL extends AbstractProcessor {
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
         final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final String codec = context.getProperty(COMPRESSION_FORMAT).getValue();
+
         final String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
             selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
@@ -300,6 +314,7 @@ public class ExecuteSQL extends AbstractProcessor {
                                 .defaultPrecision(defaultPrecision)
                                 .defaultScale(defaultScale)
                                 .maxRows(maxRowsPerFlowFile)
+                                .codecFactory(codec)
                                 .build();
 
                         do {
