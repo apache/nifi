@@ -90,6 +90,7 @@ import org.apache.avro.SchemaBuilder.BaseTypeBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.SchemaBuilder.NullDefault;
 import org.apache.avro.SchemaBuilder.UnionAccumulator;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -211,20 +212,24 @@ public class JdbcCommon {
     }
 
     public static class AvroConversionOptions {
+
         private final String recordName;
         private final int maxRows;
         private final boolean convertNames;
         private final boolean useLogicalTypes;
         private final int defaultPrecision;
         private final int defaultScale;
+        private final CodecFactory codec;
 
-        private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes, int defaultPrecision, int defaultScale) {
+        private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes,
+                int defaultPrecision, int defaultScale, CodecFactory codec) {
             this.recordName = recordName;
             this.maxRows = maxRows;
             this.convertNames = convertNames;
             this.useLogicalTypes = useLogicalTypes;
             this.defaultPrecision = defaultPrecision;
             this.defaultScale = defaultScale;
+            this.codec = codec;
         }
 
         public static Builder builder() {
@@ -238,6 +243,7 @@ public class JdbcCommon {
             private boolean useLogicalTypes = false;
             private int defaultPrecision = DEFAULT_PRECISION_VALUE;
             private int defaultScale = DEFAULT_SCALE_VALUE;
+            private CodecFactory codec = CodecFactory.nullCodec();
 
             /**
              * Specify a priori record name to use if it cannot be determined from the result set.
@@ -272,8 +278,13 @@ public class JdbcCommon {
                 return this;
             }
 
+            public Builder codecFactory(String codec) {
+                this.codec = AvroUtil.getCodecFactory(codec);
+                return this;
+            }
+
             public AvroConversionOptions build() {
-                return new AvroConversionOptions(recordName, maxRows, convertNames, useLogicalTypes, defaultPrecision, defaultScale);
+                return new AvroConversionOptions(recordName, maxRows, convertNames, useLogicalTypes, defaultPrecision, defaultScale, codec);
             }
         }
     }
@@ -285,6 +296,7 @@ public class JdbcCommon {
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
+            dataFileWriter.setCodec(options.codec);
             dataFileWriter.create(schema, outStream);
 
             final ResultSetMetaData meta = rs.getMetaData();
