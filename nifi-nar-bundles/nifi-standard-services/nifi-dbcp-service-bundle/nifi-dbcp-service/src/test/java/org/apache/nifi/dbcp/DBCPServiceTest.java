@@ -70,6 +70,30 @@ public class DBCPServiceTest {
     }
 
     /**
+     * Max wait set to -1
+     */
+    @Test
+    public void testMaxWait() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+    }
+
+    /**
      * Test database connection using Derby. Connect, create table, insert, select, drop table.
      *
      */
