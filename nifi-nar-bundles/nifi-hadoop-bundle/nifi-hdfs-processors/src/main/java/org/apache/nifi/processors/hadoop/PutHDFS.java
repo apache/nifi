@@ -63,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -271,16 +272,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             throw new IOException(configuredRootDirPath.toString() + " could not be created");
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
-                    } catch (IOException e) {
-                      boolean tgtExpired = hasCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                      if (tgtExpired) {
-                        getLogger().error(String.format("An error occured while connecting to HDFS. Rolling back session, and penalizing flow file %s",
-                            putFlowFile.getAttribute(CoreAttributes.UUID.key())));
-                        session.rollback(true);
-                      } else {
-                        getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
-                        session.transfer(putFlowFile, REL_FAILURE);
-                      }
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
@@ -389,16 +380,24 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     session.transfer(putFlowFile, REL_SUCCESS);
 
                 } catch (final Throwable t) {
-                    if (tempDotCopyFile != null) {
-                        try {
-                            hdfs.delete(tempDotCopyFile, false);
-                        } catch (Exception e) {
-                            getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
-                        }
+                   Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                    if (causeOptional.isPresent()) {
+                      getLogger().warn(String.format("An error occured while connecting to HDFS. "
+                          + "Rolling back session, and penalizing flow file %s",
+                          putFlowFile.getAttribute(CoreAttributes.UUID.key())), new Object[] {causeOptional.get()});
+                      session.rollback(true);
+                    } else {
+                      if (tempDotCopyFile != null) {
+                          try {
+                              hdfs.delete(tempDotCopyFile, false);
+                          } catch (Exception e) {
+                              getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                          }
+                      }
+                      getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
+                      session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                      context.yield();
                     }
-                    getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
-                    session.transfer(session.penalize(putFlowFile), REL_FAILURE);
-                    context.yield();
                 }
 
                 return null;
@@ -408,17 +407,18 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
 
     /**
-     * Returns <code>true</code> if, and only if: the causal chain contains the expected cause type,
-     * and satisfies the provided cause predicate, <code>false</code> otherwise.
+     * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
+     * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
      * @param t The throwable to inspect for the cause.
      * @return
      */
-    private <T extends Throwable> boolean hasCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
-      Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
-      return causalChain
-              .filter(expectedCauseType::isInstance)
-              .map(expectedCauseType::cast)
-              .anyMatch(causePredicate);
+    private <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
+       Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+       return causalChain
+               .filter(expectedCauseType::isInstance)
+               .map(expectedCauseType::cast)
+               .filter(causePredicate)
+               .findFirst();
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
