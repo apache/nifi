@@ -182,6 +182,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Max wait time for connection to remote service.")
             .required(true)
             .defaultValue("5 secs")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -190,6 +191,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Max wait time for response from remote service.")
             .required(true)
             .defaultValue("15 secs")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -309,6 +311,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .displayName("Basic Authentication Username")
             .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
             .build();
 
@@ -318,6 +321,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The password to be used by the client to authenticate against the Remote URL.")
             .required(false)
             .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
             .build();
 
@@ -338,6 +342,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                     + "Consider making this smaller if able.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("256")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
@@ -367,6 +372,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                     + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
@@ -411,6 +417,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(true)
             .defaultValue("10MB")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -612,13 +619,13 @@ public final class InvokeHTTP extends AbstractProcessor {
         // configure ETag cache if enabled
         final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
         if(etagEnabled) {
-            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
+            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
         // Set timeouts
-        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
@@ -632,7 +639,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         // check the trusted hostname property and override the HostnameVerifier
-        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).getValue());
+        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).evaluateAttributeExpressions().getValue());
         if (!trustedHostname.isEmpty()) {
             okHttpClientBuilder.hostnameVerifier(new OverrideHostnameVerifier(trustedHostname, OkHostnameVerifier.INSTANCE));
         }
@@ -714,11 +721,11 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
 
             /*
              * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
@@ -756,7 +763,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         // Setting some initial variables
-        final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
+        final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).evaluateAttributeExpressions().asInteger();
         final ComponentLog logger = getLogger();
 
         // log ETag cache metrics
@@ -947,11 +954,11 @@ public final class InvokeHTTP extends AbstractProcessor {
         Request.Builder requestBuilder = new Request.Builder();
 
         requestBuilder = requestBuilder.url(url);
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
 
             String credential = Credentials.basic(authUser, authPass);
             requestBuilder = requestBuilder.header("Authorization", credential);

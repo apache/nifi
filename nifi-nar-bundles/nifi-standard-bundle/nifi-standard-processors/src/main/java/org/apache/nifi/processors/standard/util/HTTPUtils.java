@@ -24,6 +24,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -58,6 +59,7 @@ public class HTTPUtils {
             .name("Proxy Host")
             .description("The fully qualified hostname or IP address of the proxy server")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -65,6 +67,7 @@ public class HTTPUtils {
             .name("Proxy Port")
             .description("The port of the proxy server")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -78,8 +81,8 @@ public class HTTPUtils {
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
             if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
                 final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                final String host = context.getProperty(PROXY_HOST).getValue();
-                final int port = context.getProperty(PROXY_PORT).asInteger();
+                final String host = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+                final int port = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
                 componentProxyConfig.setProxyType(Proxy.Type.HTTP);
                 componentProxyConfig.setProxyServerHost(host);
                 componentProxyConfig.setProxyServerPort(port);

@@ -182,6 +182,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor PATH_REGEX = new PropertyDescriptor.Builder()
             .name("Allowed Paths")
@@ -250,9 +251,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .defaultValue(CLIENT_NONE.getValue())
             .build();
     public static final PropertyDescriptor CONTAINER_QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("container-queue-size").displayName("Container Queue Size")
-            .description("The size of the queue for Http Request Containers").required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("50").build();
+            .name("container-queue-size")
+            .displayName("Container Queue Size")
+            .description("The size of the queue for Http Request Containers")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("50")
+            .build();
     public static final PropertyDescriptor MULTIPART_REQUEST_MAX_SIZE = new PropertyDescriptor.Builder()
             .name("multipart-request-max-size")
             .displayName("Multipart Request Max Size")
@@ -260,6 +266,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                     + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1 MB")
             .build();
     public static final PropertyDescriptor MULTIPART_READ_BUFFER_SIZE = new PropertyDescriptor.Builder()
@@ -270,6 +277,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .displayName("Multipart Read Buffer Size")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("512 KB")
             .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -324,7 +332,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         if(initialized.get()){
             return;
         }
-        this.containerQueue = new LinkedBlockingQueue<>(context.getProperty(CONTAINER_QUEUE_SIZE).asInteger());
+        this.containerQueue = new LinkedBlockingQueue<>(context.getProperty(CONTAINER_QUEUE_SIZE).evaluateAttributeExpressions().asInteger());
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
@@ -567,8 +575,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         final HttpServletRequest request = container.getRequest();
 
         if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
-          final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
-          final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+          final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
+          final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
           request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
           try {
@@ -630,7 +638,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     }
 
     private FlowFile saveRequestAttributes(final ProcessContext context, final ProcessSession session, HttpServletRequest request, FlowFile flowFile, String contextIdentifier) {
-      final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
+        final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).evaluateAttributeExpressions(flowFile).getValue() : request.getCharacterEncoding();
 
       final Map<String, String> attributes = new HashMap<>();
       try {

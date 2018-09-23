@@ -151,12 +151,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .description("How long to wait when attempting to connect to the remote server before giving up")
             .required(true)
             .defaultValue("30 sec")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor ACCEPT_CONTENT_TYPE = new PropertyDescriptor.Builder()
             .name("Accept Content-Type")
             .description("If specified, requests will only accept the provided Content-Type")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
@@ -164,6 +166,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .description("How long to wait between receiving segments of data from the remote server before giving up and discarding the partial file")
             .required(true)
             .defaultValue("30 sec")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
@@ -177,6 +180,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("Username")
             .description("Username required to access the URL")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -184,12 +188,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .description("Password required to access the URL")
             .required(false)
             .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor USER_AGENT = new PropertyDescriptor.Builder()
             .name("User Agent")
             .description("What to report as the User Agent when we connect to the remote server")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -401,9 +407,11 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         try {
             // build the request configuration
             final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
-            requestConfigBuilder.setConnectionRequestTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-            requestConfigBuilder.setConnectTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-            requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            int dataTimeout = context.getProperty(DATA_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            int connectionTimeout = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            requestConfigBuilder.setConnectionRequestTimeout(dataTimeout);
+            requestConfigBuilder.setConnectTimeout(connectionTimeout);
+            requestConfigBuilder.setSocketTimeout(dataTimeout);
             requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
             switch (context.getProperty(REDIRECT_COOKIE_POLICY).getValue()) {
                 case STANDARD_COOKIE_POLICY_STR:
@@ -428,7 +436,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             clientBuilder.setConnectionManager(conMan);
 
             // include the user agent
-            final String userAgent = context.getProperty(USER_AGENT).getValue();
+            final String userAgent = context.getProperty(USER_AGENT).evaluateAttributeExpressions().getValue();
             if (userAgent != null) {
                 clientBuilder.setUserAgent(userAgent);
             }
@@ -438,8 +446,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 clientBuilder.setSslcontext(sslContextService.createSSLContext(ClientAuth.REQUIRED));
             }
 
-            final String username = context.getProperty(USERNAME).getValue();
-            final String password = context.getProperty(PASSWORD).getValue();
+            final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
             // set the credentials if appropriate
             final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -472,7 +480,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 throw new ProcessException(ioe);
             }
 
-            final String accept = context.getProperty(ACCEPT_CONTENT_TYPE).getValue();
+            final String accept = context.getProperty(ACCEPT_CONTENT_TYPE).evaluateAttributeExpressions().getValue();
             if (accept != null) {
                 get.addHeader(HEADER_ACCEPT, accept);
             }
