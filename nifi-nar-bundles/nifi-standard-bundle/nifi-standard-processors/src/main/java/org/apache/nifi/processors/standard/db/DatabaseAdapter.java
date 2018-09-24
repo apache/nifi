@@ -67,4 +67,8 @@ public interface DatabaseAdapter {
     default String unwrapIdentifier(String identifier) {
         return identifier == null ? null : identifier.replaceAll("\"", "");
     }
+
+    default String getTableAliasClause(String tableName) {
+        return "AS " + tableName;
+    }
 }

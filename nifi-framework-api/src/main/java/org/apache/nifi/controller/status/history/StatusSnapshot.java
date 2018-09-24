@@ -17,7 +17,7 @@
 package org.apache.nifi.controller.status.history;
 
 import java.util.Date;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * A StatusSnapshot represents a Component's status report at some point in time
@@ -29,10 +29,16 @@ public interface StatusSnapshot {
      */
     Date getTimestamp();
 
+    Set<MetricDescriptor<?>> getMetricDescriptors();
+
+    Long getStatusMetric(MetricDescriptor<?> descriptor);
+
     /**
-     * @return a Map of MetricDescriptor to value
+     * Returns an instance of StatusSnapshot that has all the same information as {@code this} except for
+     * Counters. If {@code this} does not contain any counters, the object returned may (or may not) be {@code this}.
+     * @return a StatusSnapshot without counters
      */
-    Map<MetricDescriptor<?>, Long> getStatusMetrics();
+    StatusSnapshot withoutCounters();
 
     /**
      * @return a {@link ValueReducer} that is capable of merging multiple

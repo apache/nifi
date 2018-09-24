@@ -31,7 +31,7 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
     private NiFiProperties properties;
 
     @Override
-    public PopularVoteFlowElection getObject() throws Exception {
+    public PopularVoteFlowElection getObject() {
         final String maxWaitTime = properties.getFlowElectionMaxWaitTime();
         long maxWaitMillis;
         try {

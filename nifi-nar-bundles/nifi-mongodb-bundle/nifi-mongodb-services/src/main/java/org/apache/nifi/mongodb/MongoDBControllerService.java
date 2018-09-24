@@ -17,37 +17,144 @@
 
 package org.apache.nifi.mongodb;
 
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.UpdateOptions;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.authentication.exception.ProviderCreationException;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.reporting.InitializationException;
-import org.bson.Document;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.ssl.SSLContextService;
 
-import java.io.IOException;
+import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
 import java.util.List;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
-    "Provides a controller service that wraps most of the functionality of the MongoDB driver."
+    "Provides a controller service that configures a connection to MongoDB and provides access to that connection to " +
+    "other Mongo-related components."
 )
-public class MongoDBControllerService extends AbstractMongoDBControllerService implements MongoDBClientService {
-    private MongoDatabase db;
-    private MongoCollection<Document> col;
+public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
+    private String uri;
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
+    public void onEnabled(final ConfigurationContext context) {
+        this.uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
         this.createClient(context);
-        this.db = this.mongoClient.getDatabase(context.getProperty(MongoDBControllerService.DATABASE_NAME).getValue());
-        this.col = this.db.getCollection(context.getProperty(MongoDBControllerService.COLLECTION_NAME).getValue());
+    }
+
+    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+
+    static {
+        descriptors.add(URI);
+        descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(CLIENT_AUTH);
+    }
+
+    protected MongoClient mongoClient;
+
+    protected final void createClient(ConfigurationContext context) {
+        if (mongoClient != null) {
+            closeClient();
+        }
+
+        getLogger().info("Creating MongoClient");
+
+        // Set up the client for secure (SSL/TLS communications) if configured to do so
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
+        final SSLContext sslContext;
+
+        if (sslService != null) {
+            final SSLContextService.ClientAuth clientAuth;
+            if (StringUtils.isBlank(rawClientAuth)) {
+                clientAuth = SSLContextService.ClientAuth.REQUIRED;
+            } else {
+                try {
+                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
+                } catch (final IllegalArgumentException iae) {
+                    throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                            rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
+                }
+            }
+            sslContext = sslService.createSSLContext(clientAuth);
+        } else {
+            sslContext = null;
+        }
+
+        try {
+            if(sslContext == null) {
+                mongoClient = new MongoClient(new MongoClientURI(getURI(context)));
+            } else {
+                mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
+            }
+        } catch (Exception e) {
+            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
+            throw e;
+        }
+    }
+
+    protected MongoClientOptions.Builder getClientOptions(final SSLContext sslContext) {
+        MongoClientOptions.Builder builder = MongoClientOptions.builder();
+        builder.sslEnabled(true);
+        builder.socketFactory(sslContext.getSocketFactory());
+        return builder;
+    }
+
+    @OnStopped
+    public final void closeClient() {
+        if (mongoClient != null) {
+            mongoClient.close();
+            mongoClient = null;
+        }
+    }
+
+    protected String getURI(final ConfigurationContext context) {
+        return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    public WriteConcern getWriteConcern(final ConfigurationContext context) {
+        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
+        WriteConcern writeConcern = null;
+        switch (writeConcernProperty) {
+            case WRITE_CONCERN_ACKNOWLEDGED:
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_UNACKNOWLEDGED:
+                writeConcern = WriteConcern.UNACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_FSYNCED:
+                writeConcern = WriteConcern.FSYNCED;
+                break;
+            case WRITE_CONCERN_JOURNALED:
+                writeConcern = WriteConcern.JOURNALED;
+                break;
+            case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
+                writeConcern = WriteConcern.REPLICA_ACKNOWLEDGED;
+                break;
+            case WRITE_CONCERN_MAJORITY:
+                writeConcern = WriteConcern.MAJORITY;
+                break;
+            default:
+                writeConcern = WriteConcern.ACKNOWLEDGED;
+        }
+        return writeConcern;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return descriptors;
     }
 
     @OnDisabled
@@ -55,118 +162,14 @@ public class MongoDBControllerService extends AbstractMongoDBControllerService i
         this.mongoClient.close();
     }
 
-    @Override
-    public long count(Document query) {
-        return this.col.count(query);
-    }
-
-    @Override
-    public void delete(Document query) {
-        this.col.deleteMany(query);
-    }
-
-    @Override
-    public boolean exists(Document query) {
-        return this.col.count(query) > 0;
-    }
-
-    @Override
-    public Document findOne(Document query) {
-        MongoCursor<Document> cursor  = this.col.find(query).limit(1).iterator();
-        Document retVal = cursor.tryNext();
-        cursor.close();
-
-        return retVal;
-    }
-
-    @Override
-    public Document findOne(Document query, Document projection) {
-        MongoCursor<Document> cursor  = projection != null
-                ? this.col.find(query).projection(projection).limit(1).iterator()
-                : this.col.find(query).limit(1).iterator();
-        Document retVal = cursor.tryNext();
-        cursor.close();
-
-        return retVal;
-    }
-
-    @Override
-    public List<Document> findMany(Document query) {
-        return findMany(query, null, -1);
-    }
-
-    @Override
-    public List<Document> findMany(Document query, int limit) {
-        return findMany(query, null, limit);
-    }
-
-    @Override
-    public List<Document> findMany(Document query, Document sort, int limit) {
-        FindIterable<Document> fi = this.col.find(query);
-        if (limit > 0) {
-            fi = fi.limit(limit);
-        }
-        if (sort != null) {
-            fi = fi.sort(sort);
-        }
-        MongoCursor<Document> cursor = fi.iterator();
-        List<Document> retVal = new ArrayList<>();
-        while (cursor.hasNext()) {
-            retVal.add(cursor.next());
-        }
-        cursor.close();
-
-        return retVal;
-    }
-
-    @Override
-    public void insert(Document doc) {
-        this.col.insertOne(doc);
-    }
-
-    @Override
-    public void insert(List<Document> docs) {
-        this.col.insertMany(docs);
-    }
-
-    @Override
-    public void update(Document query, Document update, boolean multiple) {
-        if (multiple) {
-            this.col.updateMany(query, update);
-        } else {
-            this.col.updateOne(query, update);
-        }
-    }
-
-    @Override
-    public void update(Document query, Document update) {
-        update(query, update, true);
-    }
-
-    @Override
-    public void updateOne(Document query, Document update) {
-        this.update(query, update, false);
-    }
-
-    @Override
-    public void upsert(Document query, Document update) {
-        this.col.updateOne(query, update, new UpdateOptions().upsert(true));
-    }
-
-    @Override
-    public void dropDatabase() {
-        this.db.drop();
-        this.col = null;
-    }
-
-    @Override
-    public void dropCollection() {
-        this.col.drop();
-        this.col = null;
-    }
 
     @Override
     public MongoDatabase getDatabase(String name) {
         return mongoClient.getDatabase(name);
+    }
+
+    @Override
+    public String getURI() {
+        return uri;
     }
 }

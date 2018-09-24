@@ -70,6 +70,7 @@
             $(e.target).parent().find('.nf-checkbox').click();
         });
 
+
         // show the loading icon when appropriate
         $(document).ajaxStart(function () {
             // show the loading indicator
@@ -88,7 +89,7 @@
         // handle logout
         $('#user-logout').on('click', function () {
             nfStorage.removeItem('jwt');
-            window.location = '../nifi/login';
+            window.location = '../nifi/logout';
         });
 
         // handle home
@@ -1639,6 +1640,16 @@
                 })
                 .map(policyTypeListing, d3.map);
             return nest.get(value)[0];
+        },
+
+        /**
+         * Get component name from an entity safely.
+         *
+         * @param {object} entity    The component entity
+         * @returns {String}         The component name if it can be read, otherwise entity id
+         */
+        getComponentName: function (entity) {
+            return entity.permissions.canRead === true ? entity.component.name : entity.id;
         }
     };
 

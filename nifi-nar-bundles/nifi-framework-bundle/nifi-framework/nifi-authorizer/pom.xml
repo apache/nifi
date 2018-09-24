@@ -96,6 +96,14 @@
             <artifactId>nifi-properties-loader</artifactId>
         </dependency>
 
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-authorizer</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Spock testing dependencies-->
         <dependency>
             <groupId>org.spockframework</groupId>

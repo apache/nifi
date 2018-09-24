@@ -39,6 +39,7 @@ public enum ResourceType {
     DataTransfer("/data-transfer"),
     System("/system"),
     RestrictedComponents("/restricted-components"),
+    Operation("/operation"),
     Template("/templates"),
     Tenant("/tenants");
 
@@ -52,20 +53,20 @@ public enum ResourceType {
         return value;
     }
 
-    public static ResourceType valueOfValue(final String rawValue) {
-        ResourceType type = null;
+    /**
+     * Get ResourceType from a raw resource value.
+     * E.g. From "rovenance-data/processors/7ce897d6-0164-1000-fc87-caee3b08ba47", ProvenanceData will be returned.
+     * @param rawValue the raw resource string representation
+     * @return the type of the specified resource, or null if not found
+     */
+    public static ResourceType fromRawValue(final String rawValue) throws IllegalArgumentException {
 
         for (final ResourceType rt : values()) {
-            if (rt.getValue().equals(rawValue)) {
-                type = rt;
-                break;
+            if (rt.getValue().equals(rawValue) || rawValue.startsWith(rt.getValue() + "/")) {
+                return rt;
             }
         }
 
-        if (type == null) {
-            throw new IllegalArgumentException("Unknown resource type value " + rawValue);
-        }
-
-        return type;
+        return null;
     }
 }

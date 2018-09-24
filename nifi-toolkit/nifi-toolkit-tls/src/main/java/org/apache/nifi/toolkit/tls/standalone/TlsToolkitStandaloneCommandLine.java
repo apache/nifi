@@ -29,7 +29,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -59,7 +58,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     public static final String GLOBAL_PORT_SEQUENCE_ARG = "globalPortSequence";
     public static final String NIFI_DN_PREFIX_ARG = "nifiDnPrefix";
     public static final String NIFI_DN_SUFFIX_ARG = "nifiDnSuffix";
-    public static final String SUBJECT_ALTERNATIVE_NAMES = "subjectAlternativeNames";
+    public static final String SUBJECT_ALTERNATIVE_NAMES_ARG = "subjectAlternativeNames";
+    public static final String ADDITIONAL_CA_CERTIFICATE_ARG = "additionalCACertificate";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = calculateDefaultOutputDirectory(Paths.get("."));
 
@@ -89,6 +89,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     private String dnPrefix;
     private String dnSuffix;
     private String domainAlternativeNames;
+    private String additionalCACertificatePath;
 
     public TlsToolkitStandaloneCommandLine() {
         this(new PasswordUtil());
@@ -107,10 +108,11 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         addOptionWithArg("B", CLIENT_CERT_PASSWORD_ARG, "Password for client certificate.  Must either be one value or one for each client DN. (autogenerate if not specified)");
         addOptionWithArg("G", GLOBAL_PORT_SEQUENCE_ARG, "Use sequential ports that are calculated for all hosts according to the provided hostname expressions. " +
                 "(Can be specified multiple times, MUST BE SAME FROM RUN TO RUN.)");
-        addOptionWithArg(null, SUBJECT_ALTERNATIVE_NAMES, "Comma-separated list of domains to use as Subject Alternative Names in the certificate");
+        addOptionWithArg(null, SUBJECT_ALTERNATIVE_NAMES_ARG, "Comma-separated list of domains to use as Subject Alternative Names in the certificate");
         addOptionWithArg(null, NIFI_DN_PREFIX_ARG, "String to prepend to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_PREFIX);
         addOptionWithArg(null, NIFI_DN_SUFFIX_ARG, "String to append to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_SUFFIX);
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
+        addOptionWithArg(null, ADDITIONAL_CA_CERTIFICATE_ARG, "Path to additional CA certificate (used to sign toolkit CA certificate) in PEM format if necessary");
     }
 
     public static void main(String[] args) {
@@ -123,7 +125,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         try {
             new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
         } catch (Exception e) {
-            tlsToolkitStandaloneCommandLine.printUsage("Error creating generating tls configuration. (" + e.getMessage() + ")");
+            tlsToolkitStandaloneCommandLine.printUsage("Error generating TLS configuration. (" + e.getMessage() + ")");
             System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
         }
         System.exit(ExitCode.SUCCESS.ordinal());
@@ -137,7 +139,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
 
         dnPrefix = commandLine.getOptionValue(NIFI_DN_PREFIX_ARG, TlsConfig.DEFAULT_DN_PREFIX);
         dnSuffix = commandLine.getOptionValue(NIFI_DN_SUFFIX_ARG, TlsConfig.DEFAULT_DN_SUFFIX);
-        domainAlternativeNames = commandLine.getOptionValue(SUBJECT_ALTERNATIVE_NAMES);
+        domainAlternativeNames = commandLine.getOptionValue(SUBJECT_ALTERNATIVE_NAMES_ARG);
 
         Stream<String> globalOrderExpressions = null;
         if (commandLine.hasOption(GLOBAL_PORT_SEQUENCE_ARG)) {
@@ -165,6 +167,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         clientPasswords = Collections.unmodifiableList(getPasswords(CLIENT_CERT_PASSWORD_ARG, commandLine, clientDns.size(), CLIENT_CERT_DN_ARG));
         clientPasswordsGenerated = commandLine.getOptionValues(CLIENT_CERT_PASSWORD_ARG) == null;
         overwrite = commandLine.hasOption(OVERWRITE_ARG);
+
+        additionalCACertificatePath = commandLine.getOptionValue(ADDITIONAL_CA_CERTIFICATE_ARG);
 
         String nifiPropertiesFile = commandLine.getOptionValue(NIFI_PROPERTIES_FILE_ARG, "");
         try {
@@ -234,6 +238,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         standaloneConfig.setDnPrefix(dnPrefix);
         standaloneConfig.setDnSuffix(dnSuffix);
         standaloneConfig.setDomainAlternativeNames(domainAlternativeNames);
+        standaloneConfig.setAdditionalCACertificate(additionalCACertificatePath);
         standaloneConfig.initDefaults();
 
         return standaloneConfig;

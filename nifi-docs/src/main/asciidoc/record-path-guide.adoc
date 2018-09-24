@@ -627,6 +627,65 @@ The following record path expression would re-format the date String:
 | `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
 |==========================================================
 
+=== base64Encode
+
+Converts a String or byte[] using Base64 encoding, using the UTF-8 character set.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "John"
+}
+----
+
+The following record path expression would encode the String using Base64:
+
+|==========================================================
+| RecordPath | Return value
+| `base64Encode(/name)` | Sm9obg==
+|==========================================================
+
+=== base64Decode
+
+Decodes a Base64-encoded String or byte[].  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "Sm9obg=="
+}
+----
+
+The following record path expression would decode the String using Base64:
+
+|==========================================================
+| RecordPath | Return value
+| `base64Decode(/name)` | John
+|==========================================================
+
+
 [[filter_functions]]
 == Filter Functions
 

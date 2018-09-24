@@ -245,6 +245,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     @Override
+    public URI getEndSessionEndpoint() {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+        return oidcProviderMetadata.getEndSessionEndpointURI();
+    }
+
+    @Override
     public Scope getScope() {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);

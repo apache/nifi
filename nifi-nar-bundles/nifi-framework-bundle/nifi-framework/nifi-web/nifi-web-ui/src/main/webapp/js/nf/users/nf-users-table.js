@@ -574,6 +574,9 @@
         } else if (resource.startsWith('/data')) {
             resource = nfCommon.substringAfterFirst(resource, '/data');
             policyLabel += 'Data policy for ';
+        } else if (resource.startsWith('/operation')) {
+            resource = nfCommon.substringAfterFirst(resource, '/operation');
+            policyLabel += 'Operate policy for ';
         } else {
             policyLabel += 'Component policy for ';
         }

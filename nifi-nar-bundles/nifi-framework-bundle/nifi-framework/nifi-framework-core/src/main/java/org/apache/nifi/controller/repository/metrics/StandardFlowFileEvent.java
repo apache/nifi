@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.controller.repository.metrics;
 
-import java.util.Map;
-
 import org.apache.nifi.controller.repository.FlowFileEvent;
 
-public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
+import java.util.Map;
 
-    private final String componentId;
+public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
 
     private int flowFilesIn;
     private int flowFilesOut;
@@ -41,13 +39,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
     private int invocations;
     private Map<String, Long> counters;
 
-    public StandardFlowFileEvent(final String componentId) {
-        this.componentId = componentId;
-    }
-
-    @Override
-    public String getComponentIdentifier() {
-        return componentId;
+    public StandardFlowFileEvent() {
     }
 
     @Override

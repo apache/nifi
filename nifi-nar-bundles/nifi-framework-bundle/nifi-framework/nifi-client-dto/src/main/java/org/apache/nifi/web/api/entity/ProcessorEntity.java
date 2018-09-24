@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
@@ -26,11 +27,12 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessorDTO.
  */
 @XmlRootElement(name = "processorEntity")
-public class ProcessorEntity extends ComponentEntity implements Permissible<ProcessorDTO> {
+public class ProcessorEntity extends ComponentEntity implements Permissible<ProcessorDTO>, OperationPermissible {
 
     private ProcessorDTO component;
     private String inputRequirement;
     private ProcessorStatusDTO status;
+    private PermissionsDTO operatePermissions;
 
     /**
      * The ProcessorDTO that is being serialized.
@@ -70,5 +72,21 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
 
     public void setInputRequirement(String inputRequirement) {
         this.inputRequirement = inputRequirement;
+    }
+
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO operatePermissions) {
+        this.operatePermissions = operatePermissions;
     }
 }

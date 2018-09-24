@@ -52,15 +52,15 @@ and manipulate their values.
 The NiFi Expression Language always begins with the start delimiter `${` and ends
 with the end delimiter `}`. Between the start and end delimiters is the text of the
 Expression itself. In its most basic form, the Expression can consist of just an
-attribute name. For example, `${filename}` will return the value of the ``filename''
+attribute name. For example, `${filename}` will return the value of the `filename`
 attribute.
 
 In a slightly more complex example, we can instead return a manipulation of this value.
 We can, for example, return an all upper-case version of the filename by calling the
-`toUpper` function: `${filename:toUpper()}`. In this case, we reference the ``filename''
+`toUpper` function: `${filename:toUpper()}`. In this case, we reference the `filename`
 attribute and then manipulate this value by using the `toUpper` function. A function call
 consists of 5 elements. First, there is a function call delimiter `:`. Second is the name
-of the function - in this case, ``toUpper''. Next is an open parenthesis (`(`), followed
+of the function - in this case, `toUpper`. Next is an open parenthesis (`(`), followed
 by the function arguments. The arguments necessary are dependent upon which function
 is being called. In this example, we are using the `toUpper` function, which does not
 have any arguments, so this element is omitted. Finally, the closing parenthesis (`)`)
@@ -81,8 +81,8 @@ the expression `${filename:toUpper():equals('HELLO.TXT')}`. There is no limit to
 functions that can be chained together.
 
 Any FlowFile attribute can be referenced using the Expression Language. However, if the attribute
-name contains a ``special character,'' the attribute name must be escaped by quoting it. The following
-characters are each considered ``special characters'':
+name contains a "special character", the attribute name must be escaped by quoting it. The following
+characters are each considered "special characters":
 
 - $ (dollar sign)
 - | (pipe)
@@ -103,10 +103,10 @@ characters are each considered ``special characters'':
 - \r (carriage return)
 - \n (new-line)
 
-Additionally, a number is considered a ``special character'' if it is the first character of the attribute name.
+Additionally, a number is considered a "special character" if it is the first character of the attribute name.
 If any of these special characters is present in an attribute is quoted by using either single or double quotes.
 The Expression Language allows single quotes and double quotes to be used interchangeably. For example, the following
-can be used to escape an attribute named ``my attribute'': `${"my attribute"}` or `${'my attribute'}`.
+can be used to escape an attribute named `my attribute`: `${"my attribute"}` or `${'my attribute'}`.
 
 In this example, the value to be returned is the value of the "my attribute" value, if it exists. If that attribute
 does not exist, the Expression Language will then look for a System Environment Variable named "my attribute." If
@@ -122,7 +122,7 @@ require a subject.
 
 Often times, we will need to compare the values of two different attributes to each other.
 We are able to accomplish this by using embedded Expressions. We can, for example, check if
-the ``filename'' attribute is the same as the ``uuid'' attribute: `${filename:equals( ${uuid} )}`.
+the `filename` attribute is the same as the `uuid` attribute: `${filename:equals( ${uuid} )}`.
 Notice here, also, that we have a space between the opening parenthesis for the `equals` method and
 the embedded Expression. This is not necessary and does not affect how the Expression is evaluated
 in any way. Rather, it is intended to make the Expression easier to read. White space is ignored by
@@ -142,24 +142,61 @@ a Property supports the Expression Language is determined by the developer of th
 the Processor is written. However, the application strives to clearly illustrate for each Property
 whether or not the Expression Language is supported.
 
-In the application, when configuring a Processor property, the User Interface provides an Information
+In the application, when configuring a component property, the User Interface provides an Information
 icon (
 image:iconInfo.png["Info"]
 ) next to the name of the Property. Hovering over this icon with the mouse will provide a tooltip that
 provides helpful information about the Property. This information includes a description of the Property,
 the default value (if any), historically configured values (if any), and the evaluation scope of this
-property for expression language. There are three values and the evaluation scope of the expression 
+property for expression language. There are three values and the evaluation scope of the expression
 language is hierarchical: NONE -> VARIABLE_REGISTRY -> FLOWFILE_ATTRIBUTES.
 
 * NONE - expression language is not supported for this property
 * VARIABLE_REGISTRY is hierarchically constructed as below:
-** Variables defined at process group level and then, recursively, up to the higher process group until 
+** Variables defined at process group level and then, recursively, up to the higher process group until
 the root process group.
-** Variables defined in custom properties files through the nifi.variable.registry.properties property 
+** Variables defined in custom properties files through the nifi.variable.registry.properties property
 in nifi.properties file.
 ** Environment variables defined at JVM level and system properties.
-* FLOWFILE_ATTRIBUTES - will use attributes of each individual flow file.
+* FLOWFILE_ATTRIBUTES - will use attributes of each individual flow file, as well as those variables defined
+by the Variable Registry, as described above.
 
+[[escaping]]
+=== Escaping Expression Language
+:extra-dollar-sign: Hello $${UserName}
+:literal-value: Hello $$User$$Name
+:four-dollar-signs: $$$${abc}
+:five-dollar-signs: $$$$${abc}
+
+There may be times when a property supports Expression Language, but the user wishes to use a literal value
+that follows the same syntax as the Expression Language. For example, a user may want to configure a property
+value to be the literal text `Hello ${UserName}`. In such a case, this can be accomplished by using an extra
+`$` (dollar sign symbol) just before the expression to escape it (i.e., `{extra-dollar-sign}`). Unless the `$`
+character is being used to escape an Expression, it should not be escaped. For example, the value `{literal-value}`
+should not escape the `$` characters, so the literal value that will be used is `{literal-value}`.
+
+If more than two `$` characters are encountered sequentially before a `{`, then each pair of `$` characters will
+be considered an escaping of the `$` character. The escaping will be performed from left-to-right.
+To help illustrate this, consider that the variable `abc` contains the value `xyz`. Then, consider the following
+table of Expressions and their corresponding evaluated values:
+
+.Escaping EL Examples
+|========================================================================================
+| Expression | Value | Notes
+| `${abc}` | `xyz` |
+| `$${abc}` | `${abc}` |
+| `$$${abc}` | `$xyz` |
+| `{four-dollar-signs}` | `$${abc}` |
+| `{five-dollar-signs}` | `$$xyz` |
+| `I owe you $5` | `I owe you $5` | No actual Expression is present here.
+| `You owe me $$5 too` | `You owe me $$5 too` | The $ character is not escaped because it does not immediately precede an Expression.
+| `Unescaped $$${5 because no closing brace` | `Unescaped $$${5 because no closing brace` | Because there is no closing brace here, there is no actual Expression and hence the $ characters are not
+escaped.
+| `Unescaped $$${5} because no closing brace` | <Error> | This expression is not valid because it equates to an escaped $, followed by `${5}` and the `${5}` is not a valid Expression. The number
+must be escaped.
+| `Unescaped $$${'5'} because no closing brace` | `Unescaped $ because no closing brace` | There is no attribute named `5` so the Expression evaluates to an empty string. The `$$` evaluates to a
+single (escaped) `$` because it immediately precedes an Expression.
+|========================================================================================
 
 [[editor]]
 === Expression Language Editor
@@ -491,8 +528,8 @@ ${filename:toLower():equals( ${filename} ):or(
 [.function]
 === ifElse
 
-*Description*: [.description]#Evaluates the first argument if the Subject evaluates to true, or the second argument
-if the Subject evaluates to false.#
+*Description*: [.description]#Evaluates the first argument if the Subject evaluates to `true`, or the second argument
+if the Subject evaluates to `false`.#
 
 *Subject Type*: [.subject]#Boolean#
 
@@ -1715,7 +1752,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: ${random():mod(10):plus(1)} returns random number between 1 and 10 inclusive.
+*Examples*: `${random():mod(10):plus(1)}` returns random number between 1 and 10 inclusive.
 
 [.function]
 === math
@@ -1727,6 +1764,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 *Subject Type*: [.subject .subjectless]#Subjectless, Number or Decimal (depending on the desired method to run)#
 
 *Arguments*:
+
 	- [.argName]#_Method_# : [.argDesc]#The name of the Java Math method to run#
 	- [.argName]#_Optional Argument_# : [.argDesc]#Optional argument that acts as the second parameter to the method.#
 
@@ -1773,11 +1811,11 @@ In order to run the correct method, the parameter types must be correct. The Exp
 .format Examples
 |============================================================================
 | Expression | Value
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "GMT")}` | `2014/12/31 20:36:03.264Z`
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "America/Los_Angeles")}` | `2014/12/31 12:36:03.264Z`
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "Asia/Tokyo")}` | `2015/01/01 05:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "GMT")}` | `2014/12/31 20:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "America/Los_Angeles")}` | `2014/12/31 12:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "Asia/Tokyo")}` | `2015/01/01 05:36:03.264Z`
 | `${time:format("yyyy/MM/dd", "GMT")}` | `2014/12/31`
-| `${time:format("HH:mm:ss.SSS'Z'", "GMT")}` | `20:36:03.264Z`
+| `${time:format("HH:mm:ss.SSS\'Z'", "GMT")}` | `20:36:03.264Z`
 | `${time:format("yyyy", "GMT")}` | `2014`
 |============================================================================
 

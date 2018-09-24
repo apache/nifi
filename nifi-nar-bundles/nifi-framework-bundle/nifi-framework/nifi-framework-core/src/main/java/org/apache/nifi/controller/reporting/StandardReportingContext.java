@@ -29,7 +29,6 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -95,8 +94,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
 
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connectable connectable = rootGroup.findLocalConnectable(componentId);
+        final Connectable connectable = flowController.findLocalConnectable(componentId);
         if (connectable == null) {
             throw new IllegalStateException("Cannot create Component-Level Bulletin because no component can be found with ID " + componentId);
         }

@@ -195,7 +195,7 @@ public final class NarUnpacker {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
 
-            final File bundledDependencies = new File(unpackedNar, "META-INF/bundled-dependencies");
+            final File bundledDependencies = new File(unpackedNar, "NAR-INF/bundled-dependencies");
 
             unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
         }
@@ -261,6 +261,9 @@ public final class NarUnpacker {
             while (jarEntries.hasMoreElements()) {
                 JarEntry jarEntry = jarEntries.nextElement();
                 String name = jarEntry.getName();
+                if(name.contains("META-INF/bundled-dependencies")){
+                    name = name.replace("META-INF/bundled-dependencies", "NAR-INF/bundled-dependencies");
+                }
                 File f = new File(workingDirectory, name);
                 if (jarEntry.isDirectory()) {
                     FileUtils.ensureDirectoryExistAndCanReadAndWrite(f);

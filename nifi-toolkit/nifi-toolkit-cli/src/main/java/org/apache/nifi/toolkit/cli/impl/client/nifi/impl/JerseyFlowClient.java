@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
@@ -215,6 +216,14 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
             return getRequestBuilder(target).put(
                     Entity.entity(activateControllerServicesEntity, MediaType.APPLICATION_JSON_TYPE),
                     ActivateControllerServicesEntity.class);
+        });
+    }
+
+    @Override
+    public ClusteSummaryEntity getClusterSummary() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving cluster summary", () -> {
+            final WebTarget target = flowTarget.path("cluster/summary");
+            return getRequestBuilder(target).get(ClusteSummaryEntity.class);
         });
     }
 }

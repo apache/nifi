@@ -48,6 +48,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -351,6 +352,7 @@ public class ConvertAvroSchema extends AbstractKiteConvertProcessor {
             session.adjustCounter("Conversion errors", errors, false);
 
             if (written.get() > 0L) {
+                outgoingAvro = session.putAttribute(outgoingAvro, CoreAttributes.MIME_TYPE.key(), InferAvroSchema.AVRO_MIME_TYPE);
                 session.transfer(outgoingAvro, SUCCESS);
             } else {
                 session.remove(outgoingAvro);

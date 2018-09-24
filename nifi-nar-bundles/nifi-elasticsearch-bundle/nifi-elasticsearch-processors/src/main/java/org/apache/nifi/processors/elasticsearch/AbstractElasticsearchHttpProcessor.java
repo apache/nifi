@@ -250,6 +250,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             requestBuilder = requestBuilder.get();
         } else if ("put".equalsIgnoreCase(verb)) {
             requestBuilder = requestBuilder.put(body);
+        } else if ("post".equalsIgnoreCase(verb)) {
+            requestBuilder = requestBuilder.post(body);
         } else {
             throw new IllegalArgumentException("Elasticsearch REST API verb not supported by this processor: " + verb);
         }

@@ -316,6 +316,9 @@ public class HandleHttpRequest extends AbstractProcessor {
             }
             http.setPort(port);
 
+            // If request timeout is longer than default Idle Timeout, then increase Idle Timeout as well.
+            http.setIdleTimeout(Math.max(http.getIdleTimeout(), requestTimeout));
+
             // add this connector
             server.setConnectors(new Connector[]{http});
         } else {
@@ -333,6 +336,9 @@ public class HandleHttpRequest extends AbstractProcessor {
                 https.setHost(host);
             }
             https.setPort(port);
+
+            // If request timeout is longer than default Idle Timeout, then increase Idle Timeout as well.
+            https.setIdleTimeout(Math.max(https.getIdleTimeout(), requestTimeout));
 
             // add this connector
             server.setConnectors(new Connector[]{https});

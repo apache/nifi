@@ -18,13 +18,24 @@ e * Licensed to the Apache Software Foundation (ASF) under one or more
 package org.apache.nifi.controller.repository.metrics;
 
 import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SecondPrecisionEventContainer implements EventContainer {
+    private static final Logger logger = LoggerFactory.getLogger(SecondPrecisionEventContainer.class);
+
     private final int numBins;
     private final EventSum[] sums;
+    private final EventSumValue aggregateValue = new EventSumValue(0);
+    private final AtomicLong lastUpdateSecond = new AtomicLong(0);
 
     public SecondPrecisionEventContainer(final int numMinutes) {
-        numBins = 1 + numMinutes * 60;
+        // number of bins is number of seconds in 'numMinutes' plus 1. We add one because
+        // we want to have the 'current bin' that we are adding values to, in addition to the
+        // previous (X = numMinutes * 60) bins of values that have completed
+        numBins = numMinutes * 60 + 1;
         sums = new EventSum[numBins];
 
         for (int i = 0; i < numBins; i++) {
@@ -34,11 +45,62 @@ public class SecondPrecisionEventContainer implements EventContainer {
 
     @Override
     public void addEvent(final FlowFileEvent event) {
-        final int second = (int) (System.currentTimeMillis() / 1000);
-        final int binIdx = second % numBins;
+        addEvent(event, System.currentTimeMillis());
+    }
+
+    protected void addEvent(final FlowFileEvent event, final long timestamp) {
+        final long second = timestamp / 1000;
+        final int binIdx = (int) (second % numBins);
         final EventSum sum = sums[binIdx];
 
-        sum.addOrReset(event);
+        final EventSumValue replaced = sum.addOrReset(event, timestamp);
+
+        aggregateValue.add(event);
+
+        if (replaced == null) {
+            logger.debug("Updated bin {}. Did NOT replace.", binIdx);
+        } else {
+            logger.debug("Replaced bin {}", binIdx);
+            aggregateValue.subtract(replaced);
+        }
+
+        // If there are any buckets that have expired, we need to update our aggregate value to reflect that.
+        processExpiredBuckets(second);
+    }
+
+    private void processExpiredBuckets(final long currentSecond) {
+        final long lastUpdate = lastUpdateSecond.get();
+        if (currentSecond > lastUpdate) {
+            final boolean updated = lastUpdateSecond.compareAndSet(lastUpdate, currentSecond);
+            if (updated) {
+                if (lastUpdate == 0L) {
+                    // First update, so nothing to expire
+                    return;
+                }
+
+                final int secondsElapsed = (int) (currentSecond - lastUpdate);
+
+                int index = (int) (currentSecond % numBins);
+                final long expirationTimestamp = 1000 * (currentSecond - numBins);
+
+                int expired = 0;
+                for (int i=0; i < secondsElapsed; i++) {
+                    index--;
+                    if (index < 0) {
+                        index = sums.length - 1;
+                    }
+
+                    final EventSum expiredSum = sums[index];
+                    final EventSumValue expiredValue = expiredSum.reset(expirationTimestamp);
+                    if (expiredValue != null) {
+                        aggregateValue.subtract(expiredValue);
+                        expired++;
+                    }
+                }
+
+                logger.debug("Expired {} bins", expired);
+            }
+        }
     }
 
     @Override
@@ -47,23 +109,17 @@ public class SecondPrecisionEventContainer implements EventContainer {
     }
 
     @Override
-    public FlowFileEvent generateReport(final String componentId, final long sinceEpochMillis) {
-        final EventSumValue eventSumValue = new EventSumValue();
-        final long second = sinceEpochMillis / 1000;
-        final int startBinIdx = (int) (second % numBins);
-
-        for (int i = 0; i < numBins; i++) {
-            int binIdx = (startBinIdx + i) % numBins;
-            final EventSum sum = sums[binIdx];
-
-            final EventSumValue sumValue = sum.getValue();
-            if (sumValue.getTimestamp() >= sinceEpochMillis) {
-                eventSumValue.add(sumValue);
-            }
+    public FlowFileEvent generateReport(final long now) {
+        final long second = now / 1000 + 1;
+        final long lastUpdate = lastUpdateSecond.get();
+        final long secondsSinceUpdate = second - lastUpdate;
+        if (secondsSinceUpdate > numBins) {
+            logger.debug("EventContainer hasn't been updated in {} seconds so will generate report as Empty FlowFile Event", secondsSinceUpdate);
+            return EmptyFlowFileEvent.INSTANCE;
         }
 
-        final FlowFileEvent flowFileEvent = eventSumValue.toFlowFileEvent(componentId);
-        return flowFileEvent;
+        logger.debug("Will expire up to {} bins", secondsSinceUpdate);
+        processExpiredBuckets(second);
+        return aggregateValue.toFlowFileEvent();
     }
-
 }

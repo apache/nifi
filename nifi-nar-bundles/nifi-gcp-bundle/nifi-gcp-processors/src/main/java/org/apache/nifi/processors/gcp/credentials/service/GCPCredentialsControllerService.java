@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.credentials.service;
 
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -25,10 +26,12 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.reporting.InitializationException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,6 +43,7 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
+
 /**
  * Implementation of GCPCredentialsService interface
  *
@@ -61,6 +65,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         props.add(USE_COMPUTE_ENGINE_CREDENTIALS);
         props.add(SERVICE_ACCOUNT_JSON_FILE);
         props.add(SERVICE_ACCOUNT_JSON);
+        props.add(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS));
         properties = Collections.unmodifiableList(props);
     }
 
@@ -78,13 +83,17 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        return credentialsProviderFactory.validate(validationContext);
+        final Collection<ValidationResult> results = credentialsProviderFactory.validate(validationContext);
+        ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
+        return results;
     }
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         try {
-            googleCredentials = credentialsProviderFactory.getGoogleCredentials(context.getProperties());
+            final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+            final HttpTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
+            googleCredentials = credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
         } catch (IOException e) {
             throw new InitializationException(e);
         }

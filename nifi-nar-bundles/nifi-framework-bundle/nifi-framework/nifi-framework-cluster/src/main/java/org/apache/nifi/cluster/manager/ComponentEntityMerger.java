@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.OperationPermissible;
 import org.apache.nifi.web.api.entity.Permissible;
 
 import java.util.ArrayList;
@@ -44,6 +45,11 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
         for (final Map.Entry<NodeIdentifier, EntityType> entry : entityMap.entrySet()) {
             final EntityType entity = entry.getValue();
             PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), entity.getPermissions());
+            if (clientEntity instanceof OperationPermissible && entity instanceof  OperationPermissible) {
+                PermissionsDtoMerger.mergePermissions(
+                        ((OperationPermissible) clientEntity).getOperatePermissions(),
+                        ((OperationPermissible) entity).getOperatePermissions());
+            }
         }
 
         if (clientEntity.getPermissions().getCanRead()) {

@@ -907,7 +907,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             for (int i = 1; i < md.getColumnCount() + 1; i++) {
                 columns.add(md.getColumnName(i));
             }
-            // COLUMN_DEF must be read first to work around Oracle bug
+            // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
             final String defaultValue = resultSet.getString("COLUMN_DEF");
             final String columnName = resultSet.getString("COLUMN_NAME");
             final int dataType = resultSet.getInt("DATA_TYPE");

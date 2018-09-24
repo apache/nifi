@@ -37,4 +37,9 @@ public interface ListableEntity {
      */
     long getTimestamp();
 
+    /**
+     * @return the size of the entity content.
+     */
+    long getSize();
+
 }

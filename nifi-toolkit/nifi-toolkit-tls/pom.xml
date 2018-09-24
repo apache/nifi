@@ -130,6 +130,7 @@
                         <excludes combine.children="append">
                             <exclude>src/test/resources/rootCert.crt</exclude>
                             <exclude>src/test/resources/rootCert.key</exclude>
+                            <exclude>src/test/resources/rootCert-pkcs8.key</exclude>
                         </excludes>
                     </configuration>
                 </plugin>

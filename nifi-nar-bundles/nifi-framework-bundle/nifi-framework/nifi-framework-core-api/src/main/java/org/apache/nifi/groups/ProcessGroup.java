@@ -771,14 +771,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void remove(final Snippet snippet);
 
     /**
-     * @param identifier of connectable
-     * @return the Connectable with the given ID, if it exists; otherwise
-     * returns null. This performs a recursive search of all ProcessGroups'
-     * input ports, output ports, funnels, processors
-     */
-    Connectable findLocalConnectable(String identifier);
-
-    /**
      * @param identifier of remote group port
      * @return the RemoteGroupPort with the given ID, if it exists; otherwise
      * returns null.

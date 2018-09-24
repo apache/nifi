@@ -51,7 +51,11 @@ import java.util.Set;
 @EventDriven
 @Tags({"mongodb", "insert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Bulk ingest documents into MongoDB using a configured record reader.")
+@CapabilityDescription("This processor is a record-aware processor for inserting data into MongoDB. It uses a configured record reader and " +
+        "schema to read an incoming record set from the body of a flowfile and then inserts batches of those records into " +
+        "a configured MongoDB collection. This processor does not support updates, deletes or upserts. The number of documents to insert at a time is controlled " +
+        "by the \"Insert Batch Size\" configuration property. This value should be set to a reasonable size to ensure " +
+        "that MongoDB is not overloaded with too many inserts at once.")
 public class PutMongoRecord extends AbstractMongoProcessor {
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to MongoDB are routed to this relationship").build();
@@ -113,8 +117,6 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-
         List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
         int added   = 0;
@@ -122,6 +124,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         try (final InputStream inStream = session.read(flowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
             RecordSchema schema = reader.getSchema();
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -147,7 +150,10 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).evaluateAttributeExpressions().getValue(), String.format("Added %d documents to MongoDB.", added));
+                String url = clientService != null
+                        ? clientService.getURI()
+                        : context.getProperty(URI).evaluateAttributeExpressions().getValue();
+                session.getProvenanceReporter().send(flowFile, url, String.format("Added %d documents to MongoDB.", added));
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }

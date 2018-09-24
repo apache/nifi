@@ -25,4 +25,5 @@ prop_replace () {
 
 # NIFI_HOME is defined by an ENV command in the backing Dockerfile
 export nifi_props_file=${NIFI_HOME}/conf/nifi.properties
+export nifi_toolkit_props_file=${HOME}/.nifi-cli.nifi.properties
 export hostname=$(hostname)

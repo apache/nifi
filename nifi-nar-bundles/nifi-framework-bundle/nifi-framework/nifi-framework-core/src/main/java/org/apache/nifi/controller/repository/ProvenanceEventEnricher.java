@@ -26,8 +26,9 @@ public interface ProvenanceEventEnricher {
      *
      * @param record record
      * @param flowFile flowfile
+     * @param commitNanos the time (in nanoseconds) when the associated session was committed
      * @return new event record
      */
-    ProvenanceEventRecord enrich(ProvenanceEventRecord record, FlowFile flowFile);
+    ProvenanceEventRecord enrich(ProvenanceEventRecord record, FlowFile flowFile, long commitNanos);
 
 }

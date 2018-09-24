@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard
 
-import org.apache.nifi.processors.standard.syslog.SyslogParser
+import org.apache.nifi.syslog.parsers.SyslogParser
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.util.encoders.Hex

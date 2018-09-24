@@ -38,6 +38,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private final Map<String, String> updatedAttributes = new HashMap<>();
     private final Map<String, String> originalAttributes;
     private List<ContentClaim> transientClaims;
+    private final long startNanos = System.nanoTime();
 
     /**
      * Creates a new record which has no original claim or flow file - it is entirely new
@@ -217,5 +218,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
             transientClaims = new ArrayList<>();
         }
         transientClaims.add(claim);
+    }
+
+    public long getStartNanos() {
+        return startNanos;
     }
 }

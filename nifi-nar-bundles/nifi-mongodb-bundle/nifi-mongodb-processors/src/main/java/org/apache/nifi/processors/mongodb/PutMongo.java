@@ -112,8 +112,11 @@ public class PutMongo extends AbstractMongoProcessor {
         .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
         .defaultValue(UPDATE_WITH_DOC.getValue())
         .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
-                "or specify a document that contains update operators like $set and $unset")
-        .build();
+                "or specify a document that contains update operators like $set, $unset, and $inc. " +
+                "When Operators mode is enabled, the flowfile content is expected to be the operator part " +
+                "for example: {$set:{\"key\": \"value\"},$inc:{\"count\":1234}} and the update query will come " +
+                "from the configured Update Query property.")
+         .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("The Character Set in which the data is encoded")
@@ -195,9 +198,8 @@ public class PutMongo extends AbstractMongoProcessor {
         final String updateMode = context.getProperty(UPDATE_MODE).getValue();
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-
         try {
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
             // Read the contents of the FlowFile into a byte array
             final byte[] content = new byte[(int) flowFile.getSize()];
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
