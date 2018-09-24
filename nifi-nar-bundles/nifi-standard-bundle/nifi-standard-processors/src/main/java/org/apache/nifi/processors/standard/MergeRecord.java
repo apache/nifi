@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -43,6 +32,8 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -63,6 +54,18 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 
 @SideEffectFree
@@ -261,6 +264,34 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         binManager.set(null);
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).asInteger();
+        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).asInteger();
+        if (minRecords != null && maxRecords != null && maxRecords < minRecords) {
+            results.add(new ValidationResult.Builder()
+                .subject("Max Records")
+                .input(String.valueOf(maxRecords))
+                .valid(false)
+                .explanation("<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property")
+                .build());
+        }
+
+        final Double minSize = validationContext.getProperty(MIN_SIZE).asDataSize(DataUnit.B);
+        final Double maxSize = validationContext.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
+        if (minSize != null && maxSize != null && maxSize < minSize) {
+            results.add(new ValidationResult.Builder()
+                .subject("Max Size")
+                .input(validationContext.getProperty(MAX_SIZE).getValue())
+                .valid(false)
+                .explanation("<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property")
+                .build());
+        }
+
+        return results;
+    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
@@ -304,13 +335,24 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             session.commit();
         }
 
+        // If there is no more data queued up, complete any bin that meets our minimum threshold
+        int completedBins = 0;
+        if (flowFiles.isEmpty()) {
+            try {
+                completedBins += manager.completeFullEnoughBins();
+            } catch (final Exception e) {
+                getLogger().error("Failed to merge FlowFiles to create new bin due to " + e, e);
+            }
+        }
+
+        // Complete any bins that have reached their expiration date
         try {
-            manager.completeExpiredBins();
+            completedBins += manager.completeExpiredBins();
         } catch (final Exception e) {
             getLogger().error("Failed to merge FlowFiles to create new bin due to " + e, e);
         }
 
-        if (flowFiles.isEmpty()) {
+        if (completedBins == 0 && flowFiles.isEmpty()) {
             getLogger().debug("No FlowFiles to bin; will yield");
             context.yield();
         }
