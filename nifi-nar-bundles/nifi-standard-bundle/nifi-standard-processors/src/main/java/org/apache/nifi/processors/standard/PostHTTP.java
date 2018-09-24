@@ -183,7 +183,6 @@ public class PostHTTP extends AbstractProcessor {
             .description("How long to wait when attempting to connect to the remote server before giving up")
             .required(true)
             .defaultValue("30 sec")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
@@ -191,14 +190,12 @@ public class PostHTTP extends AbstractProcessor {
             .description("How long to wait between receiving segments of data from the remote server before giving up and discarding the partial file")
             .required(true)
             .defaultValue("30 sec")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
             .description("Username required to access the URL")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -206,7 +203,6 @@ public class PostHTTP extends AbstractProcessor {
             .description("Password required to access the URL")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor USER_AGENT = new PropertyDescriptor.Builder()
@@ -215,7 +211,6 @@ public class PostHTTP extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(VersionInfo.getUserAgent("Apache-HttpClient", "org.apache.http.client", HttpClientBuilder.class))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -223,13 +218,11 @@ public class PostHTTP extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.createLongValidator(0, 9, true))
             .defaultValue("0")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes to Send as HTTP Headers (Regex)")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that should be sent as HTTP Headers")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
     public static final PropertyDescriptor MAX_DATA_RATE = new PropertyDescriptor.Builder()
@@ -237,7 +230,6 @@ public class PostHTTP extends AbstractProcessor {
             .description("The maximum amount of data to send per second; this allows the bandwidth to be throttled to a specified data rate; if not specified, the data rate is not throttled")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Max Batch Size")
@@ -247,7 +239,6 @@ public class PostHTTP extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("100 MB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor CHUNKED_ENCODING = new PropertyDescriptor.Builder()
             .name("Use Chunked Encoding")
@@ -342,7 +333,7 @@ public class PostHTTP extends AbstractProcessor {
         }
 
         boolean sendAsFlowFile = context.getProperty(SEND_AS_FLOWFILE).asBoolean();
-        int compressionLevel = context.getProperty(COMPRESSION_LEVEL).evaluateAttributeExpressions().asInteger();
+        int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
         boolean chunkedSet = context.getProperty(CHUNKED_ENCODING).isSet();
 
         if (compressionLevel == 0 && !sendAsFlowFile && !chunkedSet) {
@@ -378,7 +369,7 @@ public class PostHTTP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final Double bytesPerSecond = context.getProperty(MAX_DATA_RATE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+        final Double bytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         this.throttlerRef.set(bytesPerSecond == null ? null : new LeakyBucketStreamThrottler(bytesPerSecond.intValue()));
 
         String hostname = "unknown";
@@ -414,8 +405,7 @@ public class PostHTTP extends AbstractProcessor {
 
         // setup SocketConfig
         SocketConfig.Builder socketConfigBuilder = SocketConfig.custom();
-        final int connectionTimeout = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        socketConfigBuilder.setSoTimeout(connectionTimeout);
+        socketConfigBuilder.setSoTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         SocketConfig socketConfig = socketConfigBuilder.build();
         connManager.setDefaultSocketConfig(socketConfig);
 
@@ -429,7 +419,7 @@ public class PostHTTP extends AbstractProcessor {
         // setup the HttpClientBuilder
         final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
         clientBuilder.setConnectionManager(connManager);
-        clientBuilder.setUserAgent(context.getProperty(USER_AGENT).evaluateAttributeExpressions().getValue());
+        clientBuilder.setUserAgent(context.getProperty(USER_AGENT).getValue());
         clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
             @Override
             public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
@@ -484,8 +474,8 @@ public class PostHTTP extends AbstractProcessor {
         clientBuilder.setRetryHandler(retryHandler);
         clientBuilder.disableContentCompression();
 
-        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final String username = context.getProperty(USERNAME).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
         // set the credentials if appropriate
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
@@ -501,11 +491,10 @@ public class PostHTTP extends AbstractProcessor {
 
         // setup RequestConfig
         final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
-        final int dataTimeout = context.getProperty(DATA_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        requestConfigBuilder.setConnectionRequestTimeout(dataTimeout);
-        requestConfigBuilder.setConnectTimeout(connectionTimeout);
+        requestConfigBuilder.setConnectionRequestTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        requestConfigBuilder.setConnectTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         requestConfigBuilder.setRedirectsEnabled(false);
-        requestConfigBuilder.setSocketTimeout(dataTimeout);
+        requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         requestConfig = requestConfigBuilder.build();
     }
 
@@ -572,11 +561,11 @@ public class PostHTTP extends AbstractProcessor {
         toSend.add(firstFlowFile);
 
         final boolean sendAsFlowFile = context.getProperty(SEND_AS_FLOWFILE).asBoolean();
-        final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).evaluateAttributeExpressions().asInteger();
+        final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
 
         final StreamThrottler throttler = throttlerRef.get();
 
-        final Double maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+        final Double maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B);
         final AtomicLong bytesToSend = new AtomicLong(firstFlowFile.getSize());
 
         DestinationAccepts destinationAccepts = null;
@@ -737,7 +726,7 @@ public class PostHTTP extends AbstractProcessor {
             contentType = StringUtils.isBlank(contentTypeValue) ? DEFAULT_CONTENT_TYPE : contentTypeValue;
         }
 
-        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).evaluateAttributeExpressions().getValue();
+        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
         if (attributeHeaderRegex != null && !sendAsFlowFile && toSend.size() == 1) {
             final Pattern pattern = Pattern.compile(attributeHeaderRegex);
 

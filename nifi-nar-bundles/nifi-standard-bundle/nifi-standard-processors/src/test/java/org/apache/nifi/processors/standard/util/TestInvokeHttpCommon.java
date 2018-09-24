@@ -271,13 +271,42 @@ public abstract class TestInvokeHttpCommon {
 
     @Test
     public void testOutputResponseRegardlessWithOutputInAttributeLarge() throws Exception {
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "11");
+
+        doTestOutputResponseRegardlessWithOutputInAttributeLarge();
+    }
+
+    @Test
+    public void testOutputResponseRegardlessWithOutputInAttributeLargeWithVar() throws Exception {
+        runner.setVariable("var.http.max.attrs", "11");
+
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "${var.http.max.attrs}");
+
+        doTestOutputResponseRegardlessWithOutputInAttributeLarge();
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void testOutputResponseRegardlessWithOutputInAttributeLargeNoVarValue() throws Throwable {
+        // runner.setVariable("var.http.max.attrs", "11");
+
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "${var.http.max.attrs}");
+        try {
+            doTestOutputResponseRegardlessWithOutputInAttributeLarge();
+        } catch (AssertionError e) {
+            if (e.getCause() instanceof NumberFormatException) {
+                throw e.getCause();
+            }
+        }
+        Assert.fail(); // should have error for NumberFormatException
+    }
+
+    private void doTestOutputResponseRegardlessWithOutputInAttributeLarge() throws Exception {
         addHandler(new GetLargeHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
         runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
-        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS,"true");
-        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE,"outputBody");
-        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH,"11");
+        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS, "true");
+        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE, "outputBody");
 
         createFlowFiles(runner);
 
@@ -536,14 +565,63 @@ public abstract class TestInvokeHttpCommon {
 
     @Test
     public void test200Auth() throws Exception {
-        addHandler(new BasicAuthHandler());
-
         final String username = "basic_user";
         final String password = "basic_password";
 
-        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
         runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, username);
         runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password);
+
+        doTest200Auth(username, password);
+    }
+
+    @Test
+    public void test200AuthWithVar() throws Exception {
+        final String username = "basic_user";
+        final String password = "basic_password";
+
+        runner.setVariable("var.http.auth.username", username);
+        runner.setVariable("var.http.auth.password", password);
+
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${var.http.auth.username}");
+        // runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${var.http.auth.password}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password); // don't support EL
+
+        doTest200Auth(username, password);
+    }
+
+    @Test
+    public void test200AuthNoVarValue() throws Exception {
+        // final String username = "basic_user";
+        final String password = "basic_password";
+
+        // runner.setVariable("var.http.auth.username", username);
+        // runner.setVariable("var.http.auth.password", password);
+
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${var.http.auth.username}");
+        // runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${var.http.auth.password}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password); // don't support EL
+
+        addHandler(new BasicAuthHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+    }
+
+    private void doTest200Auth(String username, String password) throws Exception {
+
+        addHandler(new BasicAuthHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+
         final byte[] creds = String.format("%s:%s", username, password).getBytes(StandardCharsets.UTF_8);
         final String expAuth = String.format("Basic %s", new String(encodeBase64(creds)));
 
@@ -591,18 +669,39 @@ public abstract class TestInvokeHttpCommon {
 
         assertTrue(forkEvent);
         assertTrue(fetchEvent);
+
     }
 
     @Test
     public void test401NotAuth() throws Exception {
-        addHandler(new BasicAuthHandler());
-
         final String username = "basic_user";
         final String password = "basic_password";
 
-        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/401");
         runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, username);
         runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password);
+
+        doTest401NotAuth();
+    }
+
+    @Test
+    public void test401NotAuthWithVar() throws Exception {
+        final String username = "basic_user";
+        final String password = "basic_password";
+
+        runner.setVariable("var.http.auth.username", username);
+        runner.setVariable("var.http.auth.password", password);
+
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "${var.http.auth.username}");
+        // runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "${var.http.auth.password}");
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, password); // don't support EL
+
+        doTest401NotAuth();
+    }
+
+    public void doTest401NotAuth() throws Exception {
+        addHandler(new BasicAuthHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/401");
 
         createFlowFiles(runner);
 
@@ -674,11 +773,41 @@ public abstract class TestInvokeHttpCommon {
 
     @Test
     public void test401DigestNotAuth() throws Exception {
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "512");
+
+        doTest401DigestNotAuth();
+    }
+
+    @Test
+    public void test401DigestNotAuthWithVar() throws Exception {
+        runner.setVariable("var.http.max.attrs", "256");
+
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "${var.http.max.attrs}");
+
+        doTest401DigestNotAuth();
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void test401DigestNotAuthNoVarValue() throws Throwable {
+        // runner.setVariable("var.http.max.attrs", "256");
+
+        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH, "${var.http.max.attrs}");
+
+        try {
+            doTest401DigestNotAuth();
+        } catch (AssertionError e) {
+            if (e.getCause() instanceof NumberFormatException) {
+                throw e.getCause();
+            }
+        }
+        Assert.fail(); // should have error for NumberFormatException
+    }
+
+    private void doTest401DigestNotAuth() throws Exception {
         addHandler(new DigestAuthHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
-        runner.setProperty(InvokeHTTP.PROP_DIGEST_AUTH,"false");
-        runner.setProperty(InvokeHTTP.PROP_PUT_ATTRIBUTE_MAX_LENGTH,"512");
+        runner.setProperty(InvokeHTTP.PROP_DIGEST_AUTH, "false");
 
         createFlowFiles(runner);
 
@@ -691,8 +820,8 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
         runner.assertPenalizeCount(0);
 
-        //expected in request status.code and status.message
-        //original flow file (+attributes)
+        // expected in request status.code and status.message
+        // original flow file (+attributes)
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_NO_RETRY).get(0);
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "401");
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "Unauthorized");
@@ -1290,10 +1419,40 @@ public abstract class TestInvokeHttpCommon {
 
     @Test
     public void testReadTimeout() throws Exception {
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "5 secs");
+
+        doTestReadTimeout();
+    }
+
+    @Test
+    public void testReadTimeoutWithVar() throws Exception {
+        runner.setVariable("var.http.read.timeout", "3 secs");
+
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "${var.http.read.timeout}");
+
+        doTestReadTimeout();
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testReadTimeoutNoVarValue() throws Exception {
+        // runner.setVariable("var.http.read.timeout", "3 secs");
+
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "${var.http.read.timeout}");
+
+        try {
+            doTestReadTimeout();
+            Assert.fail();
+        } catch (AssertionError e) {
+            // have error in "@OnScheduled"
+            throw e;
+        }
+    }
+
+    private void doTestReadTimeout() throws Exception {
         addHandler(new ReadTimeoutHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
-        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "5 secs");
+        // runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "5 secs");
 
         createFlowFiles(runner);
 

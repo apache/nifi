@@ -321,7 +321,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The password to be used by the client to authenticate against the Remote URL.")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
             .build();
 
@@ -372,7 +371,6 @@ public final class InvokeHTTP extends AbstractProcessor {
                     + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
@@ -639,7 +637,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         // check the trusted hostname property and override the HostnameVerifier
-        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).evaluateAttributeExpressions().getValue());
+        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).getValue());
         if (!trustedHostname.isEmpty()) {
             okHttpClientBuilder.hostnameVerifier(new OverrideHostnameVerifier(trustedHostname, OkHostnameVerifier.INSTANCE));
         }
@@ -725,7 +723,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
             /*
              * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
@@ -958,7 +956,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
             String credential = Credentials.basic(authUser, authPass);
             requestBuilder = requestBuilder.header("Authorization", credential);
