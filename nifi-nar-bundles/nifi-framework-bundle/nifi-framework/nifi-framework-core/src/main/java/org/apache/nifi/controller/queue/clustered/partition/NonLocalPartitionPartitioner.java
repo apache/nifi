@@ -47,7 +47,7 @@ public class NonLocalPartitionPartitioner implements FlowFilePartitioner {
 
     @Override
     public boolean isRebalanceOnClusterResize() {
-        return false;
+        return true;
     }
 
 

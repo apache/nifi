@@ -341,6 +341,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeConnectionStatus evictedStatus = nodeStatuses.put(nodeId, updatedStatus);
         if (evictedStatus == null) {
             onNodeAdded(nodeId, storeState);
+        } else {
+            onNodeStateChange(nodeId, updatedStatus.getState());
         }
 
         return evictedStatus;
@@ -357,6 +359,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             }
         } else {
             updated = nodeStatuses.replace(nodeId, expectedStatus, updatedStatus);
+        }
+
+        if (updated) {
+            onNodeStateChange(nodeId, updatedStatus.getState());
         }
 
         return updated;
@@ -511,7 +517,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         request.setExplanation(explanation);
 
         addNodeEvent(nodeId, "Offload requested due to " + explanation);
-        onNodeOffloaded(nodeId);
         offloadAsynchronously(request, 10, 5);
     }
 
@@ -572,10 +577,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         storeState();
     }
 
-    private void onNodeOffloaded(final NodeIdentifier nodeId) {
-        eventListeners.forEach(listener -> listener.onNodeOffloaded(nodeId));
-    }
-
     private void onNodeRemoved(final NodeIdentifier nodeId) {
         eventListeners.forEach(listener -> listener.onNodeRemoved(nodeId));
     }
@@ -585,6 +586,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             storeState();
         }
         eventListeners.forEach(listener -> listener.onNodeAdded(nodeId));
+    }
+
+    private void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState nodeConnectionState) {
+        eventListeners.forEach(listener -> listener.onNodeStateChange(nodeId, nodeConnectionState));
     }
 
     @Override
