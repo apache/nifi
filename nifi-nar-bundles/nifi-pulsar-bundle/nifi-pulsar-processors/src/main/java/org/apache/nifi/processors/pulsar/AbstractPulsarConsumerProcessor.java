@@ -64,16 +64,11 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
     static final AllowableValue DISCARD = new AllowableValue(ConsumerCryptoFailureAction.DISCARD.name(), "Discard",
             "Discard the message and don't perform any addtional processing on the message");
     static final AllowableValue FAIL = new AllowableValue(ConsumerCryptoFailureAction.FAIL.name(), "Fail",
-            "Report a failure condition, and the route the message contents to the FAILED relationship.");
+            "Report a failure condition, and then route the message contents to the FAILED relationship.");
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles for which all content was consumed from Pulsar.")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Any FlowFile that cannot receive data from Pulsar will be routed to this Relationship")
             .build();
 
     public static final PropertyDescriptor PULSAR_CLIENT_SERVICE = new PropertyDescriptor.Builder()

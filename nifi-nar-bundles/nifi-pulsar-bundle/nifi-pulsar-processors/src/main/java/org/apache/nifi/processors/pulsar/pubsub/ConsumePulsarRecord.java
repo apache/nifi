@@ -79,6 +79,12 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
 
     public static final String MSG_COUNT = "record.count";
 
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot read the data it receives from Pulsar will be routed to this Relationship")
+            .build();
+
+
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .displayName("Record Reader")
