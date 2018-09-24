@@ -34,7 +34,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -338,8 +337,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
         // If there is no more data queued up, complete any bin that meets our minimum threshold
         int completedBins = 0;
-        final QueueSize queueSize = session.getQueueSize();
-        if (queueSize.getObjectCount() == 0) {
+        if (flowFiles.isEmpty()) {
             try {
                 completedBins += manager.completeFullEnoughBins();
             } catch (final Exception e) {
