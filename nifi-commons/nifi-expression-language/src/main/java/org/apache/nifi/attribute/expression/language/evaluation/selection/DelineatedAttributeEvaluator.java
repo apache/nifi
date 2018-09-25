@@ -55,7 +55,7 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
             delineatedValues = subjectValue.getValue().split(delimiterValue.getValue());
         }
 
-        if (evaluationCount > delineatedValues.length) {
+        if (evaluationCount > delineatedValues.length || delineatedValues.length == 0) {
             evaluationsLeft = 0;
             return new StringQueryResult(null);
         }

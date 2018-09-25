@@ -1015,6 +1015,37 @@ public class TestQuery {
     }
 
     @Test
+    public void testAllDelineatedValuesCount() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        final String query = "${allDelineatedValues('${test}', '/'):count()}";
+
+        attributes.put("test", "/my/path");
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType(query));
+        assertEquals("3", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("", Query.evaluateExpressions("${test:getDelimitedField(1, '/')}", attributes, null));
+        assertEquals("my", Query.evaluateExpressions("${test:getDelimitedField(2, '/')}", attributes, null));
+        assertEquals("path", Query.evaluateExpressions("${test:getDelimitedField(3, '/')}", attributes, null));
+
+        attributes.put("test", "this/is/my/path");
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType(query));
+        assertEquals("4", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("this", Query.evaluateExpressions("${test:getDelimitedField(1, '/')}", attributes, null));
+        assertEquals("is", Query.evaluateExpressions("${test:getDelimitedField(2, '/')}", attributes, null));
+        assertEquals("my", Query.evaluateExpressions("${test:getDelimitedField(3, '/')}", attributes, null));
+        assertEquals("path", Query.evaluateExpressions("${test:getDelimitedField(4, '/')}", attributes, null));
+
+        attributes.put("test", "/");
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType(query));
+        assertEquals("0", Query.evaluateExpressions(query, attributes, null));
+
+        attributes.put("test", "path/");
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType(query));
+        assertEquals("1", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("path", Query.evaluateExpressions("${test:getDelimitedField(1, '/')}", attributes, null));
+    }
+
+    @Test
     public void testAllAttributes() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "1234");
