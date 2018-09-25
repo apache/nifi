@@ -130,6 +130,15 @@ public class JoltTransformJSON extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
+            .name("pretty_print")
+            .displayName("Pretty Print")
+            .description("Apply pretty print formatting to the output of the Jolt transform")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The FlowFile with transformed content will be routed to this relationship")
@@ -164,6 +173,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         _properties.add(MODULES);
         _properties.add(JOLT_SPEC);
         _properties.add(TRANSFORM_CACHE_SIZE);
+        _properties.add(PRETTY_PRINT);
         properties = Collections.unmodifiableList(_properties);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -275,7 +285,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             }
 
             final Object transformedJson = TransformUtils.transform(transform,inputJson);
-            jsonString = JsonUtils.toJsonString(transformedJson);
+            jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? JsonUtils.toPrettyJsonString(transformedJson) : JsonUtils.toJsonString(transformedJson);
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[] {original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
