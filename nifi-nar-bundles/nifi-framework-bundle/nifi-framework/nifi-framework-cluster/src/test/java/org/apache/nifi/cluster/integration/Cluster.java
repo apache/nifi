@@ -144,6 +144,10 @@ public class Cluster {
         return node;
     }
 
+    public Node getCurrentClusterCoordinator() {
+        return getNodes().stream().filter(node -> node.hasRole(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null);
+    }
+
     public Node waitForClusterCoordinator(final long time, final TimeUnit timeUnit) {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
             () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null));

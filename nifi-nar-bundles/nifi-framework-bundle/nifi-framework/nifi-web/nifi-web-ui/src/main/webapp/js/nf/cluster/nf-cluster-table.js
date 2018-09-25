@@ -630,34 +630,25 @@
         // only allow the admin to modify the cluster
         if (nfCommon.canModifyController()) {
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var canDisconnect = false;
-                var canConnect = false;
-                var isOffloaded = false;
+                var connectDiv = '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div>';
+                var deleteDiv = '<div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>';
+                var disconnectDiv = '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off"></div>';
+                var offloadDiv = '<div title="Offload" class="pointer prompt-for-offload fa fa-rotate-90 fa-upload" ' +
+                    'style="margin-top: 5px;margin-left: 5px;margin-right: -2px;"></div>';
+                var markup = '';
 
-                // determine the current status
+                // determine the current status and create the appropriate markup
                 if (dataContext.status === 'CONNECTED' || dataContext.status === 'CONNECTING') {
-                    canDisconnect = true;
-                }
-                if (dataContext.status === 'DISCONNECTED') {
-                    canConnect = true;
-                }
-                if (dataContext.status === 'OFFLOADED') {
-                    isOffloaded = true;
+                    markup += disconnectDiv;
+                } else if (dataContext.status === 'DISCONNECTED') {
+                    markup += connectDiv + offloadDiv + deleteDiv;
+                } else if (dataContext.status === 'OFFLOADED') {
+                    markup += connectDiv + deleteDiv;
+                } else {
+                    markup += '<div style="width: 16px; height: 16px;">&nbsp;</div>';
                 }
 
-                // return the appropriate markup
-                if (canConnect) {
-                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div>' +
-                        '<div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>' +
-                        '<div title="Offload" class="pointer prompt-for-offload fa fa-rotate-90 fa-upload"></div>';
-                } else if (canDisconnect) {
-                    return '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off"></div>';
-                } else if (isOffloaded) {
-                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div>' +
-                        '<div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>';
-                } else {
-                    return '<div style="width: 16px; height: 16px;">&nbsp;</div>';
-                }
+                return markup;
             };
 
             columnModel.push({

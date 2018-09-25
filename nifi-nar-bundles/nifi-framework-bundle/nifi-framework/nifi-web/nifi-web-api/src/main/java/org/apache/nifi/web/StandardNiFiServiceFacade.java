@@ -4707,7 +4707,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
         if (!nodeConnectionStatus.getState().equals(NodeConnectionState.OFFLOADED) && !nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
-            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId + " because it is not disconnected, current state = " + nodeConnectionStatus.getState());
+            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId +
+                    " because it is not disconnected or offloaded, current state = " + nodeConnectionStatus.getState());
         }
 
         clusterCoordinator.removeNode(nodeIdentifier, userDn);
