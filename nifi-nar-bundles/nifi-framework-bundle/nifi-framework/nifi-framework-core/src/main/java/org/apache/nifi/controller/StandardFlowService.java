@@ -691,20 +691,19 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private void offload(final String explanation) throws InterruptedException {
         writeLock.lock();
         try {
-
             logger.info("Offloading node due to " + explanation);
 
             // mark node as offloading
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADING, OffloadCode.OFFLOADED, explanation));
             // request to stop all processors on node
             controller.stopAllProcessors();
-            // request to stop all remote process groups
-            controller.getRootGroup().findAllRemoteProcessGroups().forEach(RemoteProcessGroup::stopTransmitting);
             // terminate all processors
             controller.getRootGroup().findAllProcessors()
                     // filter stream, only stopped processors can be terminated
                     .stream().filter(pn -> pn.getScheduledState() == ScheduledState.STOPPED)
                     .forEach(pn -> pn.getProcessGroup().terminateProcessor(pn));
+            // request to stop all remote process groups
+            controller.getRootGroup().findAllRemoteProcessGroups().forEach(RemoteProcessGroup::stopTransmitting);
             // offload all queues on node
             controller.getAllQueues().forEach(FlowFileQueue::offloadQueue);
             // wait for rebalance of flowfiles on all queues
@@ -713,6 +712,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 Thread.sleep(1000);
             }
             // finish offload
+            controller.getAllQueues().forEach(FlowFileQueue::resetOffloadedQueue);
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED, OffloadCode.OFFLOADED, explanation));
             clusterCoordinator.finishNodeOffload(getNodeId());
 

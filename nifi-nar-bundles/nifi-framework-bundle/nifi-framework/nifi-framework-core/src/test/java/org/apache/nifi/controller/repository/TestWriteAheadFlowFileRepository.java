@@ -114,6 +114,10 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public void resetOffloadedQueue() {
+            }
+
+            @Override
             public boolean isActivelyLoadBalancing() {
                 return false;
             }

@@ -57,7 +57,7 @@ public class DisconnectNode extends AbstractNiFiCommand<NodeResult> {
 
         NodeDTO nodeDto = new NodeDTO();
         nodeDto.setNodeId(nodeId);
-        // TODO There's no constant for node status in
+        // TODO There are no constants for the DISCONNECT node status
         nodeDto.setStatus("DISCONNECTING");
         NodeEntity nodeEntity = new NodeEntity();
         nodeEntity.setNode(nodeDto);

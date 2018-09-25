@@ -72,7 +72,14 @@ public interface ClusterCoordinator {
     /**
      * Sends a request to the node to be offloaded.
      * The node will be marked as offloading immediately.
-     *
+     * <p>
+     * When a node is offloaded:
+     * <ul>
+     *     <li>all processors on the node are stopped</li>
+     *     <li>all processors on the node are terminated</li>
+     *     <li>all remote process groups on the node stop transmitting</li>
+     *     <li>all flowfiles on the node are sent to other nodes in the cluster</li>
+     * </ul>
      * @param nodeId the identifier of the node
      * @param offloadCode the code that represents why this node is being asked to be offloaded
      * @param explanation an explanation as to why the node is being asked to be offloaded

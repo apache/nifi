@@ -267,7 +267,21 @@ public interface FlowFileQueue {
 
     void setLoadBalanceStrategy(LoadBalanceStrategy strategy, String partitioningAttribute);
 
+    /**
+     * Offloads the flowfiles in the queue to other nodes.  This disables the queue from partition flowfiles locally.
+     * <p>
+     * This operation is a no-op if the node that contains this queue is not in a cluster.
+     */
     void offloadQueue();
+
+    /**
+     * Resets a queue that has previously been offloaded.  This allows the queue to partition flowfiles locally, and
+     * has no other effect on processors or remote process groups.
+     * <p>
+     * This operation is a no-op if the queue is not currently offloaded or the node that contains this queue is not
+     * clustered.
+     */
+    void resetOffloadedQueue();
 
     LoadBalanceStrategy getLoadBalanceStrategy();
 

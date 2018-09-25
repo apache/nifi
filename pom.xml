@@ -342,6 +342,9 @@
                             <include>**/Test*.class</include>
                             <include>**/*Spec.class</include>
                         </includes>
+                        <excludes>
+                            <exclude>**/*ITSpec.class</exclude>
+                        </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G
                             -Djava.net.preferIPv4Stack=true

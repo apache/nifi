@@ -486,11 +486,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         if (state != NodeConnectionState.OFFLOADING) {
-            logger.warn("Attempted to finish node offload for {} but node is not in a offload state, it is currently {}.", nodeId, state);
+            logger.warn("Attempted to finish node offload for {} but node is not in the offloading state, it is currently {}.", nodeId, state);
             return;
         }
 
         logger.info("{} is now offloaded", nodeId);
+
         updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
     }
 

@@ -189,34 +189,41 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         if (!offloaded) {
             // We are already load balancing but are changing how we are load balancing.
             final FlowFilePartitioner partitioner;
-            switch (strategy) {
-                case DO_NOT_LOAD_BALANCE:
-                    partitioner = new LocalPartitionPartitioner();
-                    break;
-                case PARTITION_BY_ATTRIBUTE:
-                    partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
-                    break;
-                case ROUND_ROBIN:
-                    partitioner = new RoundRobinPartitioner();
-                    break;
-                case SINGLE_NODE:
-                    partitioner = new FirstNodePartitioner();
-                    break;
-                default:
-                    throw new IllegalArgumentException();
-            }
+            partitioner = getPartitionerForLoadBalancingStrategy(strategy, partitioningAttribute);
 
             setFlowFilePartitioner(partitioner);
         }
     }
 
+    private FlowFilePartitioner getPartitionerForLoadBalancingStrategy(LoadBalanceStrategy strategy, String partitioningAttribute) {
+        FlowFilePartitioner partitioner;
+        switch (strategy) {
+            case DO_NOT_LOAD_BALANCE:
+                partitioner = new LocalPartitionPartitioner();
+                break;
+            case PARTITION_BY_ATTRIBUTE:
+                partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
+                break;
+            case ROUND_ROBIN:
+                partitioner = new RoundRobinPartitioner();
+                break;
+            case SINGLE_NODE:
+                partitioner = new FirstNodePartitioner();
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+        return partitioner;
+    }
+
     @Override
     public void offloadQueue() {
         if (clusterCoordinator == null) {
-            // Not clustered, so don't change partitions
+            // Not clustered, cannot offload the queue to other nodes
             return;
         }
 
+        logger.debug("Setting queue {} on node {} as offloaded", this, clusterCoordinator.getLocalNodeIdentifier());
         offloaded = true;
 
         partitionWriteLock.lock();
@@ -245,6 +252,26 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             setFlowFilePartitioner(new NonLocalPartitionPartitioner());
         } finally {
             partitionWriteLock.unlock();
+        }
+    }
+
+    @Override
+    public void resetOffloadedQueue() {
+        if (clusterCoordinator == null) {
+            // Not clustered, was not offloading the queue to other nodes
+            return;
+        }
+
+        if (offloaded) {
+            // queue was offloaded previously, allow files to be added to the local partition
+            offloaded = false;
+            logger.debug("Queue {} on node {} was previously offloaded, resetting offloaded status to {}",
+                    this, clusterCoordinator.getLocalNodeIdentifier(), offloaded);
+            // reset the partitioner based on the load balancing strategy, since offloading previously changed the partitioner
+            FlowFilePartitioner partitioner = getPartitionerForLoadBalancingStrategy(getLoadBalanceStrategy(), getPartitioningAttribute());
+            setFlowFilePartitioner(partitioner);
+            logger.debug("Queue {} is no longer offloaded, restored load balance strategy to {} and partitioning attribute to \"{}\"",
+                    this, getLoadBalanceStrategy(), getPartitioningAttribute());
         }
     }
 
@@ -884,8 +911,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public boolean isPropagateBackpressureAcrossNodes() {
-        // TODO: We will want to modify this when we have the ability to offload flowfiles from a node.
-        return true;
+        // If offloaded = false, the queue is not offloading; return true to honor backpressure
+        // If offloaded = true, the queue is offloading or has finished offloading; return false to ignore backpressure
+        return !offloaded;
     }
 
     @Override
@@ -1096,6 +1124,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 }
 
                 switch (newState) {
+                    case CONNECTED:
+                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                            resetOffloadedQueue();
+                        }
+                        break;
                     case OFFLOADED:
                     case OFFLOADING:
                     case DISCONNECTED:
