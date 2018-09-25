@@ -17,14 +17,20 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -34,14 +40,18 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.ietf.jgss.GSSException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.security.sasl.SaslException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +60,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
@@ -264,7 +275,119 @@ public class PutHDFSTest {
     }
 
     @Test
-    public void testPutFileWithException() throws IOException {
+    public void testPutFileWithGSSException() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
+        String dirName = "target/testPutFileGSSException";
+        File file = new File(dirName);
+        file.mkdirs();
+        Configuration config = new Configuration();
+        FileSystem fs = FileSystem.get(config);
+        Path p = new Path(dirName).makeQualified(fs.getUri(), fs.getWorkingDirectory());
+
+        final KerberosProperties testKerberosProperties = kerberosProperties;
+        TestRunner runner = TestRunners.newTestRunner(new PutHDFS() {
+            @Override
+            protected FileSystem getFileSystem() {
+                FileSystem fs = new FileSystem() {
+                    @Override
+                    public URI getUri() {
+                        return null;
+                    }
+
+                    @Override
+                    public FSDataInputStream open(Path path, int i) throws IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public FSDataOutputStream create(Path path, FsPermission fsPermission, boolean b, int i, short i1, long l, Progressable progressable) throws IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public FSDataOutputStream append(Path path, int i, Progressable progressable) throws IOException {
+                        return null;
+                    }
+
+                    @Override
+                    public boolean rename(Path path, Path path1) throws IOException {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean delete(Path path, boolean b) throws IOException {
+                        return false;
+                    }
+
+                    @Override
+                    public FileStatus[] listStatus(Path path) throws FileNotFoundException, IOException {
+                        return new FileStatus[0];
+                    }
+
+                    @Override
+                    public void setWorkingDirectory(Path path) {
+
+                    }
+
+                    @Override
+                    public Path getWorkingDirectory() {
+                        return null;
+                    }
+
+                    @Override
+                    public boolean mkdirs(Path path, FsPermission fsPermission) throws IOException {
+                        return false;
+                    }
+
+                    @Override
+                    public FileStatus getFileStatus(Path path) throws IOException {
+                        throw new IOException("failed ioe", new SaslException("failed sasle", new GSSException(13)));
+                    }
+                };
+                fs.setConf(config);
+                return fs;
+            }
+
+            @Override
+            protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
+                return testKerberosProperties;
+            }
+        });
+        runner.setProperty(PutHDFS.DIRECTORY, dirName);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        // assert no flowfiles transferred to outgoing relationships
+        runner.assertTransferCount(PutHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHDFS.REL_FAILURE, 0);
+        // assert the input flowfile was penalized
+        List<MockFlowFile> penalizedFlowFiles = runner.getPenalizedFlowFiles();
+        assertEquals(1, penalizedFlowFiles.size());
+        assertEquals("randombytes-1", penalizedFlowFiles.iterator().next().getAttribute(CoreAttributes.FILENAME.key()));
+        // assert the processor's queue is not empty
+        assertFalse(runner.isQueueEmpty());
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+        // assert the input file is back on the queue
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        FlowFile queuedFlowFile = session.get();
+        assertNotNull(queuedFlowFile);
+        assertEquals("randombytes-1", queuedFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        session.rollback();
+
+        // cleanup
+        fs.delete(p, true);
+    }
+
+    @Test
+    public void testPutFileWithProcessException() throws IOException {
         // Refer to comment in the BeforeClass method for an explanation
         assumeTrue(isNotWindows());
 
