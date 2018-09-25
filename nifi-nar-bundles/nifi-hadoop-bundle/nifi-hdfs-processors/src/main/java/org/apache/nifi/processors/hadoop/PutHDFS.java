@@ -379,25 +379,28 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     session.transfer(putFlowFile, REL_SUCCESS);
 
+                } catch (final IOException e) {
+                  Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                  if (causeOptional.isPresent()) {
+                    getLogger().warn("An error occurred while connecting to HDFS. "
+                        + "Rolling back session, and penalizing flow file {}",
+                         new Object[] {putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get()});
+                    session.rollback(true);
+                  } else {
+                    getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
+                    session.transfer(putFlowFile, REL_FAILURE);
+                  }
                 } catch (final Throwable t) {
-                   Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-                    if (causeOptional.isPresent()) {
-                      getLogger().warn(String.format("An error occured while connecting to HDFS. "
-                          + "Rolling back session, and penalizing flow file %s",
-                          putFlowFile.getAttribute(CoreAttributes.UUID.key())), new Object[] {causeOptional.get()});
-                      session.rollback(true);
-                    } else {
-                      if (tempDotCopyFile != null) {
-                          try {
-                              hdfs.delete(tempDotCopyFile, false);
-                          } catch (Exception e) {
-                              getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
-                          }
-                      }
-                      getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
-                      session.transfer(session.penalize(putFlowFile), REL_FAILURE);
-                      context.yield();
+                    if (tempDotCopyFile != null) {
+                        try {
+                            hdfs.delete(tempDotCopyFile, false);
+                        } catch (Exception e) {
+                            getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                        }
                     }
+                    getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
+                    session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                    context.yield();
                 }
 
                 return null;
