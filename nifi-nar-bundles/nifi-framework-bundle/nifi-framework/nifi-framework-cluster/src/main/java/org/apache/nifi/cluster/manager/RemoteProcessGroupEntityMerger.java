@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -124,11 +125,20 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
         }
 
         if (remoteProcessGroupContents != null) {
-            if (mergedInputPorts != null && !mergedInputPorts.isEmpty()) {
+            if (mergedInputPorts == null) {
+                remoteProcessGroupContents.setInputPorts(Collections.emptySet());
+                clientDto.setInputPortCount(0);
+            } else {
                 remoteProcessGroupContents.setInputPorts(mergedInputPorts);
+                clientDto.setInputPortCount(mergedInputPorts.size());
             }
-            if (mergedOutputPorts != null && !mergedOutputPorts.isEmpty()) {
+
+            if (mergedOutputPorts == null) {
+                remoteProcessGroupContents.setOutputPorts(Collections.emptySet());
+                clientDto.setOutputPortCount(0);
+            } else {
                 remoteProcessGroupContents.setOutputPorts(mergedOutputPorts);
+                clientDto.setOutputPortCount(mergedOutputPorts.size());
             }
         }
 
