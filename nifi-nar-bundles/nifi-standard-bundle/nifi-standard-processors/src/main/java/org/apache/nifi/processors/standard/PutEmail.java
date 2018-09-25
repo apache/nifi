@@ -165,28 +165,32 @@ public class PutEmail extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
             .name("From")
-            .description("Specifies the Email address to use as the sender")
+            .description("Specifies the Email address to use as the sender. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
             .name("To")
-            .description("The recipients to include in the To-Line of the email")
+            .description("The recipients to include in the To-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
             .name("CC")
-            .description("The recipients to include in the CC-Line of the email")
+            .description("The recipients to include in the CC-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
             .name("BCC")
-            .description("The recipients to include in the BCC-Line of the email")
+            .description("The recipients to include in the BCC-Line of the email. "
+                    + "Comma separated sequence of addresses following RFC822 syntax.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

@@ -264,9 +264,11 @@ public class TestPutEmail {
         // verifies that are set on the outgoing Message correctly
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "${body}");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+        runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
+        runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
 
         Map<String, String> attributes = new HashMap<String, String>();
@@ -283,11 +285,15 @@ public class TestPutEmail {
         assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("from@apache.org", message.getFrom()[1].toString());
         assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
         assertEquals("Some Text", message.getContent());
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
-        assertNull(message.getRecipients(RecipientType.BCC));
-        assertNull(message.getRecipients(RecipientType.CC));
+        assertEquals("another@apache.org", message.getRecipients(RecipientType.TO)[1].toString());
+        assertEquals("recipientcc@apache.org", message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("anothercc@apache.org", message.getRecipients(RecipientType.CC)[1].toString());
+        assertEquals("recipientbcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
+        assertEquals("anotherbcc@apache.org", message.getRecipients(RecipientType.BCC)[1].toString());
     }
 
 }
