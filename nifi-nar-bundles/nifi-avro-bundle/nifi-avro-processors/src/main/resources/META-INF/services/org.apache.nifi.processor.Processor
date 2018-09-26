@@ -15,3 +15,4 @@
 org.apache.nifi.processors.avro.ConvertAvroToJSON
 org.apache.nifi.processors.avro.ExtractAvroMetadata
 org.apache.nifi.processors.avro.SplitAvro
+org.apache.nifi.processors.avro.ConvertKafkaAvroToJSON
