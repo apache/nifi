@@ -458,6 +458,9 @@ public class MockProcessSession implements ProcessSession {
 
         newFlowFile.setData(baos.toByteArray());
         newFlowFile = putAttribute(newFlowFile, CoreAttributes.FILENAME.key(), path.getFileName().toString());
+        if (!keepSourceFile) {
+            path.toFile().delete();
+        }
         return newFlowFile;
     }
 

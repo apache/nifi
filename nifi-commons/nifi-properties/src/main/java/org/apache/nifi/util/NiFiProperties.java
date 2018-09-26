@@ -20,7 +20,9 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -1422,10 +1424,15 @@ public abstract class NiFiProperties {
     public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Map<String, String> additionalProperties) {
         final Map<String, String> addProps = (additionalProperties == null) ? Collections.EMPTY_MAP : additionalProperties;
         final Properties properties = new Properties();
-        final String nfPropertiesFilePath = (propertiesFilePath == null)
+        String nfPropertiesFilePath = (propertiesFilePath == null)
                 ? System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
                 : propertiesFilePath;
         if (nfPropertiesFilePath != null) {
+            try {
+                nfPropertiesFilePath = URLDecoder.decode(nfPropertiesFilePath, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                // can't happen
+            }
             final File propertiesFile = new File(nfPropertiesFilePath.trim());
             if (!propertiesFile.exists()) {
                 throw new RuntimeException("Properties file doesn't exist \'"

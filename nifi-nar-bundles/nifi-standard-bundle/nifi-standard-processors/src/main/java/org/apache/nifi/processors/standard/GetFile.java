@@ -45,8 +45,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
@@ -61,11 +63,14 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +79,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -212,6 +220,8 @@ public class GetFile extends AbstractProcessor {
     private final Set<File> recentlyProcessed = new HashSet<>();    // guarded by queueLock
     private final Lock queueLock = new ReentrantLock();
 
+    private Stream<File> directoryStream;     // guarded by listingLock
+    private Iterator<File> fileIterator;     // guarded by listingLock
     private final Lock listingLock = new ReentrantLock();
 
     private final AtomicLong queueLastUpdated = new AtomicLong(0L);
@@ -270,6 +280,9 @@ public class GetFile extends AbstractProcessor {
         return new FileFilter() {
             @Override
             public boolean accept(final File file) {
+                if (file.isDirectory()) {
+                    return false;
+                }
                 if (minSize > file.length()) {
                     return false;
                 }
@@ -308,32 +321,45 @@ public class GetFile extends AbstractProcessor {
         };
     }
 
-    private Set<File> performListing(final File directory, final FileFilter filter, final boolean recurseSubdirectories) {
-        Path p = directory.toPath();
-        if (!Files.isWritable(p) || !Files.isReadable(p)) {
-            throw new IllegalStateException("Directory '" + directory + "' does not have sufficient permissions (i.e., not writable and readable)");
-        }
-        final Set<File> queue = new HashSet<>();
-        if (!directory.exists()) {
-            return queue;
-        }
-
-        final File[] children = directory.listFiles();
-        if (children == null) {
-            return queue;
-        }
-
-        for (final File child : children) {
-            if (child.isDirectory()) {
-                if (recurseSubdirectories) {
-                    queue.addAll(performListing(child, filter, recurseSubdirectories));
+    private Set<File> performListing(final File directory, final FileFilter filter, final boolean recurseSubdirectories, final int batchSize) {
+        try {
+            if (directoryStream == null || !this.fileIterator.hasNext()) {
+                final Path p = directory.toPath();
+                if (!Files.isReadable(p) || !Files.isWritable(p)) {
+                    throw new IllegalStateException("Directory '" + directory + "' does not have sufficient permissions (i.e., not writable and readable)");
                 }
-            } else if (filter.accept(child)) {
-                queue.add(child);
+                
+                if (!directory.exists()) {
+                    return Collections.emptySet();
+                }
+                
+                Stream<Path> listStream;
+                if (recurseSubdirectories) {
+                    listStream = Files.walk(p);
+                } else {
+                    listStream = Files.list(p);
+                }
+                
+                directoryStream = listStream.map(Path::toFile).filter(filter::accept).limit(10_000);
+                fileIterator = directoryStream.iterator();
             }
+            
+            Set<File> result = StreamSupport.stream(Spliterators.spliterator(fileIterator, batchSize, Spliterator.NONNULL), false)
+                    .limit(batchSize)
+                    .collect(Collectors.toCollection(HashSet::new));
+            
+            return result;
+        } catch (UncheckedIOException e) {
+            if (e.getCause() instanceof NoSuchFileException) {
+                // just return what we've managed so far
+            } else {
+                throw new ProcessException(e);
+            }
+        } catch (final IOException e) {
+            throw new ProcessException(e);
         }
-
-        return queue;
+        
+        return Collections.emptySet();
     }
 
     protected Map<String, String> getAttributesFromFile(final Path file) {
@@ -378,12 +404,13 @@ public class GetFile extends AbstractProcessor {
         final File directory = new File(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final ComponentLog logger = getLogger();
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         if (fileQueue.size() < 100) {
             final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
             if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
                 try {
-                    final Set<File> listing = performListing(directory, fileFilterRef.get(), context.getProperty(RECURSE).asBoolean().booleanValue());
+                    final Set<File> listing = performListing(directory, fileFilterRef.get(), context.getProperty(RECURSE).asBoolean().booleanValue(), batchSize);
 
                     queueLock.lock();
                     try {
@@ -410,7 +437,6 @@ public class GetFile extends AbstractProcessor {
             }
         }
 
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final List<File> files = new ArrayList<>(batchSize);
         queueLock.lock();
         try {

@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Set;
@@ -72,7 +74,12 @@ public class DocGeneratorTest {
     }
 
     private NiFiProperties loadSpecifiedProperties(final String propertiesFile, final String key, final String value) {
-        String file = DocGeneratorTest.class.getResource(propertiesFile).getFile();
+        String file = propertiesFile;
+        try {
+            file = URLDecoder.decode(DocGeneratorTest.class.getResource(propertiesFile).getFile(), "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            // Can't happen
+        }
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
 

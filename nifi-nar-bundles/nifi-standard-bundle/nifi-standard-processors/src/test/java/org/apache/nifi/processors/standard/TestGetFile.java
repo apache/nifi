@@ -151,6 +151,90 @@ public class TestGetFile {
         assertEquals(absTargetPathStr, absolutePath);
     }
 
+    @Test
+    public void testFilePickedUpArrivalSinceListing() throws IOException {
+        final File directory = new File("target/test/data/in");
+        deleteDirectory(directory);
+        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, directory.getAbsolutePath());
+        runner.setProperty(GetFile.KEEP_SOURCE_FILE, "false");
+
+        final File inFile = new File("src/test/resources/hello.txt");
+        {
+	        final Path inPath = inFile.toPath();
+	        final File destFile = new File(directory, inFile.getName());
+	        final Path targetPath = destFile.toPath();
+	        Files.copy(inPath, targetPath);
+        }
+        {
+	        final Path inPath = inFile.toPath();
+	        final File destFile = new File(directory, inFile.getName() + "1");
+	        final Path targetPath = destFile.toPath();
+	        Files.copy(inPath, targetPath);
+	
+	        runner.run(1);
+        }
+        final Path inPath = inFile.toPath();
+        final File destFile = new File(directory, inFile.getName() + "2");
+        final Path targetPath = destFile.toPath();
+        final Path absTargetPath = targetPath.toAbsolutePath();
+        final String absTargetPathStr = absTargetPath.getParent() + "/";
+        Files.copy(inPath, targetPath);
+
+        runner.run(1);
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 3);
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        successFiles.get(1).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        successFiles.get(2).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+
+        final String path = successFiles.get(2).getAttribute("path");
+        assertEquals("/", path);
+        final String absolutePath = successFiles.get(2).getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
+        assertEquals(absTargetPathStr, absolutePath);
+    }
+
+    @Test
+    public void testFilesPickedUp() throws IOException {
+        final File directory = new File("target/test/data/in");
+        deleteDirectory(directory);
+        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+
+        final File inFile = new File("src/test/resources/hello.txt");
+        final Path inPath = inFile.toPath();
+        
+        int count = 10001;
+        final File[] destFile = new File[count];
+        final Path[] targetPath = new Path[count];
+        final Path[] absTargetPath = new Path[count];
+        final String[] absTargetPathStr = new String[count];
+        for (int i = 0; i< count; i++) {
+            destFile[i] = new File(directory, inFile.getName() + i);
+            targetPath[i] = destFile[i].toPath();
+            absTargetPath[i] = targetPath[i].toAbsolutePath();
+            absTargetPathStr[i] = absTargetPath[i].getParent() + "/";
+            Files.copy(inPath, targetPath[i]);
+        }
+
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, directory.getAbsolutePath());
+        runner.setProperty(GetFile.KEEP_SOURCE_FILE, "false");
+        runner.run(count);
+
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, count);
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+
+        final String path = successFiles.get(0).getAttribute("path");
+        assertEquals("/", path);
+        final String absolutePath = successFiles.get(0).getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
+        assertEquals(absTargetPathStr[0], absolutePath);
+    }
+
     private void deleteDirectory(final File directory) throws IOException {
         if (directory != null && directory.exists()) {
             for (final File file : directory.listFiles()) {
@@ -262,6 +346,7 @@ public class TestGetFile {
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
         runner.setProperty(GetFile.DIRECTORY, "target/test/data/in");
+        runner.setProperty(GetFile.KEEP_SOURCE_FILE, "true");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
