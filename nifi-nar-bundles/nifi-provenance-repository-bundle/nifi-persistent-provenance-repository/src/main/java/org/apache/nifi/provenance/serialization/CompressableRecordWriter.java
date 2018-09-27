@@ -17,14 +17,6 @@
 
 package org.apache.nifi.provenance.serialization;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.AbstractRecordWriter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocWriter;
@@ -33,6 +25,17 @@ import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(CompressableRecordWriter.class);
@@ -46,8 +49,9 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     private DataOutputStream out;
     private ByteCountingOutputStream byteCountingOut;
     private long blockStartOffset = 0L;
-    private int recordCount = 0;
+    private final AtomicInteger recordCount =  new AtomicInteger(0);
 
+    private final AtomicLong bytesWritten = new AtomicLong(0L);
 
     public CompressableRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
         final int uncompressedBlockSize) throws IOException {
@@ -56,7 +60,26 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
 
         this.compressed = compressed;
         this.fos = new FileOutputStream(file);
-        rawOutStream = new ByteCountingOutputStream(new BufferedOutputStream(fos));
+        rawOutStream = new ByteCountingOutputStream(new BufferedOutputStream(fos)) {
+            @Override
+            public void write(final int b) throws IOException {
+                super.write(b);
+                bytesWritten.incrementAndGet();
+            }
+
+            @Override
+            public void write(final byte[] b) throws IOException {
+                super.write(b);
+                bytesWritten.addAndGet(b.length);
+            }
+
+            @Override
+            public void write(final byte[] b, final int off, final int len) throws IOException {
+                super.write(b, off, len);
+                bytesWritten.addAndGet(len);
+            }
+        };
+
         this.uncompressedBlockSize = uncompressedBlockSize;
         this.idGenerator = idGenerator;
     }
@@ -166,22 +189,32 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
             ensureStreamState(recordIdentifier, startBytes);
             writeRecord(record, recordIdentifier, out);
 
-            recordCount++;
+            recordCount.incrementAndGet();
             final long bytesWritten = byteCountingOut.getBytesWritten();
             final long serializedLength = bytesWritten - startBytes;
             final TocWriter tocWriter = getTocWriter();
             final Integer blockIndex = tocWriter == null ? null : tocWriter.getCurrentBlockIndex();
             final String storageLocation = getStorageLocation();
-            return new StorageSummary(recordIdentifier, storageLocation, blockIndex, serializedLength, bytesWritten);
+            return new StorageSummary(record, recordIdentifier, storageLocation, blockIndex, serializedLength, bytesWritten);
         } catch (final IOException ioe) {
             markDirty();
             throw ioe;
         }
     }
 
+    public synchronized List<StorageSummary> writeRecords(final Iterable<ProvenanceEventRecord> events) throws IOException {
+        final List<StorageSummary> summaries = new ArrayList<>();
+
+        for (final ProvenanceEventRecord event : events) {
+            summaries.add(writeRecord(event));
+        }
+
+        return summaries;
+    }
+
     @Override
-    public synchronized long getBytesWritten() {
-        return byteCountingOut == null ? 0L : byteCountingOut.getBytesWritten();
+    public long getBytesWritten() {
+        return bytesWritten.get();
     }
 
     @Override
@@ -190,8 +223,8 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     }
 
     @Override
-    public synchronized int getRecordsWritten() {
-        return recordCount;
+    public int getRecordsWritten() {
+        return recordCount.get();
     }
 
     @Override

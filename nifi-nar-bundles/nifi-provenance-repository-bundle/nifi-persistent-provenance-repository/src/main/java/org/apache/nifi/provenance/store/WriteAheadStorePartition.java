@@ -17,31 +17,6 @@
 
 package org.apache.nifi.provenance.store;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.RepositoryConfiguration;
@@ -60,6 +35,33 @@ import org.apache.nifi.provenance.util.NamedThreadFactory;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.EOFException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WriteAheadStorePartition implements EventStorePartition {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadStorePartition.class);
@@ -188,10 +190,10 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         // Add the events to the writer and ensure that we always
         // relinquish the claim that we've obtained on the writer
-        Map<ProvenanceEventRecord, StorageSummary> storageMap;
+        Collection<StorageSummary> storageSummaries;
         final RecordWriter writer = lease.getWriter();
         try {
-            storageMap = addEvents(events, writer);
+            storageSummaries = addEvents(events, writer);
         } finally {
             lease.relinquishClaim();
         }
@@ -210,8 +212,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final Integer rolloverCount = eventsRolledOver;
         return new StorageResult() {
             @Override
-            public Map<ProvenanceEventRecord, StorageSummary> getStorageLocations() {
-                return storageMap;
+            public Collection<StorageSummary> getStorageLocations() {
+                return storageSummaries;
             }
 
             @Override
@@ -291,23 +293,24 @@ public class WriteAheadStorePartition implements EventStorePartition {
         return true;
     }
 
-    private Map<ProvenanceEventRecord, StorageSummary> addEvents(final Iterable<ProvenanceEventRecord> events, final RecordWriter writer) throws IOException {
-        final Map<ProvenanceEventRecord, StorageSummary> locationMap = new HashMap<>();
-
+    private Collection<StorageSummary> addEvents(final Iterable<ProvenanceEventRecord> events, final RecordWriter writer) throws IOException {
         try {
             long maxId = -1L;
-            int numEvents = 0;
-            for (final ProvenanceEventRecord nextEvent : events) {
-                final StorageSummary writerSummary = writer.writeRecord(nextEvent);
-                final StorageSummary summaryWithIndex = new StorageSummary(writerSummary.getEventId(), writerSummary.getStorageLocation(), this.partitionName,
+
+            final List<StorageSummary> writerSummaries = writer.writeRecords(events);
+
+            final ListIterator<StorageSummary> iterator = writerSummaries.listIterator();
+            while (iterator.hasNext()) {
+                final StorageSummary writerSummary = iterator.next();
+                final StorageSummary summaryWithIndex = new StorageSummary(writerSummary.getEvent(), writerSummary.getEventId(), writerSummary.getStorageLocation(), this.partitionName,
                     writerSummary.getBlockIndex(), writerSummary.getSerializedLength(), writerSummary.getBytesWritten());
-                locationMap.put(nextEvent, summaryWithIndex);
+
+                iterator.set(summaryWithIndex);
                 maxId = summaryWithIndex.getEventId();
-                numEvents++;
             }
 
-            if (numEvents == 0) {
-                return locationMap;
+            if (writerSummaries.isEmpty()) {
+                return writerSummaries;
             }
 
             writer.flush();
@@ -320,6 +323,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
             if (config.isAlwaysSync()) {
                 writer.sync();
             }
+
+            return writerSummaries;
         } catch (final Exception e) {
             // We need to set the repoDirty flag before we release the lock for this journal.
             // Otherwise, another thread may write to this journal -- this is a problem because
@@ -328,8 +333,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
             writer.markDirty();
             throw e;
         }
-
-        return locationMap;
     }
 
 
@@ -587,7 +590,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
                                 break; // stop reading from this file
                             } else {
                                 final long eventSize = recordReader.getBytesConsumed() - startBytesConsumed;
-                                storageMap.put(event, new StorageSummary(event.getEventId(), eventFile.getName(), partitionName, recordReader.getBlockIndex(), eventSize, 0L));
+                                storageMap.put(event, new StorageSummary(event, event.getEventId(), eventFile.getName(), partitionName, recordReader.getBlockIndex(), eventSize, 0L));
 
                                 if (storageMap.size() == 1000) {
                                     eventIndex.reindexEvents(storageMap);

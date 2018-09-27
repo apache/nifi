@@ -17,21 +17,16 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.RepositoryConfiguration;
 import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.lucene.LuceneEventIndexWriter;
@@ -39,6 +34,14 @@ import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestEventIndexTask {
 
@@ -83,12 +86,20 @@ public class TestEventIndexTask {
 
         assertEquals(0, commitCount.get());
 
+        final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
+            .setEventType(ProvenanceEventType.CREATE)
+            .setComponentId("id")
+            .setComponentType("unit-test-type")
+            .setFlowFileUUID("uuid")
+            .setCurrentContentClaim(null, null, null, 0L, 0)
+            .build();
+
         // Index 100 documents with a storage filename of "0.0.prov"
         for (int i = 0; i < 100; i++) {
             final Document document = new Document();
             document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
 
-            final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
+            final StorageSummary location = new StorageSummary(event, event.getEventId(), "0.0.prov", "1", 0, 1000L, 1000L);
             final StoredDocument storedDoc = new StoredDocument(document, location);
             docQueue.add(storedDoc);
         }
@@ -99,7 +110,7 @@ public class TestEventIndexTask {
             final Document document = new Document();
             document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
 
-            final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
+            final StorageSummary location = new StorageSummary(event, event.getEventId(), "0.0.prov", "1", 0, 1000L, 1000L);
             final StoredDocument storedDoc = new StoredDocument(document, location);
             docQueue.add(storedDoc);
         }
@@ -116,7 +127,7 @@ public class TestEventIndexTask {
         // Add another document.
         final Document document = new Document();
         document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
-        final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
+        final StorageSummary location = new StorageSummary(event, event.getEventId(),"0.0.prov", "1", 0, 1000L, 1000L);
 
         StoredDocument storedDoc = new StoredDocument(document, location);
         docQueue.add(storedDoc);

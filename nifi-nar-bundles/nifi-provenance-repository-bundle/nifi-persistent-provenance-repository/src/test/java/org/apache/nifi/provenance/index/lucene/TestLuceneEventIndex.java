@@ -390,7 +390,7 @@ public class TestLuceneEventIndex {
         }).when(eventStore).getEvents(Mockito.anyLong(), Mockito.anyInt());
 
         index.initialize(eventStore);
-        index.addEvent(events.get(0), createStorageSummary(events.get(0).getEventId()));
+        index.addEvent(createStorageSummary(events.get(0)));
 
         // Add the first event to the index and wait for it to be indexed, since indexing is asynchronous.
         List<File> allDirectories = Collections.emptyList();
@@ -403,8 +403,8 @@ public class TestLuceneEventIndex {
         assertEquals(1, index.getDirectoryManager().getDirectories(null, null).size());
     }
 
-    private StorageSummary createStorageSummary(final long eventId) {
-        return new StorageSummary(eventId, "1.prov", "1", 1, 2L, 2L);
+    private StorageSummary createStorageSummary(final ProvenanceEventRecord event) {
+        return new StorageSummary(event, event.getEventId(),"1.prov", "1", 1, 2L, 2L);
     }
 
     @Test(timeout = 60000)
@@ -417,7 +417,7 @@ public class TestLuceneEventIndex {
 
         final ProvenanceEventRecord event = createEvent();
 
-        index.addEvent(event, new StorageSummary(event.getEventId(), "1.prov", "1", 1, 2L, 2L));
+        index.addEvent(new StorageSummary(event, event.getEventId(), "1.prov", "1", 1, 2L, 2L));
 
         final Query query = new Query(UUID.randomUUID().toString());
 
@@ -457,8 +457,9 @@ public class TestLuceneEventIndex {
 
         // add 2 events, one of which we will query for.
         final ProvenanceEventRecord event = createEvent();
-        index.addEvent(event, new StorageSummary(event.getEventId(), "1.prov", "1", 1, 2L, 2L));
-        index.addEvent(createEvent(), new StorageSummary(2L, "1.prov", "1", 1, 2L, 2L));
+        index.addEvent(new StorageSummary(event, event.getEventId(), "1.prov", "1", 1, 2L, 2L));
+        final ProvenanceEventRecord event2 = createEvent();
+        index.addEvent(new StorageSummary(event2, event2.getEventId(), "1.prov", "1", 1, 2L, 2L));
 
         // Create a query that searches for the event with the FlowFile UUID equal to the first event's.
         final Query query = new Query(UUID.randomUUID().toString());

@@ -17,15 +17,6 @@
 
 package org.apache.nifi.provenance.store;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.authorization.EventTransformer;
@@ -33,6 +24,14 @@ import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ArrayListEventStore implements EventStore {
     private static final Logger logger = LoggerFactory.getLogger(ArrayListEventStore.class);
@@ -54,18 +53,18 @@ public class ArrayListEventStore implements EventStore {
 
     @Override
     public synchronized StorageResult addEvents(Iterable<ProvenanceEventRecord> events) {
-        final Map<ProvenanceEventRecord, StorageSummary> storageLocations = new HashMap<>();
+        final List<StorageSummary> storageLocations = new ArrayList<>();
 
         for (final ProvenanceEventRecord event : events) {
             this.events.add(event);
 
-            final StorageSummary storageSummary = new StorageSummary(idGenerator.getAndIncrement(), "location", "1", 1, 0L, 0L);
-            storageLocations.put(event, storageSummary);
+            final StorageSummary storageSummary = new StorageSummary(event, event.getEventId(), "location", "1", 1, 0L, 0L);
+            storageLocations.add(storageSummary);
         }
 
         return new StorageResult() {
             @Override
-            public Map<ProvenanceEventRecord, StorageSummary> getStorageLocations() {
+            public Collection<StorageSummary> getStorageLocations() {
                 return storageLocations;
             }
 

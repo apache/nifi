@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -184,9 +185,9 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             return;
         }
 
-        final Map<ProvenanceEventRecord, StorageSummary> locationMap = storageResult.getStorageLocations();
-        if (!locationMap.isEmpty()) {
-            eventIndex.addEvents(locationMap);
+        final Collection<StorageSummary> storageSummaries = storageResult.getStorageLocations();
+        if (!storageSummaries.isEmpty()) {
+            eventIndex.addEvents(storageSummaries);
         }
     }
 

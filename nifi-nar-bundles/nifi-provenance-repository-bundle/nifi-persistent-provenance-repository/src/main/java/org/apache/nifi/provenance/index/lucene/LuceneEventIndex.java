@@ -17,25 +17,6 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -74,6 +55,26 @@ import org.apache.nifi.util.timebuffer.TimedBuffer;
 import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class LuceneEventIndex implements EventIndex {
@@ -283,7 +284,9 @@ public class LuceneEventIndex implements EventIndex {
         }
     }
 
-    protected void addEvent(final ProvenanceEventRecord event, final StorageSummary location) {
+    protected void addEvent(final StorageSummary location) {
+        final ProvenanceEventRecord event = location.getEvent();
+
         for (final CachedQuery cachedQuery : cachedQueries) {
             cachedQuery.update(event, location);
         }
@@ -340,12 +343,10 @@ public class LuceneEventIndex implements EventIndex {
     }
 
     @Override
-    public void addEvents(final Map<ProvenanceEventRecord, StorageSummary> events) {
-        eventsIndexed.add(new TimestampedLong((long) events.size()));
+    public void addEvents(final Collection<StorageSummary> storageSummaries) {
+        eventsIndexed.add(new TimestampedLong((long) storageSummaries.size()));
 
-        for (final Map.Entry<ProvenanceEventRecord, StorageSummary> entry : events.entrySet()) {
-            addEvent(entry.getKey(), entry.getValue());
-        }
+        storageSummaries.forEach(this::addEvent);
     }
 
 
