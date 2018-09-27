@@ -21,6 +21,35 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.security.KeyStore;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
@@ -41,36 +70,6 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
-
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.security.KeyStore;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.GZIPInputStream;
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -95,10 +94,33 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
     @Override
     public PreparedRequest prepareRequest(final String method, final Map<String, String> headers, final Object entity) {
         final boolean gzip = isUseGzip(headers);
+        checkContentLengthHeader(method, headers);
         final RequestBody requestBody = createRequestBody(headers, entity, gzip);
 
         final Map<String, String> updatedHeaders = gzip ? updateHeadersForGzip(headers) : headers;
         return new OkHttpPreparedRequest(method, updatedHeaders, entity, requestBody);
+    }
+
+    /**
+     * Checks the content length header on DELETE requests to ensure it is set to '0', avoiding request timeouts on replicated requests.
+     * @param method the HTTP method of the request
+     * @param headers the header keys and values
+     */
+    private void checkContentLengthHeader(String method, Map<String, String> headers) {
+        // Only applies to DELETE requests
+        if (HttpMethod.DELETE.equalsIgnoreCase(method)) {
+            // Find the Content-Length header if present
+            final String CONTENT_LENGTH_HEADER_KEY = "Content-Length";
+            Map.Entry<String, String> contentLengthEntry = headers.entrySet().stream().filter(entry -> entry.getKey().equalsIgnoreCase(CONTENT_LENGTH_HEADER_KEY)).findFirst().orElse(null);
+            // If no CL header, do nothing
+            if (contentLengthEntry != null) {
+                // If the provided CL value is non-zero, override it
+                if (contentLengthEntry.getValue() != null && !contentLengthEntry.getValue().equalsIgnoreCase("0")) {
+                    logger.warn("This is a DELETE request; the provided Content-Length was {}; setting Content-Length to 0", contentLengthEntry.getValue());
+                    headers.put(CONTENT_LENGTH_HEADER_KEY, "0");
+                }
+            }
+        }
     }
 
     @Override
@@ -140,7 +162,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         final String contentEncoding = callResponse.header("Content-Encoding");
         if (gzipEncodings.contains(contentEncoding)) {
             try (final InputStream gzipIn = new GZIPInputStream(new ByteArrayInputStream(rawBytes));
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                 final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
                 StreamUtils.copy(gzipIn, baos);
                 return baos.toByteArray();
@@ -183,7 +205,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     @SuppressWarnings("unchecked")
     private HttpUrl buildUrl(final OkHttpPreparedRequest request, final String uri) {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(uri.toString()).newBuilder();
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(uri).newBuilder();
         switch (request.getMethod().toUpperCase()) {
             case HttpMethod.DELETE:
             case HttpMethod.HEAD:
@@ -226,7 +248,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private byte[] serializeEntity(final Object entity, final String contentType, final boolean gzip) {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final OutputStream out = gzip ? new GZIPOutputStream(baos, 1) : baos) {
+             final OutputStream out = gzip ? new GZIPOutputStream(baos, 1) : baos) {
 
             getSerializer(contentType).serialize(entity, out);
             out.close();
@@ -269,10 +291,10 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         } else {
             final String[] acceptEncodingTokens = rawAcceptEncoding.split(",");
             return Stream.of(acceptEncodingTokens)
-                .map(String::trim)
-                .filter(StringUtils::isNotEmpty)
-                .map(String::toLowerCase)
-                .anyMatch(gzipEncodings::contains);
+                    .map(String::trim)
+                    .filter(StringUtils::isNotEmpty)
+                    .map(String::toLowerCase)
+                    .anyMatch(gzipEncodings::contains);
         }
     }
 
