@@ -17,15 +17,13 @@
 
 package org.apache.nifi.avro;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public class AvroReaderWithEmbeddedSchema extends AvroRecordReader {
     private final DataFileStream<GenericRecord> dataFileStream;
@@ -35,7 +33,7 @@ public class AvroReaderWithEmbeddedSchema extends AvroRecordReader {
 
     public AvroReaderWithEmbeddedSchema(final InputStream in) throws IOException {
         this.in = in;
-        dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
+        dataFileStream = new DataFileStream<>(in, new NonCachingDatumReader<>());
         this.avroSchema = dataFileStream.getSchema();
         recordSchema = AvroTypeUtil.createSchema(avroSchema);
     }
@@ -56,7 +54,7 @@ public class AvroReaderWithEmbeddedSchema extends AvroRecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return recordSchema;
     }
 }

@@ -17,28 +17,6 @@
 
 package org.apache.nifi.avro;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.apache.avro.Conversions;
 import org.apache.avro.JsonProperties;
 import org.apache.avro.LogicalType;
@@ -71,6 +49,27 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public class AvroTypeUtil {
     private static final Logger logger = LoggerFactory.getLogger(AvroTypeUtil.class);
@@ -308,7 +307,7 @@ public class AvroTypeUtil {
                 if (knownRecordTypes.containsKey(schemaFullName)) {
                     return knownRecordTypes.get(schemaFullName);
                 } else {
-                    SimpleRecordSchema recordSchema = new SimpleRecordSchema(avroSchema.toString(), AVRO_SCHEMA_FORMAT, SchemaIdentifier.EMPTY);
+                    SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
                     DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
                     knownRecordTypes.put(schemaFullName, recordSchemaType);
 
@@ -353,23 +352,33 @@ public class AvroTypeUtil {
         return null;
     }
 
-    private static List<Schema> getNonNullSubSchemas(Schema avroSchema) {
-        List<Schema> unionFieldSchemas = avroSchema.getTypes();
+    private static List<Schema> getNonNullSubSchemas(final Schema avroSchema) {
+        final List<Schema> unionFieldSchemas = avroSchema.getTypes();
         if (unionFieldSchemas == null) {
             return Collections.emptyList();
         }
-        return unionFieldSchemas.stream()
-                .filter(s -> s.getType() != Type.NULL)
-                .collect(Collectors.toList());
+
+        final List<Schema> nonNullTypes = new ArrayList<>(unionFieldSchemas.size());
+        for (final Schema fieldSchema : unionFieldSchemas) {
+            if (fieldSchema.getType() != Type.NULL) {
+                nonNullTypes.add(fieldSchema);
+            }
+        }
+
+        return nonNullTypes;
     }
 
     public static RecordSchema createSchema(final Schema avroSchema) {
+        return createSchema(avroSchema, true);
+    }
+
+    public static RecordSchema createSchema(final Schema avroSchema, final boolean includeText) {
         if (avroSchema == null) {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
         SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(avroSchema.getName()).build();
-        return createSchema(avroSchema, avroSchema.toString(), identifier);
+        return createSchema(avroSchema, includeText ? avroSchema.toString() : null, identifier);
     }
 
     /**
@@ -385,10 +394,10 @@ public class AvroTypeUtil {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
-        String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
-        SimpleRecordSchema recordSchema = new SimpleRecordSchema(schemaText, AVRO_SCHEMA_FORMAT, schemaId);
-        DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
-        Map<String, DataType> knownRecords = new HashMap<>();
+        final String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
+        final SimpleRecordSchema recordSchema = schemaText == null ? new SimpleRecordSchema(schemaId) : new SimpleRecordSchema(schemaText, AVRO_SCHEMA_FORMAT, schemaId);
+        final DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
+        final Map<String, DataType> knownRecords = new HashMap<>();
         knownRecords.put(schemaFullName, recordSchemaType);
 
         final List<RecordField> recordFields = new ArrayList<>(avroSchema.getFields().size());
@@ -752,36 +761,39 @@ public class AvroTypeUtil {
      * @param conversion the conversion function which takes a non-null field schema within the union field and returns a converted value
      * @return a converted value
      */
-    private static Object convertUnionFieldValue(Object originalValue, Schema fieldSchema, Function<Schema, Object> conversion, final String fieldName) {
-        // Ignore null types in union
-        final List<Schema> nonNullFieldSchemas = getNonNullSubSchemas(fieldSchema);
-
-        // If at least one non-null type exists, find the first compatible type
-        if (nonNullFieldSchemas.size() >= 1) {
-            for (final Schema nonNullFieldSchema : nonNullFieldSchemas) {
-                final DataType desiredDataType = AvroTypeUtil.determineDataType(nonNullFieldSchema);
-                try {
-                    final Object convertedValue = conversion.apply(nonNullFieldSchema);
-
-                    if (isCompatibleDataType(convertedValue, desiredDataType)) {
-                        return convertedValue;
-                    }
-
-                    // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
-                    if (nonNullFieldSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType)) {
-                        return convertedValue;
-                    }
-                } catch (Exception e) {
-                    // If failed with one of possible types, continue with the next available option.
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Cannot convert value {} to type {}", originalValue, desiredDataType, e);
-                    }
-                }
+    private static Object convertUnionFieldValue(final Object originalValue, final Schema fieldSchema, final Function<Schema, Object> conversion, final String fieldName) {
+        boolean foundNonNull = false;
+        for (final Schema subSchema : fieldSchema.getTypes()) {
+            if (subSchema.getType() == Type.NULL) {
+                continue;
             }
 
+            foundNonNull = true;
+            final DataType desiredDataType = AvroTypeUtil.determineDataType(subSchema);
+            try {
+                final Object convertedValue = conversion.apply(subSchema);
+
+                if (isCompatibleDataType(convertedValue, desiredDataType)) {
+                    return convertedValue;
+                }
+
+                // For logical types those store with different type (e.g. BigDecimal as ByteBuffer), check compatibility using the original rawValue
+                if (subSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType)) {
+                    return convertedValue;
+                }
+            } catch (Exception e) {
+                // If failed with one of possible types, continue with the next available option.
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Cannot convert value {} to type {}", originalValue, desiredDataType, e);
+                }
+            }
+        }
+
+        if (foundNonNull) {
             throw new IllegalTypeConversionException("Cannot convert value " + originalValue + " of type " + originalValue.getClass()
                 + " because no compatible types exist in the UNION for field " + fieldName);
         }
+
         return null;
     }
 
@@ -875,7 +887,7 @@ public class AvroTypeUtil {
                     final Object fieldValue = normalizeValue(avroFieldValue, field.schema(), fieldName + "/" + field.name());
                     values.put(field.name(), fieldValue);
                 }
-                final RecordSchema childSchema = AvroTypeUtil.createSchema(recordSchema);
+                final RecordSchema childSchema = AvroTypeUtil.createSchema(recordSchema, false);
                 return new MapRecord(childSchema, values);
             case BYTES:
                 final ByteBuffer bb = (ByteBuffer) value;
