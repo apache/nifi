@@ -53,7 +53,7 @@ import static org.junit.Assert.assertEquals;
  * <code>cypher-shell</code>
  * </ol>
  */
-public class ITNeo4JCyperExecutor {
+public class ITNeo4JCypherExecutor {
     protected TestRunner runner;
     protected Driver driver;
     protected String neo4jUrl = "bolt://localhost:7687";
