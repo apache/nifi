@@ -78,7 +78,6 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
             .description("Password for Neo4J user")
             .required(true)
             .sensitive(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -146,9 +145,9 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ENCRYPTION = new PropertyDescriptor.Builder()
-            .name("neo4j-encryption")
-            .displayName("Neo4J Encrytion")
-            .description("Is connection encrypted")
+            .name("neo4j-driver-tls-encryption-enabled")
+            .displayName("Neo4J Driver TLS Encryption")
+            .description("Is the driver using TLS encryption ?")
             .defaultValue("true")
             .required(true)
             .allowableValues("true","false")
@@ -231,7 +230,7 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
     protected Driver getDriver(ProcessContext context) {
         connectionUrl = context.getProperty(CONNECTION_URL).evaluateAttributeExpressions().getValue();
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        password = context.getProperty(PASSWORD).getValue();
 
         ConfigBuilder configBuilder = Config.build();
         String loadBalancingStrategyValue = context.getProperty(LOAD_BALANCING_STRATEGY).getValue();

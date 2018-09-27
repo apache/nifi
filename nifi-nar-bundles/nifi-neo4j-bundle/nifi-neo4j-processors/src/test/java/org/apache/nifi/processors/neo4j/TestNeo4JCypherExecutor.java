@@ -44,7 +44,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Neo4J Cypher unit tests.
  */
-public class TestNeo4JCyperExecutor {
+public class TestNeo4JCypherExecutor {
     protected TestRunner runner;
     protected Driver driver;
     protected String neo4jUrl = "bolt://localhost:7687";
