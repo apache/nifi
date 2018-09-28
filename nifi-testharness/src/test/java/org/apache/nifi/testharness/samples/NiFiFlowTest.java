@@ -27,11 +27,12 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 
 import javax.servlet.ServletException;
@@ -45,7 +46,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.List;
 
-import static org.testng.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -86,7 +87,7 @@ public class NiFiFlowTest {
     }
 
 
-    @BeforeMethod
+    @Before
     public void bootstrapNiFi() throws Exception {
 
         if (Constants.OUTPUT_DIR.exists()) {
@@ -102,25 +103,25 @@ public class NiFiFlowTest {
 
         // We deleted the output directory: our NiFi flow should create it
 
-        assertTrue(Constants.OUTPUT_DIR.exists(), "Output directory not found: " + Constants.OUTPUT_DIR);
+        assertTrue( "Output directory not found: " + Constants.OUTPUT_DIR, Constants.OUTPUT_DIR.exists());
 
         File outputFile = new File(Constants.OUTPUT_DIR, "bbc-world.rss.xml");
 
-        assertTrue(outputFile.exists(), "Output file not found: " + outputFile);
+        assertTrue("Output file not found: " + outputFile, outputFile.exists() );
 
         List<String> strings = Files.readAllLines(outputFile.toPath());
 
         boolean atLeastOneLineContainsBBC = strings.stream().anyMatch(line -> line.toLowerCase().contains("bbc"));
 
-        assertTrue(atLeastOneLineContainsBBC, "There was no line containing BBC");
+        assertTrue("There was no line containing BBC", atLeastOneLineContainsBBC);
 
         boolean atLeastOneLineContainsIPhone = strings.stream().anyMatch(line -> line.toLowerCase().contains("iphone"));
 
-        assertTrue(atLeastOneLineContainsIPhone, "There was no line containing IPhone");
+        assertTrue("There was no line containing IPhone", atLeastOneLineContainsIPhone);
 
     }
 
-    @AfterMethod
+    @After
     public void shutdownNiFi() throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         testNiFiInstance.stopAndCleanup();

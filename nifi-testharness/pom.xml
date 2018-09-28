@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -23,7 +23,7 @@
     </parent>
     <artifactId>nifi-testharness</artifactId>
     <description>A test harness for running NiFi flow tests</description>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <build>
         <plugins>
@@ -71,6 +71,63 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>skip-testharness-tests</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <java.awt.headless>true</java.awt.headless>
+                            </systemPropertyVariables>
+                            <excludes>
+                                <exclude>**/samples/*Test.class</exclude>
+                                <exclude>**/samples/Test*.class</exclude>
+                                <exclude>**/samples/*Spec.class</exclude>
+                            </excludes>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <argLine combine.children="append">-Xmx1G
+                                -Djava.net.preferIPv4Stack=true
+                                ${maven.surefire.arguments}
+                            </argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>run-testharness-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <java.awt.headless>true</java.awt.headless>
+                            </systemPropertyVariables>
+                            <includes>
+                                <include>**/*Test.class</include>
+                                <include>**/Test*.class</include>
+                                <include>**/*Spec.class</include>
+                            </includes>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <argLine combine.children="append">-Xmx1G
+                                -Djava.net.preferIPv4Stack=true
+                                ${maven.surefire.arguments}
+                            </argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 
     <properties>
@@ -130,7 +187,6 @@
         </dependency>
 
 
-
         <dependency>
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
@@ -147,7 +203,6 @@
         </dependency>
 
 
-
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-api-easymock</artifactId>
@@ -158,15 +213,8 @@
 
         <dependency>
             <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-testng</artifactId>
+            <artifactId>powermock-module-junit4</artifactId>
             <version>1.7.1</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.11</version>
             <scope>test</scope>
         </dependency>
 
