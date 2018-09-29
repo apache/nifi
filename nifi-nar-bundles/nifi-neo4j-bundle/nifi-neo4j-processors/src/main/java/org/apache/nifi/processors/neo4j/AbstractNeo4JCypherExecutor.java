@@ -75,7 +75,7 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("neo4j-password")
             .displayName("Password")
-            .description("Password for Neo4J user")
+            .description("Password for Neo4J user. A dummy non-blank password is required even if it disabled on the server.")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
