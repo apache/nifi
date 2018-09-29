@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +146,17 @@ public class ExtensionManager {
             final boolean isReportingTask = ReportingTask.class.equals(entry.getKey());
 
             final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
-            for (final Object o : serviceLoader) {
+            final Iterator<?> iterator = serviceLoader.iterator();
+            while (iterator.hasNext()) {
+                Object o = null;
+                try {
+                    o = iterator.next();
+                } catch (Throwable e) { // load failure
+                    logger.error(String.format(
+                            "Unable to create the component %s from %s due to %s", entry.getKey().getSimpleName(), bundle.getBundleDetails().toString(), e.getMessage()), e);
+                    continue; // ignore current one, don't block others to load
+                }
+
                 // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
                 if ((isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent) {
                     final ConfigurableComponent configurableComponent = (ConfigurableComponent) o;

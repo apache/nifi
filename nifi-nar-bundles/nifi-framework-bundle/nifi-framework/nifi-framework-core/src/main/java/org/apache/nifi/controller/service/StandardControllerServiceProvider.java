@@ -84,6 +84,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceProvider.class);
 
+    public static final String PRE_MISSING = "(Missing)";
+
     private final StandardProcessScheduler processScheduler;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
@@ -137,7 +139,16 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
 
-            final ControllerService originalService = controllerServiceClass.newInstance();
+            ControllerService originalService = null;
+            try {
+                originalService = controllerServiceClass.newInstance();
+            } catch (Throwable e) { // init failure
+                logger.error(String.format("Unable to create the Controller Service %s from ID %s due to %s; then creating \"Ghost\" implementation", type, id, e.getMessage()), e);
+                // if can't create the instance, use ghost instead
+                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
+                return createGhostControllerService(type, id, bundleCoordinate);
+            }
+
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(originalService);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
@@ -237,7 +248,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 new Class[]{ControllerService.class}, invocationHandler);
 
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-        final String componentType = "(Missing) " + simpleClassName;
+        final String componentType = PRE_MISSING + ' ' + simpleClassName;
 
         final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
 
