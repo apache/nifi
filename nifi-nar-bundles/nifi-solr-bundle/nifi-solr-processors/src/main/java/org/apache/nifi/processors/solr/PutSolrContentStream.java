@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
+import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
@@ -129,6 +130,7 @@ public class PutSolrContentStream extends SolrProcessor {
         super.init(context);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(CLIENT_SERVICE);
         descriptors.add(SOLR_TYPE);
         descriptors.add(SOLR_LOCATION);
         descriptors.add(COLLECTION);

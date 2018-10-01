@@ -73,6 +73,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.CursorMarkParams;
 
+import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
@@ -171,6 +172,7 @@ public class GetSolr extends SolrProcessor {
         super.init(context);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(CLIENT_SERVICE);
         descriptors.add(SOLR_TYPE);
         descriptors.add(SOLR_LOCATION);
         descriptors.add(COLLECTION);

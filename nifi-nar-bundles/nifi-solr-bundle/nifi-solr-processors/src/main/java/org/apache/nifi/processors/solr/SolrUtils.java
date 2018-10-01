@@ -25,6 +25,8 @@ import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -44,6 +46,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.services.solr.SolrClientService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -69,6 +72,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -87,6 +92,15 @@ public class SolrUtils {
     public static final AllowableValue SOLR_TYPE_STANDARD = new AllowableValue(
             "Standard", "Standard", "A stand-alone Solr instance.");
 
+    public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
+        .name("client-service")
+        .displayName("Client Service")
+        .description("A client service to use for configuring the connection. It can be used instead of " +
+                "the manual configuration properties.")
+        .identifiesControllerService(SolrClientService.class)
+        .required(false)
+        .build();
+
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor
             .Builder().name("Record Writer")
             .displayName("Record Writer")
@@ -99,7 +113,7 @@ public class SolrUtils {
     public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor
             .Builder().name("Solr Type")
             .description("The type of Solr instance, Cloud or Standard.")
-            .required(true)
+            .required(false)
             .allowableValues(SOLR_TYPE_CLOUD, SOLR_TYPE_STANDARD)
             .defaultValue(SOLR_TYPE_STANDARD.getValue())
             .build();
@@ -116,7 +130,7 @@ public class SolrUtils {
             .Builder().name("Solr Location")
             .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
                     "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -141,7 +155,7 @@ public class SolrUtils {
             .sensitive(true)
             .build();
 
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
@@ -159,7 +173,7 @@ public class SolrUtils {
     public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor
             .Builder().name("Solr Socket Timeout")
             .description("The amount of time to wait for data on a socket connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 seconds")
             .build();
@@ -167,7 +181,7 @@ public class SolrUtils {
     public static final PropertyDescriptor SOLR_CONNECTION_TIMEOUT = new PropertyDescriptor
             .Builder().name("Solr Connection Timeout")
             .description("The amount of time to wait when establishing a connection to Solr. A value of 0 indicates an infinite timeout.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 seconds")
             .build();
@@ -175,7 +189,7 @@ public class SolrUtils {
     public static final PropertyDescriptor SOLR_MAX_CONNECTIONS = new PropertyDescriptor
             .Builder().name("Solr Maximum Connections")
             .description("The maximum number of total connections allowed from the Solr client to Solr.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10")
             .build();
@@ -183,7 +197,7 @@ public class SolrUtils {
     public static final PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = new PropertyDescriptor
             .Builder().name("Solr Maximum Connections Per Host")
             .description("The maximum number of connections allowed from the Solr client to a single Solr host.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("5")
             .build();
@@ -203,6 +217,104 @@ public class SolrUtils {
             .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
             .defaultValue("10 seconds")
             .build();
+
+    /*
+     * These are the fields which are required if the client service is not configured.
+     */
+    private static final List<PropertyDescriptor> REQUIRED_FIELDS = Arrays.asList(
+        SOLR_LOCATION,
+        SOLR_SOCKET_TIMEOUT,
+        SOLR_CONNECTION_TIMEOUT,
+        SOLR_MAX_CONNECTIONS,
+        SOLR_MAX_CONNECTIONS_PER_HOST
+    );
+
+    public static Collection<ValidationResult> validateConnectionDetails(ValidationContext context) {
+        List<ValidationResult> problems = new ArrayList<>();
+
+        if (!context.getProperty(CLIENT_SERVICE).isSet()) {
+            for (PropertyDescriptor descriptor : REQUIRED_FIELDS) {
+                if (!context.getProperty(descriptor).isSet()) {
+                    problems.add(buildError(descriptor));
+                }
+            }
+
+            if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
+                final String collection = context.getProperty(COLLECTION).getValue();
+                if (collection == null || collection.trim().isEmpty()) {
+                    problems.add(new ValidationResult.Builder()
+                            .subject(COLLECTION.getName())
+                            .input(collection).valid(false)
+                            .explanation("A collection must specified for Solr Type of Cloud")
+                            .build());
+                }
+            }
+
+            // For solr cloud the location will be the ZooKeeper host:port so we can't validate the SSLContext, but for standard solr
+            // we can validate if the url starts with https we need an SSLContextService, if it starts with http we can't have an SSLContextService
+            if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
+                final String solrLocation = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
+                if (solrLocation != null) {
+                    final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+                    if (solrLocation.startsWith("https:") && sslContextService == null) {
+                        problems.add(new ValidationResult.Builder()
+                                .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                                .valid(false)
+                                .explanation("an SSLContextService must be provided when using https")
+                                .build());
+                    } else if (solrLocation.startsWith("http:") && sslContextService != null) {
+                        problems.add(new ValidationResult.Builder()
+                                .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                                .valid(false)
+                                .explanation("an SSLContextService can not be provided when using http")
+                                .build());
+                    }
+                }
+            }
+
+            // Validate that we username and password are provided together, or that neither are provided
+            final String username = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
+            final String password = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
+
+            final boolean basicUsernameProvided = !StringUtils.isBlank(username);
+            final boolean basicPasswordProvided = !StringUtils.isBlank(password);
+
+            if (basicUsernameProvided && !basicPasswordProvided) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(BASIC_PASSWORD.getDisplayName())
+                        .valid(false)
+                        .explanation("a password must be provided for the given username")
+                        .build());
+            }
+
+            if (basicPasswordProvided && !basicUsernameProvided) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(BASIC_USERNAME.getDisplayName())
+                        .valid(false)
+                        .explanation("a username must be provided for the given password")
+                        .build());
+            }
+
+            // Validate that only kerberos or basic auth can be set, but not both
+            final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            if (kerberosCredentialsService != null && basicUsernameProvided && basicPasswordProvided) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation("basic auth and kerberos cannot be configured at the same time")
+                        .build());
+            }
+        }
+
+        return problems;
+    }
+
+    private static ValidationResult buildError(PropertyDescriptor descriptor) {
+        return new ValidationResult.Builder()
+            .subject(descriptor.getName())
+            .explanation(String.format("%s must be set", descriptor.getName()))
+            .build();
+    }
 
     public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
 

@@ -43,13 +43,10 @@ import java.util.List;
 
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
-import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_STANDARD;
-import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.validateConnectionDetails;
 
 /**
  * A base class for processors that interact with Apache Solr.
@@ -176,70 +173,11 @@ public abstract class SolrProcessor extends AbstractProcessor {
     final protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>();
 
-        if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            final String collection = context.getProperty(COLLECTION).getValue();
-            if (collection == null || collection.trim().isEmpty()) {
-                problems.add(new ValidationResult.Builder()
-                        .subject(COLLECTION.getName())
-                        .input(collection).valid(false)
-                        .explanation("A collection must specified for Solr Type of Cloud")
-                        .build());
-            }
-        }
-
-        // For solr cloud the location will be the ZooKeeper host:port so we can't validate the SSLContext, but for standard solr
-        // we can validate if the url starts with https we need an SSLContextService, if it starts with http we can't have an SSLContextService
-        if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            final String solrLocation = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
-            if (solrLocation != null) {
-                final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-                if (solrLocation.startsWith("https:") && sslContextService == null) {
-                    problems.add(new ValidationResult.Builder()
-                            .subject(SSL_CONTEXT_SERVICE.getDisplayName())
-                            .valid(false)
-                            .explanation("an SSLContextService must be provided when using https")
-                            .build());
-                } else if (solrLocation.startsWith("http:") && sslContextService != null) {
-                    problems.add(new ValidationResult.Builder()
-                            .subject(SSL_CONTEXT_SERVICE.getDisplayName())
-                            .valid(false)
-                            .explanation("an SSLContextService can not be provided when using http")
-                            .build());
-                }
-            }
-        }
-
-        // Validate that we username and password are provided together, or that neither are provided
-        final String username = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
-
-        final boolean basicUsernameProvided = !StringUtils.isBlank(username);
-        final boolean basicPasswordProvided = !StringUtils.isBlank(password);
-
-        if (basicUsernameProvided && !basicPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(BASIC_PASSWORD.getDisplayName())
-                    .valid(false)
-                    .explanation("a password must be provided for the given username")
-                    .build());
-        }
-
-        if (basicPasswordProvided && !basicUsernameProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(BASIC_USERNAME.getDisplayName())
-                    .valid(false)
-                    .explanation("a username must be provided for the given password")
-                    .build());
-        }
-
-        // Validate that only kerberos or basic auth can be set, but not both
-        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (kerberosCredentialsService != null && basicUsernameProvided && basicPasswordProvided) {
-            problems.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("basic auth and kerberos cannot be configured at the same time")
-                    .build());
+        List<ValidationResult> _temp = new ArrayList<>(validateConnectionDetails(context));
+        if (_temp.size() == 0 && context.getProperty(CLIENT_SERVICE).isSet()) {
+            return _temp; //This means that we're using the client service so we can stop.
+        } else {
+            problems.addAll(_temp);
         }
 
         Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
