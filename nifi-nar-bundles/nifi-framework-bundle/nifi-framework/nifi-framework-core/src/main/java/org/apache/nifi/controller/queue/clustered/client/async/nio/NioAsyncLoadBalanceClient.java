@@ -104,13 +104,13 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
     public synchronized void register(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
                                       final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
-                                      final Supplier<LoadBalanceCompression> compressionSupplier) {
+                                      final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
 
         if (registeredPartitions.containsKey(connectionId)) {
             throw new IllegalStateException("Connection with ID " + connectionId + " is already registered");
         }
 
-        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier);
+        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier, honorBackpressureSupplier);
         registeredPartitions.put(connectionId, partition);
         partitionQueue.add(partition);
     }
@@ -324,11 +324,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         }
     }
 
-    @Override
-    public void nodeStatusUnknown() {
-        penalize();
-    }
-
     private synchronized LoadBalanceSession getFailoverSession() {
         if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
             return loadBalanceSession;
@@ -432,7 +427,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
 
-    private PeerChannel createPeerChannel(final SocketChannel channel, final String peerDescription) throws IOException {
+    private PeerChannel createPeerChannel(final SocketChannel channel, final String peerDescription) {
         if (sslContext == null) {
             logger.debug("No SSL Context is available so will not perform SSL Handshake with Peer {}", peerDescription);
             return new PeerChannel(channel, null, peerDescription);

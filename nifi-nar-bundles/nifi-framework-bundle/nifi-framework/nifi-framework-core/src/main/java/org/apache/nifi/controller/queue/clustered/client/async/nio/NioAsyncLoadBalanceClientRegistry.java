@@ -53,14 +53,14 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
     @Override
     public synchronized void register(final String connectionId, final NodeIdentifier nodeId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
                                       final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
-                                      final Supplier<LoadBalanceCompression> compressionSupplier) {
+                                      final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
 
         Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);
         if (clients == null) {
             clients = registerClients(nodeId);
         }
 
-        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier));
+        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier, honorBackpressureSupplier));
         logger.debug("Registered Connection with ID {} to send to Node {}", connectionId, nodeId);
     }
 

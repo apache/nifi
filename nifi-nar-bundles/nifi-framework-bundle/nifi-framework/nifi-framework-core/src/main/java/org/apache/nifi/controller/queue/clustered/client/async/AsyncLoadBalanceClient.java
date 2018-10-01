@@ -35,7 +35,7 @@ public interface AsyncLoadBalanceClient {
 
     void register(String connectionId, BooleanSupplier emptySupplier, Supplier<FlowFileRecord> flowFileSupplier,
                   TransactionFailureCallback failureCallback, TransactionCompleteCallback successCallback,
-                  Supplier<LoadBalanceCompression> compressionSupplier);
+                  Supplier<LoadBalanceCompression> compressionSupplier, BooleanSupplier honorBackpressureSupplier);
 
     void unregister(String connectionId);
 
@@ -45,8 +45,5 @@ public interface AsyncLoadBalanceClient {
 
     void nodeDisconnected();
 
-    void nodeStatusUnknown();
-
     boolean communicate() throws IOException;
-
 }

@@ -32,15 +32,17 @@ public class RegisteredPartition {
     private final BooleanSupplier emptySupplier;
     private final TransactionCompleteCallback successCallback;
     private final Supplier<LoadBalanceCompression> compressionSupplier;
+    private final BooleanSupplier honorBackpressureSupplier;
 
     public RegisteredPartition(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier, final TransactionFailureCallback failureCallback,
-                               final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier) {
+                               final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
         this.connectionId = connectionId;
         this.emptySupplier = emptySupplier;
         this.flowFileRecordSupplier = flowFileSupplier;
         this.failureCallback = failureCallback;
         this.successCallback = successCallback;
         this.compressionSupplier = compressionSupplier;
+        this.honorBackpressureSupplier = honorBackpressureSupplier;
     }
 
     public boolean isEmpty() {
@@ -65,5 +67,9 @@ public class RegisteredPartition {
 
     public LoadBalanceCompression getCompression() {
         return compressionSupplier.get();
+    }
+
+    public boolean isHonorBackpressure() {
+        return honorBackpressureSupplier.getAsBoolean();
     }
 }

@@ -214,7 +214,7 @@ public class RemoteQueuePartition implements QueuePartition {
         };
 
         clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, priorityQueue::isEmpty, this::getFlowFile,
-            failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression);
+            failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes);
 
         running = true;
     }

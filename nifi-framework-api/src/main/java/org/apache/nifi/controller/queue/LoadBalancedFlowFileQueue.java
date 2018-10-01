@@ -54,4 +54,16 @@ public interface LoadBalancedFlowFileQueue extends FlowFileQueue {
      * @param flowFiles the expired FlowFiles
      */
     void handleExpiredRecords(Collection<FlowFileRecord> flowFiles);
+
+    /**
+     * There are times when we want to ensure that if a node in the cluster reaches the point where backpressure is engaged, that we
+     * honor that backpressure and do not attempt to load balance from a different node in the cluster to that node. There are other times
+     * when we may want to push data to the remote node even though it has already reached its backpressure threshold. This method indicates
+     * whether or not we want to propagate that backpressure indicator across the cluster.
+     *
+     * @return <code>true</code> if backpressure on Node A should prevent Node B from sending to it, <code>false</code> if Node B should send to Node A
+     * even when backpressure is engaged on Node A.
+     */
+    boolean isPropagateBackpressureAcrossNodes();
+
 }

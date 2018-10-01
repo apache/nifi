@@ -85,6 +85,7 @@ public class TestLoadBalanceSession {
                     int data;
 
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.VERSION_ACCEPTED);
+                    socket.getOutputStream().write(LoadBalanceProtocolConstants.SPACE_AVAILABLE);
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_CHECKSUM);
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION);
 
@@ -121,7 +122,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
@@ -145,6 +146,7 @@ public class TestLoadBalanceSession {
         final DataOutputStream expectedDos = new DataOutputStream(new CheckedOutputStream(expectedOut, expectedChecksum));
         expectedDos.writeUTF("unit-test-connection");
 
+        expectedDos.write(LoadBalanceProtocolConstants.CHECK_SPACE);
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
         expectedDos.writeInt(68); // metadata length
         expectedDos.writeInt(1); // 1 attribute
@@ -207,7 +209,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
@@ -231,6 +233,7 @@ public class TestLoadBalanceSession {
 
         expectedDos.writeUTF("unit-test-connection");
 
+        expectedDos.write(LoadBalanceProtocolConstants.CHECK_SPACE);
         expectedDos.write(LoadBalanceProtocolConstants.MORE_FLOWFILES);
         expectedDos.writeInt(68); // metadata length
         expectedDos.writeInt(1); // 1 attribute

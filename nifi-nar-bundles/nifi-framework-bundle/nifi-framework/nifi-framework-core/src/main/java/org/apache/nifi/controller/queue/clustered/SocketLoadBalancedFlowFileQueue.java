@@ -829,6 +829,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
+    public boolean isPropagateBackpressureAcrossNodes() {
+        // TODO: We will want to modify this when we have the ability to offload flowfiles from a node.
+        return true;
+    }
+
+    @Override
     public void handleExpiredRecords(final Collection<FlowFileRecord> expired) {
         if (expired == null || expired.isEmpty()) {
             return;

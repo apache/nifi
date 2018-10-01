@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -54,14 +55,17 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.QUEUE_FULL;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
 
 public class LoadBalanceSession {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalanceSession.class);
     static final int MAX_DATA_FRAME_SIZE = 65535;
+    private static final long PENALTY_MILLIS = TimeUnit.SECONDS.toMillis(2L);
 
     private final RegisteredPartition partition;
     private final Supplier<FlowFileRecord> flowFileSupplier;
@@ -87,6 +91,7 @@ public class LoadBalanceSession {
     private byte[] byteBuffer = new byte[MAX_DATA_FRAME_SIZE];
     private boolean complete = false;
     private long readTimeout;
+    private long penaltyExpiration = -1L;
 
     public LoadBalanceSession(final RegisteredPartition partition, final FlowFileContentAccess contentAccess, final LoadBalanceFlowFileCodec flowFileCodec, final PeerChannel peerChannel,
                               final int timeoutMillis, final TransactionThreshold transactionThreshold) {
@@ -126,6 +131,12 @@ public class LoadBalanceSession {
             return false;
         }
 
+        if (isPenalized()) {
+            logger.debug("Will not communicate with Peer {} for Connection {} because session is penalized", peerDescription, connectionId);
+            return false;
+        }
+
+        // If there's already a data frame prepared for writing, just write to the channel.
         if (preparedFrame != null && preparedFrame.hasRemaining()) {
             logger.trace("Current Frame is already available. Will continue writing current frame to channel");
             final int bytesWritten = channel.write(preparedFrame);
@@ -133,7 +144,10 @@ public class LoadBalanceSession {
         }
 
         try {
+            // Check if the phase is one that needs to receive data and if so, call the appropriate method.
             switch (phase) {
+                case RECEIVE_SPACE_RESPONSE:
+                    return receiveSpaceAvailableResponse();
                 case VERIFY_CHECKSUM:
                     return verifyChecksum();
                 case CONFIRM_TRANSACTION_COMPLETE:
@@ -144,9 +158,9 @@ public class LoadBalanceSession {
                     return receiveRecommendedProtocolVersion();
             }
 
-
+            // Otherwise, we need to send something so get the data frame that should be sent and write it to the channel
             final ByteBuffer byteBuffer = getDataFrame();
-            preparedFrame = channel.prepareForWrite(byteBuffer);
+            preparedFrame = channel.prepareForWrite(byteBuffer); // Prepare data frame for writing. E.g., encrypt the data, etc.
 
             final int bytesWritten = channel.write(preparedFrame);
             return bytesWritten > 0;
@@ -229,6 +243,8 @@ public class LoadBalanceSession {
                 return abortProtocolNegotiation();
             case SEND_CONNECTION_ID:
                 return getConnectionId();
+            case CHECK_SPACE:
+                return checkSpace();
             case GET_NEXT_FLOWFILE:
                 return getNextFlowFile();
             case SEND_FLOWFILE_DEFINITION:
@@ -511,8 +527,74 @@ public class LoadBalanceSession {
         final byte[] frameBytes = buffer.array();
         checksum.update(frameBytes, 0, frameBytes.length);
 
-        phase = TransactionPhase.GET_NEXT_FLOWFILE;
+        phase = TransactionPhase.CHECK_SPACE;
         return buffer;
+    }
+
+    private ByteBuffer checkSpace() {
+        logger.debug("Sending a 'Check Space' request to Peer {} to determine if there is space in the queue for more FlowFiles", peerDescription);
+
+        final ByteBuffer buffer = ByteBuffer.allocate(1);
+
+        if (partition.isHonorBackpressure()) {
+            buffer.put((byte) LoadBalanceProtocolConstants.CHECK_SPACE);
+            checksum.update(LoadBalanceProtocolConstants.CHECK_SPACE);
+
+            readTimeout = System.currentTimeMillis() + timeoutMillis;
+            phase = TransactionPhase.RECEIVE_SPACE_RESPONSE;
+        } else {
+            buffer.put((byte) LoadBalanceProtocolConstants.SKIP_SPACE_CHECK);
+            checksum.update(LoadBalanceProtocolConstants.SKIP_SPACE_CHECK);
+
+            phase = TransactionPhase.GET_NEXT_FLOWFILE;
+        }
+
+        buffer.rewind();
+        return buffer;
+    }
+
+
+    private boolean receiveSpaceAvailableResponse() throws IOException {
+        logger.debug("Receiving response from Peer {} to determine whether or not space is available in queue {}", peerDescription, connectionId);
+
+        final OptionalInt spaceAvailableResponse = channel.read();
+        if (!spaceAvailableResponse.isPresent()) {
+            if (System.currentTimeMillis() > readTimeout) {
+                throw new SocketTimeoutException("Timed out waiting for Peer " + peerDescription + " to verify whether or not space is available for Connection " + connectionId);
+            }
+
+            return false;
+        }
+
+        final int response = spaceAvailableResponse.getAsInt();
+        if (response < 0) {
+            throw new EOFException("Encountered End-of-File when trying to verify with Peer " + peerDescription + " whether or not space is available in Connection " + connectionId);
+        }
+
+        if (response == SPACE_AVAILABLE) {
+            logger.debug("Peer {} has confirmed that space is available in Connection {}", peerDescription, connectionId);
+            phase = TransactionPhase.GET_NEXT_FLOWFILE;
+        } else if (response == QUEUE_FULL) {
+            logger.debug("Peer {} has confirmed that the queue is full for Connection {}", peerDescription, connectionId);
+            phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
+            checksum.reset(); // We are restarting the session entirely so we need to reset our checksum
+            penalize();
+        } else {
+            throw new TransactionAbortedException("After requesting to know whether or not Peer " + peerDescription + " has space available in Connection " + connectionId
+                + ", received unexpected response of " + response + ". Aborting transaction.");
+        }
+
+        return true;
+    }
+
+    private void penalize() {
+        penaltyExpiration = System.currentTimeMillis() + PENALTY_MILLIS;
+    }
+
+    private boolean isPenalized() {
+        // check for penaltyExpiration > -1L is not strictly necessary as it's implied by the second check but is still
+        // here because it's more efficient to check this than to make the system call to System.currentTimeMillis().
+        return penaltyExpiration > -1L && System.currentTimeMillis() < penaltyExpiration;
     }
 
 
@@ -526,6 +608,10 @@ public class LoadBalanceSession {
         ABORT_PROTOCOL_NEGOTIATION(SelectionKey.OP_WRITE),
 
         SEND_CONNECTION_ID(SelectionKey.OP_WRITE),
+
+        CHECK_SPACE(SelectionKey.OP_WRITE),
+
+        RECEIVE_SPACE_RESPONSE(SelectionKey.OP_READ),
 
         SEND_FLOWFILE_DEFINITION(SelectionKey.OP_WRITE),
 

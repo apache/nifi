@@ -34,6 +34,12 @@ public class LoadBalanceProtocolConstants {
     public static final int MORE_FLOWFILES = 0x31;
     public static final int NO_MORE_FLOWFILES = 0x32;
 
+    // Backpressure / Space constants
+    public static final int CHECK_SPACE = 0x61;
+    public static final int SKIP_SPACE_CHECK = 0x62;
+    public static final int SPACE_AVAILABLE = 0x65;
+    public static final int QUEUE_FULL = 0x66;
+
     // data frame constants
     public static final int NO_DATA_FRAME = 0x40;
     public static final int DATA_FRAME_FOLLOWS = 0x42;

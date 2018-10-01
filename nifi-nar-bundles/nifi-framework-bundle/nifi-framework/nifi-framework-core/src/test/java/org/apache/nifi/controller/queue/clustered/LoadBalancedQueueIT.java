@@ -162,6 +162,7 @@ public class LoadBalancedQueueIT {
         when(connection.getIdentifier()).thenReturn(queueId);
 
         serverQueue = mock(LoadBalancedFlowFileQueue.class);
+        when(serverQueue.isFull()).thenReturn(false);
         when(connection.getFlowFileQueue()).thenReturn(serverQueue);
         doAnswer(invocation -> compressionReference.get()).when(serverQueue).getLoadBalanceCompression();
 
@@ -1204,6 +1205,82 @@ public class LoadBalancedQueueIT {
         }
     }
 
+
+    @Test(timeout = 35_000)
+    public void testDestinationNodeQueueFull() throws IOException, InterruptedException {
+        localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
+        nodeIdentifiers.add(localNodeId);
+
+        when(serverQueue.isFull()).thenReturn(true);
+
+        // Create the server
+        final int timeoutMillis = 30000;
+        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+
+        final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
+        server.start();
+
+        try {
+            final int loadBalancePort = server.getPort();
+
+            // Create the Load Balanced FlowFile Queue
+            final NodeIdentifier remoteNodeId = new NodeIdentifier("unit-test", "localhost", 8090, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
+            nodeIdentifiers.add(remoteNodeId);
+
+            final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
+            clientRegistry.start();
+
+            final NodeConnectionStatus connectionStatus = mock(NodeConnectionStatus.class);
+            when(connectionStatus.getState()).thenReturn(NodeConnectionState.CONNECTED);
+            when(clusterCoordinator.getConnectionStatus(any(NodeIdentifier.class))).thenReturn(connectionStatus);
+            final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(clientRegistry, clusterCoordinator, eventReporter);
+
+            final Thread clientThread = new Thread(clientTask);
+            clientThread.setDaemon(true);
+            clientThread.start();
+
+            final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, new NopConnectionEventListener(), processScheduler, clientFlowFileRepo, clientProvRepo,
+                clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+            flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
+
+            try {
+                final MockFlowFileRecord firstFlowFile = new MockFlowFileRecord(0L);
+                flowFileQueue.put(firstFlowFile);
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("integration", "test");
+                attributes.put("unit-test", "false");
+                attributes.put("integration-test", "true");
+
+                final ContentClaim contentClaim = createContentClaim("hello".getBytes());
+                final MockFlowFileRecord secondFlowFile = new MockFlowFileRecord(attributes, 5L, contentClaim);
+                flowFileQueue.put(secondFlowFile);
+
+                flowFileQueue.startLoadBalancing();
+
+                Thread.sleep(5000L);
+
+                assertTrue("Server's FlowFile Repo was updated", serverRepoRecords.isEmpty());
+                assertTrue(clientRepoRecords.isEmpty());
+
+                assertEquals(2, flowFileQueue.size().getObjectCount());
+
+                // Enable data to be transferred
+                when(serverQueue.isFull()).thenReturn(false);
+
+                while (clientRepoRecords.size() != 1) {
+                    Thread.sleep(10L);
+                }
+
+                assertEquals(1, serverRepoRecords.size());
+            } finally {
+                flowFileQueue.stopLoadBalancing();
+                clientRegistry.getAllClients().forEach(AsyncLoadBalanceClient::stop);
+            }
+        } finally {
+            server.stop();
+        }
+    }
 
     private FlowFileRepository createFlowFileRepository(final List<RepositoryRecord> repoRecords) throws IOException {
         final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);

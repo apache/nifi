@@ -58,6 +58,7 @@ import java.util.zip.CheckedOutputStream;
 import java.util.zip.Checksum;
 
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CHECK_SPACE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.COMPLETE_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION;
@@ -66,6 +67,8 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_DATA_FRAME;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_MORE_FLOWFILES;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SKIP_SPACE_CHECK;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -192,6 +195,7 @@ public class TestStandardLoadBalanceProtocol {
         attributes.put("uuid", "unit-test-id");
         attributes.put("b", "B");
 
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent("hello".getBytes(), dos);
@@ -203,9 +207,10 @@ public class TestStandardLoadBalanceProtocol {
         protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(2, serverResponse.length);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[0]);
-        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[1]);
+        assertEquals(3, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
+        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -239,6 +244,72 @@ public class TestStandardLoadBalanceProtocol {
         attributes.put("b", "B");
 
         // Send 4 FlowFiles.
+        dos.write(CHECK_SPACE);
+        dos.write(MORE_FLOWFILES);
+        writeAttributes(attributes, dos);
+        writeContent("hello".getBytes(), dos);
+
+        dos.write(MORE_FLOWFILES);
+        writeAttributes(Collections.singletonMap("uuid", "unit-test-id-2"), dos);
+        writeContent(null, dos);
+
+        dos.write(MORE_FLOWFILES);
+        writeAttributes(Collections.singletonMap("uuid", "unit-test-id-3"), dos);
+        writeContent("greetings".getBytes(), dos);
+
+        dos.write(MORE_FLOWFILES);
+        writeAttributes(Collections.singletonMap("uuid", "unit-test-id-4"), dos);
+        writeContent(new byte[0], dos);
+
+        dos.write(NO_MORE_FLOWFILES);
+
+        dos.writeLong(checksum.getValue());
+        dos.write(COMPLETE_TRANSACTION);
+
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+
+        final byte[] serverResponse = serverOutput.toByteArray();
+        assertEquals(3, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
+        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
+
+        assertEquals(1, claimContents.size());
+        final byte[] bytes = claimContents.values().iterator().next();
+        assertTrue(Arrays.equals("hellogreetings".getBytes(), bytes) || Arrays.equals("greetingshello".getBytes(), bytes));
+
+        assertEquals(4, flowFileRepoUpdateRecords.size());
+        assertEquals(4, provRepoUpdateRecords.size());
+        assertEquals(0, flowFileQueuePutRecords.size());
+        assertEquals(4, flowFileQueueReceiveRecords.size());
+
+        assertTrue(provRepoUpdateRecords.stream().allMatch(event -> event.getEventType() == ProvenanceEventType.RECEIVE));
+    }
+
+
+    @Test
+    public void testMultipleFlowFilesWithoutCheckingSpace() throws IOException {
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+
+        final PipedInputStream serverInput = new PipedInputStream();
+        final PipedOutputStream serverContentSource = new PipedOutputStream();
+        serverInput.connect(serverContentSource);
+
+        final ByteArrayOutputStream serverOutput = new ByteArrayOutputStream();
+
+        // Write connection ID
+        final Checksum checksum = new CRC32();
+        final OutputStream checkedOutput = new CheckedOutputStream(serverContentSource, checksum);
+        final DataOutputStream dos = new DataOutputStream(checkedOutput);
+        dos.writeUTF("unit-test-connection-id");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a", "A");
+        attributes.put("uuid", "unit-test-id");
+        attributes.put("b", "B");
+
+        // Send 4 FlowFiles.
+        dos.write(SKIP_SPACE_CHECK);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent("hello".getBytes(), dos);
@@ -279,7 +350,6 @@ public class TestStandardLoadBalanceProtocol {
         assertTrue(provRepoUpdateRecords.stream().allMatch(event -> event.getEventType() == ProvenanceEventType.RECEIVE));
     }
 
-
     @Test
     public void testEofExceptionMultipleFlowFiles() throws IOException {
         final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
@@ -302,6 +372,7 @@ public class TestStandardLoadBalanceProtocol {
         attributes.put("b", "B");
 
         // Send 4 FlowFiles.
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent("hello".getBytes(), dos);
@@ -329,7 +400,8 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(0, serverResponse.length);
+        assertEquals(1, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
 
         assertEquals(1, claimContents.size());
         assertArrayEquals("hellogreetings".getBytes(), claimContents.values().iterator().next());
@@ -358,6 +430,7 @@ public class TestStandardLoadBalanceProtocol {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("uuid", "unit-test-id");
 
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent("hello".getBytes(), dos);
@@ -374,8 +447,9 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(1, serverResponse.length);
-        assertEquals(REJECT_CHECKSUM, serverResponse[0]);
+        assertEquals(2, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(REJECT_CHECKSUM, serverResponse[1]);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -406,6 +480,7 @@ public class TestStandardLoadBalanceProtocol {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("uuid", "unit-test-id");
 
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
 
@@ -424,7 +499,8 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(0, serverResponse.length);
+        assertEquals(1, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -455,6 +531,7 @@ public class TestStandardLoadBalanceProtocol {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("uuid", "unit-test-id");
 
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent("hello".getBytes(), dos);
@@ -471,8 +548,9 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(1, serverResponse.length);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[0]);
+        assertEquals(2, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -503,6 +581,7 @@ public class TestStandardLoadBalanceProtocol {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("uuid", "unit-test-id");
 
+        dos.write(CHECK_SPACE);
         dos.write(MORE_FLOWFILES);
         writeAttributes(attributes, dos);
         writeContent(null, dos);
@@ -514,9 +593,10 @@ public class TestStandardLoadBalanceProtocol {
         protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(2, serverResponse.length);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[0]);
-        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[1]);
+        assertEquals(3, serverResponse.length);
+        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
+        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
 
         assertEquals(1, claimContents.size());
         assertEquals(0, claimContents.values().iterator().next().length);

@@ -77,6 +77,7 @@ import java.util.zip.GZIPInputStream;
 
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_PROTOCOL_NEGOTIATION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CHECK_SPACE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.COMPLETE_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION;
@@ -84,8 +85,11 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.MORE_FLOWFILES;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_DATA_FRAME;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_MORE_FLOWFILES;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.QUEUE_FULL;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SKIP_SPACE_CHECK;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
 public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
@@ -244,6 +248,27 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         if (!(flowFileQueue instanceof LoadBalancedFlowFileQueue)) {
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but the Connection with that ID is " +
                     "not configured to allow for Load Balancing");
+        }
+
+        final int spaceCheck = dataIn.read();
+        if (spaceCheck < 0) {
+            throw new EOFException("Expected to receive a request to determine whether or not space was available for Connection with ID " + connectionId + " from Peer " + peerDescription);
+        }
+
+        if (spaceCheck == CHECK_SPACE) {
+            if (flowFileQueue.isFull()) {
+                logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
+                out.write(QUEUE_FULL);
+                out.flush();
+                return; // we're finished receiving flowfiles for now, and we'll restart the communication process.
+            } else {
+                logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with SPACE_AVAILABLE", peerDescription, connectionId);
+                out.write(SPACE_AVAILABLE);
+                out.flush();
+            }
+        } else if (spaceCheck != SKIP_SPACE_CHECK) {
+            throw new TransactionAbortedException("Expected to receive a request to determine whether or not space was available for Connection with ID "
+                + connectionId + " from Peer " + peerDescription + " but instead received value " + spaceCheck);
         }
 
         final LoadBalanceCompression compression = connection.getFlowFileQueue().getLoadBalanceCompression();
