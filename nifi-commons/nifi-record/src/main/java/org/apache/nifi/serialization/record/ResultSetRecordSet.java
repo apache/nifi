@@ -68,7 +68,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return rs;
     }
 
-    protected boolean isMoreRows() {
+    protected boolean hasMoreRows() {
         return moreRows;
     }
 

@@ -112,7 +112,7 @@ public class RecordSqlWriter implements SqlWriter {
     }
 
     @Override
-    public void writeEmptyRecordSet(OutputStream outputStream, ComponentLog logger) throws IOException {
+    public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
         try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream)) {
             mimeType = resultSetWriter.getMimeType();
             resultSetWriter.beginRecordSet();
@@ -139,7 +139,7 @@ public class RecordSqlWriter implements SqlWriter {
         @Override
         public Record next() throws IOException {
             try {
-                if (isMoreRows()) {
+                if (hasMoreRows()) {
                     ResultSet rs = getResultSet();
                     final Record record = createRecord(rs);
                     if (callback != null) {

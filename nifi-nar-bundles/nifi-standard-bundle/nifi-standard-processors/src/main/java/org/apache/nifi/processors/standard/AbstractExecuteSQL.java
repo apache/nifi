@@ -131,6 +131,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
     protected List<PropertyDescriptor> propDescriptors;
 
+    protected DBCPService dbcpService;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -151,6 +152,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             getLogger().error(errorString);
             throw new ProcessException(errorString);
         }
+        dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+
     }
 
     @Override
@@ -170,7 +173,6 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
         final ComponentLog logger = getLogger();
-        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -264,7 +266,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                                 logger.info("{} contains {} records; transferring to 'success'",
                                         new Object[]{resultSetFF, nrOfRows.get()});
-                                session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
+                                if(context.hasIncomingConnection()) {
+                                    session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                } else {
+                                    session.getProvenanceReporter().receive(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                }
                                 resultSetFlowFiles.add(resultSetFF);
 
                                 // If we've reached the batch size, send out the flow files
@@ -320,7 +327,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 if (resultCount > 0) {
                     session.remove(fileToProcess);
                 } else {
-                    fileToProcess = session.write(fileToProcess, out -> sqlWriter.writeEmptyRecordSet(out, getLogger()));
+                    fileToProcess = session.write(fileToProcess, out -> sqlWriter.writeEmptyResultSet(out, getLogger()));
                     fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, "0");
                     fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(), sqlWriter.getMimeType());
                     session.transfer(fileToProcess, REL_SUCCESS);
@@ -330,7 +337,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 // Then generate an empty Output FlowFile
                 FlowFile resultSetFF = session.create();
 
-                resultSetFF = session.write(resultSetFF, out -> sqlWriter.writeEmptyRecordSet(out, getLogger()));
+                resultSetFF = session.write(resultSetFF, out -> sqlWriter.writeEmptyResultSet(out, getLogger()));
                 resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, "0");
                 resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), sqlWriter.getMimeType());
                 session.transfer(resultSetFF, REL_SUCCESS);

@@ -56,7 +56,7 @@ public class DefaultAvroSqlWriter implements SqlWriter {
     }
 
     @Override
-    public void writeEmptyRecordSet(OutputStream outputStream, ComponentLog logger) throws IOException {
+    public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
         JdbcCommon.createEmptyAvroStream(outputStream);
     }
 

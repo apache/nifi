@@ -22,6 +22,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.TestJdbcHugeStream;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
@@ -138,11 +139,14 @@ public class TestExecuteSQLRecord {
     public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
         runner.setIncomingConnection(false);
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, false, null, true);
+        assertEquals(ProvenanceEventType.RECEIVE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
     public void testSelectQueryInFlowFile() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
+        assertEquals(ProvenanceEventType.FORK, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.FETCH, runner.getProvenanceEvents().get(1).getEventType());
     }
 
     @Test
