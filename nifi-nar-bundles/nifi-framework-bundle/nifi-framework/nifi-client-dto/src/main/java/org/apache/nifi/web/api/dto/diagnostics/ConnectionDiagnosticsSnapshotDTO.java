@@ -26,6 +26,7 @@ import java.util.List;
 public class ConnectionDiagnosticsSnapshotDTO {
     private int totalFlowFileCount;
     private long totalByteCount;
+    private String nodeIdentifier;
     private LocalQueuePartitionDTO localQueuePartition;
     private List<RemoteQueuePartitionDTO> remoteQueuePartitions;
 
@@ -45,6 +46,15 @@ public class ConnectionDiagnosticsSnapshotDTO {
 
     public void setTotalByteCount(long totalByteCount) {
         this.totalByteCount = totalByteCount;
+    }
+
+    @ApiModelProperty("The Node Identifier that this information pertains to")
+    public String getNodeIdentifier() {
+        return nodeIdentifier;
+    }
+
+    public void setNodeIdentifier(final String nodeIdentifier) {
+        this.nodeIdentifier = nodeIdentifier;
     }
 
     @ApiModelProperty("The local queue partition, from which components can pull FlowFiles on this node.")

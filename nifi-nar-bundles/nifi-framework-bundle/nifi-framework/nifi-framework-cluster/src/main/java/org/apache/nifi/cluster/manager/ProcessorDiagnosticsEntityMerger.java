@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<ProcessorDiagnosticsEntity> {
     private final long componentStatusSnapshotMillis;
@@ -133,21 +132,25 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
         final Map<String, List<ConnectionDiagnosticsSnapshotDTO>> snapshotByConnectionId = new HashMap<>();
         final Map<String, ConnectionDiagnosticsDTO> connectionById = new HashMap<>();
 
-        Stream.concat(Stream.of(clientEntity), entityMap.values().stream())
-            .forEach(entity -> {
-                final Set<ConnectionDiagnosticsDTO> connections = extractConnections.apply(entity);
-                for (final ConnectionDiagnosticsDTO connectionDiagnostics : connections) {
-                    final String connectionId = connectionDiagnostics.getConnection().getId();
-                    final ConnectionDiagnosticsSnapshotDTO snapshot = connectionDiagnostics.getAggregateSnapshot();
+        for (final Map.Entry<NodeIdentifier, ProcessorDiagnosticsEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final ProcessorDiagnosticsEntity entity = entry.getValue();
 
-                    final List<ConnectionDiagnosticsSnapshotDTO> snapshots = snapshotByConnectionId.computeIfAbsent(connectionId, id -> new ArrayList<>());
-                    snapshots.add(snapshot);
+            final Set<ConnectionDiagnosticsDTO> connections = extractConnections.apply(entity);
+            for (final ConnectionDiagnosticsDTO connectionDiagnostics : connections) {
+                final String connectionId = connectionDiagnostics.getConnection().getId();
+                final ConnectionDiagnosticsSnapshotDTO snapshot = connectionDiagnostics.getAggregateSnapshot();
 
-                    if (entity == clientEntity){
-                        connectionById.put(connectionId, connectionDiagnostics);
-                    }
+                snapshot.setNodeIdentifier(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+
+                final List<ConnectionDiagnosticsSnapshotDTO> snapshots = snapshotByConnectionId.computeIfAbsent(connectionId, id -> new ArrayList<>());
+                snapshots.add(snapshot);
+
+                if (entity == clientEntity){
+                    connectionById.put(connectionId, connectionDiagnostics);
                 }
-            });
+            }
+        }
 
         for (final Map.Entry<String, List<ConnectionDiagnosticsSnapshotDTO>> entry : snapshotByConnectionId.entrySet()) {
             final String connectionId = entry.getKey();
@@ -159,6 +162,8 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
             dto.setAggregateSnapshot(mergeConnectionSnapshots(snapshots));
         }
     }
+
+
 
     private ConnectionDiagnosticsSnapshotDTO mergeConnectionSnapshots(final List<ConnectionDiagnosticsSnapshotDTO> snapshots) {
         final ConnectionDiagnosticsSnapshotDTO aggregate = new ConnectionDiagnosticsSnapshotDTO();
