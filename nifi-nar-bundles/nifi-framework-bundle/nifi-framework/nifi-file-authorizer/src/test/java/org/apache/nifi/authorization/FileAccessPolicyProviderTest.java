@@ -767,13 +767,48 @@ public class FileAccessPolicyProviderTest {
         userGroupProvider.onConfigured(configurationContext);
         accessPolicyProvider.onConfigured(configurationContext);
 
-        User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
-        User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
+        assertNotNull(userGroupProvider.getUserByIdentity(nodeIdentity1));
+        assertNotNull(userGroupProvider.getUserByIdentity(nodeIdentity2));
 
         AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getGroups().contains(nodeGroupIdentifier));
+    }
+
+    @Test
+    public void testOnConfiguredWhenNodeGroupEmpty() throws Exception {
+        final String adminIdentity = "admin-user";
+        final String nodeGroupIdentifier = "cluster-nodes";
+
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+            .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
+            .thenReturn(new StandardPropertyValue("", null));
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
+
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertNull(accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE));
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenNodeGroupDoesNotExist() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+            .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
+            .thenReturn(new StandardPropertyValue("nonexistent", null));
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
+
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
     }
 
     @Test
