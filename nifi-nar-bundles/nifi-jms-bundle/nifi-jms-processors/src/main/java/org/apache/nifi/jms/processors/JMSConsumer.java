@@ -85,10 +85,6 @@ final class JMSConsumer extends JMSWorker {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(final Session session) throws JMSException {
-                // We need to call recover to ensure that in in the event of
-                // abrupt end or exception the current session will stop message
-                // delivery and restarts with the oldest unacknowledged message
-                session.recover();
 
                 final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriberName);
                 try {
@@ -126,6 +122,12 @@ final class JMSConsumer extends JMSWorker {
                     // and if CLIENT_ACKNOWLEDGE is set.
                     consumerCallback.accept(response);
                     acknowledge(message, session);
+                } catch (Exception e) {
+                    // We need to call recover to ensure that in the event of
+                    // abrupt end or exception the current session will stop message
+                    // delivery and restart with the oldest unacknowledged message
+                    session.recover();
+                    throw e;
                 } finally {
                     JmsUtils.closeMessageConsumer(msgConsumer);
                 }
