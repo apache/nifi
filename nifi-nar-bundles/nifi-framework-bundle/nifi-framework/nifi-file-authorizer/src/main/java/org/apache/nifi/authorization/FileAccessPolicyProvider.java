@@ -232,16 +232,21 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             nodeGroupIdentifier = null;
 
             if (nodeGroupName != null) {
-                for (Group group : userGroupProvider.getGroups()) {
-                    if (group.getName().equals(nodeGroupName)) {
-                        nodeGroupIdentifier = group.getIdentifier();
-                        break;
+                if (!StringUtils.isBlank(nodeGroupName)) {
+                    logger.debug("Trying to load node group '{}' from the underlying userGroupProvider", nodeGroupName);
+                    for (Group group : userGroupProvider.getGroups()) {
+                        if (group.getName().equals(nodeGroupName)) {
+                            nodeGroupIdentifier = group.getIdentifier();
+                            break;
+                        }
                     }
-                }
 
-                if (nodeGroupIdentifier == null) {
-                    throw new AuthorizerCreationException(String.format(
+                    if (nodeGroupIdentifier == null) {
+                        throw new AuthorizerCreationException(String.format(
                             "Authorizations node group '%s' could not be found", nodeGroupName));
+                    }
+                } else {
+                    logger.debug("Empty node group name provided");
                 }
             }
 
@@ -633,6 +638,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             if (node == null) {
                 throw new AuthorizerCreationException("Unable to locate node " + nodeIdentity + " to seed policies.");
             }
+            logger.debug("Populating default authorizations for node '{}' ({})", node.getIdentity(), node.getIdentifier());
             // grant access to the proxy resource
             addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
 
@@ -645,6 +651,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         // authorize dynamic nodes (node group)
         if (nodeGroupIdentifier != null) {
+            logger.debug("Populating default authorizations for group '{}' ({})", userGroupProvider.getGroup(nodeGroupIdentifier).getName(), nodeGroupIdentifier);
             addGroupToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), nodeGroupIdentifier, WRITE_CODE);
 
             if (rootGroupId != null) {

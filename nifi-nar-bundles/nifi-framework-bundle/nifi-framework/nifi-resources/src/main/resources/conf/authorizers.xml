@@ -241,6 +241,8 @@
 
         - Node Group - The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically
             added/removed from the cluster.
+
+            NOTE: The group must exist before starting NiFi.
     -->
     <accessPolicyProvider>
         <identifier>file-access-policy-provider</identifier>
