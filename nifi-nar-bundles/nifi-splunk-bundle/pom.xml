@@ -51,7 +51,7 @@
             <dependency>
                 <groupId>com.splunk</groupId>
                 <artifactId>splunk</artifactId>
-                <version>1.6.3.0</version>
+                <version>1.6.4.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

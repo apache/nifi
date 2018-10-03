@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
-            <version>1.4</version>
+            <version>1.5</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.mail</groupId>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-scratchpad</artifactId>
-            <version>3.17</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -120,7 +120,7 @@
         <dependency>
             <groupId>com.icegreen</groupId>
             <artifactId>greenmail</artifactId>
-            <version>1.5.2</version>
+            <version>1.5.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

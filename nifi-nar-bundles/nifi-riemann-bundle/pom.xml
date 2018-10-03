@@ -37,7 +37,7 @@
             <dependency>
                 <groupId>com.aphyr</groupId>
                 <artifactId>riemann-java-client</artifactId>
-                <version>0.4.0</version>
+                <version>0.4.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>

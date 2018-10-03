@@ -27,7 +27,6 @@ import ca.uhn.hl7v2.model.Composite;
 import ca.uhn.hl7v2.model.ExtraComponents;
 import ca.uhn.hl7v2.model.Primitive;
 import ca.uhn.hl7v2.model.Type;
-import ca.uhn.hl7v2.model.Varies;
 import ca.uhn.hl7v2.parser.EncodingCharacters;
 import ca.uhn.hl7v2.parser.PipeParser;
 
@@ -59,8 +58,7 @@ public class HapiField implements HL7Field, HL7Component {
             componentList.add(new SingleValueField(singleFieldValue));
 
             for (int i = 0; i < extra.numComponents(); i++) {
-                final Varies varies = extra.getComponent(i);
-                componentList.add(new HapiField(varies));
+                componentList.add(new HapiField(extra.getComponent(i)));
             }
         }
 

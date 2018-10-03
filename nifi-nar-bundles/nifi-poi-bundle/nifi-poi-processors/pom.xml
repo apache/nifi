@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <properties>
-        <poi.version>3.17</poi.version>
+        <poi.version>4.0.0</poi.version>
     </properties>
 
     <parent>

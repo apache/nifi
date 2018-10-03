@@ -102,7 +102,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.mockito.Mockito.mock;
 
-public class TestPersistentProvenanceRepository {
+public class ITestPersistentProvenanceRepository {
 
     @Rule
     public TestName name = new TestName();
