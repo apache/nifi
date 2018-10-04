@@ -44,10 +44,14 @@ import org.junit.Test;
 import org.junit.Assert;
 
 public class TestPostHTTP {
-
     private TestServer server;
     private TestRunner runner;
     private CaptureServlet servlet;
+
+    private final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
+    private final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
+    private final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
+    private final String JKS_TYPE = "JKS";
 
     private void setup(final Map<String, String> sslProperties) throws Exception {
         // set up web service
@@ -75,16 +79,16 @@ public class TestPostHTTP {
     public void testTruststoreSSLOnly() throws Exception {
         final Map<String, String> sslProps = new HashMap<>();
         sslProps.put(TestServer.NEED_CLIENT_AUTH, "false");
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
         setup(sslProps);
 
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(PostHTTP.URL, server.getSecureUrl());
@@ -100,23 +104,23 @@ public class TestPostHTTP {
     @Test
     public void testTwoWaySSL() throws Exception {
         final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
         setup(sslProps);
 
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/localhost-ks.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(PostHTTP.URL, server.getSecureUrl());
@@ -132,20 +136,20 @@ public class TestPostHTTP {
     @Test
     public void testOneWaySSLWhenServerConfiguredForTwoWay() throws Exception {
         final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
         setup(sslProps);
 
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(PostHTTP.URL, server.getSecureUrl());
@@ -202,23 +206,23 @@ public class TestPostHTTP {
     @Test
     public void testSendAsFlowFileSecure() throws Exception {
         final Map<String, String> sslProps = new HashMap<>();
-        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        sslProps.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_PATH);
+        sslProps.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        sslProps.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
         sslProps.put(TestServer.NEED_CLIENT_AUTH, "true");
         setup(sslProps);
 
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/localhost-ks.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(PostHTTP.URL, server.getSecureUrl());

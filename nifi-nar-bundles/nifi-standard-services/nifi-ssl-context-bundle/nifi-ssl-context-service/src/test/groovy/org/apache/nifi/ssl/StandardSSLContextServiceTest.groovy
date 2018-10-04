@@ -46,12 +46,12 @@ import static groovy.test.GroovyAssert.shouldFail
 class StandardSSLContextServiceTest {
     private static final Logger logger = LoggerFactory.getLogger(StandardSSLContextServiceTest.class)
 
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
-    private static final String TRUSTSTORE_PATH_WITH_EL = "\${someAttribute}/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
+    private static final String TRUSTSTORE_PATH_WITH_EL = "\${someAttribute}/truststore.jks"
 
-    private static final String KEYSTORE_PASSWORD = "localtest"
-    private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String KEYSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
 
     private static final String KEYSTORE_TYPE = "JKS"
     private static final String TRUSTSTORE_TYPE = "JKS"

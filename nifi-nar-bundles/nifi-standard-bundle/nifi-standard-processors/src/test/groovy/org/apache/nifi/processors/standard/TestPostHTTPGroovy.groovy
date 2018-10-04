@@ -74,11 +74,11 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
     private static final String POST_URL = "${HTTPS_URL}/PostHandler.groovy"
 
-    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
-    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
 
-    private static final String KEYSTORE_PASSWORD = "localtest"
-    private static final String TRUSTSTORE_PASSWORD = "localtest"
+    private static final String KEYSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
 
     private static Server server
     private static X509TrustManager nullTrustManager

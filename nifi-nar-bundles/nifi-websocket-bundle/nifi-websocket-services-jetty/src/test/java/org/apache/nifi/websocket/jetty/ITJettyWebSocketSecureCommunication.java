@@ -29,11 +29,11 @@ public class ITJettyWebSocketSecureCommunication extends ITJettyWebSocketCommuni
 
     public ITJettyWebSocketSecureCommunication() {
         try {
-            sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE, "src/test/resources/certs/localhost-ks.jks");
-            sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
+            sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE, "src/test/resources/certs/keystore.jks");
+            sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
             sslTestContext.setCustomValue(StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-            sslTestContext.setCustomValue(StandardSSLContextService.TRUSTSTORE, "src/test/resources/certs/localhost-ks.jks");
-            sslTestContext.setCustomValue(StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
+            sslTestContext.setCustomValue(StandardSSLContextService.TRUSTSTORE, "src/test/resources/certs/truststore.jks");
+            sslTestContext.setCustomValue(StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
             sslTestContext.setCustomValue(StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
 
             sslContextService.initialize(sslTestContext.getInitializationContext());
