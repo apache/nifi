@@ -30,6 +30,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
@@ -1521,6 +1522,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             if (dto.getLoadBalanceStrategy() != null) {
                 connection.getFlowFileQueue().setLoadBalanceStrategy(LoadBalanceStrategy.valueOf(dto.getLoadBalanceStrategy()), dto.getLoadBalancePartitionAttribute());
+            }
+
+            if (dto.getLoadBalanceCompression() != null) {
+                connection.getFlowFileQueue().setLoadBalanceCompression(LoadBalanceCompression.valueOf(dto.getLoadBalanceCompression()));
             }
 
             processGroup.addConnection(connection);

@@ -71,8 +71,8 @@ import java.util.stream.Stream;
  */
 public class FileSystemSwapManager implements FlowFileSwapManager {
 
-    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+(\\..*?)?\\.swap");
-    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+(\\..*?)?\\.swap\\.part");
+    private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap");
+    private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap\\.part");
 
     public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
