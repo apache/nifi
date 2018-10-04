@@ -202,6 +202,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             final InetSocketAddress nodeApiAddress = nifiProperties.getNodeApiAddress();
             final InetSocketAddress nodeSocketAddress = nifiProperties.getClusterNodeProtocolAddress();
+            final InetSocketAddress loadBalanceAddress = nifiProperties.getClusterLoadBalanceAddress();
 
             String nodeUuid = null;
             final StateManager stateManager = controller.getStateManagerProvider().getStateManager(CLUSTER_NODE_CONFIG);
@@ -217,6 +218,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             this.nodeId = new NodeIdentifier(nodeUuid,
                     nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
                     nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
+                    loadBalanceAddress.getHostName(), loadBalanceAddress.getPort(),
                     nifiProperties.getRemoteInputHost(), nifiProperties.getRemoteInputPort(),
                     nifiProperties.getRemoteInputHttpPort(), nifiProperties.isSiteToSiteSecure());
 
@@ -388,7 +390,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
-    public ProtocolMessage handle(final ProtocolMessage request) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage request, final Set<String> nodeIdentities) throws ProtocolException {
         final long startNanos = System.nanoTime();
         try {
             switch (request.getType()) {

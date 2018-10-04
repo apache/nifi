@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
 
@@ -44,11 +45,12 @@ public interface FlowFileSwapManager {
      *
      * @param flowFiles the FlowFiles to swap out to external storage
      * @param flowFileQueue the queue that the FlowFiles belong to
+     * @param partitionName the name of the partition within the queue, or <code>null</code> if the queue is not partitioned
      * @return the location of the externally stored swap file
      *
      * @throws IOException if unable to swap the FlowFiles out
      */
-    String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue) throws IOException;
+    String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) throws IOException;
 
     /**
      * Recovers the FlowFiles from the swap file that lives at the given location. This action
@@ -82,11 +84,32 @@ public interface FlowFileSwapManager {
      * Determines swap files that exist for the given FlowFileQueue
      *
      * @param flowFileQueue the queue for which the FlowFiles should be recovered
+     * @param partitionName the partition within the FlowFileQueue to recover, or <code>null</code> if the queue is not partitioned
      *
      * @return all swap locations that have been identified for the given queue, in the order that they should
      *         be swapped back in
      */
-    List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException;
+    List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, String partitionName) throws IOException;
+
+    /**
+     * Determines the names of each of the Partitions for which there are swap files for the given queue
+     *
+     * @param queue the queue to which the FlowFiles belong
+     *
+     * @return the Set of names of all Partitions for which there are swap files
+     * @throws IOException if unable to read the information from the underlying storage
+     */
+    Set<String> getSwappedPartitionNames(FlowFileQueue queue) throws IOException;
+
+    /**
+     * Updates the name of the partition that owns a given swap file
+     *
+     * @param swapLocation the location of the swap file
+     * @param newPartitionName the new name of the new partition that owns the swap file
+     * @return the new swap location
+     * @throws IOException if unable to rename the swap file
+     */
+    String changePartitionName(String swapLocation, String newPartitionName) throws IOException;
 
     /**
      * Parses the contents of the swap file at the given location and provides a SwapSummary that provides

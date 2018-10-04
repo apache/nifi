@@ -57,7 +57,8 @@ class StatusHistoryEndpointMergerSpec extends Specification {
             ++n
             def response = Mock(Response)
             mockToRequestEntity.put response, it
-            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L, requestId)
+            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, null, n * 10, 'stsaddr', n * 100, n * 1000, false, null),
+                    "GET", requestUri, response, 500L, requestId)
         } as Set
 
         when:

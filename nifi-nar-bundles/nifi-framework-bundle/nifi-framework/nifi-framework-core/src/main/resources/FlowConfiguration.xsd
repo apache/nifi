@@ -30,22 +30,22 @@
 
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
-            
+
             <!-- This exists for backward compatibility between NiFi 1.x and NiFi 0.x. Any Controller Service that is listed
             here is assigned to the root group -->
             <xs:element name="controllerServices" type="ControllerServicesType" minOccurs="0" maxOccurs="1" />
-            
+
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
         <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
-	
+
     <xs:complexType name="RegistriesType">
         <xs:sequence>
             <xs:element name="flowRegistry" type="FlowRegistryType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="FlowRegistryType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -54,7 +54,7 @@
             <xs:element name="description" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <!-- the processor "id" is a key that should be valid within each flowController-->
     <xs:complexType name="ProcessorType">
         <xs:sequence>
@@ -80,21 +80,21 @@
             <xs:element name="bundle" type="BundleType" />
 
             <!-- the number of concurrent tasks for this configured
-            processor that can be executed at any one time. This value can be 0 
+            processor that can be executed at any one time. This value can be 0
             IFF schedulingStrategy is EVENT_DRIVEN -->
             <xs:element name="maxConcurrentTasks" type="xs:nonNegativeInteger"/>
 
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
-            
+
             <xs:element name="penalizationPeriod" type="TimePeriod" />
-            
+
             <xs:element name="yieldPeriod" type="TimePeriod" />
-            
+
             <xs:element name="bulletinLevel" type="LogLevel" />
 
             <!-- whether or not this processor is loss-tolerant -->
             <xs:element name="lossTolerant" type="xs:boolean" />
-            
+
             <xs:element name="scheduledState" type="ScheduledState" />
 
             <!-- "isolated" is deprecated.
@@ -116,12 +116,12 @@
 
             <!-- Annotation data used for more advanced configuration -->
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
-            
+
             <!-- Indicates that a relationship with the given name can be auto-terminated -->
             <xs:element name="autoTerminatedRelationship" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <!-- The "name" should be a key within each processor-->
     <xs:complexType name="PropertyType">
         <xs:sequence>
@@ -130,13 +130,13 @@
             <xs:element name="value" type="xs:string" minOccurs="0" maxOccurs="1"/>
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:simpleType name="NonEmptyStringType">
         <xs:restriction base="xs:string">
             <xs:minLength value="1"/>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <xs:simpleType name="ScheduledState">
         <xs:restriction base="xs:string">
             <xs:enumeration value="DISABLED"></xs:enumeration>
@@ -144,7 +144,7 @@
             <xs:enumeration value="STOPPED"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <xs:complexType name="ProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -153,13 +153,13 @@
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
     		<xs:element name="versionControlInformation" type="VersionControlInformation" minOccurs="0" maxOccurs="1" />
-            
+
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
 
             <xs:element name="inputPort" type="PortType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="outputPort" type="PortType" minOccurs="0" maxOccurs="unbounded"/>
-            
+
             <xs:element name="label" type="LabelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="funnel" type="FunnelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
@@ -170,12 +170,12 @@
             <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="VariableType">
         <xs:attribute name="name" />
         <xs:attribute name="value" />
     </xs:complexType>
-    
+
     <xs:complexType name="VersionControlInformation">
         <xs:sequence>
             <xs:element name="registryId" type="NonEmptyStringType" />
@@ -187,7 +187,7 @@
             <xs:element name="version" type="NonEmptyStringType" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <!-- Same as ProcessGroupType except that instead of input ports & output ports being of type PortType,
     they are of type RootGroupPortType -->
     <xs:complexType name="RootProcessGroupType">
@@ -197,13 +197,13 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
-    		
+
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
 
             <xs:element name="inputPort" type="RootGroupPortType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="outputPort" type="RootGroupPortType" minOccurs="0" maxOccurs="unbounded"/>
-            
+
             <xs:element name="label" type="LabelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="funnel" type="FunnelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
@@ -213,7 +213,7 @@
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="FunnelType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -221,7 +221,7 @@
             <xs:element name="position" type="PositionType" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="LabelType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -232,7 +232,7 @@
             <xs:element name="value" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="RemoteProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -259,7 +259,7 @@
             <xs:element name="outputPort" type="RemoteGroupPortType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="ConnectionType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -276,11 +276,11 @@
             <xs:element name="destinationType" type="NonEmptyStringType" />
             <!-- relationship will be an empty string for Ports. -->
             <xs:element name="relationship" type="xs:string" minOccurs="1" maxOccurs="unbounded" />
-            
+
             <!-- "maxWorkQueueSize" is the maximum size this processors work queue should be
             before other processors are expected (not required) to stop loading new files onto it.-->
             <xs:element name="maxWorkQueueSize" type="xs:nonNegativeInteger"/>
-            
+
             <xs:element name="maxWorkQueueDataSize" type="DataSize" minOccurs="0" maxOccurs="1" />
 
             <!-- "flowFileExpirationMinutes" is the maximum time that a flow file may remain
@@ -293,9 +293,13 @@
             <!-- "queuePrioritizerClass" are Java classes that can be used to prioritize the work queues for this
             processor.  The order of the prioritizers is important.-->
             <xs:element name="queuePrioritizerClass" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+
+            <xs:element name="loadBalanceStrategy" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="partitioningAttribute" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="loadBalanceCompression" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="PortType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -306,7 +310,7 @@
             <xs:element name="scheduledState" type="ScheduledState" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="RootGroupPortType">
         <xs:complexContent>
             <xs:extension base="PortType">
@@ -318,7 +322,7 @@
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
-    
+
     <xs:complexType name="RemoteGroupPortType">
         <xs:complexContent>
             <xs:extension base="PortType">
@@ -346,12 +350,12 @@
         <xs:attribute name="x" type="xs:double" use="required" />
         <xs:attribute name="y" type="xs:double" use="required" />
     </xs:complexType>
-	
+
     <xs:complexType name="SizeType">
         <xs:attribute name="width" type="xs:double" use="required" />
         <xs:attribute name="height" type="xs:double" use="required" />
     </xs:complexType>
-	
+
 
     <xs:complexType name="BendPointsType">
         <xs:sequence>
@@ -378,13 +382,13 @@
             <xs:pattern value="\d+\s*(ns|nano|nanos|nanosecond|nanoseconds|ms|milli|millis|millisecond|milliseconds|s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)"></xs:pattern>
         </xs:restriction>
     </xs:simpleType>
-	
+
     <xs:simpleType name="DataSize">
         <xs:restriction base="xs:string">
             <xs:pattern value="\d+\s*(B|KB|MB|GB|TB|b|kb|mb|gb|tb)" />
         </xs:restriction>
     </xs:simpleType>
-	
+
     <xs:simpleType name="LogLevel">
         <xs:restriction base="xs:string">
             <xs:enumeration value="TRACE"></xs:enumeration>
@@ -396,7 +400,7 @@
             <xs:enumeration value="NONE"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
-	
+
     <xs:simpleType name="SchedulingStrategy">
         <xs:restriction base="xs:string">
             <xs:enumeration value="EVENT_DRIVEN"></xs:enumeration>
@@ -405,7 +409,7 @@
             <xs:enumeration value="CRON_DRIVEN"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <xs:simpleType name="ExecutionNode">
         <xs:restriction base="xs:string">
             <xs:enumeration value="ALL"></xs:enumeration>
@@ -418,7 +422,7 @@
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="ControllerServiceType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -428,18 +432,18 @@
             <xs:element name="class" type="NonEmptyStringType" />
             <xs:element name="bundle" type="BundleType" />
             <xs:element name="enabled" type="xs:boolean" />
-    		
+
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="ReportingTasksType">
         <xs:sequence>
             <xs:element name="reportingTask" type="ReportingTaskType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
-    
+
     <xs:complexType name="ReportingTaskType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -450,7 +454,7 @@
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             <xs:element name="scheduledState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
-    		
+
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
