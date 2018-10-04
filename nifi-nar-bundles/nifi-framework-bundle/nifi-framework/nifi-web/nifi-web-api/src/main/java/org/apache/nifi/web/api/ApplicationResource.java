@@ -272,9 +272,9 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Generates a 150 Node Continue response to be used within the cluster request handshake.
+     * Generates a 202 Accepted (Node Continue) response to be used within the cluster request handshake.
      *
-     * @return a 150 Node Continue response to be used within the cluster request handshake
+     * @return a 202 Accepted (Node Continue) response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
         return Response.status(RequestReplicator.NODE_CONTINUE_STATUS_CODE);

@@ -166,7 +166,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
             // If we have a response that is a 3xx, 4xx, or 5xx, then we want to choose that.
             // Otherwise, it doesn't matter which one we choose. We do this because if we replicate
             // a mutable request, it's possible that one node will respond with a 409, for instance, while
-            // others respond with a 150-Continue. We do not want to pick the 150-Continue; instead, we want
+            // others respond with a 202-Accepted. We do not want to pick the 202-Accepted; instead, we want
             // the failed response.
             final NodeResponse clientResponse = nodeResponses.stream().filter(p -> p.getStatus() > 299).findAny().orElse(nodeResponses.iterator().next());
 
@@ -236,7 +236,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         responses.stream()
                 .parallel() // "parallelize" the draining of the responses, since we have multiple streams to consume
                 .filter(response -> response != exclude) // don't include the explicitly excluded node
-                .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
+                .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any continue responses because they contain no content
                 .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out
     }
 

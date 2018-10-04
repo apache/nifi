@@ -248,7 +248,7 @@ public class TestThreadPoolRequestReplicator {
                 final int statusCode;
                 if (requestCount.incrementAndGet() == 1) {
                     assertEquals(ThreadPoolRequestReplicator.NODE_CONTINUE, expectsHeader);
-                    statusCode = 150;
+                    statusCode = Status.ACCEPTED.getStatusCode();
                 } else {
                     assertNull(expectsHeader);
                     statusCode = Status.OK.getStatusCode();
@@ -390,7 +390,7 @@ public class TestThreadPoolRequestReplicator {
 
                 if (requestIndex == 1) {
                     final Response clientResponse = mock(Response.class);
-                    when(clientResponse.getStatus()).thenReturn(150);
+                    when(clientResponse.getStatus()).thenReturn(202);
                     return new NodeResponse(nodeId, request.getMethod(), uri, clientResponse, -1L, requestId);
                 } else {
                     final IllegalClusterStateException explanation = new IllegalClusterStateException("Intentional Exception for Unit Testing");
