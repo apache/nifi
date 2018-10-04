@@ -47,8 +47,8 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
         .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("Batch size")
-        .displayName("Batch size")
+        .name("Batch Size")
+        .displayName("Batch Size")
         .required(true)
         .defaultValue("100")
         .description("The number of documents per batch - sets the batch size on the Batcher")
@@ -56,8 +56,8 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
         .build();
 
     public static final PropertyDescriptor THREAD_COUNT = new PropertyDescriptor.Builder()
-        .name("Thread count")
-        .displayName("Thread count")
+        .name("Thread Count")
+        .displayName("Thread Count")
         .required(false)
         .defaultValue("3")
         .description("The number of threads - sets the thread count on the Batcher")
@@ -77,6 +77,20 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
         return context.getProperty(DATABASE_CLIENT_SERVICE)
             .asControllerService(MarkLogicDatabaseClientService.class)
             .getDatabaseClient();
+    }
+
+    protected String[] getArrayFromCommaSeparatedString(String stringValue) {
+        String[] stringArray = null;
+
+        if (stringValue != null && !stringValue.isEmpty()){
+            stringValue = stringValue.trim();
+
+            if (!stringValue.isEmpty()) {
+                stringArray = stringValue.split("\\s*,\\s*");
+            }
+        }
+
+        return stringArray;
     }
 
     @Override

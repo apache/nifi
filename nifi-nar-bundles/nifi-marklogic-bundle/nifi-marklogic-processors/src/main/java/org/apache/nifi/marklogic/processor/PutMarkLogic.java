@@ -134,16 +134,16 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .build();
 
     public static final PropertyDescriptor TEMPORAL_COLLECTION = new PropertyDescriptor.Builder()
-        .name("Temporal collection")
-        .displayName("Temporal collection")
+        .name("Temporal Collection")
+        .displayName("Temporal Collection")
         .description("The temporal collection to use for a temporal document insert")
         .addValidator(Validator.VALID)
         .required(false)
         .build();
 
     public static final PropertyDescriptor TRANSFORM = new PropertyDescriptor.Builder()
-        .name("Server transform")
-        .displayName("Server transform")
+        .name("Server Transform")
+        .displayName("Server Transform")
         .description("The name of REST server transform to apply to every document as it's" +
             " written")
         .addValidator(Validator.VALID)
@@ -151,8 +151,8 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .build();
 
     public static final PropertyDescriptor URI_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-        .name("URI attribute name")
-        .displayName("URI attribute name")
+        .name("URI Attribute Name")
+        .displayName("URI Attribute Name")
         .defaultValue("uuid")
         .required(true)
         .description("The name of the FlowFile attribute whose value will be used as the URI")
@@ -160,16 +160,16 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .build();
 
     public static final PropertyDescriptor URI_PREFIX = new PropertyDescriptor.Builder()
-        .name("URI prefix")
-        .displayName("URI prefix")
+        .name("URI Prefix")
+        .displayName("URI Prefix")
         .description("The prefix to prepend to each URI")
         .required(false)
         .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor URI_SUFFIX = new PropertyDescriptor.Builder()
-        .name("URI suffix")
-        .displayName("URI suffix")
+        .name("URI Suffix")
+        .displayName("URI Suffix")
         .description("The suffix to append to each URI")
         .required(false)
         .addValidator(Validator.VALID)
@@ -343,15 +343,26 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         }
 
         DocumentMetadataHandle metadata = new DocumentMetadataHandle();
+
+        // Get collections from processor property definition
         final PropertyValue collectionProperty = context.getProperty(COLLECTIONS);
-        final String collections = collectionProperty != null ? collectionProperty.isExpressionLanguagePresent()
-            ? collectionProperty.evaluateAttributeExpressions(flowFile).getValue() : collectionProperty.getValue() : null;
-        if (collections != null) {
-            metadata.withCollections(collections.split(","));
+        final String collectionsValue = collectionProperty.isSet() ?
+                (collectionProperty.isExpressionLanguagePresent() ?
+                        collectionProperty.evaluateAttributeExpressions(flowFile).getValue() : collectionProperty.getValue()) : null;
+
+        final String[] collections = getArrayFromCommaSeparatedString(collectionsValue);
+
+        // getArrayFromCommaSeparatedString checks to see if collectionsValue is empty or null.
+        // If collectionsValue is empty or NULL, collections would be NULL. So, no need to check if
+        // collectionsValue is emopty or null again here
+        if (collections != null && !collectionsValue.startsWith("${") && !collectionsValue.endsWith("}")) {
+            metadata.withCollections(collections);
         }
-        final String permissions = context.getProperty(PERMISSIONS).getValue();
-        if (permissions != null) {
-            String[] tokens = permissions.split(",");
+
+        // Get permission from processor property definition
+        final String permissionsValue = context.getProperty(PERMISSIONS).getValue();
+        final String[] tokens = getArrayFromCommaSeparatedString(permissionsValue);
+        if (tokens != null) {
             for (int i = 0; i < tokens.length; i += 2) {
                 String role = tokens[i];
                 String capability = tokens[i + 1];

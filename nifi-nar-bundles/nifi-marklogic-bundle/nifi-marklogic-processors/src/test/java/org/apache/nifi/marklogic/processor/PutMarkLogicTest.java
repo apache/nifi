@@ -41,7 +41,122 @@ public class PutMarkLogicTest extends AbstractMarkLogicProcessorTest {
 
     @Test
     public void jsonWithCustomCollections() {
-        processContext.setProperty(PutMarkLogic.COLLECTIONS, "collection1,collection2");
+        processContext.setProperty(PutMarkLogic.COLLECTIONS, " collection1, collection2,collection3,   collection4   ");
+        processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
+        processor.initialize(initializationContext);
+
+        addFlowFile("{\"hello\":\"nifi rocks\"}");
+
+        processor.onTrigger(processContext, mockProcessSessionFactory);
+
+        assertEquals(2, processor.relationships.size());
+        assertFalse("flushAsync should not have been called yet since a FlowFile existed in the session", processor.flushAsyncCalled);
+
+        BytesHandle content = (BytesHandle) processor.writeEvent.getContent();
+        assertEquals(Format.JSON, content.getFormat());
+        assertEquals("{\"hello\":\"nifi rocks\"}", new String(content.get()));
+
+        DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
+        assertEquals(4, metadata.getCollections().size());
+        Iterator<String> collections = metadata.getCollections().iterator();
+        assertEquals("collection1", collections.next());
+        assertEquals("collection2", collections.next());
+        assertEquals("collection3", collections.next());
+        assertEquals("collection4", collections.next());
+    }
+
+    @Test
+    public void jsonWithNoCollections() {
+        processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
+        processor.initialize(initializationContext);
+
+        addFlowFile("{\"hello\":\"nifi rocks\"}");
+
+        processor.onTrigger(processContext, mockProcessSessionFactory);
+
+        assertEquals(2, processor.relationships.size());
+        assertFalse("flushAsync should not have been called yet since a FlowFile existed in the session", processor.flushAsyncCalled);
+
+        BytesHandle content = (BytesHandle) processor.writeEvent.getContent();
+        assertEquals(Format.JSON, content.getFormat());
+        assertEquals("{\"hello\":\"nifi rocks\"}", new String(content.get()));
+
+        DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
+        assertEquals(0, metadata.getCollections().size());
+    }
+
+    @Test
+    public void jsonWithEmptyCollections() {
+        processContext.setProperty(PutMarkLogic.COLLECTIONS, "");
+        processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
+        processor.initialize(initializationContext);
+
+        addFlowFile("{\"hello\":\"nifi rocks\"}");
+
+        processor.onTrigger(processContext, mockProcessSessionFactory);
+
+        assertEquals(2, processor.relationships.size());
+        assertFalse("flushAsync should not have been called yet since a FlowFile existed in the session", processor.flushAsyncCalled);
+
+        BytesHandle content = (BytesHandle) processor.writeEvent.getContent();
+        assertEquals(Format.JSON, content.getFormat());
+        assertEquals("{\"hello\":\"nifi rocks\"}", new String(content.get()));
+
+        DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
+        assertEquals(0, metadata.getCollections().size());
+    }
+
+    @Test
+    public void jsonWithEmptyStringCollections() {
+        processContext.setProperty(PutMarkLogic.COLLECTIONS, "  ");
+        processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
+        processor.initialize(initializationContext);
+
+        addFlowFile("{\"hello\":\"nifi rocks\"}");
+
+        processor.onTrigger(processContext, mockProcessSessionFactory);
+
+        assertEquals(2, processor.relationships.size());
+        assertFalse("flushAsync should not have been called yet since a FlowFile existed in the session", processor.flushAsyncCalled);
+
+        BytesHandle content = (BytesHandle) processor.writeEvent.getContent();
+        assertEquals(Format.JSON, content.getFormat());
+        assertEquals("{\"hello\":\"nifi rocks\"}", new String(content.get()));
+
+        DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
+        assertEquals(0, metadata.getCollections().size());
+    }
+
+    @Test
+    public void jsonWithAttributeValueCollectionsMissingString() {
+        // This test simulates the case where we fetch collections from an attribute
+        // value specified in a previous step of the flow, but none of the processors in the flow
+        // have that attribute. The results should be that documents are created with no collections.
+        // The point here is that a mistake (or on purpose) was made in setup where the attribute
+        // is missing in the flowfile. But, we do not want the flow to error. We continue as if no
+        // collection was specified
+        processContext.setProperty(PutMarkLogic.COLLECTIONS, "${CollectionText}");
+        processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
+        processor.initialize(initializationContext);
+
+        addFlowFile("{\"hello\":\"nifi rocks\"}");
+
+        processor.onTrigger(processContext, mockProcessSessionFactory);
+
+        assertEquals(2, processor.relationships.size());
+        assertFalse("flushAsync should not have been called yet since a FlowFile existed in the session", processor.flushAsyncCalled);
+
+        BytesHandle content = (BytesHandle) processor.writeEvent.getContent();
+        assertEquals(Format.JSON, content.getFormat());
+        assertEquals("{\"hello\":\"nifi rocks\"}", new String(content.get()));
+
+        DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
+        assertEquals(0, metadata.getCollections().size());
+    }
+
+    @Test
+    public void jsonWithSensibleCollectionsString() {
+        processContext.setProperty(PutMarkLogic.COLLECTIONS, "foo,bar");
         processContext.setProperty(PutMarkLogic.FORMAT, Format.JSON.name());
         processor.initialize(initializationContext);
 
@@ -59,8 +174,9 @@ public class PutMarkLogicTest extends AbstractMarkLogicProcessorTest {
         DocumentMetadataHandle metadata = (DocumentMetadataHandle) processor.writeEvent.getMetadata();
         assertEquals(2, metadata.getCollections().size());
         Iterator<String> collections = metadata.getCollections().iterator();
-        assertEquals("collection1", collections.next());
-        assertEquals("collection2", collections.next());
+        // Assertion check order based on alphabetical order of the collection name
+        assertEquals("bar", collections.next());
+        assertEquals("foo", collections.next());
     }
 
     @Test

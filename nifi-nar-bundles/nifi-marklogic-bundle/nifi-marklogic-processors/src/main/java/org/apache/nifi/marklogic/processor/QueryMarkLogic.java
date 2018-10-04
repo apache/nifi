@@ -63,8 +63,8 @@ import java.util.Set;
 public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor CONSISTENT_SNAPSHOT = new PropertyDescriptor.Builder()
-        .name("Consistent snapshot")
-        .displayName("Consistent snapshot")
+        .name("Consistent Snapshot")
+        .displayName("Consistent Snapshot")
         .defaultValue("true")
         .description("Boolean used to indicate that the matching documents were retrieved from a " +
             "consistent snapshot")
@@ -150,11 +150,17 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
     }
 
     private QueryBatcher createQueryBatcherWithQueryCriteria(ProcessContext context, DatabaseClient databaseClient, DataMovementManager dataMovementManager) {
-        String collectionsValue = context.getProperty(COLLECTIONS).getValue();
+
         QueryManager queryManager = databaseClient.newQueryManager();
-        if(collectionsValue != null) {
+
+        String collectionsValue = context.getProperty(COLLECTIONS).getValue();
+        String[] collections = getArrayFromCommaSeparatedString(collectionsValue);
+
+        // Collections can never be null since that is a required property. However, if that is null for some reason
+        // we do NOT query the database and fetch all the documents
+        if (collections != null) {
             StructuredQueryDefinition query = queryManager.newStructuredQueryBuilder()
-                    .collection(collectionsValue.split(","));
+                    .collection(collections);
             queryBatcher = dataMovementManager.newQueryBatcher(query);
         }
         if(queryBatcher == null) {
@@ -165,7 +171,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     private DocumentPage getDocs(QueryBatch batch, boolean consistentSnapshot) {
         GenericDocumentManager docMgr = batch.getClient().newDocumentManager();
-        if ( consistentSnapshot == true ) {
+        if (consistentSnapshot) {
             return ((GenericDocumentImpl) docMgr).read( batch.getServerTimestamp(), batch.getItems() );
         } else {
             return docMgr.read( batch.getItems() );
