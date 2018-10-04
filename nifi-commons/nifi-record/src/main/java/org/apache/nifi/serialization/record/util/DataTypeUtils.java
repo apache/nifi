@@ -339,6 +339,11 @@ public class DataTypeUtils {
             return dest;
         }
 
+        if (value instanceof ArrayList) {
+            ArrayList<?> arrayList = (ArrayList<?>)value;
+            return arrayList.toArray();
+        }
+
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
     }
 

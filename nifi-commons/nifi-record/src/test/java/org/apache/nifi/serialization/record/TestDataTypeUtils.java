@@ -169,6 +169,21 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testToArray() {
+        final ArrayList<String> arrayList = new ArrayList<>();
+        arrayList.add("Seven");
+        arrayList.add("Eleven");
+        arrayList.add("Thirteen");
+
+        final Object[] array = DataTypeUtils.toArray(arrayList, "arrayList", null);
+
+        assertEquals(arrayList.size(), array.length);
+        for (int i = 0; i < arrayList.size(); i++) {
+            assertEquals(arrayList.get(i), array[i]);
+        }
+    }
+
+    @Test
     public void testStringToBytes() {
         Object bytes = DataTypeUtils.convertType("Hello", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),null, StandardCharsets.UTF_8);
         assertTrue(bytes instanceof Byte[]);
