@@ -77,6 +77,8 @@ public class JMSPublisherConsumerIT {
             flowFileAttributes.put("illegal-property", "value");
             flowFileAttributes.put("another.illegal", "value");
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
+            flowFileAttributes.put(JmsHeaders.DELIVERY_MODE, "1");
+            flowFileAttributes.put(JmsHeaders.PRIORITY, "1");
             flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be integer, make sure non-integer doesn't cause problems
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
@@ -86,6 +88,8 @@ public class JMSPublisherConsumerIT {
             assertFalse(receivedMessage.propertyExists("illegal-property"));
             assertFalse(receivedMessage.propertyExists("another.illegal"));
             assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
+            assertEquals(1, receivedMessage.getJMSDeliveryMode());
+            assertEquals(1, receivedMessage.getJMSPriority());
             assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
 
         } finally {
