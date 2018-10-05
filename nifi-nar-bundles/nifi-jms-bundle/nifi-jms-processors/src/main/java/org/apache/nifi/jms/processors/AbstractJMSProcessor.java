@@ -33,6 +33,7 @@ import org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapte
 import org.springframework.jms.core.JmsTemplate;
 
 import javax.jms.ConnectionFactory;
+import javax.jms.Message;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -177,6 +178,10 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
                 }
             }
             if (worker != null) {
+                worker.jmsTemplate.setExplicitQosEnabled(false);
+                worker.jmsTemplate.setDeliveryMode(Message.DEFAULT_DELIVERY_MODE);
+                worker.jmsTemplate.setTimeToLive(Message.DEFAULT_TIME_TO_LIVE);
+                worker.jmsTemplate.setPriority(Message.DEFAULT_PRIORITY);
                 workerPool.offer(worker);
             }
         }
