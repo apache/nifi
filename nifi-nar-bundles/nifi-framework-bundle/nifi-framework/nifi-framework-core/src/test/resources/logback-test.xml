@@ -20,15 +20,15 @@
             <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
         </encoder>
     </appender>
-    
+
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>./target/log</file>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
-    
-    
+
+
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.controller.service" level="DEBUG"/>
     <logger name="org.apache.nifi.encrypt" level="DEBUG"/>

@@ -17,17 +17,6 @@
 
 package org.apache.nifi.cluster.integration;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
@@ -72,6 +61,18 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Node {
     private final NodeIdentifier nodeId;
@@ -133,7 +134,7 @@ public class Node {
 
 
     private static NodeIdentifier createNodeId() {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
     }
 
     /**
@@ -296,8 +297,13 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
-                revisionManager, nodeProperties, protocolSender);
+        try {
+            return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
+                    revisionManager, nodeProperties, protocolSender);
+        } catch (IOException e) {
+            Assert.fail(e.toString());
+            return null;
+        }
     }
 
 

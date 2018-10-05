@@ -1426,9 +1426,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public synchronized int getTerminatedThreadCount() {
-        return (int) activeThreads.values().stream()
-            .filter(ActiveTask::isTerminated)
-            .count();
+        int count = 0;
+        for (final ActiveTask task : activeThreads.values()) {
+            if (task.isTerminated()) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
 

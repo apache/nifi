@@ -17,17 +17,6 @@
 
 package org.apache.nifi.controller.state.manager;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
@@ -57,8 +46,20 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 public class StandardStateManagerProvider implements StateManagerProvider{
     private static final Logger logger = LoggerFactory.getLogger(StandardStateManagerProvider.class);
+
+    private static StateManagerProvider provider;
 
     private final ConcurrentMap<String, StateManager> stateManagers = new ConcurrentHashMap<>();
     private final StateProvider localStateProvider;
@@ -69,7 +70,11 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         this.clusterStateProvider = clusterStateProvider;
     }
 
-    public static StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry) throws ConfigParseException, IOException {
+    public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry) throws ConfigParseException, IOException {
+        if (provider != null) {
+            return provider;
+        }
+
         final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry);
 
         final StateProvider clusterProvider;
@@ -79,7 +84,8 @@ public class StandardStateManagerProvider implements StateManagerProvider{
             clusterProvider = null;
         }
 
-        return new StandardStateManagerProvider(localProvider, clusterProvider);
+        provider = new StandardStateManagerProvider(localProvider, clusterProvider);
+        return provider;
     }
 
     private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry) throws IOException, ConfigParseException {

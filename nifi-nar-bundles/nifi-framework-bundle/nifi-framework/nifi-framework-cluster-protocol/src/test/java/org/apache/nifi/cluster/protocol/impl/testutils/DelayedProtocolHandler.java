@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol.impl.testutils;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  */
@@ -34,7 +36,7 @@ public class DelayedProtocolHandler implements ProtocolHandler {
     }
 
     @Override
-    public ProtocolMessage handle(ProtocolMessage msg) throws ProtocolException {
+    public ProtocolMessage handle(ProtocolMessage msg, Set<String> nodeIdentities) throws ProtocolException {
         try {
             messages.add(msg);
             Thread.sleep(delay);

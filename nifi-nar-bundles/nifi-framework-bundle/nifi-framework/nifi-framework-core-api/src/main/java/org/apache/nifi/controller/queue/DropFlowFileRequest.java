@@ -15,11 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.controller;
-
-import org.apache.nifi.controller.queue.DropFlowFileState;
-import org.apache.nifi.controller.queue.DropFlowFileStatus;
-import org.apache.nifi.controller.queue.QueueSize;
+package org.apache.nifi.controller.queue;
 
 public class DropFlowFileRequest implements DropFlowFileStatus {
     private final String identifier;
@@ -53,7 +49,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return originalSize;
     }
 
-    void setOriginalSize(final QueueSize originalSize) {
+    public void setOriginalSize(final QueueSize originalSize) {
         this.originalSize = originalSize;
     }
 
@@ -62,7 +58,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return currentSize;
     }
 
-    void setCurrentSize(final QueueSize queueSize) {
+    public void setCurrentSize(final QueueSize queueSize) {
         this.currentSize = queueSize;
     }
 
@@ -71,7 +67,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return droppedSize;
     }
 
-    void setDroppedSize(final QueueSize droppedSize) {
+    public void setDroppedSize(final QueueSize droppedSize) {
         this.droppedSize = droppedSize;
     }
 
@@ -90,17 +86,17 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
         return failureReason;
     }
 
-    synchronized void setState(final DropFlowFileState state) {
+    public synchronized void setState(final DropFlowFileState state) {
         setState(state, null);
     }
 
-    synchronized void setState(final DropFlowFileState state, final String explanation) {
+    public synchronized void setState(final DropFlowFileState state, final String explanation) {
         this.state = state;
         this.failureReason = explanation;
         this.lastUpdated = System.currentTimeMillis();
     }
 
-    synchronized boolean cancel() {
+    public synchronized boolean cancel() {
         if (this.state == DropFlowFileState.COMPLETE || this.state == DropFlowFileState.CANCELED) {
             return false;
         }

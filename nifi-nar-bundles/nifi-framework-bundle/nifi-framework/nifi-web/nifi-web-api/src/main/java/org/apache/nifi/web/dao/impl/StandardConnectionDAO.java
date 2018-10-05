@@ -25,6 +25,8 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -176,6 +178,18 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
         if (isNotNull(newPrioritizers)) {
             connection.getFlowFileQueue().setPriorities(newPrioritizers);
+        }
+
+        final String loadBalanceStrategyName = connectionDTO.getLoadBalanceStrategy();
+        final String loadBalancePartitionAttribute = connectionDTO.getLoadBalancePartitionAttribute();
+        if (isNotNull(loadBalanceStrategyName)) {
+            final LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.valueOf(loadBalanceStrategyName);
+            connection.getFlowFileQueue().setLoadBalanceStrategy(loadBalanceStrategy, loadBalancePartitionAttribute);
+        }
+
+        final String loadBalanceCompressionName = connectionDTO.getLoadBalanceCompression();
+        if (isNotNull(loadBalanceCompressionName)) {
+            connection.getFlowFileQueue().setLoadBalanceCompression(LoadBalanceCompression.valueOf(loadBalanceCompressionName));
         }
 
         // update the connection state
