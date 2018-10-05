@@ -571,7 +571,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             // Re-define 'queuePartitions' array
             final List<NodeIdentifier> sortedNodeIdentifiers = new ArrayList<>(updatedNodeIdentifiers);
-            sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
+            sortedNodeIdentifiers.sort(Comparator.comparing(nodeId -> nodeId.getApiAddress() + ":" + nodeId.getApiPort()));
 
             final QueuePartition[] updatedQueuePartitions;
             if (sortedNodeIdentifiers.isEmpty()) {
@@ -990,6 +990,14 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     return;
                 }
 
+                if (!nodeIdentifiers.contains(localNodeId)) {
+                    final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+                    updatedNodeIds.add(localNodeId);
+
+                    logger.debug("Local Node Identifier has now been determined to be {}. Adding to set of Node Identifiers for {}", localNodeId, SocketLoadBalancedFlowFileQueue.this);
+                    setNodeIdentifiers(updatedNodeIds, false);
+                }
+
                 logger.debug("Local Node Identifier set to {}; current partitions = {}", localNodeId, queuePartitions);
 
                 for (final QueuePartition partition : queuePartitions) {
@@ -1009,7 +1017,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                         logger.debug("{} Local Node Identifier set to {} and found Queue Partition {} with that Node Identifier. Will force update of partitions",
                                 SocketLoadBalancedFlowFileQueue.this, localNodeId, partition);
 
-                        setNodeIdentifiers(SocketLoadBalancedFlowFileQueue.this.nodeIdentifiers, true);
+                        final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+                        updatedNodeIds.add(localNodeId);
+                        setNodeIdentifiers(updatedNodeIds, true);
                         return;
                     }
                 }
