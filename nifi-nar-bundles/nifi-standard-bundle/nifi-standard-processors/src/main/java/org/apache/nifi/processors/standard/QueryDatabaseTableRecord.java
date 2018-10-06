@@ -32,9 +32,10 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
+import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,19 +43,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_PRECISION;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_SCALE;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
 import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
 
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"sql", "select", "jdbc", "query", "database"})
+@Tags({"sql", "select", "jdbc", "query", "database", "record"})
 @SeeAlso({GenerateTableFetch.class, ExecuteSQL.class})
 @CapabilityDescription("Generates a SQL select query, or uses a provided statement, and executes it to fetch all rows whose values in the specified "
         + "Maximum Value column(s) are larger than the "
-        + "previously-seen maxima. Query result will be converted to Avro format. Expression Language is supported for several properties, but no incoming "
+        + "previously-seen maxima. Query result will be converted to the format specified by the record writer. Expression Language is supported for several properties, but no incoming "
         + "connections are permitted. The Variable Registry may be used to provide values for any property containing Expression Language. If it is desired to "
         + "leverage flow file attributes to perform these queries, the GenerateTableFetch and/or ExecuteSQL processors can be used for this purpose. "
         + "Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
@@ -79,13 +77,34 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),
         @WritesAttribute(attribute = "maxvalue.*", description = "Each attribute contains the observed maximum value of a specified 'Maximum-value Column'. The "
-                + "suffix of the attribute is the name of the column. If Output Batch Size is set, then this attribute will not be populated.")})
+                + "suffix of the attribute is the name of the column. If Output Batch Size is set, then this attribute will not be populated."),
+        @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
+        @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
+})
 @DynamicProperty(name = "initial.maxvalue.<max_value_column>", value = "Initial maximum value for the specified column",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY, description = "Specifies an initial max value for max value column(s). Properties should "
         + "be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time the table is accessed (when a Maximum Value Column is specified).")
-public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
+public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
-    public QueryDatabaseTable() {
+    public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
+            .name("qdbtr-record-writer")
+            .displayName("Record Writer")
+            .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer may use Inherit Schema to emulate the inferred schema behavior, i.e. "
+                    + "an explicit schema need not be defined in the writer, and will be supplied by the same logic used to infer the schema from the column types.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor NORMALIZE_NAMES = new PropertyDescriptor.Builder()
+            .name("qdbtr-normalize")
+            .displayName("Normalize Table/Column Names")
+            .description("Whether to change characters in column names when creating the output schema. For example, colons and periods will be changed to underscores.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    public QueryDatabaseTableRecord() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(r);
@@ -100,37 +119,30 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         pds.add(COLUMN_NAMES);
         pds.add(WHERE_CLAUSE);
         pds.add(SQL_QUERY);
+        pds.add(RECORD_WRITER_FACTORY);
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
         pds.add(MAX_FRAGMENTS);
-        pds.add(NORMALIZE_NAMES_FOR_AVRO);
+        pds.add(NORMALIZE_NAMES);
         pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(DEFAULT_PRECISION);
-        pds.add(DEFAULT_SCALE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
     @Override
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context) {
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
-        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
-        final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
-        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
-
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
+        final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
-                .recordName(tableName)
                 .convertNames(convertNamesForAvro)
                 .useLogicalTypes(useAvroLogicalTypes)
-                .defaultPrecision(defaultPrecision)
-                .defaultScale(defaultScale)
-                .maxRows(maxRowsPerFlowFile)
                 .build();
-        return new DefaultAvroSqlWriter(options);
+        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+
+        return new RecordSqlWriter(recordSetWriterFactory, options, maxRowsPerFlowFile, Collections.emptyMap());
     }
 }

@@ -63,6 +63,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return schema;
     }
 
+    // Protected methods for subclasses to access private member variables
+    protected ResultSet getResultSet() {
+        return rs;
+    }
+
+    protected boolean hasMoreRows() {
+        return moreRows;
+    }
+
+    protected void setMoreRows(boolean moreRows) {
+        this.moreRows = moreRows;
+    }
+
     @Override
     public Record next() throws IOException {
         try {
@@ -87,7 +100,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private Record createRecord(final ResultSet rs) throws SQLException {
+    protected Record createRecord(final ResultSet rs) throws SQLException {
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
 
         for (final RecordField field : schema.getFields()) {
