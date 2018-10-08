@@ -22,19 +22,19 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.text.SimpleDateFormat;
+import java.util.Set;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
-
+import java.util.Date;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
  * Utility methods for Cassandra processors' unit tests
  */
 public class CassandraQueryTestUtil {
-    public static ResultSet createMockResultSet() throws Exception {
+    public static ResultSet createMockResultSet(boolean falseThenTrue) throws Exception {
         ResultSet resultSet = mock(ResultSet.class);
         ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
         when(columnDefinitions.size()).thenReturn(9);
@@ -95,12 +95,26 @@ public class CassandraQueryTestUtil {
                         }}, true, 3.0f, 4.0)
         );
 
+        ListenableFuture future = mock(ListenableFuture.class);
+        when(future.get()).thenReturn(rows);
+        when(resultSet.fetchMoreResults()).thenReturn(future);
+
         when(resultSet.iterator()).thenReturn(rows.iterator());
         when(resultSet.all()).thenReturn(rows);
         when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
         when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        if(falseThenTrue) {
+            when(resultSet.isExhausted()).thenReturn(false, true);
+        }else{
+            when(resultSet.isExhausted()).thenReturn(true);
+        }
         when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
+
         return resultSet;
+    }
+
+    public static ResultSet createMockResultSet() throws Exception {
+        return createMockResultSet(true);
     }
 
     public static ResultSet createMockResultSetOneColumn() throws Exception {
@@ -132,10 +146,15 @@ public class CassandraQueryTestUtil {
                 createRow("user2")
         );
 
+        ListenableFuture future = mock(ListenableFuture.class);
+        when(future.get()).thenReturn(rows);
+        when(resultSet.fetchMoreResults()).thenReturn(future);
+
         when(resultSet.iterator()).thenReturn(rows.iterator());
         when(resultSet.all()).thenReturn(rows);
         when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
         when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        when(resultSet.isExhausted()).thenReturn(false).thenReturn(true);
         when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
         return resultSet;
     }
@@ -163,3 +182,4 @@ public class CassandraQueryTestUtil {
         return row;
     }
 }
+

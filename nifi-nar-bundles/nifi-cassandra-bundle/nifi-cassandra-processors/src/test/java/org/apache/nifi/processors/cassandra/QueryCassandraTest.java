@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.cassandra;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.ConsistencyLevel;
@@ -36,21 +26,32 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
-import java.io.ByteArrayOutputStream;
+import org.apache.avro.Schema;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.net.ssl.SSLContext;
-import org.apache.avro.Schema;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class QueryCassandraTest {
@@ -150,6 +151,7 @@ public class QueryCassandraTest {
 
     @Test
     public void testProcessorELConfigJsonOutput() {
+        setUpStandardProcessorConfig();
         testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "${hosts}");
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "${query}");
         testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "${pass}");
@@ -157,6 +159,7 @@ public class QueryCassandraTest {
         testRunner.setProperty(AbstractCassandraProcessor.CHARSET, "${charset}");
         testRunner.setProperty(QueryCassandra.QUERY_TIMEOUT, "${timeout}");
         testRunner.setProperty(QueryCassandra.FETCH_SIZE, "${fetch}");
+        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "${max-rows-per-flow}");
         testRunner.setIncomingConnection(false);
         testRunner.assertValid();
 
@@ -166,6 +169,7 @@ public class QueryCassandraTest {
         testRunner.setVariable("charset", "UTF-8");
         testRunner.setVariable("timeout", "30 sec");
         testRunner.setVariable("fetch", "0");
+        testRunner.setVariable("max-rows-per-flow", "0");
 
         // Test JSON output
         testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
@@ -201,7 +205,7 @@ public class QueryCassandraTest {
     }
 
     @Test
-    public void testProcessorEmptyFlowFileAndExceptions() {
+    public void testProcessorEmptyFlowFile() {
         setUpStandardProcessorConfig();
 
         // Run with empty flowfile
@@ -209,35 +213,81 @@ public class QueryCassandraTest {
         processor.setExceptionToThrow(null);
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileMaxRowsPerFlowFileEqOne() {
+
+        processor = new MockQueryCassandraTwoRounds();
+        testRunner = TestRunners.newTestRunner(processor);
+
+        setUpStandardProcessorConfig();
+
+        testRunner.setIncomingConnection(true);
+        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "1");
+        processor.setExceptionToThrow(null);
+        testRunner.enqueue("".getBytes());
+        testRunner.run(1, true, true);
+        testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 2);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
+        testRunner.clearTransferState();
+    }
+
+
+    @Test
+    public void testProcessorEmptyFlowFileAndNoHostAvailableException() {
+        setUpStandardProcessorConfig();
 
         // Test exceptions
         processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndInetSocketAddressConsistencyLevelANY() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(
                 new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndInetSocketAddressDefault() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(
                 new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndExceptionsProcessException() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(new ProcessException());
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
-        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
+        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
     }
+
+    // --
 
     @Test
     public void testCreateSchemaOneColumn() throws Exception {
@@ -249,7 +299,7 @@ public class QueryCassandraTest {
 
     @Test
     public void testCreateSchema() throws Exception {
-        ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSet(true);
         Schema schema = QueryCassandra.createSchema(rs);
         assertNotNull(schema);
         assertEquals(Schema.Type.RECORD, schema.getType());
@@ -354,17 +404,20 @@ public class QueryCassandraTest {
 
     @Test
     public void testConvertToAvroStream() throws Exception {
+        setUpStandardProcessorConfig();
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToAvroStream(rs, baos, 0, null);
+        long numberOfRows = QueryCassandra.convertToAvroStream(rs, 0, baos, 0, null);
         assertEquals(2, numberOfRows);
     }
 
     @Test
     public void testConvertToJSONStream() throws Exception {
+        setUpStandardProcessorConfig();
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        long numberOfRows = QueryCassandra.convertToJsonStream(rs, baos, StandardCharsets.UTF_8, 0, null);
+        long numberOfRows = QueryCassandra.convertToJsonStream(rs, 0, baos, StandardCharsets.UTF_8,
+                0, null);
         assertEquals(2, numberOfRows);
     }
 
@@ -374,6 +427,7 @@ public class QueryCassandraTest {
         testRunner.setProperty(QueryCassandra.CQL_SELECT_QUERY, "select * from test");
         testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "password");
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "username");
+        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "0");
     }
 
     /**
@@ -397,17 +451,21 @@ public class QueryCassandraTest {
                 Configuration config = Configuration.builder().build();
                 when(mockCluster.getConfiguration()).thenReturn(config);
                 ResultSetFuture future = mock(ResultSetFuture.class);
-                ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+                ResultSet rs = CassandraQueryTestUtil.createMockResultSet(false);
                 when(future.getUninterruptibly()).thenReturn(rs);
+
                 try {
                     doReturn(rs).when(future).getUninterruptibly(anyLong(), any(TimeUnit.class));
                 } catch (TimeoutException te) {
                     throw new IllegalArgumentException("Mocked cluster doesn't time out");
                 }
+
                 if (exceptionToThrow != null) {
-                    when(mockSession.executeAsync(anyString())).thenThrow(exceptionToThrow);
+                    when(mockSession.execute(anyString(), any(), any())).thenThrow(exceptionToThrow);
+                    when(mockSession.execute(anyString())).thenThrow(exceptionToThrow);
                 } else {
-                    when(mockSession.executeAsync(anyString())).thenReturn(future);
+                    when(mockSession.execute(anyString(),any(), any())).thenReturn(rs);
+                    when(mockSession.execute(anyString())).thenReturn(rs);
                 }
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -418,7 +476,52 @@ public class QueryCassandraTest {
         public void setExceptionToThrow(Exception e) {
             this.exceptionToThrow = e;
         }
+    }
 
+    private static class MockQueryCassandraTwoRounds extends MockQueryCassandra {
+
+        private Exception exceptionToThrow = null;
+
+        @Override
+        protected Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
+                                        String username, String password) {
+            Cluster mockCluster = mock(Cluster.class);
+            try {
+                Metadata mockMetadata = mock(Metadata.class);
+                when(mockMetadata.getClusterName()).thenReturn("cluster1");
+                when(mockCluster.getMetadata()).thenReturn(mockMetadata);
+                Session mockSession = mock(Session.class);
+                when(mockCluster.connect()).thenReturn(mockSession);
+                when(mockCluster.connect(anyString())).thenReturn(mockSession);
+                Configuration config = Configuration.builder().build();
+                when(mockCluster.getConfiguration()).thenReturn(config);
+                ResultSetFuture future = mock(ResultSetFuture.class);
+                ResultSet rs = CassandraQueryTestUtil.createMockResultSet(true);
+                when(future.getUninterruptibly()).thenReturn(rs);
+
+                try {
+                    doReturn(rs).when(future).getUninterruptibly(anyLong(), any(TimeUnit.class));
+                } catch (TimeoutException te) {
+                    throw new IllegalArgumentException("Mocked cluster doesn't time out");
+                }
+
+                if (exceptionToThrow != null) {
+                    when(mockSession.execute(anyString(), any(), any())).thenThrow(exceptionToThrow);
+                    when(mockSession.execute(anyString())).thenThrow(exceptionToThrow);
+                } else {
+                    when(mockSession.execute(anyString(),any(), any())).thenReturn(rs);
+                    when(mockSession.execute(anyString())).thenReturn(rs);
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+            return mockCluster;
+        }
+
+        public void setExceptionToThrow(Exception e) {
+            this.exceptionToThrow = e;
+        }
     }
 
 }
+
