@@ -30,4 +30,14 @@
 	<module>nifi-mock-record-utils</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.7.1.Final</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

@@ -82,6 +82,12 @@
                 <artifactId>hadoop-auth</artifactId>
                 <version>${hadoop.version}</version>
             </dependency>
+            <dependency>
+                <!-- Explicitly force Netty to 3.6.9 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.6.9.Final</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
