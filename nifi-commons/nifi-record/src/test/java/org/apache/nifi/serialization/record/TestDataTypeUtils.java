@@ -24,6 +24,7 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,16 +171,13 @@ public class TestDataTypeUtils {
 
     @Test
     public void testToArray() {
-        final ArrayList<String> arrayList = new ArrayList<>();
-        arrayList.add("Seven");
-        arrayList.add("Eleven");
-        arrayList.add("Thirteen");
+        final List<String> list = Arrays.asList("Seven", "Eleven", "Thirteen");
 
-        final Object[] array = DataTypeUtils.toArray(arrayList, "arrayList", null);
+        final Object[] array = DataTypeUtils.toArray(list, "list", null);
 
-        assertEquals(arrayList.size(), array.length);
-        for (int i = 0; i < arrayList.size(); i++) {
-            assertEquals(arrayList.get(i), array[i]);
+        assertEquals(list.size(), array.length);
+        for (int i = 0; i < list.size(); i++) {
+            assertEquals(list.get(i), array[i]);
         }
     }
 
