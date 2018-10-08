@@ -27,8 +27,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <marklogicclientapi.version>4.0.3.1</marklogicclientapi.version>
-        <mljavaclientutil.version>3.5.0</mljavaclientutil.version>
+        <marklogicclientapi.version>4.1.1</marklogicclientapi.version>
+        <mljavaclientutil.version>3.9.0</mljavaclientutil.version>
         <marklogicdatamovementcomponents.version>1.0</marklogicdatamovementcomponents.version>
     </properties>
 

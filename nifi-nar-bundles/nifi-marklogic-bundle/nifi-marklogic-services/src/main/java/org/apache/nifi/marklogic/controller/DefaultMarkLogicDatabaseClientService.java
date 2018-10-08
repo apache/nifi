@@ -52,6 +52,7 @@ public class DefaultMarkLogicDatabaseClientService extends AbstractControllerSer
     private static List<PropertyDescriptor> properties;
 
     private DatabaseClient databaseClient;
+    private boolean isLoadBalanacer = false;
 
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
         .name("Host")
@@ -70,6 +71,15 @@ public class DefaultMarkLogicDatabaseClientService extends AbstractControllerSer
         .description("The port on which the REST server is hosted")
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .build();
+
+    public static final PropertyDescriptor LOAD_BALANCER = new PropertyDescriptor.Builder()
+            .name("Load Balancer")
+            .displayName("Load Balancer")
+            .description("Is the host specified a load balancer?")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(Validator.VALID)
+            .build();
 
     public static final PropertyDescriptor SECURITY_CONTEXT_TYPE = new PropertyDescriptor.Builder()
         .name("Security Context Type")
@@ -135,6 +145,7 @@ public class DefaultMarkLogicDatabaseClientService extends AbstractControllerSer
         List<PropertyDescriptor> list = new ArrayList<>();
         list.add(HOST);
         list.add(PORT);
+        list.add(LOAD_BALANCER);
         list.add(SECURITY_CONTEXT_TYPE);
         list.add(USERNAME);
         list.add(PASSWORD);
@@ -156,6 +167,11 @@ public class DefaultMarkLogicDatabaseClientService extends AbstractControllerSer
         config.setUsername(context.getProperty(USERNAME).getValue());
         config.setPassword(context.getProperty(PASSWORD).getValue());
         config.setDatabase(context.getProperty(DATABASE).getValue());
+
+        if (context.getProperty(LOAD_BALANCER) != null && context.getProperty(LOAD_BALANCER).asBoolean()) {
+            config.setConnectionType(DatabaseClient.ConnectionType.GATEWAY);
+        }
+
         // config.setExternalName(context.getProperty(EXTERNAL_NAME).getValue());
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if(sslService != null) {
