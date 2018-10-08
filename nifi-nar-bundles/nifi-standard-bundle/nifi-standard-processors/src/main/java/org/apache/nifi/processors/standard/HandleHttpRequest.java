@@ -253,8 +253,8 @@ public class HandleHttpRequest extends AbstractProcessor {
             .name("container-queue-size").displayName("Container Queue Size")
             .description("The size of the queue for Http Request Containers").required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("50").build();
-    public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
-            .name("max-request-size")
+    public static final PropertyDescriptor MULTIPART_REQUEST_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("multipart-request-max-size")
             .displayName("Multipart Request Max Size")
             .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
                     + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
@@ -262,12 +262,12 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
             .build();
-    public static final PropertyDescriptor IN_MEMORY_FILE_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("in-memory-file-size-threshold")
+    public static final PropertyDescriptor MULTIPART_READ_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("multipart-read-buffer-size")
             .description("The threshold size, at which the contents of an incoming file would be written to disk. "
                     + "Only applies for requests with Content-Type: multipart/form-data. "
                     + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
-            .displayName("Multipart Read Buffer Size.")
+            .displayName("Multipart Read Buffer Size")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("512 KB")
@@ -296,8 +296,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(ADDITIONAL_METHODS);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(CONTAINER_QUEUE_SIZE);
-        descriptors.add(MAX_REQUEST_SIZE);
-        descriptors.add(IN_MEMORY_FILE_SIZE_THRESHOLD);
+        descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
+        descriptors.add(MULTIPART_READ_BUFFER_SIZE);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -567,10 +567,10 @@ public class HandleHttpRequest extends AbstractProcessor {
         final HttpServletRequest request = container.getRequest();
 
         if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
-          final long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).longValue();
-          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asDataSize(DataUnit.B).intValue();
+          final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
+          final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, maxRequestSize, maxRequestSize, inMemoryFileSizeThreshold));
+          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
           try {
             List<Part> parts = ImmutableList.copyOf(request.getParts());
             int allPartsCount = parts.size();
