@@ -202,7 +202,7 @@ public class QueryCassandraTest {
     }
 
     @Test
-    public void testProcessorEmptyFlowFileAndExceptions() {
+    public void testProcessorEmptyFlowFile() {
         setUpStandardProcessorConfig();
 
         // Run with empty flowfile
@@ -212,6 +212,11 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndNoHostAvailableException() {
+        setUpStandardProcessorConfig();
 
         // Test exceptions
         processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
@@ -219,6 +224,11 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndInetSocketAddressConsistencyLevelANY() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(
                 new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
@@ -226,6 +236,11 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndInetSocketAddressDefault() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(
                 new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
@@ -233,12 +248,19 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
         testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorEmptyFlowFileAndExceptionsProcessException() {
+        setUpStandardProcessorConfig();
 
         processor.setExceptionToThrow(new ProcessException());
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
     }
+
+    // --
 
     @Test
     public void testCreateSchemaOneColumn() throws Exception {
@@ -400,15 +422,19 @@ public class QueryCassandraTest {
                 ResultSetFuture future = mock(ResultSetFuture.class);
                 ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
                 when(future.getUninterruptibly()).thenReturn(rs);
+
                 try {
                     doReturn(rs).when(future).getUninterruptibly(anyLong(), any(TimeUnit.class));
                 } catch (TimeoutException te) {
                     throw new IllegalArgumentException("Mocked cluster doesn't time out");
                 }
+
                 if (exceptionToThrow != null) {
-                    when(mockSession.executeAsync(anyString())).thenThrow(exceptionToThrow);
+                    when(mockSession.execute(anyString(), any(), any())).thenThrow(exceptionToThrow);
+                    when(mockSession.execute(anyString())).thenThrow(exceptionToThrow);
                 } else {
-                    when(mockSession.executeAsync(anyString())).thenReturn(future);
+                    when(mockSession.execute(anyString(),any(), any())).thenReturn(rs);
+                    when(mockSession.execute(anyString())).thenReturn(rs);
                 }
             } catch (Exception e) {
                 fail(e.getMessage());

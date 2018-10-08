@@ -206,15 +206,17 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile fileToProcess = null;
+        FlowFile inputFlowFile = null;
         if (context.hasIncomingConnection()) {
-            fileToProcess = session.get();
+            inputFlowFile = session.get();
 
             // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
             // However, if we have no FlowFile and we have connections coming from other Processors, then
             // we know that we should run only if we have a FlowFile.
-            if (fileToProcess == null && context.hasNonLoopConnection()) {
+            if (inputFlowFile == null && context.hasNonLoopConnection()) {
                 return;
             }
+            session.remove(inputFlowFile);
         }
 
         final ComponentLog logger = getLogger();
@@ -224,57 +226,71 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
 
-        if (fileToProcess == null) {
-            fileToProcess = session.create();
-        }
-
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
             final Session connectionSession = cassandraSession.get();
-            final ResultSetFuture queryFuture = connectionSession.executeAsync(selectQuery);
+            final ResultSet resultSet;
+
+            if (queryTimeout > 0) {
+                resultSet = connectionSession.execute(selectQuery, queryTimeout, TimeUnit.MILLISECONDS);
+            }else{
+                resultSet = connectionSession.execute(selectQuery);
+            }
+
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
-            fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    try {
-                        logger.debug("Executing CQL query {}", new Object[]{selectQuery});
-                        final ResultSet resultSet;
-                        if (queryTimeout > 0) {
-                            resultSet = queryFuture.getUninterruptibly(queryTimeout, TimeUnit.MILLISECONDS);
-                            if (AVRO_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToAvroStream(resultSet, out, queryTimeout, TimeUnit.MILLISECONDS));
-                            } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+            while (!resultSet.isExhausted()) {
+                logger.info("new flow file");
+
+                fileToProcess = session.create();
+
+                fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream out) throws IOException {
+                        try {
+                            logger.debug("Executing CQL query {}", new Object[]{selectQuery});
+                            if (queryTimeout > 0) {
+                                if (AVRO_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToAvroStream(resultSet, out, queryTimeout, TimeUnit.MILLISECONDS));
+                                } else if (JSON_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToJsonStream(resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+                                }
+                            } else {
+                                if (AVRO_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToAvroStream(resultSet, out, 0, null));
+                                } else if (JSON_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
+                                }
                             }
-                        } else {
-                            resultSet = queryFuture.getUninterruptibly();
-                            if (AVRO_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToAvroStream(resultSet, out, 0, null));
-                            } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(resultSet, out, charset, 0, null));
-                            }
+
+                        } catch (final TimeoutException | InterruptedException | ExecutionException e) {
+                            throw new ProcessException(e);
                         }
-
-                    } catch (final TimeoutException | InterruptedException | ExecutionException e) {
-                        throw new ProcessException(e);
                     }
+                });
+
+
+                // set attribute how many rows were selected
+                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+                // set mime.type based on output format
+                fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
+                        JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
+
+                logger.info("{} contains {} records; transferring to 'success'",
+                        new Object[]{fileToProcess, nrOfRows.get()});
+                session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.transfer(fileToProcess, REL_SUCCESS);
+                session.commit();
+                try {
+                    resultSet.fetchMoreResults().get();
+                } catch (Exception e) {
+                    logger.error("ExecutionException : query {} for {} due to {}; routing to failure",
+                            new Object[]{selectQuery, fileToProcess, e});
                 }
-            });
-
-            // set attribute how many rows were selected
-            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-
-            // set mime.type based on output format
-            fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
-                    JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
-
-            logger.info("{} contains {} Avro records; transferring to 'success'",
-                    new Object[]{fileToProcess, nrOfRows.get()});
-            session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
-                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(fileToProcess, REL_SUCCESS);
+            }
 
         } catch (final NoHostAvailableException nhae) {
             getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
@@ -283,11 +299,17 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             // cap the error limit at 10, format the messages, and don't include the stack trace (it is displayed by the
             // logger message above).
             getLogger().error(nhae.getCustomMessage(10, true, false));
+            if (fileToProcess == null) {
+                fileToProcess = session.create();
+            }
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
 
         } catch (final QueryExecutionException qee) {
             logger.error("Cannot execute the query with the requested consistency level successfully", qee);
+            if (fileToProcess == null) {
+                fileToProcess = session.create();
+            }
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
 
@@ -296,28 +318,41 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
                                 + "validation problem; routing {} to failure",
                         new Object[]{selectQuery, fileToProcess}, qve);
+
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
                 fileToProcess = session.penalize(fileToProcess);
                 session.transfer(fileToProcess, REL_FAILURE);
             } else {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
                         + "validation problem", new Object[]{selectQuery}, qve);
-                session.remove(fileToProcess);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
                 context.yield();
             }
         } catch (final ProcessException e) {
             if (context.hasIncomingConnection()) {
                 logger.error("Unable to execute CQL select query {} for {} due to {}; routing to failure",
                         new Object[]{selectQuery, fileToProcess, e});
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
                 fileToProcess = session.penalize(fileToProcess);
                 session.transfer(fileToProcess, REL_FAILURE);
+
             } else {
                 logger.error("Unable to execute CQL select query {} due to {}",
                         new Object[]{selectQuery, e});
-                session.remove(fileToProcess);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
                 context.yield();
             }
         }
+        session.commit();
     }
 
 
@@ -357,36 +392,39 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
+            long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+
             if (columnDefinitions != null) {
-                do {
 
-                    // Grab the ones we have
-                    int rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
-                    if (rowsAvailableWithoutFetching == 0) {
-                        // Get more
-                        if (timeout <= 0 || timeUnit == null) {
-                            rs.fetchMoreResults().get();
+                // Grab the ones we have
+                if (rowsAvailableWithoutFetching == 0) {
+                    // Get more
+                    if (timeout <= 0 || timeUnit == null) {
+                        rs.fetchMoreResults().get();
+                    } else {
+                        rs.fetchMoreResults().get(timeout, timeUnit);
+                    }
+                    rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+                }
+
+
+                while(nrOfRows < rowsAvailableWithoutFetching){
+
+                    Row row = rs.iterator().next();
+
+                    for (int i = 0; i < columnDefinitions.size(); i++) {
+                        final DataType dataType = columnDefinitions.getType(i);
+
+                        if (row.isNull(i)) {
+                            rec.put(i, null);
                         } else {
-                            rs.fetchMoreResults().get(timeout, timeUnit);
+                            rec.put(i, getCassandraObject(row, i, dataType));
                         }
                     }
+                    dataFileWriter.append(rec);
+                    nrOfRows += 1;
 
-                    for (Row row : rs) {
-
-                        for (int i = 0; i < columnDefinitions.size(); i++) {
-                            final DataType dataType = columnDefinitions.getType(i);
-
-                            if (row.isNull(i)) {
-                                rec.put(i, null);
-                            } else {
-                                rec.put(i, getCassandraObject(row, i, dataType));
-                            }
-                        }
-                        dataFileWriter.append(rec);
-                        nrOfRows += 1;
-
-                    }
-                } while (!rs.isFullyFetched());
+                }
             }
             return nrOfRows;
         }
@@ -414,77 +452,79 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             outStream.write("{\"results\":[".getBytes(charset));
             final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
+            long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+
             if (columnDefinitions != null) {
-                do {
 
-                    // Grab the ones we have
-                    int rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
-                    if (rowsAvailableWithoutFetching == 0) {
-                        // Get more
-                        if (timeout <= 0 || timeUnit == null) {
-                            rs.fetchMoreResults().get();
-                        } else {
-                            rs.fetchMoreResults().get(timeout, timeUnit);
-                        }
+                // Grab the ones we have
+                if (rowsAvailableWithoutFetching == 0) {
+                    // Get more
+                    if (timeout <= 0 || timeUnit == null) {
+                        rs.fetchMoreResults().get();
+                    } else {
+                        rs.fetchMoreResults().get(timeout, timeUnit);
                     }
+                    rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+                }
 
-                    for (Row row : rs) {
-                        if (nrOfRows != 0) {
+                while(nrOfRows < rowsAvailableWithoutFetching){
+                    Row row = rs.iterator().next();
+
+                    if (nrOfRows != 0) {
+                        outStream.write(",".getBytes(charset));
+                    }
+                    outStream.write("{".getBytes(charset));
+                    for (int i = 0; i < columnDefinitions.size(); i++) {
+                        final DataType dataType = columnDefinitions.getType(i);
+                        final String colName = columnDefinitions.getName(i);
+                        if (i != 0) {
                             outStream.write(",".getBytes(charset));
                         }
-                        outStream.write("{".getBytes(charset));
-                        for (int i = 0; i < columnDefinitions.size(); i++) {
-                            final DataType dataType = columnDefinitions.getType(i);
-                            final String colName = columnDefinitions.getName(i);
-                            if (i != 0) {
-                                outStream.write(",".getBytes(charset));
-                            }
-                            if (row.isNull(i)) {
-                                outStream.write(("\"" + colName + "\"" + ":null").getBytes(charset));
-                            } else {
-                                Object value = getCassandraObject(row, i, dataType);
-                                String valueString;
-                                if (value instanceof List || value instanceof Set) {
-                                    boolean first = true;
-                                    StringBuilder sb = new StringBuilder("[");
-                                    for (Object element : ((Collection) value)) {
-                                        if (!first) {
-                                            sb.append(",");
-                                        }
-                                        sb.append(getJsonElement(element));
-                                        first = false;
+                        if (row.isNull(i)) {
+                            outStream.write(("\"" + colName + "\"" + ":null").getBytes(charset));
+                        } else {
+                            Object value = getCassandraObject(row, i, dataType);
+                            String valueString;
+                            if (value instanceof List || value instanceof Set) {
+                                boolean first = true;
+                                StringBuilder sb = new StringBuilder("[");
+                                for (Object element : ((Collection) value)) {
+                                    if (!first) {
+                                        sb.append(",");
                                     }
-                                    sb.append("]");
-                                    valueString = sb.toString();
-                                } else if (value instanceof Map) {
-                                    boolean first = true;
-                                    StringBuilder sb = new StringBuilder("{");
-                                    for (Object element : ((Map) value).entrySet()) {
-                                        Map.Entry entry = (Map.Entry) element;
-                                        Object mapKey = entry.getKey();
-                                        Object mapValue = entry.getValue();
-
-                                        if (!first) {
-                                            sb.append(",");
-                                        }
-                                        sb.append(getJsonElement(mapKey));
-                                        sb.append(":");
-                                        sb.append(getJsonElement(mapValue));
-                                        first = false;
-                                    }
-                                    sb.append("}");
-                                    valueString = sb.toString();
-                                } else {
-                                    valueString = getJsonElement(value);
+                                    sb.append(getJsonElement(element));
+                                    first = false;
                                 }
-                                outStream.write(("\"" + colName + "\":"
-                                        + valueString + "").getBytes(charset));
+                                sb.append("]");
+                                valueString = sb.toString();
+                            } else if (value instanceof Map) {
+                                boolean first = true;
+                                StringBuilder sb = new StringBuilder("{");
+                                for (Object element : ((Map) value).entrySet()) {
+                                    Map.Entry entry = (Map.Entry) element;
+                                    Object mapKey = entry.getKey();
+                                    Object mapValue = entry.getValue();
+
+                                    if (!first) {
+                                        sb.append(",");
+                                    }
+                                    sb.append(getJsonElement(mapKey));
+                                    sb.append(":");
+                                    sb.append(getJsonElement(mapValue));
+                                    first = false;
+                                }
+                                sb.append("}");
+                                valueString = sb.toString();
+                            } else {
+                                valueString = getJsonElement(value);
                             }
+                            outStream.write(("\"" + colName + "\":"
+                                    + valueString + "").getBytes(charset));
                         }
-                        nrOfRows += 1;
-                        outStream.write("}".getBytes(charset));
                     }
-                } while (!rs.isFullyFetched());
+                    nrOfRows += 1;
+                    outStream.write("}".getBytes(charset));
+                }
             }
             return nrOfRows;
         } finally {

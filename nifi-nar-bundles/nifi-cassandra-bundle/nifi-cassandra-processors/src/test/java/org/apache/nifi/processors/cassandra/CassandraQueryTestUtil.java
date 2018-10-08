@@ -22,6 +22,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -95,11 +96,17 @@ public class CassandraQueryTestUtil {
                         }}, true, 3.0f, 4.0)
         );
 
+        ListenableFuture future = mock(ListenableFuture.class);
+        when(future.get()).thenReturn(rows);
+        when(resultSet.fetchMoreResults()).thenReturn(future);
+
         when(resultSet.iterator()).thenReturn(rows.iterator());
         when(resultSet.all()).thenReturn(rows);
         when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
         when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        when(resultSet.isExhausted()).thenReturn(false).thenReturn(true);
         when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
+
         return resultSet;
     }
 
@@ -132,10 +139,15 @@ public class CassandraQueryTestUtil {
                 createRow("user2")
         );
 
+        ListenableFuture future = mock(ListenableFuture.class);
+        when(future.get()).thenReturn(rows);
+        when(resultSet.fetchMoreResults()).thenReturn(future);
+
         when(resultSet.iterator()).thenReturn(rows.iterator());
         when(resultSet.all()).thenReturn(rows);
         when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
         when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        when(resultSet.isExhausted()).thenReturn(false).thenReturn(true);
         when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
         return resultSet;
     }
