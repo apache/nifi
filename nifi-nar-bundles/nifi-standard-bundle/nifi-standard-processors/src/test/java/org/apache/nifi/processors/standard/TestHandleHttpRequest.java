@@ -189,10 +189,14 @@ public class TestHandleHttpRequest {
               .url(String.format("http://localhost:%s/my/path", port))
               .post(multipartBody).build();
 
-              OkHttpClient client = new OkHttpClient.Builder().readTimeout(3000, TimeUnit.MILLISECONDS).writeTimeout(3000, TimeUnit.MILLISECONDS).build();
+              OkHttpClient client =
+                  new OkHttpClient.Builder()
+                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                  .build();
 
               try (Response response = client.newCall(request).execute()) {
-                Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().toString()), response.isSuccessful());
+                Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
               }
             } catch (final Throwable t) {
               t.printStackTrace();
