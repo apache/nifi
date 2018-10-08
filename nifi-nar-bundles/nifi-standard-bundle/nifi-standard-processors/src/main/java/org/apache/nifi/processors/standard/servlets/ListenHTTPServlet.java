@@ -105,8 +105,8 @@ public class ListenHTTPServlet extends HttpServlet {
     private StreamThrottler streamThrottler;
     private String basePath;
     private int returnCode;
-    private long maxRequestSize;
-    private int inMemoryFileSizeThreshold;
+    private long multipartRuestMaxSize;
+    private int multipartReadBufferSize;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -121,8 +121,8 @@ public class ListenHTTPServlet extends HttpServlet {
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
         this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
-        this.maxRequestSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MAX_REQUEST_SIZE);
-        this.inMemoryFileSizeThreshold = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_IN_MEMORY_FILE_SIZE_THRESHOLD);
+        this.multipartRuestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
+        this.multipartReadBufferSize = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE);
     }
 
     @Override
@@ -224,10 +224,10 @@ public class ListenHTTPServlet extends HttpServlet {
     }
 
     private Set<FlowFile> handleMultipartRequest(HttpServletRequest request, ProcessSession session, String foundSubject,
-        boolean destinationIsLegacyNiFi, String contentType, InputStream in) throws IOException, ServletException {
+        boolean destinationIsLegacyNiFi, String contentType, InputStream in) throws IOException, IllegalStateException, ServletException {
       Set<FlowFile> flowFileSet = new HashSet<>();
       String tempDir = System.getProperty("java.io.tmpdir");
-      request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, maxRequestSize, maxRequestSize, inMemoryFileSizeThreshold));
+      request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRuestMaxSize, multipartRuestMaxSize, multipartReadBufferSize));
       List<Part> requestParts = ImmutableList.copyOf(request.getParts());
       for (int i = 0; i < requestParts.size(); i++) {
         Part part = requestParts.get(i);
