@@ -26,8 +26,18 @@
         <module>nifi-ldap-iaa-providers</module>
         <module>nifi-ldap-iaa-providers-nar</module>
     </modules>
+    <properties>
+        <spring.version>4.3.19.RELEASE</spring.version>
+    </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ldap-iaa-providers</artifactId>
