@@ -155,14 +155,19 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile is transferred to this relationship if the operation completed successfully.")
+            .description("Successfully created FlowFile from CQL query result set.")
             .build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder()
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("All input FlowFiles that are part of a successful query execution go here.")
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is transferred to this relationship if the operation failed.")
+            .description("CQL query execution failed.")
             .build();
 
     static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
