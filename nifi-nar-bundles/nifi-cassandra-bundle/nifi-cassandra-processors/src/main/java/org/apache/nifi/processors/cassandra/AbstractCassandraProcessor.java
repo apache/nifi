@@ -28,14 +28,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLContext;
 import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -55,6 +47,15 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -181,7 +182,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(CONSISTENCY_LEVEL);
-        descriptors.add(COMPRESSION_TYPE);
         descriptors.add(CHARSET);
     }
 
@@ -209,12 +209,12 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
         if (connectionProviderIsSet && contactPointsIsSet) {
             results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("both " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
-                        " and processor level Cassandra configuration cannot be provided at the same time.").build());
+                    " and processor level Cassandra configuration cannot be provided at the same time.").build());
         }
 
         if (!connectionProviderIsSet && !contactPointsIsSet) {
             results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("either " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
-                        " or processor level Cassandra configuration has to be provided.").build());
+                    " or processor level Cassandra configuration has to be provided.").build());
         }
 
         return results;
@@ -224,7 +224,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
 
-        // Register codecs
         registerAdditionalCodecs();
 
         if (connectionProviderIsSet) {
@@ -386,7 +385,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
         } else if (dataType.equals(DataType.timestamp())) {
             return row.getTimestamp(i);
-
         } else if (dataType.equals(DataType.date())) {
             return row.getDate(i);
 
