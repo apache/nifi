@@ -19,7 +19,6 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -58,7 +57,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -70,6 +68,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
@@ -123,6 +122,30 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
+            .name("Max Rows Per Flow File")
+            .description("The maximum number of result rows that will be included in a single FlowFile. This will allow you to break up very large "
+                    + "result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
+            .defaultValue("0")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("qdbt-output-batch-size")
+            .displayName("Output Batch Size")
+            .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows "
+                    + "have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles "
+                    + "to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will "
+                    + "be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The maxvalue.* and fragment.count attributes will not be set on FlowFiles when this "
+                    + "property is set.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor OUTPUT_FORMAT = new PropertyDescriptor.Builder()
             .name("Output Format")
             .description("The format to which the result rows will be converted. If JSON is selected, the output will "
@@ -165,6 +188,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _propertyDescriptors.add(CQL_SELECT_QUERY);
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
+        _propertyDescriptors.add(MAX_ROWS_PER_FLOW_FILE);
+        _propertyDescriptors.add(OUTPUT_BATCH_SIZE);
         _propertyDescriptors.add(OUTPUT_FORMAT);
         _propertyDescriptors.add(TIMESTAMP_FORMAT_PATTERN);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -202,6 +227,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile fileToProcess = null;
+
         if (context.hasIncomingConnection()) {
             fileToProcess = session.get();
 
@@ -217,60 +243,90 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
+        final long maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final long outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
-
-        if (fileToProcess == null) {
-            fileToProcess = session.create();
-        }
 
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
             final Session connectionSession = cassandraSession.get();
-            final ResultSetFuture queryFuture = connectionSession.executeAsync(selectQuery);
+            final ResultSet resultSet;
+
+            if (queryTimeout > 0) {
+                resultSet = connectionSession.execute(selectQuery, queryTimeout, TimeUnit.MILLISECONDS);
+            }else{
+                resultSet = connectionSession.execute(selectQuery);
+            }
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
-            fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream rawOut) throws IOException {
-                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                        logger.debug("Executing CQL query {}", new Object[]{selectQuery});
-                        final ResultSet resultSet;
-                        if (queryTimeout > 0) {
-                            resultSet = queryFuture.getUninterruptibly(queryTimeout, TimeUnit.MILLISECONDS);
-                            if (AVRO_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToAvroStream(resultSet, out, queryTimeout, TimeUnit.MILLISECONDS));
-                            } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(Optional.of(context), resultSet, out, charset, queryTimeout, TimeUnit.MILLISECONDS));
-                            }
-                        } else {
-                            resultSet = queryFuture.getUninterruptibly();
-                            if (AVRO_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToAvroStream(resultSet, out, 0, null));
-                            } else if (JSON_FORMAT.equals(outputFormat)) {
-                                nrOfRows.set(convertToJsonStream(Optional.of(context), resultSet, out, charset, 0, null));
-                            }
-                        }
+            long flowFileCount = 0;
 
-                    } catch (final TimeoutException | InterruptedException | ExecutionException e) {
-                        throw new ProcessException(e);
+            if(fileToProcess == null) {
+                fileToProcess = session.create();
+            }
+
+            while(true) {
+
+                fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream out) throws IOException {
+                        try {
+                            logger.debug("Executing CQL query {}", new Object[]{selectQuery});
+                            if (queryTimeout > 0) {
+                                if (AVRO_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
+                                            out, queryTimeout, TimeUnit.MILLISECONDS));
+                                } else if (JSON_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
+                                            out, charset, queryTimeout, TimeUnit.MILLISECONDS));
+                                }
+                            } else {
+                                if (AVRO_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
+                                            out, 0, null));
+                                } else if (JSON_FORMAT.equals(outputFormat)) {
+                                    nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
+                                            out, charset, 0, null));
+                                }
+                            }
+                        } catch (final TimeoutException | InterruptedException | ExecutionException e) {
+                            throw new ProcessException(e);
+                        }
+                    }
+                });
+
+                // set attribute how many rows were selected
+                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+                // set mime.type based on output format
+                fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
+                        JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
+
+                if (logger.isDebugEnabled()) {
+                    logger.info("{} contains {} records; transferring to 'success'",
+                            new Object[]{fileToProcess, nrOfRows.get()});
+                }
+                session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.transfer(fileToProcess, REL_SUCCESS);
+
+                if (outputBatchSize > 0) {
+                    flowFileCount++;
+
+                    if (flowFileCount == outputBatchSize) {
+                        session.commitAsync();
+                        flowFileCount = 0;
+//                        fileToProcess = session.create();
                     }
                 }
-            });
-
-            // set attribute how many rows were selected
-            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-
-            // set mime.type based on output format
-            fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
-                    JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
-
-            logger.info("{} contains {} Avro records; transferring to 'success'",
-                    new Object[]{fileToProcess, nrOfRows.get()});
-            session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
-                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(fileToProcess, REL_SUCCESS);
+                resultSet.fetchMoreResults().get();
+                if (resultSet.isExhausted()) {
+                    break;
+                }
+                fileToProcess = session.create();
+            }
 
         } catch (final NoHostAvailableException nhae) {
             getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
@@ -279,11 +335,16 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             // cap the error limit at 10, format the messages, and don't include the stack trace (it is displayed by the
             // logger message above).
             getLogger().error(nhae.getCustomMessage(10, true, false));
+            if (fileToProcess == null) {
+                fileToProcess = session.create();
+            }
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
-
         } catch (final QueryExecutionException qee) {
             logger.error("Cannot execute the query with the requested consistency level successfully", qee);
+            if (fileToProcess == null) {
+                fileToProcess = session.create();
+            }
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
 
@@ -291,29 +352,64 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             if (context.hasIncomingConnection()) {
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
                                 + "validation problem; routing {} to failure",
-                        new Object[]{selectQuery, fileToProcess}, qve);
+                        selectQuery, fileToProcess, qve);
+
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
                 fileToProcess = session.penalize(fileToProcess);
                 session.transfer(fileToProcess, REL_FAILURE);
             } else {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
-                        + "validation problem", new Object[]{selectQuery}, qve);
-                session.remove(fileToProcess);
+                        + "validation problem", selectQuery, qve);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
+                context.yield();
+            }
+        } catch (InterruptedException|ExecutionException ex) {
+            if (context.hasIncomingConnection()) {
+                logger.error("The CQL query {} has yielded an unknown error, routing {} to failure",
+                        selectQuery, fileToProcess, ex);
+
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
+                fileToProcess = session.penalize(fileToProcess);
+                session.transfer(fileToProcess, REL_FAILURE);
+            } else {
+                // This can happen if any exceptions occur while setting up the connection, statement, etc.
+                logger.error("The CQL query {} has run into an unknown error.", selectQuery, ex);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
                 context.yield();
             }
         } catch (final ProcessException e) {
             if (context.hasIncomingConnection()) {
                 logger.error("Unable to execute CQL select query {} for {} due to {}; routing to failure",
-                        new Object[]{selectQuery, fileToProcess, e});
+                        selectQuery, fileToProcess, e);
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
                 fileToProcess = session.penalize(fileToProcess);
                 session.transfer(fileToProcess, REL_FAILURE);
+
             } else {
                 logger.error("Unable to execute CQL select query {} due to {}",
-                        new Object[]{selectQuery, e});
-                session.remove(fileToProcess);
+                        selectQuery, e);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
                 context.yield();
             }
         }
+        session.commitAsync();
+    }
+
+    private void handleException() {
+
     }
 
 
@@ -340,52 +436,88 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream,
+    public static long convertToAvroStream(final ResultSet rs, long maxRowsPerFlowFile,
+                                           final OutputStream outStream,
                                            long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         final Schema schema = createSchema(rs);
         final GenericRecord rec = new GenericData.Record(schema);
-
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(schema, outStream);
 
-            final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
+            ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
+            long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+
             if (columnDefinitions != null) {
-                do {
 
-                    // Grab the ones we have
-                    int rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
-                    if (rowsAvailableWithoutFetching == 0) {
-                        // Get more
-                        if (timeout <= 0 || timeUnit == null) {
-                            rs.fetchMoreResults().get();
+                // Grab the ones we have
+                if (rowsAvailableWithoutFetching == 0
+                        || rowsAvailableWithoutFetching < maxRowsPerFlowFile) {
+                    // Get more
+                    if (timeout <= 0 || timeUnit == null) {
+                        rs.fetchMoreResults().get();
+                    } else {
+                        rs.fetchMoreResults().get(timeout, timeUnit);
+                    }
+                    rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+                }
+
+                if(maxRowsPerFlowFile == 0){
+                    maxRowsPerFlowFile = rowsAvailableWithoutFetching;
+                }
+
+                Row row;
+                //Iterator<Row> it = rs.iterator();
+                while(nrOfRows < maxRowsPerFlowFile){
+                    try {
+                        row = rs.iterator().next();
+                    }catch (NoSuchElementException nsee){
+                        nrOfRows -= 1;
+                        break;
+                    }
+
+                    // iterator().next() is like iterator().one() => return null on end
+                    // https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/ResultSet.html#one--
+                    if(row == null){
+                        break;
+                    }
+
+                    for (int i = 0; i < columnDefinitions.size(); i++) {
+                        final DataType dataType = columnDefinitions.getType(i);
+
+                        if (row.isNull(i)) {
+                            rec.put(i, null);
                         } else {
-                            rs.fetchMoreResults().get(timeout, timeUnit);
+                            rec.put(i, getCassandraObject(row, i, dataType));
                         }
                     }
 
-                    for (Row row : rs) {
-
-                        for (int i = 0; i < columnDefinitions.size(); i++) {
-                            final DataType dataType = columnDefinitions.getType(i);
-
-                            if (row.isNull(i)) {
-                                rec.put(i, null);
-                            } else {
-                                rec.put(i, getCassandraObject(row, i, dataType));
-                            }
-                        }
-                        dataFileWriter.append(rec);
-                        nrOfRows += 1;
-
-                    }
-                } while (!rs.isFullyFetched());
+                    dataFileWriter.append(rec);
+                    nrOfRows += 1;
+                }
             }
             return nrOfRows;
         }
+    }
+
+    private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
+        final String dateFormatPattern = context
+                .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
+                .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat.format(value);
+    }
+
+    public static long convertToJsonStream(final ResultSet rs, long maxRowsPerFlowFile,
+                                           final OutputStream outStream,
+                                           Charset charset, long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException, ExecutionException {
+        return convertToJsonStream(Optional.empty(), rs, maxRowsPerFlowFile, outStream, charset, timeout, timeUnit);
     }
 
     /**
@@ -401,93 +533,108 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
-    public static long convertToJsonStream(final ResultSet rs, final OutputStream outStream,
-                                           Charset charset, long timeout, TimeUnit timeUnit)
-        throws IOException, InterruptedException, TimeoutException, ExecutionException {
-        return convertToJsonStream(Optional.empty(), rs, outStream, charset, timeout, timeUnit);
-    }
-
     @VisibleForTesting
-    static long convertToJsonStream(final Optional<ProcessContext> context, final ResultSet rs, final OutputStream outStream,
-                                           Charset charset, long timeout, TimeUnit timeUnit)
+    public static long convertToJsonStream(final Optional<ProcessContext> context,
+                                    final ResultSet rs, long maxRowsPerFlowFile,
+                                    final OutputStream outStream,
+                                    Charset charset, long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         try {
             // Write the initial object brace
             outStream.write("{\"results\":[".getBytes(charset));
-            final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
+            ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
-            if (columnDefinitions != null) {
-                do {
+            long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
 
-                    // Grab the ones we have
-                    int rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
-                    if (rowsAvailableWithoutFetching == 0) {
-                        // Get more
-                        if (timeout <= 0 || timeUnit == null) {
-                            rs.fetchMoreResults().get();
-                        } else {
-                            rs.fetchMoreResults().get(timeout, timeUnit);
-                        }
+            if (columnDefinitions != null) {
+
+                // Grab the ones we have
+                if (rowsAvailableWithoutFetching == 0) {
+                    // Get more
+                    if (timeout <= 0 || timeUnit == null) {
+                        rs.fetchMoreResults().get();
+                    } else {
+                        rs.fetchMoreResults().get(timeout, timeUnit);
+                    }
+                    rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
+                }
+
+                if(maxRowsPerFlowFile == 0){
+                    maxRowsPerFlowFile = rowsAvailableWithoutFetching;
+                }
+
+                Row row;
+                while(nrOfRows < maxRowsPerFlowFile){
+                    try {
+                        row = rs.iterator().next();
+                    }catch (NoSuchElementException nsee){
+                        nrOfRows -= 1;
+                        break;
                     }
 
-                    for (Row row : rs) {
-                        if (nrOfRows != 0) {
+                    // iterator().next() is like iterator().one() => return null on end
+                    // https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/ResultSet.html#one--
+                    if(row == null){
+                        break;
+                    }
+
+                    if (nrOfRows != 0) {
+                        outStream.write(",".getBytes(charset));
+                    }
+
+                    outStream.write("{".getBytes(charset));
+                    for (int i = 0; i < columnDefinitions.size(); i++) {
+                        final DataType dataType = columnDefinitions.getType(i);
+                        final String colName = columnDefinitions.getName(i);
+                        if (i != 0) {
                             outStream.write(",".getBytes(charset));
                         }
-                        outStream.write("{".getBytes(charset));
-                        for (int i = 0; i < columnDefinitions.size(); i++) {
-                            final DataType dataType = columnDefinitions.getType(i);
-                            final String colName = columnDefinitions.getName(i);
-                            if (i != 0) {
-                                outStream.write(",".getBytes(charset));
-                            }
-                            if (row.isNull(i)) {
-                                outStream.write(("\"" + colName + "\"" + ":null").getBytes(charset));
-                            } else {
-                                Object value = getCassandraObject(row, i, dataType);
-                                String valueString;
-                                if (value instanceof List || value instanceof Set) {
-                                    boolean first = true;
-                                    StringBuilder sb = new StringBuilder("[");
-                                    for (Object element : ((Collection) value)) {
-                                        if (!first) {
-                                            sb.append(",");
-                                        }
-                                        sb.append(getJsonElement(context, element));
-                                        first = false;
+                        if (row.isNull(i)) {
+                            outStream.write(("\"" + colName + "\"" + ":null").getBytes(charset));
+                        } else {
+                            Object value = getCassandraObject(row, i, dataType);
+                            String valueString;
+                            if (value instanceof List || value instanceof Set) {
+                                boolean first = true;
+                                StringBuilder sb = new StringBuilder("[");
+                                for (Object element : ((Collection) value)) {
+                                    if (!first) {
+                                        sb.append(",");
                                     }
-                                    sb.append("]");
-                                    valueString = sb.toString();
-                                } else if (value instanceof Map) {
-                                    boolean first = true;
-                                    StringBuilder sb = new StringBuilder("{");
-                                    for (Object element : ((Map) value).entrySet()) {
-                                        Map.Entry entry = (Map.Entry) element;
-                                        Object mapKey = entry.getKey();
-                                        Object mapValue = entry.getValue();
-
-                                        if (!first) {
-                                            sb.append(",");
-                                        }
-                                        sb.append(getJsonElement(context, mapKey));
-                                        sb.append(":");
-                                        sb.append(getJsonElement(context, mapValue));
-                                        first = false;
-                                    }
-                                    sb.append("}");
-                                    valueString = sb.toString();
-                                } else {
-                                    valueString = getJsonElement(context, value);
+                                    sb.append(getJsonElement(context, element));
+                                    first = false;
                                 }
-                                outStream.write(("\"" + colName + "\":"
-                                        + valueString + "").getBytes(charset));
+                                sb.append("]");
+                                valueString = sb.toString();
+                            } else if (value instanceof Map) {
+                                boolean first = true;
+                                StringBuilder sb = new StringBuilder("{");
+                                for (Object element : ((Map) value).entrySet()) {
+                                    Map.Entry entry = (Map.Entry) element;
+                                    Object mapKey = entry.getKey();
+                                    Object mapValue = entry.getValue();
+
+                                    if (!first) {
+                                        sb.append(",");
+                                    }
+                                    sb.append(getJsonElement(context, mapKey));
+                                    sb.append(":");
+                                    sb.append(getJsonElement(context, mapValue));
+                                    first = false;
+                                }
+                                sb.append("}");
+                                valueString = sb.toString();
+                            } else {
+                                valueString = getJsonElement(context, value);
                             }
+                            outStream.write(("\"" + colName + "\":"
+                                    + valueString + "").getBytes(charset));
                         }
-                        nrOfRows += 1;
-                        outStream.write("}".getBytes(charset));
                     }
-                } while (!rs.isFullyFetched());
+                    nrOfRows += 1;
+                    outStream.write("}".getBytes(charset));
+                }
             }
             return nrOfRows;
         } finally {
@@ -509,15 +656,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         } else {
             return "\"" + value.toString() + "\"";
         }
-    }
-
-    private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
-        final String dateFormatPattern = context
-                .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
-                .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return dateFormat.format(value);
     }
 
     /**
