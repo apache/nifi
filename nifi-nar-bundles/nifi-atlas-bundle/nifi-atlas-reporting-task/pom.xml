@@ -48,6 +48,13 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
         </dependency>
+        <!-- Explicitly force beanutils 1.9.3 because versions prior to 1.9.2 had a vuln
+             Can remove this once atlas client which depends on hadoop-common uses a more recent version -->
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.3</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.atlas</groupId>
             <artifactId>atlas-client</artifactId>
@@ -63,6 +70,11 @@
                 <exclusion>
                     <groupId>it.unimi.dsi</groupId>
                     <artifactId>fastutil</artifactId>
+                </exclusion>
+                <!-- Explicit dep referred to in POM above.  commons-beanutils and commons-beanutils-core merged in 1.9.0 -->
+                <exclusion>
+                    <groupId>commons-beanutils</groupId>
+                    <artifactId>commons-beanutils-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -112,7 +124,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -88,7 +88,7 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-mail</artifactId>
-            <version>4.3.0.RELEASE</version>
+            <version>4.3.17.RELEASE</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.retry</groupId>

@@ -23,8 +23,7 @@
     <artifactId>nifi-kerberos-iaa-providers</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.version>4.3.10.RELEASE</spring.version>
-        <spring.security.version>4.2.4.RELEASE</spring.security.version>
+        <spring.security.version>4.2.8.RELEASE</spring.security.version>
     </properties>
     <dependencies>
         <dependency>
@@ -53,17 +52,14 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
