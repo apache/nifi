@@ -32,6 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -254,7 +255,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("50").build();
     public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
             .name("max-request-size")
-            .displayName("Max Request Size")
+            .displayName("Multipart Request Max Size")
             .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
                     + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
             .required(true)
@@ -263,10 +264,10 @@ public class HandleHttpRequest extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor IN_MEMORY_FILE_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("in-memory-file-size-threshold")
-            .displayName("The threshold size, at which the contents of an incoming file would be written to disk. "
+            .description("The threshold size, at which the contents of an incoming file would be written to disk. "
                     + "Only applies for requests with Content-Type: multipart/form-data. "
                     + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
-            .description("The threshold value for writing a file to disk.")
+            .displayName("Multipart Read Buffer Size.")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("512 KB")
@@ -567,7 +568,7 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
           final long maxRequestSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).longValue();
-          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asDataSize(DataUnit.B).intValue()
+          final int inMemoryFileSizeThreshold = context.getProperty(IN_MEMORY_FILE_SIZE_THRESHOLD).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
           request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, maxRequestSize, maxRequestSize, inMemoryFileSizeThreshold));
           try {
@@ -587,7 +588,7 @@ public class HandleHttpRequest extends AbstractProcessor {
               flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
               forwardFlowFile(context, session, container, start, request, flowFile, i == 0);
             }
-          } catch (IOException | ServletException e) {
+          } catch (IOException | ServletException | IllegalStateException e) {
             handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
             return;
           }
