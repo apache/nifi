@@ -1375,13 +1375,13 @@
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
 
                         }).classed('load-balance-icon-184', function() {
-                            return isExpirationConfigured(d.component);
+                            return d.permissions.canRead && isExpirationConfigured(d.component);
 
                         }).classed('load-balance-icon-200', function() {
-                            return !isExpirationConfigured(d.component);
+                            return d.permissions.canRead && !isExpirationConfigured(d.component);
 
                         }).attr('x', function() {
-                            return isExpirationConfigured(d.component) ? 184 : 200;
+                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 184 : 200;
 
                         }).select('title').text(function () {
                             if (d.permissions.canRead) {
