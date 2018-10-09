@@ -17,6 +17,10 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
@@ -25,10 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.apache.avro.Schema;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.serialization.record.RecordSchema;
 
 public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
     private final Map<RecordSchema, String> avroSchemaTextCache = new LinkedHashMap<RecordSchema, String>() {
@@ -53,11 +53,21 @@ public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
             }
         }
 
-        String schemaText = avroSchemaTextCache.get(schema);
+        String schemaText;
+        synchronized (avroSchemaTextCache) {
+            schemaText = avroSchemaTextCache.get(schema);
+        }
+
         if (schemaText == null) {
             final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
             schemaText = avroSchema.toString();
-            avroSchemaTextCache.put(schema, schemaText);
+
+            synchronized (avroSchemaTextCache) {
+                final String existing = avroSchemaTextCache.putIfAbsent(schema, schemaText);
+                if (existing != null) {
+                    schemaText = existing;
+                }
+            }
         }
 
         return Collections.singletonMap("avro.schema", schemaText);

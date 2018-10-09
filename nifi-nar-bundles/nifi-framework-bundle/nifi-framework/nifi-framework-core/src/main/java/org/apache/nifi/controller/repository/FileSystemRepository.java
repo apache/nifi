@@ -578,7 +578,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             final long modulatedSectionIndex = currentIndex % SECTIONS_PER_CONTAINER;
-            final String section = String.valueOf(modulatedSectionIndex);
+            final String section = String.valueOf(modulatedSectionIndex).intern();
             final String claimId = System.currentTimeMillis() + "-" + currentIndex;
 
             resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant, true);
