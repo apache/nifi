@@ -174,8 +174,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     if (localNodeId == null) {
                         localNodeId = nodeId;
                     } else {
-                        logger.warn("When recovering state, determined that tgwo Node Identifiers claim to be the local Node Identifier: {} and {}. Will ignore both of these and wait until " +
-                            "connecting to cluster to determine which Node Identiifer is the local Node Identifier", localNodeId, nodeId);
+                        logger.warn("When recovering state, determined that two Node Identifiers claim to be the local Node Identifier: {} and {}. Will ignore both of these and wait until " +
+                            "connecting to cluster to determine which Node Identiifer is the local Node Identifier", localNodeId.getFullDescription(), nodeId.getFullDescription());
                         localNodeId = null;
                     }
                 }
@@ -1029,19 +1029,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         if (existingStatus == null) {
             // there is no node with that ID
             resolvedNodeId = proposedIdentifier;
-            logger.debug("No existing node with ID {}; resolved node ID is as-proposed", proposedIdentifier.getId());
+            logger.debug("No existing node with ID {}; resolved node ID is as-proposed", proposedIdentifier.getFullDescription());
             onNodeAdded(resolvedNodeId, true);
         } else if (existingStatus.getNodeIdentifier().logicallyEquals(proposedIdentifier)) {
             // there is a node with that ID but it's the same node.
             resolvedNodeId = proposedIdentifier;
-            logger.debug("No existing node with ID {}; resolved node ID is as-proposed", proposedIdentifier.getId());
+            logger.debug("A node already exists with ID {} and is logically equivalent; resolved node ID is as-proposed: {}", proposedIdentifier.getId(), proposedIdentifier.getFullDescription());
         } else {
             // there is a node with that ID and it's a different node
             resolvedNodeId = new NodeIdentifier(UUID.randomUUID().toString(), proposedIdentifier.getApiAddress(), proposedIdentifier.getApiPort(),
-                    proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(), proposedIdentifier.getSiteToSiteAddress(),
-                    proposedIdentifier.getSiteToSitePort(), proposedIdentifier.getSiteToSiteHttpApiPort(), proposedIdentifier.isSiteToSiteSecure());
+                    proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(), proposedIdentifier.getLoadBalanceAddress(), proposedIdentifier.getLoadBalancePort(),
+                    proposedIdentifier.getSiteToSiteAddress(), proposedIdentifier.getSiteToSitePort(), proposedIdentifier.getSiteToSiteHttpApiPort(), proposedIdentifier.isSiteToSiteSecure());
+
             logger.debug("A node already exists with ID {}. Proposed Node Identifier was {}; existing Node Identifier is {}; Resolved Node Identifier is {}",
-                    proposedIdentifier.getId(), proposedIdentifier, getNodeIdentifier(proposedIdentifier.getId()), resolvedNodeId);
+                    proposedIdentifier.getId(), proposedIdentifier.getFullDescription(), getNodeIdentifier(proposedIdentifier.getId()).getFullDescription(), resolvedNodeId.getFullDescription());
         }
 
         return resolvedNodeId;
