@@ -2321,6 +2321,7 @@ In the future, we hope to provide supplemental documentation that covers the NiF
 
 image::zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
+=== Zero-Master Clustering
 NiFi employs a Zero-Master Clustering paradigm. Each node in the cluster performs the same tasks on
 the data, but each operates on a different set of data. One of the nodes is automatically elected (via Apache
 ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send heartbeat/status information
@@ -2332,9 +2333,9 @@ flow is provided to that node, and that node is able to join the cluster, assumi
 flow matches the copy provided by the Cluster Coordinator. If the node's version of the flow configuration differs
 from that of the Cluster Coordinator's, the node will not join the cluster.
 
-*Why Cluster?* +
+=== Why Cluster?
 
-NiFi Administrators or Dataflow Managers (DFMs) may find that using one instance of NiFi on a single server is not
+NiFi Administrators or DataFlow Managers (DFMs) may find that using one instance of NiFi on a single server is not
 enough to process the amount of data they have. So, one solution is to run the same dataflow on multiple NiFi servers.
 However, this creates a management problem, because each time DFMs want to change or update the dataflow, they must make
 those changes on each server and then monitor each server individually. By clustering the NiFi servers, it's possible to
@@ -2342,10 +2343,10 @@ have that increased processing capability along with a single interface through 
 the dataflow. Clustering allows the DFM to make each change only once, and that change is then replicated to all the nodes
 of the cluster. Through the single interface, the DFM may also monitor the health and status of all the nodes.
 
-NiFi Clustering is unique and has its own terminology. It's important to understand the following terms before setting up a cluster.
-
 [template="glossary", id="terminology"]
-*Terminology* +
+=== Terminology
+
+NiFi Clustering is unique and has its own terminology. It's important to understand the following terms before setting up a cluster:
 
 *NiFi Cluster Coordinator*: A NiFi Cluster Coordinator is the node in a NiFi cluster that is responsible for carrying out
 tasks to manage which nodes are allowed in the cluster and providing the most up-to-date flow to newly joining nodes. When a
@@ -2359,21 +2360,22 @@ ZooKeeper is used to automatically elect a Primary Node. If that node disconnect
 Primary Node will automatically be elected. Users can determine which node is currently elected as the Primary Node by
 looking at the Cluster Management page of the User Interface.
 
+image::primary-node-cluster-mgt.png["Primary Node in Cluster Management UI"]
+
 *Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow
 runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most
 common case is when using a processor that communicates with an external service using a protocol that does not scale well.
-For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP Processor runs on every node in the
-cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could
-configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -
-with the proper dataflow configuration - load-balance it across the rest of the nodes in the cluster. Note that while this
+For example, the GetSFTP processor pulls from a remote directory.  If the GetSFTP Processor runs on every node in the
+cluster and tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could
+configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. With the proper dataflow configuration, it could pull in data and load-balance it across the rest of the nodes in the cluster. Note that while this
 feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster.
 It just depends on the resources available and how the Administrator decides to configure the cluster.
 
 *Heartbeats*: The nodes communicate their health and status to the currently elected Cluster Coordinator via "heartbeats",
 which let the Coordinator know they are still connected to the cluster and working properly. By default, the nodes emit
 heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds, it
-disconnects the node due to "lack of heartbeat". (The 5-second setting is configurable in the _nifi.properties_ file.
-See the <<system_properties>> section of this document for more information.) The reason that the Cluster Coordinator
+disconnects the node due to "lack of heartbeat". The 5-second setting is configurable in the _nifi.properties_ file (see
+the <<cluster_common_properties>> section for more information). The reason that the Cluster Coordinator
 disconnects the node is because the Coordinator needs to ensure that every node in the cluster is in sync, and if a node
 is not heard from regularly, the Coordinator cannot be sure it is still in sync with the rest of the cluster. If, after
 40 seconds, the node does send a new heartbeat, the Coordinator will automatically request that the node re-join the cluster,
@@ -2381,7 +2383,7 @@ to include the re-validation of the node's flow.
 Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM
 in the User Interface.
 
-*Communication within the Cluster* +
+=== Communication within the Cluster
 
 As noted, the nodes communicate with the Cluster Coordinator via heartbeats. When a Cluster Coordinator is elected, it updates
 a well-known ZNode in Apache ZooKeeper with its connection information so that nodes understand where to send heartbeats. If one
@@ -2393,19 +2395,55 @@ When the DFM makes changes to the dataflow, the node that receives the request t
 nodes and waits for each node to respond, indicating that it has made the change on its local flow.
 
 
-*Dealing with Disconnected Nodes* +
+=== Managing Nodes
 
-A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat),
-the Cluster Coordinator will show a bulletin on the User Interface. The DFM will not be able to make any changes to the dataflow until the issue
-of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any
-new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working;
-this may happen for a few reasons, including that the node is unable to communicate with the Cluster Coordinator due to network problems.
+==== Disconnect Nodes
 
-There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster.
-In this case, they DFM may elect to remove the node from the cluster entirely through the Cluster Management dialog. Once removed,
-the node cannot be rejoined to the cluster until it has been restarted.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
 
-*Flow Election* +
+To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
+
+image::disconnected-node-cluster-mgt.png["Disconnected Node in Cluster Management UI"]
+
+A disconnected node can be connected (image:iconConnect.png["Connect Icon"]), offloaded (image:iconOffload.png["Offload Icon"]) or deleted (image:iconDelete.png["Delete Icon"]).
+
+NOTE: Not all nodes in a "Disconnected" state can be offloaded. If the node is disconnected and unreachable, the offload request can not be received by the node to start the offloading. Additionally, offloading may be interrupted or prevented due to firewall rules.
+
+==== Offload Nodes
+
+Flowfiles that remain on a disconnected node can be rebalanced to other active nodes in the cluster via offloading.  In the Cluster Management dialog, select the "Offload" icon (image:iconOffload.png["Offload Icon"]) for a Disconnected node. This will stop all processors, terminate all processors, stop transmitting on all remote process groups and rebalance flowfiles to the other connected nodes in the cluster.
+
+image::offloading-node-cluster-mgt.png["Offloading Node in Cluster Management UI"]
+
+Nodes that remain in "Offloading" state due to errors encountered (out of memory, no network connection, etc.) can be reconnected to the cluster by restarting NiFi on the node. Offloaded nodes can be either reconnected to the cluster (by selecting Connect or restarting NiFi on the node) or deleted from the cluster.
+
+image::offloaded-node-cluster-mgt.png["Offloaded Node in Cluster Management UI"]
+
+==== Delete Nodes
+
+There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster. In this case, the DFM may elect to delete the node from the cluster entirely. In the Cluster Management dialog, select the "Delete" icon (image:iconDelete.png["Delete Icon"]) for a Disconnected or Offloaded node. Once deleted, the node cannot be rejoined to the cluster until it has been restarted.
+
+==== Decommission Nodes
+
+The steps to decommission a node and remove it from a cluster are as follows:
+
+1. Disconnect the node.
+2. Once disconnect completes, offload the node.
+3. Once offload completes, delete the node.
+4. Once the delete request has finished, stop/remove the NiFi service on the host.
+
+==== NiFi Toolkit Node Commands
+
+As an alternative to the UI, the following NiFi Toolkit CLI commands can be used for retrieving a single node, retrieving a list of nodes, and connecting/disconnecting/offloading/deleting nodes:
+
+* `nifi get-node`
+* `nifi get-nodes`
+* `nifi connect-node`
+* `nifi disconnect-node`
+* `nifi offload-node`
+* `nifi delete-node`
+
+=== Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
 "correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
 attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
@@ -2420,7 +2458,7 @@ the "popular vote" with the caveat that the winner will never be an "empty flow"
 allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
 not be voted to be the "correct" flow unless no other flow is found.
 
-*Basic Cluster Setup* +
+=== Basic Cluster Setup
 
 This section describes the setup for a simple three-node, non-secure cluster comprised of three instances of NiFi.
 
@@ -2428,7 +2466,7 @@ For each instance, certain properties in the _nifi.properties_ file will need to
 should be evaluated for your situation and adjusted accordingly. All the properties are described in the <<system_properties>> section of this
 guide; however, in this section, we will focus on the minimum properties that must be set for a simple cluster.
 
-For all three instances, the Cluster Common Properties can be left with the default settings. Note, however, that if you change these settings,
+For all three instances, the <<cluster_common_properties>> can be left with the default settings. Note, however, that if you change these settings,
 they must be set the same on every instance in the cluster.
 
 For each Node, the minimum properties to configure are as follows:
@@ -2471,7 +2509,7 @@ one of the nodes, and the User Interface should look similar to the following:
 
 image:ncm.png["Clustered User Interface"]
 
-*Troubleshooting*
+=== Troubleshooting
 
 If you encounter issues and your cluster does not work as described, investigate the _nifi-app.log_ and _nifi-user.log_
 files on the nodes. If needed, you can change the logging level to DEBUG by editing the `conf/logback.xml` file. Specifically,
@@ -3901,6 +3939,7 @@ nifi.security.group.mapping.transform.anygroup=LOWER
 
 NOTE: These mappings are applied to any legacy groups referenced in the _authorizers.xml_ as well as groups imported from LDAP.
 
+[[cluster_common_properties]]
 === Cluster Common Properties
 
 When setting up a NiFi cluster, these properties should be configured the same way on all nodes.
@@ -3939,8 +3978,7 @@ to the cluster. It provides an additional layer of security. This value is blank
 |`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
 long time before starting processing if we reach at least this number of nodes in the cluster.
 |`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
-|`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi
-.cluster.node.address` property.
+|`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi.cluster.node.address` property.
 |====
 
 [[claim_management]]
