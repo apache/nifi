@@ -90,6 +90,144 @@
     };
 
     /**
+     * Initializes the listing column model.
+     */
+    var getListingColumnModel = function () {
+        // define a custom formatter for showing more processor details
+        var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
+            return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="float: left;"></div>';
+        };
+
+        // function for formatting data sizes
+        var dataSizeFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatDataSize(value);
+        };
+
+        // function for formatting durations
+        var durationFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatDuration(value);
+        };
+
+        // function for formatting penalization
+        var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (value === true) {
+                markup += 'Yes';
+            }
+
+            return markup;
+        };
+
+        // initialize the queue listing table
+        var queueListingColumns = [
+            {
+                id: 'moreDetails',
+                field: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'position',
+                name: 'Position',
+                field: 'position',
+                sortable: false,
+                resizable: false,
+                width: 75,
+                maxWidth: 75,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'uuid',
+                name: 'UUID',
+                field: 'uuid',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'filename',
+                name: 'Filename',
+                field: 'filename',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'size',
+                name: 'File Size',
+                field: 'size',
+                sortable: false,
+                resizable: true,
+                defaultSortAsc: false,
+                formatter: dataSizeFormatter
+            },
+            {
+                id: 'queuedDuration',
+                name: 'Queued Duration',
+                field: 'queuedDuration',
+                sortable: false,
+                resizable: true,
+                formatter: durationFormatter
+            },
+            {
+                id: 'lineageDuration',
+                name: 'Lineage Duration',
+                field: 'lineageDuration',
+                sortable: false,
+                resizable: true,
+                formatter: durationFormatter
+            },
+            {
+                id: 'penalized',
+                name: 'Penalized',
+                field: 'penalized',
+                sortable: false,
+                resizable: false,
+                width: 100,
+                maxWidth: 100,
+                formatter: penalizedFormatter
+            }
+        ];
+
+        // conditionally show the cluster node identifier
+        if (nfClusterSummary.isConnectedToCluster()) {
+            queueListingColumns.push({
+                id: 'clusterNodeAddress',
+                name: 'Node',
+                field: 'clusterNodeAddress',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            });
+        }
+
+        // add an actions column when the user can access provenance
+        if (nfCommon.canAccessProvenance()) {
+            // function for formatting actions
+            var actionsFormatter = function () {
+                return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
+            };
+
+            queueListingColumns.push({
+                id: 'actions',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: actionsFormatter,
+                sortable: false,
+                width: 50,
+                maxWidth: 50
+            });
+        }
+
+        return queueListingColumns;
+    };
+
+    /**
      * Downloads the content for the flowfile currently being viewed.
      */
     var downloadContent = function () {
@@ -306,6 +444,7 @@
 
                         // get the grid to load the data
                         var queueListingGrid = $('#queue-listing-table').data('gridInstance');
+                        queueListingGrid.setColumns(getListingColumnModel());
                         var queueListingData = queueListingGrid.getData();
 
                         // load the flowfiles
@@ -497,137 +636,6 @@
                 performListing(connection);
             });
 
-            // define a custom formatter for showing more processor details
-            var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="float: left;"></div>';
-            };
-
-            // function for formatting data sizes
-            var dataSizeFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nfCommon.formatDataSize(value);
-            };
-
-            // function for formatting durations
-            var durationFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nfCommon.formatDuration(value);
-            };
-
-            // function for formatting penalization
-            var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
-
-                if (value === true) {
-                    markup += 'Yes';
-                }
-
-                return markup;
-            };
-
-            // initialize the queue listing table
-            var queueListingColumns = [
-                {
-                    id: 'moreDetails',
-                    field: 'moreDetails',
-                    name: '&nbsp;',
-                    sortable: false,
-                    resizable: false,
-                    formatter: moreDetailsFormatter,
-                    width: 50,
-                    maxWidth: 50
-                },
-                {
-                    id: 'position',
-                    name: 'Position',
-                    field: 'position',
-                    sortable: false,
-                    resizable: false,
-                    width: 75,
-                    maxWidth: 75,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'uuid',
-                    name: 'UUID',
-                    field: 'uuid',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'filename',
-                    name: 'Filename',
-                    field: 'filename',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'size',
-                    name: 'File Size',
-                    field: 'size',
-                    sortable: false,
-                    resizable: true,
-                    defaultSortAsc: false,
-                    formatter: dataSizeFormatter
-                },
-                {
-                    id: 'queuedDuration',
-                    name: 'Queued Duration',
-                    field: 'queuedDuration',
-                    sortable: false,
-                    resizable: true,
-                    formatter: durationFormatter
-                },
-                {
-                    id: 'lineageDuration',
-                    name: 'Lineage Duration',
-                    field: 'lineageDuration',
-                    sortable: false,
-                    resizable: true,
-                    formatter: durationFormatter
-                },
-                {
-                    id: 'penalized',
-                    name: 'Penalized',
-                    field: 'penalized',
-                    sortable: false,
-                    resizable: false,
-                    width: 100,
-                    maxWidth: 100,
-                    formatter: penalizedFormatter
-                }
-            ];
-
-            // conditionally show the cluster node identifier
-            if (nfClusterSummary.isClustered()) {
-                queueListingColumns.push({
-                    id: 'clusterNodeAddress',
-                    name: 'Node',
-                    field: 'clusterNodeAddress',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                });
-            }
-
-            // add an actions column when the user can access provenance
-            if (nfCommon.canAccessProvenance()) {
-                // function for formatting actions
-                var actionsFormatter = function () {
-                    return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
-                };
-
-                queueListingColumns.push({
-                    id: 'actions',
-                    name: '&nbsp;',
-                    resizable: false,
-                    formatter: actionsFormatter,
-                    sortable: false,
-                    width: 50,
-                    maxWidth: 50
-                });
-            }
-
             var queueListingOptions = {
                 forceFitColumns: true,
                 enableTextSelectionOnCells: true,
@@ -644,7 +652,7 @@
             queueListingData.setItems([]);
 
             // initialize the grid
-            var queueListingGrid = new Slick.Grid('#queue-listing-table', queueListingData, queueListingColumns, queueListingOptions);
+            var queueListingGrid = new Slick.Grid('#queue-listing-table', queueListingData, getListingColumnModel(), queueListingOptions);
             queueListingGrid.setSelectionModel(new Slick.RowSelectionModel());
             queueListingGrid.registerPlugin(new Slick.AutoTooltips());
 
