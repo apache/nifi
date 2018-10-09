@@ -66,6 +66,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -74,6 +76,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
@@ -247,7 +250,9 @@ public class PutORCTest {
                     assertEquals((int) currUser, ((IntWritable) x.get(0)).get());
                     assertEquals(timeMillis, ((IntWritable) x.get(1)).get());
                     assertEquals(timestampMillis, ((TimestampWritableV2) x.get(2)).getTimestamp().toSqlTimestamp());
-                    assertEquals(dt.toLocalDate().toEpochDay(), ((DateWritableV2) x.get(3)).get().toEpochDay());
+                    final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
+                    assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
                     assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
                     return null;
                 }
