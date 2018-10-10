@@ -163,7 +163,7 @@ public class PutORC extends AbstractPutHDFSRecord {
         final Writer orcWriter = NiFiOrcUtils.createWriter(path, conf, orcSchema, stripeSize, compressionType, bufferSize);
         final String hiveTableName = context.getProperty(HIVE_TABLE_NAME).isSet()
                 ? context.getProperty(HIVE_TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue()
-                : NiFiOrcUtils.normalizeHiveTableName(schema.toString());// TODO
+                : NiFiOrcUtils.normalizeHiveTableName(schema.getIdentifier().getName().orElse("unknown"));
         final boolean hiveFieldNames = context.getProperty(HIVE_FIELD_NAMES).asBoolean();
 
         return new ORCHDFSRecordWriter(orcWriter, schema, hiveTableName, hiveFieldNames);
