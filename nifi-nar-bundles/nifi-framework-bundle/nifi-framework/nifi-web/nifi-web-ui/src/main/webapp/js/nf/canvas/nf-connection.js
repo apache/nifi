@@ -1385,7 +1385,7 @@
 
                         }).select('title').text(function () {
                             if (d.permissions.canRead) {
-                                var loadBalanceStrategy = nfCommon.getComboOptionText($('#load-balance-strategy-combo'), d.component.loadBalanceStrategy);
+                                var loadBalanceStrategy = nfCommon.getComboOptionText(nfCommon.loadBalanceStrategyOptions, d.component.loadBalanceStrategy);
                                 if ('PARTITION_BY_ATTRIBUTE' === d.component.loadBalanceStrategy) {
                                     loadBalanceStrategy += ' (' + d.component.loadBalancePartitionAttribute + ')'
                                 }

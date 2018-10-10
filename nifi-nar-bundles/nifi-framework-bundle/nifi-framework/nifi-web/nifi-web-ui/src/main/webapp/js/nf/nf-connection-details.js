@@ -449,6 +449,7 @@
          * @argument {string} connectionId      The connection id
          */
         showDetails: function (groupId, connectionId) {
+
             // get the group details
             var groupXhr = $.ajax({
                 type: 'GET',
@@ -524,9 +525,9 @@
                         nfCommon.populateField('read-only-flow-file-expiration', connection.flowFileExpiration);
                         nfCommon.populateField('read-only-back-pressure-object-threshold', connection.backPressureObjectThreshold);
                         nfCommon.populateField('read-only-back-pressure-data-size-threshold', connection.backPressureDataSizeThreshold);
-                        nfCommon.populateField('read-only-load-balance-strategy', nfCommon.getComboOptionText($('#load-balance-strategy-combo'), connection.loadBalanceStrategy));
+                        nfCommon.populateField('read-only-load-balance-strategy', nfCommon.getComboOptionText(nfCommon.loadBalanceStrategyOptions, connection.loadBalanceStrategy));
                         nfCommon.populateField('read-only-load-balance-partition-attribute', connection.loadBalancePartitionAttribute);
-                        nfCommon.populateField('read-only-load-balance-compression', nfCommon.getComboOptionText($('#load-balance-compression-combo'), connection.loadBalanceCompression));
+                        nfCommon.populateField('read-only-load-balance-compression', nfCommon.getComboOptionText(nfCommon.loadBalanceCompressionOptions, connection.loadBalanceCompression));
 
                         // Show the appropriate load-balance configurations
                         if (nf.ClusterSummary.isClustered()) {
