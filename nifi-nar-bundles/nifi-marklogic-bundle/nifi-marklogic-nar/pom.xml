@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-marklogic-bundle</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>${marklogicnar.version}</version>
     </parent>
 
     <artifactId>nifi-marklogic-nar</artifactId>
@@ -38,18 +38,18 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-marklogic-services-api-nar</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>${marklogicnar.version}</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-marklogic-services</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>${marklogicnar.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-marklogic-processors</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>${marklogicnar.version}</version>
         </dependency>
     </dependencies>
 

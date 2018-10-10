@@ -20,13 +20,16 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>${nifi.version}</version>
     </parent>
 
+    <version>${marklogicnar.version}</version>
     <artifactId>nifi-marklogic-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
+        <nifi.version>1.8.0-SNAPSHOT</nifi.version>
+        <marklogicnar.version>1.8.0-SNAPSHOT</marklogicnar.version>
         <marklogicclientapi.version>4.1.1</marklogicclientapi.version>
         <mljavaclientutil.version>3.9.0</mljavaclientutil.version>
         <marklogicdatamovementcomponents.version>1.0</marklogicdatamovementcomponents.version>
