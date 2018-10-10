@@ -117,7 +117,7 @@
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
-    <!-- Suppress non-error messages due to excessive logging by class or library -->
+    <!-- Suppress non-error messages due to Jetty AnnotationParser emitting a large amount of WARNS. Issue described in NIFI-5479. -->
     <logger name="org.eclipse.jetty.annotations.AnnotationParser" level="ERROR"/>
 
     <!--
