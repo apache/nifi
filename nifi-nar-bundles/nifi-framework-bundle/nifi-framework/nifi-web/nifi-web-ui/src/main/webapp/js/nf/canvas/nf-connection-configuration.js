@@ -919,6 +919,10 @@
         var backPressureObjectThreshold = $('#back-pressure-object-threshold').val();
         var backPressureDataSizeThreshold = $('#back-pressure-data-size-threshold').val();
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
+        var loadBalanceStrategy = $('#load-balance-strategy-combo').combo('getSelectedOption').value;
+        var shouldLoadBalance = 'DO_NOT_LOAD_BALANCE' !== loadBalanceStrategy;
+        var loadBalancePartitionAttribute = shouldLoadBalance && 'PARTITION_BY_ATTRIBUTE' === loadBalanceStrategy ? $('#load-balance-partition-attribute').val() : '';
+        var loadBalanceCompression = shouldLoadBalance ? $('#load-balance-compression-combo').combo('getSelectedOption').value : 'DO_NOT_COMPRESS';
 
         if (validateSettings()) {
             var connectionEntity = {
@@ -945,7 +949,10 @@
                     'backPressureDataSizeThreshold': backPressureDataSizeThreshold,
                     'backPressureObjectThreshold': backPressureObjectThreshold,
                     'bends': bends,
-                    'prioritizers': prioritizers
+                    'prioritizers': prioritizers,
+                    'loadBalanceStrategy': loadBalanceStrategy,
+                    'loadBalancePartitionAttribute': loadBalancePartitionAttribute,
+                    'loadBalanceCompression': loadBalanceCompression
                 }
             };
 
@@ -1181,6 +1188,11 @@
         // clear any ports
         $('#output-port-options').empty();
         $('#input-port-options').empty();
+
+        // clear load balance settings
+        $('#load-balance-strategy-combo').combo('setSelectedOption', nfCommon.loadBalanceStrategyOptions[0]);
+        $('#load-balance-partition-attribute').val('');
+        $('#load-balance-compression-combo').combo('setSelectedOption', nfCommon.loadBalanceCompressionOptions[0]);
 
         // see if the temp edge needs to be removed
         removeTempEdge();
