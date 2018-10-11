@@ -16,28 +16,16 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.google.api.client.util.Charsets;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
@@ -53,17 +41,26 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.api.client.util.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import static org.junit.Assert.assertEquals;
 
 public class TestHandleHttpRequest {
 
@@ -97,7 +94,7 @@ public class TestHandleHttpRequest {
         return service.createSSLContext(SSLContextService.ClientAuth.WANT);
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=30000)
     public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");
@@ -157,7 +154,7 @@ public class TestHandleHttpRequest {
     }
 
 
-    @Test(timeout=10000)
+    @Test(timeout=30000)
     public void testMultipartFormDataRequest() throws InitializationException, MalformedURLException, IOException, InterruptedException {
       final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
       runner.setProperty(HandleHttpRequest.PORT, "0");
@@ -275,7 +272,7 @@ public class TestHandleHttpRequest {
       }
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=30000)
     public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, MalformedURLException, IOException, InterruptedException {
       final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
       runner.setProperty(HandleHttpRequest.PORT, "0");
@@ -365,7 +362,7 @@ public class TestHandleHttpRequest {
     }
 
 
-    @Test(timeout=10000)
+    @Test(timeout=30000)
     public void testFailToRegister() throws InitializationException, MalformedURLException, IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");

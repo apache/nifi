@@ -81,9 +81,9 @@ import static org.mockito.Mockito.mock;
  * Validate Processor's life-cycle operation within the context of
  * {@link FlowController} and {@link StandardProcessScheduler}
  */
-public class TestProcessorLifecycle {
+public class ProcessorLifecycleIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorLifecycleIT.class);
     private static final long SHORT_DELAY_TOLERANCE = 10000L;
     private static final long MEDIUM_DELAY_TOLERANCE = 15000L;
     private static final long LONG_DELAY_TOLERANCE = 20000L;
