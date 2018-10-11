@@ -230,11 +230,12 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
 
         subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
                 evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
-        lastActivityTimestamp = System.currentTimeMillis();
 
         if (!isSubscribed()) {
             return UNABLE_TO_SUBSCRIBE + errorLookup.getLastError();
         }
+
+        lastActivityTimestamp = System.currentTimeMillis();
         return null;
     }
 
