@@ -124,10 +124,19 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Object[]) {
                 Object[] objArray = (Object[]) o;
-                TypeInfo listTypeInfo = ((ListTypeInfo) typeInfo).getListElementTypeInfo();
-                return Arrays.stream(objArray)
-                        .map(o1 -> convertToORCObject(listTypeInfo, o1, hiveFieldNames))
-                        .collect(Collectors.toList());
+                if(TypeInfoFactory.binaryTypeInfo.equals(typeInfo)) {
+                    byte[] dest = new byte[objArray.length];
+                    for(int i=0;i<objArray.length;i++) {
+                        dest[i] = (byte) objArray[i];
+                    }
+                    return new BytesWritable(dest);
+                } else {
+                    // If not binary, assume a list of objects
+                    TypeInfo listTypeInfo = ((ListTypeInfo) typeInfo).getListElementTypeInfo();
+                    return Arrays.stream(objArray)
+                            .map(o1 -> convertToORCObject(listTypeInfo, o1, hiveFieldNames))
+                            .collect(Collectors.toList());
+                }
             }
             if (o instanceof int[]) {
                 int[] intArray = (int[]) o;
@@ -442,8 +451,8 @@ public class NiFiOrcUtils {
             List<RecordField> recordFields = recordDataType.getChildSchema().getFields();
             if (recordFields != null) {
                 List<String> hiveFields = recordFields.stream().map(
-                        recordField -> (hiveFieldNames ? recordField.getFieldName().toLowerCase() : recordField.getFieldName()) + ":"
-                                + getHiveTypeFromFieldType(recordField.getDataType(), hiveFieldNames)).collect(Collectors.toList());
+                        recordField -> ("`" + (hiveFieldNames ? recordField.getFieldName().toLowerCase() : recordField.getFieldName()) + "`:"
+                                + getHiveTypeFromFieldType(recordField.getDataType(), hiveFieldNames))).collect(Collectors.toList());
                 return "STRUCT<" + StringUtils.join(hiveFields, ", ") + ">";
             }
             return null;
