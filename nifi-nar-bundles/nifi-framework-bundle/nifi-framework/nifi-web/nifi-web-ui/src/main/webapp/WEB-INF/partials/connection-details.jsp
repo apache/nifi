@@ -106,7 +106,7 @@
                             <div class="clear"></div>
                         </div>
                     </div>
-                    <div id="read-only-load-balance-settings">
+                    <div>
                         <div class="multi-column-settings">
                             <div class="setting">
                                 <div class="setting-name">

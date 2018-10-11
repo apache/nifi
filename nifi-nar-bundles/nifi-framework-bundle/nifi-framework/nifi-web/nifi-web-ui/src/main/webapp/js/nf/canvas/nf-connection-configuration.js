@@ -23,14 +23,13 @@
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
-                'nf.ClusterSummary',
                 'nf.Dialog',
                 'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.Connection'],
-            function ($, d3, nfErrorHandler, nfCommon, nfClusterSummary, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
-                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfClusterSummary, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
+                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionConfiguration =
@@ -38,7 +37,6 @@
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
-                require('nf.ClusterSummary'),
                 require('nf.Dialog'),
                 require('nf.Storage'),
                 require('nf.Client'),
@@ -49,14 +47,13 @@
             root.d3,
             root.nf.ErrorHandler,
             root.nf.Common,
-            root.nf.ClusterSummary,
             root.nf.Dialog,
             root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.Connection);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfClusterSummary, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
     'use strict';
 
     var nfBirdseye;
@@ -1434,18 +1431,13 @@
                     $('#back-pressure-data-size-threshold').val(connection.backPressureDataSizeThreshold);
 
                     // select the load balance combos
-                    if (nfClusterSummary.isConnectedToCluster()) {
-                        $('#load-balance-strategy-combo').combo('setSelectedOption', {
-                            value: connection.loadBalanceStrategy
-                        });
-                        $('#load-balance-compression-combo').combo('setSelectedOption', {
-                            value: connection.loadBalanceCompression
-                        });
-                        $('#load-balance-partition-attribute').val(connection.loadBalancePartitionAttribute);
-                        $('#load-balance-settings').show();
-                    } else {
-                        $('#load-balance-settings').hide();
-                    }
+                    $('#load-balance-strategy-combo').combo('setSelectedOption', {
+                        value: connection.loadBalanceStrategy
+                    });
+                    $('#load-balance-compression-combo').combo('setSelectedOption', {
+                        value: connection.loadBalanceCompression
+                    });
+                    $('#load-balance-partition-attribute').val(connection.loadBalancePartitionAttribute);
 
                     // format the connection id
                     nfCommon.populateField('connection-id', connection.id);

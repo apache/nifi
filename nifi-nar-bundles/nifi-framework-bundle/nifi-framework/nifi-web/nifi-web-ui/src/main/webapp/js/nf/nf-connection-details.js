@@ -21,23 +21,20 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common',
-                'nf.ClusterSummary',
                 'nf.ErrorHandler'],
-            function ($, nfCommon, nfClusterSummary, nfErrorHandler) {
-                return (nf.ConnectionDetails = factory($, nfCommon, nfClusterSummary, nfErrorHandler));
+            function ($, nfCommon, nfErrorHandler) {
+                return (nf.ConnectionDetails = factory($, nfCommon, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionDetails = factory(require('jquery'),
             require('nf.Common'),
-            require('nf.ClusterSummary'),
             require('nf.ErrorHandler')));
     } else {
         nf.ConnectionDetails = factory(root.$,
             root.nf.Common,
-            root.nf.ClusterSummary,
             root.nf.ErrorHandler);
     }
-}(this, function ($, nfCommon, nfClusterSummary, nfErrorHandler) {
+}(this, function ($, nfCommon, nfErrorHandler) {
     'use strict';
 
     /**
@@ -533,20 +530,15 @@
                         nfCommon.populateField('read-only-load-balance-compression', nfCommon.getComboOptionText(nfCommon.loadBalanceCompressionOptions, connection.loadBalanceCompression));
 
                         // Show the appropriate load-balance configurations
-                        if (nfClusterSummary.isConnectedToCluster()) {
-                            if (connection.loadBalanceStrategy === 'PARTITION_BY_ATTRIBUTE') {
-                                $('#read-only-load-balance-partition-attribute-setting').show();
-                            } else {
-                                $('#read-only-load-balance-partition-attribute-setting').hide();
-                            }
-                            if (connection.loadBalanceStrategy === 'DO_NOT_LOAD_BALANCE') {
-                                $('#read-only-load-balance-compression-setting').hide();
-                            } else {
-                                $('#read-only-load-balance-compression-setting').show();
-                            }
-                            $('#read-only-load-balance-settings').show();
+                        if (connection.loadBalanceStrategy === 'PARTITION_BY_ATTRIBUTE') {
+                            $('#read-only-load-balance-partition-attribute-setting').show();
                         } else {
-                            $('#read-only-load-balance-settings').hide();
+                            $('#read-only-load-balance-partition-attribute-setting').hide();
+                        }
+                        if (connection.loadBalanceStrategy === 'DO_NOT_LOAD_BALANCE') {
+                            $('#read-only-load-balance-compression-setting').hide();
+                        } else {
+                            $('#read-only-load-balance-compression-setting').show();
                         }
 
 
