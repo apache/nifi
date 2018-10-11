@@ -119,6 +119,10 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         registeredPartitions.remove(connectionId);
     }
 
+    public synchronized int getRegisteredConnectionCount() {
+        return registeredPartitions.size();
+    }
+
     private synchronized Map<String, RegisteredPartition> getRegisteredPartitions() {
         return new HashMap<>(registeredPartitions);
     }

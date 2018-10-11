@@ -108,6 +108,8 @@ public class Node {
                     return String.valueOf(nodeId.getSocketPort());
                 }else if(key.equals(NiFiProperties.WEB_HTTP_PORT)){
                     return String.valueOf(nodeId.getApiPort());
+                }else if(key.equals(NiFiProperties.LOAD_BALANCE_PORT)){
+                    return String.valueOf(nodeId.getLoadBalancePort());
                 }else {
                     return properties.getProperty(key);
                 }
@@ -385,5 +387,18 @@ public class Node {
      */
     public void assertNodeIsConnected(final NodeIdentifier nodeId) {
         Assert.assertEquals(NodeConnectionState.CONNECTED, getClusterCoordinator().getConnectionStatus(nodeId).getState());
+    }
+
+    /**
+     * Assert that the node with the given ID is offloaded (according to this node!) within the given amount of time
+     *
+     * @param nodeId id of the node
+     * @param time how long to wait
+     * @param timeUnit unit of time provided by the 'time' argument
+     */
+    public void assertNodeIsOffloaded(final NodeIdentifier nodeId, final long time, final TimeUnit timeUnit) {
+        ClusterUtils.waitUntilConditionMet(time, timeUnit,
+                () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.OFFLOADED,
+                () -> "Connection Status is " + getClusterCoordinator().getConnectionStatus(nodeId).toString());
     }
 }

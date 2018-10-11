@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlRegistry;
 
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
@@ -50,6 +51,10 @@ public class ObjectFactory {
 
     public ReconnectionResponseMessage createReconnectionResponseMessage() {
         return new ReconnectionResponseMessage();
+    }
+
+    public OffloadMessage createDecomissionMessage() {
+        return new OffloadMessage();
     }
 
     public DisconnectMessage createDisconnectionMessage() {

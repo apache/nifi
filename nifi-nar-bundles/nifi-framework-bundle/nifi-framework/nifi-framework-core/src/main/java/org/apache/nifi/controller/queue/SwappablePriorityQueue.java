@@ -878,7 +878,7 @@ public class SwappablePriorityQueue {
                 original.getSwappedCount(), original.getSwappedBytes(), original.getSwapFileCount(),
                 original.getUnacknowledgedCount(), original.getUnacknowledgedBytes());
 
-            updated = size.compareAndSet(original, newSize);
+            updated = updateSize(original, newSize);
 
             if (updated) {
                 logIfNegative(original, newSize, "active");
@@ -908,7 +908,8 @@ public class SwappablePriorityQueue {
             final FlowFileQueueSize newSize = new FlowFileQueueSize(original.getActiveCount(), original.getActiveBytes(),
                 original.getSwappedCount(), original.getSwappedBytes(), original.getSwapFileCount(),
                 original.getUnacknowledgedCount() + count, original.getUnacknowledgedBytes() + bytes);
-            updated = size.compareAndSet(original, newSize);
+
+            updated = updateSize(original, newSize);
 
             if (updated) {
                 logIfNegative(original, newSize, "Unacknowledged");
@@ -949,7 +950,6 @@ public class SwappablePriorityQueue {
         writeLock.lock();
         try {
             final List<FlowFileRecord> activeRecords = new ArrayList<>(this.activeQueue);
-            activeRecords.addAll(this.swapQueue);
 
             final List<String> updatedSwapLocations = new ArrayList<>(swapLocations.size());
             for (final String swapLocation : swapLocations) {
@@ -963,23 +963,27 @@ public class SwappablePriorityQueue {
 
             this.swapLocations.clear();
             this.activeQueue.clear();
-            this.swapQueue.clear();
+
+            final int swapQueueCount = swapQueue.size();
+            final long swapQueueBytes = swapQueue.stream().mapToLong(FlowFileRecord::getSize).sum();
+            activeRecords.addAll(swapQueue);
+            swapQueue.clear();
 
             this.swapMode = false;
 
-            QueueSize swapSize = new QueueSize(0, 0L);
-            boolean updated = false;
-            while (!updated) {
+            QueueSize swapSize;
+            boolean updated;
+            do {
                 final FlowFileQueueSize currentSize = getFlowFileQueueSize();
-                swapSize = new QueueSize(currentSize.getSwappedCount(), currentSize.getSwappedBytes());
+                swapSize = new QueueSize(currentSize.getSwappedCount() - swapQueueCount, currentSize.getSwappedBytes() - swapQueueBytes);
 
                 final FlowFileQueueSize updatedSize = new FlowFileQueueSize(0, 0, 0, 0, 0, currentSize.getUnacknowledgedCount(), currentSize.getUnacknowledgedBytes());
                 updated = updateSize(currentSize, updatedSize);
-            }
+            } while (!updated);
 
             return new FlowFileQueueContents(activeRecords, updatedSwapLocations, swapSize);
         } finally {
-            writeLock.unlock("transfer(SwappablePriorityQueue)");
+            writeLock.unlock("packageForRebalance(SwappablePriorityQueue)");
         }
     }
 
