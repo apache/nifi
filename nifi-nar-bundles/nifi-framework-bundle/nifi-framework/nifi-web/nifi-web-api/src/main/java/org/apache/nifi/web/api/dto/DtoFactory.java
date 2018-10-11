@@ -2312,6 +2312,10 @@ public final class DtoFactory {
                 continue;
             }
 
+            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
+                continue;
+            }
+
             final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
             final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
 

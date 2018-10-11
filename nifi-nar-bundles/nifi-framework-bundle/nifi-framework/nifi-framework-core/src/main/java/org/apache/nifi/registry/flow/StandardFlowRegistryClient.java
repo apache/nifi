@@ -71,6 +71,9 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
         }
 
+        // Handles case where the URI entered has a trailing slash, or includes the trailing /nifi-registry-api
+        final String registryBaseUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
             final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
@@ -80,7 +83,7 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
                     + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
             }
 
-            registry = new RestBasedFlowRegistry(this, registryId, registryUrl, sslContext, registryName);
+            registry = new RestBasedFlowRegistry(this, registryId, registryBaseUrl, sslContext, registryName);
             registry.setDescription(description);
         } else {
             throw new IllegalArgumentException("Cannot create Flow Registry with URI of " + registryUrl
