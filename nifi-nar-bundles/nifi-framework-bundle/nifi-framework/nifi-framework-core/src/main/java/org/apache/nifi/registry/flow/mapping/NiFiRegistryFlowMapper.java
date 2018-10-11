@@ -250,6 +250,7 @@ public class NiFiRegistryFlowMapper {
         final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
         versionedConnection.setLoadBalanceStrategy(flowFileQueue.getLoadBalanceStrategy().name());
         versionedConnection.setPartitioningAttribute(flowFileQueue.getPartitioningAttribute());
+        versionedConnection.setLoadBalanceCompression(flowFileQueue.getLoadBalanceCompression().name());
 
         versionedConnection.setBends(connection.getBendPoints().stream()
             .map(this::mapPosition)
