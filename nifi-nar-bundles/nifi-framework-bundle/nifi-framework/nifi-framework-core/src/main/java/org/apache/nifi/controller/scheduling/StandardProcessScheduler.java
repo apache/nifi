@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import static java.util.Objects.requireNonNull;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -53,6 +40,7 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -64,9 +52,21 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.Objects.requireNonNull;
+
 /**
- * Responsible for scheduling Processors, Ports, and Funnels to run at regular
- * intervals
+ * Responsible for scheduling Processors, Ports, and Funnels to run at regular intervals
  */
 public final class StandardProcessScheduler implements ProcessScheduler {
 
@@ -196,44 +196,39 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 final long lastStopTime = lifecycleState.getLastStopTime();
                 final ReportingTask reportingTask = taskNode.getReportingTask();
 
-                // Continually attempt to start the Reporting Task, and if we fail sleep for a bit each time.
-                while (true) {
-                    try {
-                        synchronized (lifecycleState) {
-                            // if no longer scheduled to run, then we're finished. This can happen, for example,
-                            // if the @OnScheduled method throws an Exception and the user stops the reporting task
-                            // while we're administratively yielded.
-                            // we also check if the schedule state's last start time is equal to what it was before.
-                            // if not, then means that the reporting task has been stopped and started again, so we should just
-                            // bail; another thread will be responsible for invoking the @OnScheduled methods.
-                            if (!lifecycleState.isScheduled() || lifecycleState.getLastStopTime() != lastStopTime) {
-                                return;
-                            }
-
-                            try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass(), reportingTask.getIdentifier())) {
-                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
-                            }
-
-                            agent.schedule(taskNode, lifecycleState);
+                // Attempt to start the Reporting Task, and if we fail re-schedule the task again after #administrativeYielMillis milliseconds
+                try {
+                    synchronized (lifecycleState) {
+                        // if no longer scheduled to run, then we're finished. This can happen, for example,
+                        // if the @OnScheduled method throws an Exception and the user stops the reporting task
+                        // while we're administratively yielded.
+                        // we also check if the schedule state's last start time is equal to what it was before.
+                        // if not, then means that the reporting task has been stopped and started again, so we should just
+                        // bail; another thread will be responsible for invoking the @OnScheduled methods.
+                        if (!lifecycleState.isScheduled() || lifecycleState.getLastStopTime() != lastStopTime) {
+                            LOG.debug("Did not complete invocation of @OnScheduled task for {} but Lifecycle State is no longer scheduled. Will not attempt to invoke task anymore", reportingTask);
                             return;
                         }
-                    } catch (final Exception e) {
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
-                        componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
 
-                        LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
-                                + "ReportingTask and will attempt to schedule it again after {}",
-                                new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
-
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
-
-                        try {
-                            Thread.sleep(administrativeYieldMillis);
-                        } catch (final InterruptedException ie) {
+                        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass(), reportingTask.getIdentifier())) {
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                         }
+
+                        agent.schedule(taskNode, lifecycleState);
                     }
+                } catch (final Exception e) {
+                    final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                    final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
+                    componentLog.error("Failed to invoke @OnScheduled method due to {}", cause);
+
+                    LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
+                            + "ReportingTask and will attempt to schedule it again after {}",
+                            new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
+
+                    componentLifeCycleThreadPool.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                 }
             }
         };
@@ -262,10 +257,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 synchronized (lifecycleState) {
                     lifecycleState.setScheduled(false);
 
-                    try {
-                        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass(), reportingTask.getIdentifier())) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
-                        }
+                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass(), reportingTask.getIdentifier())) {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
@@ -274,11 +267,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
                                 reportingTask, cause.toString(), administrativeYieldDuration);
                         LOG.error("", cause);
-
-                        try {
-                            Thread.sleep(administrativeYieldMillis);
-                        } catch (final InterruptedException ie) {
-                        }
                     }
 
                     agent.unschedule(taskNode, lifecycleState);
@@ -295,10 +283,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Starts the given {@link Processor} by invoking its
-     * {@link ProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)}
+     * {@link ProcessorNode#start(ScheduledExecutorService, long, ProcessContext, SchedulingAgentCallback, boolean)}
      * method.
      *
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, ProcessContext, SchedulingAgentCallback, boolean)
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
@@ -335,10 +323,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Stops the given {@link Processor} by invoking its
-     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, LifecycleState)}
+     * {@link ProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState)}
      * method.
      *
-     * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, LifecycleState)
+     * @see StandardProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState)
      */
     @Override
     public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
