@@ -1192,6 +1192,42 @@
         MILLIS_PER_SECOND: 1000,
 
         /**
+         * Constants for combo options.
+         */
+        loadBalanceStrategyOptions: [{
+                text: 'Do not load balance',
+                value: 'DO_NOT_LOAD_BALANCE',
+                description: 'Do not load balance FlowFiles between nodes in the cluster.'
+            }, {
+                text: 'Partition by attribute',
+                value: 'PARTITION_BY_ATTRIBUTE',
+                description: 'Determine which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute.'
+                                + ' All FlowFiles that have the same value for said Attribute will be sent to the same node in the cluster.'
+            }, {
+                text: 'Round robin',
+                value: 'ROUND_ROBIN',
+                description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion.'
+            }, {
+                text: 'Single node',
+                value: 'SINGLE_NODE',
+                description: 'All FlowFiles will be sent to the same node. Which node they are sent to is not defined.'
+        }],
+
+        loadBalanceCompressionOptions: [{
+                text: 'Do not compress',
+                value: 'DO_NOT_COMPRESS',
+                description: 'FlowFiles will not be compressed'
+            }, {
+                text: 'Compress attributes only',
+                value: 'COMPRESS_ATTRIBUTES_ONLY',
+                description: 'FlowFiles\' attributes will be compressed, but the FlowFiles\' contents will not be'
+            }, {
+                text: 'Compress attributes and content',
+                value: 'COMPRESS_ATTRIBUTES_AND_CONTENT',
+                description: 'FlowFiles\' attributes and content will be compressed'
+        }],
+
+        /**
          * Formats the specified duration.
          *
          * @param {integer} duration in millis
@@ -1650,7 +1686,22 @@
          */
         getComponentName: function (entity) {
             return entity.permissions.canRead === true ? entity.component.name : entity.id;
+        },
+
+        /**
+         * Find the corresponding combo option text from a combo option values.
+         *
+         * @param {object} options    The combo option array
+         * @param {string} value      The target value
+         * @returns {string}          The matched option text or undefined if not found
+         */
+        getComboOptionText: function (options, value) {
+            var matchedOption = options.find(function (option) {
+                return option.value === value;
+            });
+            return nfCommon.isDefinedAndNotNull(matchedOption) ? matchedOption.text : undefined;
         }
+
     };
 
     return nfCommon;

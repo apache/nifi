@@ -60,7 +60,7 @@
 
     // the dimensions for the connection label
     var dimensions = {
-        width: 200
+        width: 216
     };
 
     // width of a backpressure indicator - half of width, left/right padding, left/right border
@@ -255,6 +255,16 @@
             }
         }
         return false;
+    };
+
+    /**
+     * Determines whether load-balance is configured for the specified connection.
+     *
+     * @param {object} connection
+     * @return {boolean} Whether load-balance is configured
+     */
+    var isLoadBalanceConfigured = function (connection) {
+        return nfCommon.isDefinedAndNotNull(connection.loadBalanceStrategy) && 'DO_NOT_LOAD_BALANCE' !== connection.loadBalanceStrategy;
     };
 
     /**
@@ -886,7 +896,7 @@
                                 connectionFrom.append('text')
                                     .attrs({
                                         'class': 'connection-from-run-status',
-                                        'x': 185,
+                                        'x': 200,
                                         'y': 14
                                     });
                             } else {
@@ -995,7 +1005,7 @@
                                 connectionTo.append('text')
                                     .attrs({
                                         'class': 'connection-to-run-status',
-                                        'x': 185,
+                                        'x': 200,
                                         'y': 14
                                     });
                             } else {
@@ -1195,11 +1205,23 @@
                                 'class': 'size'
                             });
 
+                        // load balance icon
+                        // x is set dynamically to slide to right, depending on whether expiration icon is shown.
+                        queued.append('text')
+                            .attrs({
+                                'class': 'load-balance-icon',
+                                'y': 14
+                            })
+                            .text(function () {
+                                return '\uf042';
+                            })
+                            .append('title');
+
                         // expiration icon
                         queued.append('text')
                             .attrs({
                                 'class': 'expiration-icon',
-                                'x': 185,
+                                'x': 200,
                                 'y': 14
                             })
                             .text(function () {
@@ -1340,6 +1362,52 @@
                             border.attr('fill', 'transparent');
                         }
                     });
+
+                    // determine whether or not to show the load-balance icon
+                    connectionLabelContainer.select('text.load-balance-icon')
+                        .classed('hidden', function () {
+                            if (d.permissions.canRead) {
+                                return !isLoadBalanceConfigured(d.component);
+                            } else {
+                                return true;
+                            }
+                        }).classed('load-balance-icon-active fa-rotate-90', function (d) {
+                            return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
+
+                        }).classed('load-balance-icon-184', function() {
+                            return d.permissions.canRead && isExpirationConfigured(d.component);
+
+                        }).classed('load-balance-icon-200', function() {
+                            return d.permissions.canRead && !isExpirationConfigured(d.component);
+
+                        }).attr('x', function() {
+                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 184 : 200;
+
+                        }).select('title').text(function () {
+                            if (d.permissions.canRead) {
+                                var loadBalanceStrategy = nfCommon.getComboOptionText(nfCommon.loadBalanceStrategyOptions, d.component.loadBalanceStrategy);
+                                if ('PARTITION_BY_ATTRIBUTE' === d.component.loadBalanceStrategy) {
+                                    loadBalanceStrategy += ' (' + d.component.loadBalancePartitionAttribute + ')'
+                                }
+
+                                var loadBalanceCompression = 'no compression';
+                                switch (d.component.loadBalanceCompression) {
+                                    case 'COMPRESS_ATTRIBUTES_ONLY':
+                                        loadBalanceCompression = '\'Attribute\' compression';
+                                        break;
+                                    case 'COMPRESS_ATTRIBUTES_AND_CONTENT':
+                                        loadBalanceCompression = '\'Attribute and content\' compression';
+                                        break;
+                                }
+                                var loadBalanceStatus = 'LOAD_BALANCE_ACTIVE' === d.component.loadBalanceStatus ? ' Actively balancing...' : '';
+                                return 'Load Balance is configured'
+                                        + ' with \'' + loadBalanceStrategy + '\' strategy'
+                                        + ' and ' + loadBalanceCompression + '.'
+                                        + loadBalanceStatus;
+                            } else {
+                                return '';
+                            }
+                        });
 
                     // determine whether or not to show the expiration icon
                     connectionLabelContainer.select('text.expiration-icon')
