@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-marklogic-bundle</artifactId>
-        <version>${marklogicnar.version}</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-marklogic-services-nar</artifactId>
