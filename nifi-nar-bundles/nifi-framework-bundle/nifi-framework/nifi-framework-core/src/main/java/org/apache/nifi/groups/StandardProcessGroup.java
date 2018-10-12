@@ -3933,6 +3933,24 @@ public final class StandardProcessGroup implements ProcessGroup {
                     return port.get();
                 }
 
+                // Attempt to locate child group by versioned component id
+                final Optional<ProcessGroup> optionalSpecifiedGroup = group.getProcessGroups().stream()
+                    .filter(child -> child.getVersionedComponentId().isPresent())
+                    .filter(child -> child.getVersionedComponentId().get().equals(connectableComponent.getGroupId()))
+                    .findFirst();
+
+                if (optionalSpecifiedGroup.isPresent()) {
+                    final ProcessGroup specifiedGroup = optionalSpecifiedGroup.get();
+                    return specifiedGroup.getInputPorts().stream()
+                        .filter(component -> component.getVersionedComponentId().isPresent())
+                        .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                        .findAny()
+                        .orElse(null);
+                }
+
+                // If no child group matched the versioned component id, then look at all child groups. This is done because
+                // in older versions, we did not properly map Versioned Component ID's to Ports' parent groups. As a result,
+                // if the flow doesn't contain the properly mapped group id, we need to search all child groups.
                 return group.getProcessGroups().stream()
                     .flatMap(gr -> gr.getInputPorts().stream())
                     .filter(component -> component.getVersionedComponentId().isPresent())
@@ -3950,6 +3968,24 @@ public final class StandardProcessGroup implements ProcessGroup {
                     return port.get();
                 }
 
+                // Attempt to locate child group by versioned component id
+                final Optional<ProcessGroup> optionalSpecifiedGroup = group.getProcessGroups().stream()
+                    .filter(child -> child.getVersionedComponentId().isPresent())
+                    .filter(child -> child.getVersionedComponentId().get().equals(connectableComponent.getGroupId()))
+                    .findFirst();
+
+                if (optionalSpecifiedGroup.isPresent()) {
+                    final ProcessGroup specifiedGroup = optionalSpecifiedGroup.get();
+                    return specifiedGroup.getOutputPorts().stream()
+                        .filter(component -> component.getVersionedComponentId().isPresent())
+                        .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                        .findAny()
+                        .orElse(null);
+                }
+
+                // If no child group matched the versioned component id, then look at all child groups. This is done because
+                // in older versions, we did not properly map Versioned Component ID's to Ports' parent groups. As a result,
+                // if the flow doesn't contain the properly mapped group id, we need to search all child groups.
                 return group.getProcessGroups().stream()
                     .flatMap(gr -> gr.getOutputPorts().stream())
                     .filter(component -> component.getVersionedComponentId().isPresent())
