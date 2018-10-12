@@ -328,7 +328,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final FlowRegistry flowRegistry = flowController.getFlowRegistryClient().getFlowRegistry(registryId);
         final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
         final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController, flowController.getFlowRegistryClient(), false);
 
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)

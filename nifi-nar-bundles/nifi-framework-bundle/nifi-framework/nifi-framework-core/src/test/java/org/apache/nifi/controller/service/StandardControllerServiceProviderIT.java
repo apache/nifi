@@ -17,16 +17,6 @@
 
 package org.apache.nifi.controller.service;
 
-import static org.junit.Assert.assertTrue;
-
-import java.beans.PropertyDescriptor;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -37,7 +27,8 @@ import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -46,9 +37,20 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.beans.PropertyDescriptor;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
+import static org.junit.Assert.assertTrue;
+
 public class StandardControllerServiceProviderIT {
     private static Bundle systemBundle;
     private static NiFiProperties niFiProperties;
+    private static ExtensionDiscoveringManager extensionManager;
     private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
     private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
@@ -81,7 +83,8 @@ public class StandardControllerServiceProviderIT {
 
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     /**
@@ -102,6 +105,7 @@ public class StandardControllerServiceProviderIT {
         final FlowController controller = Mockito.mock(FlowController.class);
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
             stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());

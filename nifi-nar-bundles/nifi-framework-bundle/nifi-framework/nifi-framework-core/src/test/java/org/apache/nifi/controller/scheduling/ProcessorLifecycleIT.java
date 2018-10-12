@@ -37,7 +37,8 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -654,12 +655,13 @@ public class ProcessorLifecycleIT {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, addProps);
 
         final Bundle systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class));
+            mock(FlowRegistryClient.class), extensionManager);
 
         return new FlowControllerAndSystemBundle(flowController, systemBundle);
     }

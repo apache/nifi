@@ -16,34 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
@@ -72,8 +44,9 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -96,6 +69,35 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class TestFlowController {
 
     private FlowController controller;
@@ -108,6 +110,7 @@ public class TestFlowController {
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private volatile String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
+    private ExtensionDiscoveringManager extensionManager;
 
     /**
      * Utility method which accepts {@link NiFiProperties} object but calls {@link StringEncryptor#createEncryptor(String, String, String)} with extracted properties.
@@ -136,7 +139,8 @@ public class TestFlowController {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -179,7 +183,7 @@ public class TestFlowController {
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
     }
 
     @After
@@ -190,7 +194,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -253,7 +258,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -292,7 +298,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenAuthorizationsAreEqual() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -306,7 +313,8 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenAuthorizationsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
         final String authFingerprint = "<authorizations></authorizations>";
@@ -319,7 +327,8 @@ public class TestFlowController {
 
     @Test(expected = UninheritableFlowException.class)
     public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
@@ -329,7 +338,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenCurrentAuthorizationsAreEmptyAndProposedAreNot() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
@@ -341,14 +351,15 @@ public class TestFlowController {
 
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
     public void testSynchronizeFlowWhenProposedMissingComponentsAreDifferent() {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final Set<String> missingComponents = new HashSet<>();
         missingComponents.add("1");
@@ -368,7 +379,7 @@ public class TestFlowController {
     @Test
     public void testSynchronizeFlowWhenExistingMissingComponentsAreDifferent() throws IOException {
         final StringEncryptor stringEncryptor = createEncryptorFromProperties(nifiProperties);
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(stringEncryptor, nifiProperties, extensionManager);
 
         final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
         when(mockProcessorNode.getIdentifier()).thenReturn("1");
@@ -408,7 +419,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreSame() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
@@ -419,7 +431,8 @@ public class TestFlowController {
 
     @Test
     public void testSynchronizeFlowWhenBundlesAreDifferent() throws IOException {
-        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(createEncryptorFromProperties(nifiProperties), nifiProperties);
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository("d89ada5d-35fb-44ff-83f1-4cc00b48b2df");
         logRepository.removeAllObservers();
@@ -615,7 +628,7 @@ public class TestFlowController {
         final String originalName = processorNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -626,7 +639,7 @@ public class TestFlowController {
         controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -676,7 +689,7 @@ public class TestFlowController {
         final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
 
         // the instance class loader shouldn't have any of the resources yet
-        URLClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        URLClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -687,7 +700,7 @@ public class TestFlowController {
         controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -738,7 +751,7 @@ public class TestFlowController {
         final ReportingTaskNode node = controller.createReportingTask(DummyReportingTask.class.getName(), id, coordinate, true);
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -748,7 +761,7 @@ public class TestFlowController {
         controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = extensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));

@@ -58,6 +58,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.flow.FlowRegistry;
@@ -137,11 +138,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     private final StringEncryptor encryptor;
     private final boolean autoResumeState;
     private final NiFiProperties nifiProperties;
+    private final ExtensionManager extensionManager;
 
-    public StandardFlowSynchronizer(final StringEncryptor encryptor, final NiFiProperties nifiProperties) {
+    public StandardFlowSynchronizer(final StringEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
-        autoResumeState = nifiProperties.getAutoResumeState();
+        this.autoResumeState = nifiProperties.getAutoResumeState();
         this.nifiProperties = nifiProperties;
+        this.extensionManager = extensionManager;
     }
 
     public static boolean isEmpty(final DataFlow dataFlow) {
@@ -490,7 +493,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     if (!withinTemplate(componentElement)) {
                         final String componentType = DomUtils.getChildText(componentElement, "class");
                         try {
-                            BundleUtils.getBundle(componentType, FlowFromDOMFactory.getBundle(bundleElement));
+                            BundleUtils.getBundle(extensionManager, componentType, FlowFromDOMFactory.getBundle(bundleElement));
                         } catch (IllegalStateException e) {
                             throw new MissingBundleException(e.getMessage(), e);
                         }
@@ -644,7 +647,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         if (!controllerInitialized || existingFlowEmpty) {
             BundleCoordinate coordinate;
             try {
-                coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+                coordinate = BundleUtils.getCompatibleBundle(extensionManager, dto.getType(), dto.getBundle());
             } catch (final IllegalStateException e) {
                 final BundleDTO bundleDTO = dto.getBundle();
                 if (bundleDTO == null) {
@@ -1222,7 +1225,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             BundleCoordinate coordinate;
             try {
-                coordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
+                coordinate = BundleUtils.getCompatibleBundle(extensionManager, processorDTO.getType(), processorDTO.getBundle());
             } catch (final IllegalStateException e) {
                 final BundleDTO bundleDTO = processorDTO.getBundle();
                 if (bundleDTO == null) {
@@ -1651,7 +1654,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
 
         // check if the Flow is inheritable
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor);
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
         final String existingFlowFingerprintBeforeHash = fingerprintFactory.createFingerprint(existingFlow, controller);
         if (existingFlowFingerprintBeforeHash.trim().isEmpty()) {
             return null;  // no existing flow, so equivalent to proposed flow

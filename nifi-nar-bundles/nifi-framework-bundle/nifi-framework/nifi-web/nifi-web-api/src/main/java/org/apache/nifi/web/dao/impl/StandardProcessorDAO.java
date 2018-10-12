@@ -85,7 +85,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     @Override
     public void verifyCreate(final ProcessorDTO processorDTO) {
-        verifyCreate(processorDTO.getType(), processorDTO.getBundle());
+        verifyCreate(flowController.getExtensionManager(), processorDTO.getType(), processorDTO.getBundle());
     }
 
     @Override
@@ -104,7 +104,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         try {
             // attempt to create the processor
-            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle()));
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(flowController.getExtensionManager(), processorDTO.getType(), processorDTO.getBundle());
+            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
 
             // ensure we can perform the update before we add the processor to the flow
             verifyUpdate(processor, processorDTO);
@@ -383,7 +384,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(flowController.getExtensionManager(), processor.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             processor.verifyCanUpdateBundle(bundleCoordinate);
         }
@@ -479,12 +480,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
         final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
-            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            final ExtensionManager extensionManager = flowController.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, processor.getCanonicalClassName(), bundleDTO);
             final BundleCoordinate existingCoordinate = processor.getBundleCoordinate();
             if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
                 try {
                     // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
-                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(processor.getCanonicalClassName(), incomingCoordinate);
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     flowController.reload(processor, processor.getCanonicalClassName(), incomingCoordinate, additionalUrls);
                 } catch (ProcessorInstantiationException e) {

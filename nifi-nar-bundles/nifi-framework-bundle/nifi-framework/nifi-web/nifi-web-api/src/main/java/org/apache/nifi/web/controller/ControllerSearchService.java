@@ -292,7 +292,7 @@ public class ControllerSearchService {
             final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController, variableRegistry);
 
             // search the processor using the appropriate thread context classloader
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
                 final Collection<SearchResult> searchResults = searchable.search(context);
                 if (CollectionUtils.isNotEmpty(searchResults)) {
                     for (final SearchResult searchResult : searchResults) {

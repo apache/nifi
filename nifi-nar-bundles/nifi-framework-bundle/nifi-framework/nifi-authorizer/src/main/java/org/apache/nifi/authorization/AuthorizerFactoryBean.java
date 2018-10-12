@@ -89,6 +89,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private ExtensionManager extensionManager;
     private final Map<String, UserGroupProvider> userGroupProviders = new HashMap<>();
     private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
@@ -208,7 +209,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private UserGroupProvider createUserGroupProvider(final String identifier, final String userGroupProviderClassName) throws Exception {
         // get the classloader for the specified user group provider
-        final List<Bundle> userGroupProviderBundles = ExtensionManager.getBundles(userGroupProviderClassName);
+        final List<Bundle> userGroupProviderBundles = extensionManager.getBundles(userGroupProviderClassName);
 
         if (userGroupProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified user group provider class '%s' is not known to this nifi.", userGroupProviderClassName));
@@ -256,7 +257,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private AccessPolicyProvider createAccessPolicyProvider(final String identifier, final String accessPolicyProviderClassName) throws Exception {
         // get the classloader for the specified access policy provider
-        final List<Bundle> accessPolicyProviderBundles = ExtensionManager.getBundles(accessPolicyProviderClassName);
+        final List<Bundle> accessPolicyProviderBundles = extensionManager.getBundles(accessPolicyProviderClassName);
 
         if (accessPolicyProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified access policy provider class '%s' is not known to this nifi.", accessPolicyProviderClassName));
@@ -304,7 +305,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName, final String classpathResources) throws Exception {
         // get the classloader for the specified authorizer
-        final List<Bundle> authorizerBundles = ExtensionManager.getBundles(authorizerClassName);
+        final List<Bundle> authorizerBundles = extensionManager.getBundles(authorizerClassName);
 
         if (authorizerBundles.size() == 0) {
             throw new Exception(String.format("The specified authorizer class '%s' is not known to this nifi.", authorizerClassName));
@@ -535,6 +536,10 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
     }
 
 }

@@ -43,6 +43,8 @@ import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.junit.Before;
@@ -58,12 +60,14 @@ import org.xml.sax.SAXParseException;
 public class FingerprintFactoryTest {
 
     private StringEncryptor encryptor;
+    private ExtensionManager extensionManager;
     private FingerprintFactory fingerprinter;
 
     @Before
     public void setup() {
         encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
-        fingerprinter = new FingerprintFactory(encryptor);
+        extensionManager = new StandardExtensionDiscoveringManager();
+        fingerprinter = new FingerprintFactory(encryptor, extensionManager);
     }
 
     @Test
@@ -122,7 +126,7 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSchemaValidation() throws IOException {
-        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder());
+        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager);
         final String fingerprint = fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
     }
 

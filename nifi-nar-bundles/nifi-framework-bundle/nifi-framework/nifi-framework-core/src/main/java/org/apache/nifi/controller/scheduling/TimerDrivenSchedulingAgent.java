@@ -68,7 +68,7 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     @Override
     public void doSchedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
-        final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
+        final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, scheduleState, flowController.getExtensionManager());
         final long schedulingNanos = taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS);
 
         final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(reportingTaskWrapper, 0L, schedulingNanos, TimeUnit.NANOSECONDS);

@@ -61,6 +61,7 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -92,19 +93,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent,
-                                         final ValidationTrigger validationTrigger) {
+                                         final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider, implementation.getComponent().getClass().getSimpleName(),
-            implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, validationTrigger, false);
+            implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
     }
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final String componentType, final String componentCanonicalClass,
-                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger,
-                                         final boolean isExtensionMissing) {
+                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                         final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
@@ -429,7 +430,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 @Override
                 public void run() {
                     try {
-                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
@@ -459,7 +460,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         } else {
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
                             }
                             stateTransition.disable();
@@ -529,7 +530,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     private void invokeDisable(ConfigurationContext configContext) {
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {

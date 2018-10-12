@@ -18,6 +18,7 @@ package org.apache.nifi.init;
 
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 
@@ -30,13 +31,14 @@ public class ConfigurableComponentInitializerFactory {
      * @param componentClass the class that requires a ConfigurableComponentInitializer
      * @return a ConfigurableComponentInitializer capable of initializing that specific type of class
      */
-    public static ConfigurableComponentInitializer createComponentInitializer(final Class<? extends ConfigurableComponent> componentClass) {
+    public static ConfigurableComponentInitializer createComponentInitializer(
+            final ExtensionManager extensionManager, final Class<? extends ConfigurableComponent> componentClass) {
         if (Processor.class.isAssignableFrom(componentClass)) {
-            return new ProcessorInitializer();
+            return new ProcessorInitializer(extensionManager);
         } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new ControllerServiceInitializer();
+            return new ControllerServiceInitializer(extensionManager);
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new ReportingTaskingInitializer();
+            return new ReportingTaskingInitializer(extensionManager);
         }
 
         return null;

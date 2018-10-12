@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.service;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 
 import java.lang.reflect.InvocationTargetException;
@@ -43,19 +44,21 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
 
     private final ControllerService originalService;
     private final AtomicReference<ControllerServiceNode> serviceNodeHolder = new AtomicReference<>(null);
+    private final ExtensionManager extensionManager;
 
     /**
      * @param originalService the original service being proxied
      */
-    public StandardControllerServiceInvocationHandler(final ControllerService originalService) {
-        this(originalService, null);
+    public StandardControllerServiceInvocationHandler(final ExtensionManager extensionManager, final ControllerService originalService) {
+        this(extensionManager, originalService, null);
     }
 
     /**
      * @param originalService the original service being proxied
      * @param serviceNode the node holding the original service which will be used for checking the state (disabled vs running)
      */
-    public StandardControllerServiceInvocationHandler(final ControllerService originalService, final ControllerServiceNode serviceNode) {
+    public StandardControllerServiceInvocationHandler(final ExtensionManager extensionManager, final ControllerService originalService, final ControllerServiceNode serviceNode) {
+        this.extensionManager = extensionManager;
         this.originalService = originalService;
         this.serviceNodeHolder.set(serviceNode);
     }
@@ -80,7 +83,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
                 + serviceNodeHolder.get().getIdentifier() + " because the Controller Service's State is currently " + state);
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, originalService.getClass(), originalService.getIdentifier())) {
             return method.invoke(originalService, args);
         } catch (final InvocationTargetException e) {
             // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want

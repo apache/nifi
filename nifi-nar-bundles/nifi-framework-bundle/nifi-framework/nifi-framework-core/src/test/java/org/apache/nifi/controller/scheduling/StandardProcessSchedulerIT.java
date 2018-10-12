@@ -17,12 +17,6 @@
 
 package org.apache.nifi.controller.scheduling;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collections;
-
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
@@ -30,7 +24,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
@@ -40,12 +35,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class StandardProcessSchedulerIT {
     private final StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
     private VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private FlowController controller;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
     private volatile String propsFile = TestStandardProcessScheduler.class.getResource("/standardprocessschedulertest.nifi.properties").getFile();
 
     @Before
@@ -54,9 +56,11 @@ public class StandardProcessSchedulerIT {
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
     }
 
     /**

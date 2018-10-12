@@ -65,7 +65,6 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -465,7 +464,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(node.getProcessor().getClass(), node.getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), node.getProcessor().getClass(), node.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), () -> false);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
@@ -903,7 +902,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 conn.verifyCanDelete();
             }
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getProcessor().getClass(), processor.getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), () -> false);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
@@ -951,7 +950,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (removed) {
                 try {
                     LogRepositoryFactory.removeRepository(processor.getIdentifier());
-                    ExtensionManager.removeInstanceClassLoader(id);
+                    flowController.getExtensionManager().removeInstanceClassLoader(id);
                 } catch (Throwable t) {
                 }
             }
@@ -2108,7 +2107,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             service.verifyCanDelete();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
                 final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
             }
@@ -2149,7 +2148,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             if (removed) {
                 try {
-                    ExtensionManager.removeInstanceClassLoader(service.getIdentifier());
+                    flowController.getExtensionManager().removeInstanceClassLoader(service.getIdentifier());
                 } catch (Throwable t) {
                 }
             }
@@ -3308,7 +3307,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             verifyCanUpdate(proposedSnapshot, true, verifyNotDirty);
 
-            final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
+            final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
             final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), true);
 
             final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
@@ -4348,7 +4347,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return null;
         }
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper();
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
         final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), false);
 
         final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
@@ -4505,7 +4504,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String processorToAddClass = processorToAdd.getType();
                 final BundleCoordinate processorToAddCoordinate = toCoordinate(processorToAdd.getBundle());
 
-                final boolean bundleExists = ExtensionManager.getBundles(processorToAddClass).stream()
+                final boolean bundleExists = flowController.getExtensionManager().getBundles(processorToAddClass).stream()
                         .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
 
                 if (!bundleExists) {
@@ -4525,7 +4524,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String serviceToAddClass = serviceToAdd.getType();
                 final BundleCoordinate serviceToAddCoordinate = toCoordinate(serviceToAdd.getBundle());
 
-                final boolean bundleExists = ExtensionManager.getBundles(serviceToAddClass).stream()
+                final boolean bundleExists = flowController.getExtensionManager().getBundles(serviceToAddClass).stream()
                         .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
 
                 if (!bundleExists) {

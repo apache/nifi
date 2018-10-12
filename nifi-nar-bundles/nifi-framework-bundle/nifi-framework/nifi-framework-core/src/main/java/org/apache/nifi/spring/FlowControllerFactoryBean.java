@@ -25,6 +25,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -51,6 +52,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private VariableRegistry variableRegistry;
     private LeaderElectionManager leaderElectionManager;
     private FlowRegistryClient flowRegistryClient;
+    private ExtensionManager extensionManager;
 
     @Override
     public Object getObject() throws Exception {
@@ -72,7 +74,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     heartbeatMonitor,
                     leaderElectionManager,
                     variableRegistry,
-                    flowRegistryClient);
+                    flowRegistryClient,
+                    extensionManager);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -82,7 +85,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    flowRegistryClient);
+                    flowRegistryClient,
+                    extensionManager);
             }
 
         }
@@ -141,5 +145,9 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setFlowRegistryClient(final FlowRegistryClient flowRegistryClient) {
         this.flowRegistryClient = flowRegistryClient;
+    }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
     }
 }

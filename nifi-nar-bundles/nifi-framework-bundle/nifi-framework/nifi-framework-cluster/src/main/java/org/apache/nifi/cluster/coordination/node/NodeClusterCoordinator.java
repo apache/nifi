@@ -64,6 +64,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
@@ -123,9 +124,9 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
                                   final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
-                                  final NodeProtocolSender nodeProtocolSender) throws IOException {
+                                  final ExtensionManager extensionManager, final NodeProtocolSender nodeProtocolSender) throws IOException {
         this(senderListener, eventReporter, leaderElectionManager, flowElection, firewall, revisionManager, nifiProperties, nodeProtocolSender,
-            StandardStateManagerProvider.create(nifiProperties, VariableRegistry.EMPTY_REGISTRY));
+            StandardStateManagerProvider.create(nifiProperties, VariableRegistry.EMPTY_REGISTRY, extensionManager));
     }
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,

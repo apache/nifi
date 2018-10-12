@@ -17,13 +17,6 @@
 
 package org.apache.nifi.cluster.integration;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -34,9 +27,19 @@ import org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElection;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class Cluster {
     private static final Logger logger = LoggerFactory.getLogger(Cluster.class);
@@ -134,10 +137,11 @@ public class Cluster {
         final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
         final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor);
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
         final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
 
-        final Node node = new Node(nifiProperties, flowElection);
+        final Node node = new Node(nifiProperties, extensionManager, flowElection);
         node.start();
         nodes.add(node);
 

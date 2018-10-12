@@ -44,7 +44,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;
@@ -1139,7 +1138,7 @@ public class VersionsResource extends ApplicationResource {
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
-        BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+        serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);
@@ -1160,7 +1159,7 @@ public class VersionsResource extends ApplicationResource {
                 authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
-                final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents);
+                final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
                 restrictedComponents.forEach(restrictedComponent -> {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
@@ -1300,7 +1299,7 @@ public class VersionsResource extends ApplicationResource {
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
-        BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+        serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);
@@ -1321,7 +1320,7 @@ public class VersionsResource extends ApplicationResource {
                 authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
-                final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents);
+                final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
                 restrictedComponents.forEach(restrictedComponent -> {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);

@@ -67,7 +67,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
     @Override
     public void verifyCreate(final ControllerServiceDTO controllerServiceDTO) {
-        verifyCreate(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+        verifyCreate(serviceProvider.getExtensionManager(), controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
     }
 
     @Override
@@ -79,9 +79,10 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
         try {
             // create the controller service
+            final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
             final ControllerServiceNode controllerService = serviceProvider.createControllerService(
-                    controllerServiceDTO.getType(), controllerServiceDTO.getId(), BundleUtils.getBundle(controllerServiceDTO.getType(),
-                            controllerServiceDTO.getBundle()), Collections.emptySet(), true);
+                    controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, Collections.emptySet(), true);
 
             // ensure we can perform the update
             verifyUpdate(controllerService, controllerServiceDTO);
@@ -196,12 +197,13 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
         if (bundleDTO != null) {
-            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+            final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, controllerService.getCanonicalClassName(), bundleDTO);
             final BundleCoordinate existingCoordinate = controllerService.getBundleCoordinate();
             if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
                 try {
                     // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
-                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(controllerService.getCanonicalClassName(), incomingCoordinate);
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(controllerService.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = controllerService.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     flowController.reload(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate, additionalUrls);
                 } catch (ControllerServiceInstantiationException e) {
@@ -317,7 +319,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(serviceProvider.getExtensionManager(), controllerService.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             controllerService.verifyCanUpdateBundle(bundleCoordinate);
         }

@@ -194,7 +194,7 @@ public class ControllerServiceLoader {
 
         BundleCoordinate coordinate;
         try {
-            coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+            coordinate = BundleUtils.getCompatibleBundle(provider.getExtensionManager(), dto.getType(), dto.getBundle());
         } catch (final IllegalStateException e) {
             final BundleDTO bundleDTO = dto.getBundle();
             if (bundleDTO == null) {

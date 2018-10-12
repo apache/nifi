@@ -17,26 +17,6 @@
 
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -51,8 +31,9 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -77,13 +58,41 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class TestStandardProcessorNode {
 
     private MockVariableRegistry variableRegistry;
+    private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
+    private NiFiProperties niFiProperties;
 
     @Before
     public void setup() {
         variableRegistry = new MockVariableRegistry();
+        niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
+
+        systemBundle = SystemBundle.create(niFiProperties);
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     @Test(timeout = 10000)
@@ -99,7 +108,7 @@ public class TestStandardProcessorNode {
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
-            NiFiProperties.createBasicNiFiProperties(null, null), new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+            niFiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false);
@@ -138,7 +147,7 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp));
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
 
             // Should not have any of the test resources loaded at this point
             final URL[] testResources = getTestResources();
@@ -163,7 +172,7 @@ public class TestStandardProcessorNode {
             // Should pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
-            ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
     }
 
@@ -180,7 +189,7 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp, otherProp));
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should not have any of the test resources loaded at this point
             final URL[] testResources = getTestResources();
             for (URL testResource : testResources) {
@@ -230,7 +239,7 @@ public class TestStandardProcessorNode {
             // Should STILL pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
-            ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
     }
 
@@ -246,7 +255,7 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
 
             // Should not have any of the test resources loaded at this point
             final URL[] testResources = getTestResources();
@@ -275,7 +284,7 @@ public class TestStandardProcessorNode {
             // Should pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
-            ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
     }
 
@@ -291,7 +300,7 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
 
             // Should not have any of the test resources loaded at this point
             final URL[] testResources = getTestResources();
@@ -317,7 +326,7 @@ public class TestStandardProcessorNode {
             // Should pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
-            ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
     }
 
@@ -327,7 +336,7 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
 
             final Map<String, String> properties = new HashMap<>();
             properties.put(ModifiesClasspathNoAnnotationProcessor.CLASSPATH_RESOURCE.getName(),
@@ -344,7 +353,7 @@ public class TestStandardProcessorNode {
             // Should pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
-            ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
     }
 
@@ -387,20 +396,18 @@ public class TestStandardProcessorNode {
     private StandardProcessorNode createProcessorNode(final Processor processor, final ReloadComponent reloadComponent) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
         final TerminationAwareLogger componentLog = Mockito.mock(TerminationAwareLogger.class);
 
-        final Bundle systemBundle = SystemBundle.create(niFiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
-        ExtensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle, null);
+        extensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle, null);
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);
         processor.initialize(initContext);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), componentLog);
         return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
-            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, new SynchronousValidationTrigger());
+            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager,
+                new SynchronousValidationTrigger());
     }
 
     private static class MockReloadComponent implements ReloadComponent {

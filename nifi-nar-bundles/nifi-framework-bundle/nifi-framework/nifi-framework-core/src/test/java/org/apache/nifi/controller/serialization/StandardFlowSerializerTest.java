@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -36,7 +26,8 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -50,6 +41,17 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.w3c.dom.Document;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class StandardFlowSerializerTest {
 
     private static final String RAW_COMMENTS
@@ -60,6 +62,7 @@ public class StandardFlowSerializerTest {
 
     private FlowController controller;
     private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
     private StandardFlowSerializer serializer;
 
     @Before
@@ -78,14 +81,15 @@ public class StandardFlowSerializerTest {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
         final VariableRegistry variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
 
         serializer = new StandardFlowSerializer(encryptor);
     }

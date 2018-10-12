@@ -20,8 +20,9 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
@@ -33,6 +34,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
+
 
 public class StandardControllerServiceProviderTest {
 
@@ -40,27 +43,31 @@ public class StandardControllerServiceProviderTest {
     private ControllerService implementation;
     private static VariableRegistry variableRegistry;
     private static NiFiProperties nifiProperties;
+    private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
+    private static FlowController flowController;
 
     @BeforeClass
     public static void setupSuite() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
         nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
 
-        NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
-
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
+
+        flowController = Mockito.mock(FlowController.class);
+        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
     }
 
     @Before
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
-        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, null, new StateManagerProvider() {
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(flowController, null, null, new StateManagerProvider() {
             @Override
             public StateManager getStateManager(final String componentId) {
                 return Mockito.mock(StateManager.class);

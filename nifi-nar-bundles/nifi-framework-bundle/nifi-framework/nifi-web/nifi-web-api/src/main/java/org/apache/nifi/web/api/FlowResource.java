@@ -42,7 +42,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -1352,7 +1352,7 @@ public class FlowResource extends ApplicationResource {
         final NiFiProperties properties = getProperties();
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
-        final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+        final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
         if (frameworkBundle != null) {
             final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
 
