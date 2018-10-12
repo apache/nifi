@@ -20,7 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,10 +34,17 @@ import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -258,6 +266,83 @@ public class TestPutEmail {
         assertNull(message.getRecipients(RecipientType.BCC));
         assertNull(message.getRecipients(RecipientType.CC));
     }
+
+    @Test
+    public void testOutgoingMessageAttachmentsUnpacked() throws Exception {
+        // verifies that are set on the outgoing Message correctly
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "Message Body");
+        runner.setProperty(PutEmail.ATTACH_FILE, "true");
+        runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.ATTACH_UNPACKED_FILES, "true");
+
+        byte[] testBytes = buildTar(ImmutableMap.of("file1.txt","Some text", "file2.txt", "Some other text"));
+        MockFlowFile flowFile = runner.enqueue(testBytes);
+        flowFile.putAttributes(ImmutableMap.of(CoreAttributes.MIME_TYPE.key(), "application/tar"));
+
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        // Verify that the Message was populated correctly
+        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        Message message = processor.getMessages().get(0);
+        assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
+
+        assertTrue(message.getContent() instanceof MimeMultipart);
+
+        final MimeMultipart multipart = (MimeMultipart) message.getContent();
+        final BodyPart part = multipart.getBodyPart(0);
+        final InputStream is = part.getDataHandler().getInputStream();
+        final String decodedText = StringUtils.newStringUtf8(Base64.decodeBase64(IOUtils.toString(is, "UTF-8")));
+        assertEquals("Message Body", decodedText);
+
+        final BodyPart attachPart1 = multipart.getBodyPart(1);
+        final InputStream attachIs1 = attachPart1.getDataHandler().getInputStream();
+        final String text1 = IOUtils.toString(attachIs1, "UTF-8");
+        assertEquals("file1.txt", attachPart1.getFileName());
+        assertEquals("Some text", text1);
+
+        final BodyPart attachPart2 = multipart.getBodyPart(2);
+        final InputStream attachIs2 = attachPart2.getDataHandler().getInputStream();
+        final String text2 = IOUtils.toString(attachIs2, "UTF-8");
+        assertEquals("file2.txt", attachPart2.getFileName());
+        assertEquals("Some other text", text2);
+
+        assertNull(message.getRecipients(RecipientType.BCC));
+        assertNull(message.getRecipients(RecipientType.CC));
+    }
+
+    private byte[] buildTar(Map<String, String> contents) throws IOException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        TarArchiveOutputStream out = new TarArchiveOutputStream(buf);
+
+        contents.forEach((entryName, content) -> {
+            try {
+                byte[] bytes = content.getBytes("UTF-8");
+                TarArchiveEntry entry = new TarArchiveEntry(entryName, false);
+                entry.setSize(bytes.length);
+                out.putArchiveEntry( entry );
+
+                IOUtils.write(bytes, out);
+
+                out.closeArchiveEntry();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+
+        out.flush();
+
+        return buf.toByteArray();
+    }
+
 
     @Test
     public void testOutgoingMessageWithFlowfileContent() throws Exception {

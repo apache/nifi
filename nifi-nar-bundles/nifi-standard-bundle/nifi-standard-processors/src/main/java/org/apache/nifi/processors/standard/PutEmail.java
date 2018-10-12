@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -51,6 +52,8 @@ import javax.mail.internet.PreencodedMimeBodyPart;
 import javax.mail.util.ByteArrayDataSource;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -217,6 +220,13 @@ public class PutEmail extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor ATTACH_UNPACKED_FILES = new PropertyDescriptor.Builder()
+            .name("Attach File Unpacked")
+            .description("Specifies whether or not packed FlowFile content should be attached to the email as separate items")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     public static final PropertyDescriptor CONTENT_AS_MESSAGE = new PropertyDescriptor.Builder()
             .name("email-ff-content-as-message")
             .displayName("Flow file content as message")
@@ -283,6 +293,7 @@ public class PutEmail extends AbstractProcessor {
         properties.add(MESSAGE);
         properties.add(CONTENT_AS_MESSAGE);
         properties.add(ATTACH_FILE);
+        properties.add(ATTACH_UNPACKED_FILES);
         properties.add(INCLUDE_ALL_ATTRIBUTES);
         this.properties = Collections.unmodifiableList(properties);
 
@@ -370,25 +381,20 @@ public class PutEmail extends AbstractProcessor {
             message.setSentDate(new Date());
 
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
+                MimeMultipart multipart = new MimeMultipart();
+
                 final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
                 mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
                         Base64.encodeBase64(messageText.getBytes("UTF-8")), contentType + "; charset=\"utf-8\"")));
-                final MimeBodyPart mimeFile = new MimeBodyPart();
-                session.read(flowFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream stream) throws IOException {
-                        try {
-                            mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, "application/octet-stream")));
-                        } catch (final Exception e) {
-                            throw new IOException(e);
-                        }
-                    }
-                });
 
-                mimeFile.setFileName(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                MimeMultipart multipart = new MimeMultipart();
                 multipart.addBodyPart(mimeText);
-                multipart.addBodyPart(mimeFile);
+
+                final BodyPartReader reader = findBodyPartReader(context, flowFile);
+
+                for (MimeBodyPart mimeFile : reader.readBodyParts(session, flowFile)) {
+                    multipart.addBodyPart(mimeFile);
+                }
+
                 message.setContent(multipart);
             }
 
@@ -401,6 +407,80 @@ public class PutEmail extends AbstractProcessor {
             context.yield();
             logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
+        }
+    }
+
+
+    private BodyPartReader findBodyPartReader(final ProcessContext context, final FlowFile flowFile) throws IOException {
+        final String flowFileMimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+
+        if (context.getProperty(ATTACH_UNPACKED_FILES).asBoolean()) {
+            if ("application/tar".equals(flowFileMimeType)) {
+                return new TarExtractBodyPartReader();
+            }
+        }
+
+        return new SimpleBodyPartReader();
+    }
+
+    private interface BodyPartReader {
+        Iterable<MimeBodyPart> readBodyParts(final ProcessSession session, final FlowFile source) throws MessagingException;
+    }
+
+    private static class SimpleBodyPartReader implements BodyPartReader {
+
+        @Override
+        public Iterable<MimeBodyPart> readBodyParts(final ProcessSession session, final FlowFile source) throws MessagingException {
+            final MimeBodyPart mimeFile = new MimeBodyPart();
+
+            session.read(source, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream stream) throws IOException {
+                    try {
+                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, "application/octet-stream")));
+                    } catch (final Exception e) {
+                        throw new IOException(e);
+                    }
+                }
+            });
+
+            mimeFile.setFileName(source.getAttribute(CoreAttributes.FILENAME.key()));
+
+            return Collections.singleton(mimeFile);
+        }
+    }
+
+    private static class TarExtractBodyPartReader implements BodyPartReader {
+
+        @Override
+        public Iterable<MimeBodyPart> readBodyParts(final ProcessSession session, final FlowFile source) throws MessagingException {
+            ArrayList<MimeBodyPart> bodyParts = new ArrayList<>();
+
+            session.read(source, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(in))) {
+                        TarArchiveEntry tarEntry;
+                        while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+                            if (tarEntry.isDirectory()) {
+                                continue;
+                            }
+
+                            try {
+                                final MimeBodyPart mimeFile = new MimeBodyPart();
+                                mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(tarIn, "application/octet-stream")));
+                                mimeFile.setFileName(tarEntry.getName());
+                                bodyParts.add(mimeFile);
+                            } catch (MessagingException e) {
+                                throw new IOException(e);
+                            }
+
+                        }
+                    }
+                }
+            });
+
+            return bodyParts;
         }
     }
 
