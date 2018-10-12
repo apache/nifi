@@ -157,7 +157,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     };
 
-    public static final AllowableValue FAIL_STOP = new AllowableValue("penalize", "Penalize", "Penalize FlowFiles." +
+    public static final AllowableValue FAIL_STOP = new AllowableValue("stop", "Penalize", "Penalize FlowFiles." +
             "This is based on the original behavior of the processor to allow for a smooth transition.");
     public static final AllowableValue FAIL_ROUTE = new AllowableValue("route", "Route to Failure Relationship",
             "If chosen, failed FlowFiles will be routed to the failure relationship.");
