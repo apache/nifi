@@ -72,7 +72,7 @@ public class DocGenerator {
      * @param extensionClasses types of a configurable component
      * @param explodedNiFiDocsDir base directory of component documentation
      */
-    private static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir) {
+    public static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir) {
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
                 final String extensionClassName = extensionClass.getCanonicalName();

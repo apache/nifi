@@ -71,6 +71,7 @@ public class ExtensionManager {
     private static final Map<Class, Set<Class>> definitionMap = new HashMap<>();
 
     private static final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
+    private static final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesLookup = new HashMap<>();
     private static final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
     private static final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
     private static final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
@@ -106,13 +107,17 @@ public class ExtensionManager {
      * @param narBundles the bundles to scan through in search of extensions
      */
     public static void discoverExtensions(final Bundle systemBundle, final Set<Bundle> narBundles) {
-        // get the current context class loader
-        ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
-
         // load the system bundle first so that any extensions found in JARs directly in lib will be registered as
         // being from the system bundle and not from all the other NARs
         loadExtensions(systemBundle);
         bundleCoordinateBundleLookup.put(systemBundle.getBundleDetails().getCoordinate(), systemBundle);
+
+        discoverExtensions(narBundles);
+    }
+
+    public static void discoverExtensions(final Set<Bundle> narBundles) {
+        // get the current context class loader
+        ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
 
         // consider each nar class loader
         for (final Bundle bundle : narBundles) {
@@ -174,7 +179,7 @@ public class ExtensionManager {
                     }
 
                     if (registerExtension) {
-                        registerServiceClass(o.getClass(), classNameBundleLookup, bundle, entry.getValue());
+                        registerServiceClass(o.getClass(), classNameBundleLookup, bundleCoordinateClassesLookup, bundle, entry.getValue());
                     }
                 }
 
@@ -256,23 +261,23 @@ public class ExtensionManager {
      * @param bundle the Bundle being mapped to
      * @param classes to map to this classloader but which come from its ancestors
      */
-    private static void registerServiceClass(final Class<?> type, final Map<String, List<Bundle>> classNameBundleMap, final Bundle bundle, final Set<Class> classes) {
+    private static void registerServiceClass(final Class<?> type,
+                                             final Map<String, List<Bundle>> classNameBundleMap,
+                                             final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesMap,
+                                             final Bundle bundle, final Set<Class> classes) {
         final String className = type.getName();
+        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
 
         // get the bundles that have already been registered for the class name
-        List<Bundle> registeredBundles = classNameBundleMap.get(className);
-
-        if (registeredBundles == null) {
-            registeredBundles = new ArrayList<>();
-            classNameBundleMap.put(className, registeredBundles);
-        }
+        final List<Bundle> registeredBundles = classNameBundleMap.computeIfAbsent(className, (key) -> new ArrayList<>());
+        final Set<Class> bundleCoordinateClasses = bundleCoordinateClassesMap.computeIfAbsent(bundleCoordinate, (key) -> new HashSet<>());
 
         boolean alreadyRegistered = false;
         for (final Bundle registeredBundle : registeredBundles) {
             final BundleCoordinate registeredCoordinate = registeredBundle.getBundleDetails().getCoordinate();
 
             // if the incoming bundle has the same coordinate as one of the registered bundles then consider it already registered
-            if (registeredCoordinate.equals(bundle.getBundleDetails().getCoordinate())) {
+            if (registeredCoordinate.equals(bundleCoordinate)) {
                 alreadyRegistered = true;
                 break;
             }
@@ -291,10 +296,11 @@ public class ExtensionManager {
         // if none of the above was true then register the new bundle
         if (!alreadyRegistered) {
             registeredBundles.add(bundle);
+            bundleCoordinateClasses.add(type);
             classes.add(type);
 
             if (type.isAnnotationPresent(RequiresInstanceClassLoading.class)) {
-                final String cacheKey = getClassBundleKey(className, bundle.getBundleDetails().getCoordinate());
+                final String cacheKey = getClassBundleKey(className, bundleCoordinate);
                 requiresInstanceClassLoading.put(cacheKey, type);
             }
         }
@@ -480,6 +486,20 @@ public class ExtensionManager {
             throw new IllegalArgumentException("BundleCoordinate cannot be null");
         }
         return bundleCoordinateBundleLookup.get(bundleCoordinate);
+    }
+
+    /**
+     * Retrieves the extension classes that were loaded from the bundle with the given coordinate.
+     *
+     * @param bundleCoordinate the coordinate
+     * @return the classes from the bundle with that coordinate
+     */
+    public static Set<Class> getTypes(final BundleCoordinate bundleCoordinate) {
+        if (bundleCoordinate == null) {
+            throw new IllegalArgumentException("BundleCoordinate cannot be null");
+        }
+        final Set<Class> types = bundleCoordinateClassesLookup.get(bundleCoordinate);
+        return types == null ? Collections.emptySet() : Collections.unmodifiableSet(types);
     }
 
     /**

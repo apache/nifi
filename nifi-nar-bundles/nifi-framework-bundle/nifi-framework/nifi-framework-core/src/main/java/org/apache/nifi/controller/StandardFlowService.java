@@ -56,7 +56,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO;
 import org.apache.nifi.persistence.TemplateDeserializer;
@@ -1057,7 +1057,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         public void run() {
             ClassLoader currentCl = null;
 
-            final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+            final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
             if (frameworkBundle != null) {
                 currentCl = Thread.currentThread().getContextClassLoader();
                 final ClassLoader cl = frameworkBundle.getClassLoader();

@@ -201,6 +201,11 @@ public final class NarUnpacker {
         }
     }
 
+    public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
+        final File bundledDependencies = new File(unpackedNar, "NAR-INF/bundled-dependencies");
+        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+    }
+
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
         final File[] directoryContents = bundledDirectory.listFiles();
         if (directoryContents != null) {
@@ -220,7 +225,7 @@ public final class NarUnpacker {
      * @return the directory to the unpacked NAR
      * @throws IOException if unable to explode nar
      */
-    private static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
+    public static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
         final File narWorkingDirectory = new File(baseWorkingDirectory, nar.getName() + "-unpacked");
 
         // if the working directory doesn't exist, unpack the nar

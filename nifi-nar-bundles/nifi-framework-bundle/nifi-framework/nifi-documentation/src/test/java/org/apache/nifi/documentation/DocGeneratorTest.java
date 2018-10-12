@@ -29,7 +29,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
@@ -51,9 +51,9 @@ public class DocGeneratorTest {
         final Bundle systemBundle = SystemBundle.create(properties);
         final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
 
-        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        NarClassLoadersHolder.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
 
         DocGenerator.generate(properties, mapping);
 
