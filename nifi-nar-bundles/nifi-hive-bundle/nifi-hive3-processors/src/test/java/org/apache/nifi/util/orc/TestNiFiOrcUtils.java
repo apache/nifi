@@ -264,7 +264,7 @@ public class TestNiFiOrcUtils {
     public void test_generateHiveDDL_primitive() {
         RecordSchema schema = buildPrimitiveRecordSchema();
         String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", false);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable (int INT, long BIGINT, boolean BOOLEAN, float FLOAT, double DOUBLE, bytes BINARY, string STRING)"
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` (`int` INT, `long` BIGINT, `boolean` BOOLEAN, `float` FLOAT, `double` DOUBLE, `bytes` BINARY, `string` STRING)"
                 + " STORED AS ORC", ddl);
     }
 
@@ -272,8 +272,8 @@ public class TestNiFiOrcUtils {
     public void test_generateHiveDDL_complex() {
         RecordSchema schema = buildComplexRecordSchema();
         String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", false);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
-                + "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>)"
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` "
+                + "(`myInt` INT, `myMap` MAP<STRING, DOUBLE>, `myEnum` STRING, `myLongOrFloat` UNIONTYPE<BIGINT, FLOAT>, `myIntList` ARRAY<INT>)"
                 + " STORED AS ORC", ddl);
     }
 
@@ -281,8 +281,8 @@ public class TestNiFiOrcUtils {
     public void test_generateHiveDDL_complex_normalize() {
         RecordSchema schema = buildComplexRecordSchema();
         String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", true);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
-                + "(myint INT, mymap MAP<STRING, DOUBLE>, myenum STRING, mylongorfloat UNIONTYPE<BIGINT, FLOAT>, myintlist ARRAY<INT>)"
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` "
+                + "(`myint` INT, `mymap` MAP<STRING, DOUBLE>, `myenum` STRING, `mylongorfloat` UNIONTYPE<BIGINT, FLOAT>, `myintlist` ARRAY<INT>)"
                 + " STORED AS ORC", ddl);
     }
 

@@ -163,7 +163,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), filename);
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "100");
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS myTable (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -234,7 +234,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "10");
         // DDL will be created with field names normalized (lowercased, e.g.) for Hive by default
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS myTable (id INT, timemillis INT, timestampmillis TIMESTAMP, dt DATE, dec DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DOUBLE) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
