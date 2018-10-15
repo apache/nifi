@@ -31,6 +31,9 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
   The derived work is adapted from
     release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
   and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  The derived work is adapted from
+    release-3.0.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+  and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
 
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc

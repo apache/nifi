@@ -20,7 +20,7 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
       branch-3.0/streaming/src/java/org/apache/hive/streaming/StrictJsonWriter.java
     and can be found in the org.apache.hive.streaming.HiveRecordWriter class
   The derived work is adapted from
-      branch-3.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+      release-3.0.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
     and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
 
 ===========================================
