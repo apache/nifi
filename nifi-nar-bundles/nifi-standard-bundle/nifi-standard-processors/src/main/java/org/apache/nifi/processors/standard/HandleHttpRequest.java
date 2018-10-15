@@ -586,7 +586,13 @@ public class HandleHttpRequest extends AbstractProcessor {
               }
               flowFile = savePartAttributes(context, session, part, flowFile, i, allPartsCount);
               flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
-              forwardFlowFile(context, session, container, start, request, flowFile, i == 0);
+              if (i == 0) {
+                // each one of multipart comes from a single request, thus registering only once per loop.
+                boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+                if (!requestRegistrationSuccess)
+                  break;
+              }
+              forwardFlowFile(context, session, container, start, request, flowFile);
             }
           } catch (IOException | ServletException | IllegalStateException e) {
             handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
@@ -602,7 +608,9 @@ public class HandleHttpRequest extends AbstractProcessor {
           }
           final String contextIdentifier = UUID.randomUUID().toString();
           flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
-          forwardFlowFile(context, session, container, start, request, flowFile, true);
+          boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+          if (requestRegistrationSuccess)
+            forwardFlowFile(context, session, container, start, request, flowFile);
         }
     }
 
@@ -730,30 +738,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     }
 
     private void forwardFlowFile(final ProcessContext context, final ProcessSession session,
-        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile, boolean registerRequest) {
-      if (registerRequest) {
-        final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
-        String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
-        final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
-
-        if (!registered) {
-          getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
-              new Object[]{request.getRemoteAddr()});
-
-          try {
-            container.getResponse().setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
-            container.getResponse().flushBuffer();
-            container.getContext().complete();
-          } catch (final Exception e) {
-            getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
-                new Object[]{request.getRemoteAddr(), e});
-          }
-
-          session.remove(flowFile);
-          return;
-        }
-      }
-
+        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
       final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
       String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
       session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
@@ -761,6 +746,32 @@ public class HandleHttpRequest extends AbstractProcessor {
       session.transfer(flowFile, REL_SUCCESS);
       getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
     }
+
+
+    private boolean registerRequest(final ProcessContext context, final ProcessSession session,
+        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
+        final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
+        String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+        final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
+        if (registered)
+          return true;
+
+        getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
+            new Object[]{request.getRemoteAddr()});
+
+        try {
+          container.getResponse().setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
+          container.getResponse().flushBuffer();
+          container.getContext().complete();
+        } catch (final Exception e) {
+          getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
+              new Object[]{request.getRemoteAddr(), e});
+        }
+
+        session.remove(flowFile);
+        return false;
+    }
+
 
     protected void handleFlowContentStreamingError(final ProcessSession session, HttpRequestContainer container,
         final HttpServletRequest request, Optional<FlowFile> flowFile, final Exception e) {

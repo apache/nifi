@@ -30,6 +30,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -274,6 +275,71 @@ public class TestHandleHttpRequest {
       }
     }
 
+    @Test(timeout=10000)
+    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+      final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
+      runner.setProperty(HandleHttpRequest.PORT, "0");
+
+      final MockHttpContextMap contextMap = new MockHttpContextMap();
+      contextMap.setRegisterSuccessfully(false);
+      runner.addControllerService("http-context-map", contextMap);
+      runner.enableControllerService(contextMap);
+      runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+
+      // trigger processor to stop but not shutdown.
+      runner.run(1, false);
+      try {
+        AtomicInteger responseCode = new AtomicInteger(0);
+        final Thread httpThread = new Thread(new Runnable() {
+          @Override
+          public void run() {
+            try {
+
+              final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+
+              MultipartBody multipartBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("p1", "v1")
+                .addFormDataPart("p2", "v2")
+                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                .build();
+
+              Request request = new Request.Builder()
+              .url(String.format("http://localhost:%s/my/path", port))
+              .post(multipartBody).build();
+
+              OkHttpClient client =
+                  new OkHttpClient.Builder()
+                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                  .build();
+
+              try (Response response = client.newCall(request).execute()) {
+                responseCode.set(response.code());
+              }
+            } catch (final Throwable t) {
+              t.printStackTrace();
+              Assert.fail(t.toString());
+            }
+          }
+        });
+        httpThread.start();
+
+        while (responseCode.get() == 0) {
+          // process the request.
+          runner.run(1, false, false);
+        }
+
+        runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 0);
+        assertEquals(0, contextMap.size());
+        Assert.assertEquals(503, responseCode.get());
+      } finally {
+        // shut down the server
+        runner.run(1, true);
+      }
+    }
 
     private byte[] generateRandomBinaryData(int i) {
       byte[] bytes = new byte[100];
