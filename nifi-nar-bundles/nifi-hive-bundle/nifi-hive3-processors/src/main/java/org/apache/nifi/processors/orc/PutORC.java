@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.orc;
 
-import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
@@ -30,7 +29,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -157,19 +155,17 @@ public class PutORC extends AbstractPutHDFSRecord {
     public HDFSRecordWriter createHDFSRecordWriter(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path, final RecordSchema schema)
             throws IOException, SchemaNotFoundException {
 
-        final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
-
         final long stripeSize = context.getProperty(STRIPE_SIZE).asDataSize(DataUnit.B).longValue();
         final int bufferSize = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final CompressionKind compressionType = CompressionKind.valueOf(context.getProperty(COMPRESSION_TYPE).getValue());
         final boolean normalizeForHive = context.getProperty(HIVE_FIELD_NAMES).asBoolean();
-        TypeInfo orcSchema = NiFiOrcUtils.getOrcField(avroSchema, normalizeForHive);
+        TypeInfo orcSchema = NiFiOrcUtils.getOrcSchema(schema, normalizeForHive);
         final Writer orcWriter = NiFiOrcUtils.createWriter(path, conf, orcSchema, stripeSize, compressionType, bufferSize);
         final String hiveTableName = context.getProperty(HIVE_TABLE_NAME).isSet()
                 ? context.getProperty(HIVE_TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue()
-                : NiFiOrcUtils.normalizeHiveTableName(avroSchema.getFullName());
+                : NiFiOrcUtils.normalizeHiveTableName(schema.getIdentifier().getName().orElse("unknown"));
         final boolean hiveFieldNames = context.getProperty(HIVE_FIELD_NAMES).asBoolean();
 
-        return new ORCHDFSRecordWriter(orcWriter, avroSchema, hiveTableName, hiveFieldNames);
+        return new ORCHDFSRecordWriter(orcWriter, schema, hiveTableName, hiveFieldNames);
     }
 }
