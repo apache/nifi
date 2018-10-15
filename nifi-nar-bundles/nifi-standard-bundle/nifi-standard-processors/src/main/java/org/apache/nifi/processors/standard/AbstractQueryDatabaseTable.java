@@ -27,7 +27,6 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -65,9 +64,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
-
-    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
-    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -338,7 +334,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         //set count on all FlowFiles
                         if (maxRowsPerFlowFile > 0) {
                             resultSetFlowFiles.set(i,
-                                    session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
+                                    session.putAttribute(resultSetFlowFiles.get(i), FRAGMENT_COUNT, Integer.toString(fragmentIndex)));
                         }
                     }
                 }
