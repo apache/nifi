@@ -17,25 +17,22 @@
 package org.apache.nifi.processors.cassandra;
 
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
-import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -51,24 +48,18 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @SupportsBatching
 @Tags({"cassandra", "cql", "put", "insert", "update", "set"})
@@ -120,11 +111,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     private final static List<PropertyDescriptor> propertyDescriptors;
 
     private final static Set<Relationship> relationships;
-
-    private static final Pattern CQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("cql\\.args\\.(\\d+)\\.type");
-
-    // Matches on top-level type (primitive types like text,int) and also for collections (like list<boolean> and map<float,double>)
-    private static final Pattern CQL_TYPE_PATTERN = Pattern.compile("([^<]+)(<([^,>]+)(,([^,>]+))*>)?");
 
     /**
      * LRU cache for the compiled patterns. The size of the cache is determined by the value of the Statement Cache Size property
@@ -214,29 +200,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             }
             BoundStatement boundStatement = statement.bind();
 
-            Map<String, String> attributes = flowFile.getAttributes();
-            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-                final String key = entry.getKey();
-                final Matcher matcher = CQL_TYPE_ATTRIBUTE_PATTERN.matcher(key);
-                if (matcher.matches()) {
-                    final int parameterIndex = Integer.parseInt(matcher.group(1));
-                    String paramType = entry.getValue();
-                    if (StringUtils.isEmpty(paramType)) {
-                        throw new ProcessException("Value of the " + key + " attribute is null or empty, it must contain a valid value");
-                    }
-
-                    paramType = paramType.trim();
-                    final String valueAttrName = "cql.args." + parameterIndex + ".value";
-                    final String parameterValue = attributes.get(valueAttrName);
-
-                    try {
-                        setStatementObject(boundStatement, parameterIndex - 1, valueAttrName, parameterValue, paramType);
-                    } catch (final InvalidTypeException | IllegalArgumentException e) {
-                        throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue
-                                + "', which cannot be converted into the necessary data type: " + paramType, e);
-                    }
-                }
-            }
+            buildBoundStatement(flowFile, boundStatement);
 
             try {
                 ResultSetFuture future = connectionSession.executeAsync(boundStatement);
@@ -308,112 +272,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
         // Create the PreparedStatement string to use for this FlowFile.
         return new String(buffer, charset);
-    }
-
-    /**
-     * Determines how to map the given value to the appropriate Cassandra data type and returns the object as
-     * represented by the given type. This can be used in a Prepared/BoundStatement.
-     *
-     * @param statement  the BoundStatement for setting objects on
-     * @param paramIndex the index of the parameter at which to set the object
-     * @param attrName   the name of the attribute that the parameter is coming from - for logging purposes
-     * @param paramValue the value of the CQL parameter to set
-     * @param paramType  the Cassandra data type of the CQL parameter to set
-     * @throws IllegalArgumentException if the PreparedStatement throws a CQLException when calling the appropriate setter
-     */
-    protected void setStatementObject(final BoundStatement statement, final int paramIndex, final String attrName,
-                                      final String paramValue, final String paramType) throws IllegalArgumentException {
-        if (paramValue == null) {
-            statement.setToNull(paramIndex);
-            return;
-        } else if (paramType == null) {
-            throw new IllegalArgumentException("Parameter type for " + attrName + " cannot be null");
-
-        } else {
-            // Parse the top-level type and any parameterized types (for collections)
-            final Matcher matcher = CQL_TYPE_PATTERN.matcher(paramType);
-
-            // If the matcher doesn't match, this should fall through to the exception at the bottom
-            if (matcher.find() && matcher.groupCount() > 1) {
-                String mainTypeString = matcher.group(1).toLowerCase();
-                DataType mainType = getPrimitiveDataTypeFromString(mainTypeString);
-                if (mainType != null) {
-                    TypeCodec typeCodec = codecRegistry.codecFor(mainType);
-
-                    // Need the right statement.setXYZ() method
-                    if (mainType.equals(DataType.ascii())
-                            || mainType.equals(DataType.text())
-                            || mainType.equals(DataType.varchar())
-                            || mainType.equals(DataType.timeuuid())
-                            || mainType.equals(DataType.uuid())
-                            || mainType.equals(DataType.inet())
-                            || mainType.equals(DataType.varint())) {
-                        // These are strings, so just use the paramValue
-                        statement.setString(paramIndex, paramValue);
-
-                    } else if (mainType.equals(DataType.cboolean())) {
-                        statement.setBool(paramIndex, (boolean) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.cint())) {
-                        statement.setInt(paramIndex, (int) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.bigint())
-                            || mainType.equals(DataType.counter())) {
-                        statement.setLong(paramIndex, (long) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.cfloat())) {
-                        statement.setFloat(paramIndex, (float) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.cdouble())) {
-                        statement.setDouble(paramIndex, (double) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.blob())) {
-                        statement.setBytes(paramIndex, (ByteBuffer) typeCodec.parse(paramValue));
-
-                    } else if (mainType.equals(DataType.timestamp())) {
-                        statement.setTimestamp(paramIndex, (Date) typeCodec.parse(paramValue));
-                    }
-                    return;
-                } else {
-                    // Get the first parameterized type
-                    if (matcher.groupCount() > 2) {
-                        String firstParamTypeName = matcher.group(3);
-                        DataType firstParamType = getPrimitiveDataTypeFromString(firstParamTypeName);
-                        if (firstParamType == null) {
-                            throw new IllegalArgumentException("Nested collections are not supported");
-                        }
-
-                        // Check for map type
-                        if (DataType.Name.MAP.toString().equalsIgnoreCase(mainTypeString)) {
-                            if (matcher.groupCount() > 4) {
-                                String secondParamTypeName = matcher.group(5);
-                                DataType secondParamType = getPrimitiveDataTypeFromString(secondParamTypeName);
-                                DataType mapType = DataType.map(firstParamType, secondParamType);
-                                statement.setMap(paramIndex, (Map) codecRegistry.codecFor(mapType).parse(paramValue));
-                                return;
-                            }
-                        } else {
-                            // Must be set or list
-                            if (DataType.Name.SET.toString().equalsIgnoreCase(mainTypeString)) {
-                                DataType setType = DataType.set(firstParamType);
-                                statement.setSet(paramIndex, (Set) codecRegistry.codecFor(setType).parse(paramValue));
-                                return;
-                            } else if (DataType.Name.LIST.toString().equalsIgnoreCase(mainTypeString)) {
-                                DataType listType = DataType.list(firstParamType);
-                                statement.setList(paramIndex, (List) codecRegistry.codecFor(listType).parse(paramValue));
-                                return;
-                            }
-                        }
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Collection type " + mainTypeString + " needs parameterized type(s), such as set<text>");
-                    }
-
-                }
-            }
-
-        }
-        throw new IllegalArgumentException("Cannot create object of type " + paramType + " using input " + paramValue);
     }
 
     @OnStopped
