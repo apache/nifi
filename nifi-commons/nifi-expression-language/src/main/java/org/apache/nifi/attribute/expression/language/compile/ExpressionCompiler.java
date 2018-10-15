@@ -46,6 +46,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Divide
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EndsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsIgnoreCaseEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ExecEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FromRadixEvaluator;
@@ -151,6 +152,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_HTML4;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_JSON;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_XML;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EXEC;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EXPRESSION;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FALSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
@@ -1054,6 +1056,18 @@ public class ExpressionCompiler {
                 final GetStateVariableEvaluator eval = new GetStateVariableEvaluator(stringEvaluator);
                 evaluators.add(eval);
                 return eval;
+            }
+            case EXEC: {
+                int count = tree.getChildCount();
+                if (count == 0) {
+                    throw new AttributeExpressionLanguageParsingException("Executor class name must be provided");
+                }
+                List<Evaluator<?>> list = new ArrayList<Evaluator<?>>();
+                for (int i = 0; i < count; i++) {
+                    final Evaluator<?> argEvaluator = buildEvaluator(tree.getChild(i));
+                    list.add(argEvaluator);
+                }
+                return addToken(new ExecEvaluator(list), "exec");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());

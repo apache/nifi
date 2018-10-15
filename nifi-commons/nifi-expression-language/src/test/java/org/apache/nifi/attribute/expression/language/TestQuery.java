@@ -18,7 +18,6 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.Query.Range;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
@@ -30,10 +29,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
@@ -54,7 +50,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class TestQuery {
+public class TestQuery extends QueryTestBase{
 
     @Test
     public void testCompilation() {
@@ -87,23 +83,6 @@ public class TestQuery {
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
         final String mixedEvaluated = mixedQuery.evaluateExpressions(variables, null);
         assertEquals("bar${foo}", mixedEvaluated);
-    }
-
-    private void assertValid(final String query) {
-        try {
-            Query.compile(query);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Expected query to be valid, but it failed to compile due to " + e);
-        }
-    }
-
-    private void assertInvalid(final String query) {
-        try {
-            Query.compile(query);
-            Assert.fail("Expected query to be invalid, but it did compile");
-        } catch (final Exception e) {
-        }
     }
 
     @Test
@@ -139,29 +118,6 @@ public class TestQuery {
         assertEquals("true", result);
 
         Query.validateExpression(expression, false);
-    }
-
-    private String printTree(final Tree tree) {
-        final StringBuilder sb = new StringBuilder();
-        printTree(tree, 0, sb);
-
-        return sb.toString();
-    }
-
-    private void printTree(final Tree tree, final int spaces, final StringBuilder sb) {
-        for (int i = 0; i < spaces; i++) {
-            sb.append(" ");
-        }
-
-        if (tree.getText().trim().isEmpty()) {
-            sb.append(tree.toString()).append("\n");
-        } else {
-            sb.append(tree.getText()).append("\n");
-        }
-
-        for (int i = 0; i < tree.getChildCount(); i++) {
-            printTree(tree.getChild(i), spaces + 2, sb);
-        }
     }
 
     @Test
@@ -1772,64 +1728,5 @@ public class TestQuery {
         verifyEquals("${attr2:isNull():ifElse('a', 'b')}", attributes, "a");
         verifyEquals("${literal(true):ifElse('a', 'b')}", attributes, "a");
         verifyEquals("${literal(true):ifElse(false, 'b')}", attributes, "false");
-    }
-
-
-    private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
-        verifyEquals(expression,attributes, null, expectedResult);
-    }
-
-    private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
-        Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues));
-
-        final Query query = Query.compile(expression);
-        final QueryResult<?> result = query.evaluate(attributes, stateValues);
-
-        if (expectedResult instanceof Long) {
-            if (ResultType.NUMBER.equals(result.getResultType())) {
-                final Number resultNumber = ((NumberQueryResult) result).getValue();
-                assertTrue(resultNumber instanceof Long);
-            } else {
-                assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
-            }
-        } else if(expectedResult instanceof Double) {
-            if (ResultType.NUMBER.equals(result.getResultType())) {
-                final Number resultNumber = ((NumberQueryResult) result).getValue();
-                assertTrue(resultNumber instanceof Double);
-            } else {
-                assertEquals(ResultType.DECIMAL, result.getResultType());
-            }
-        } else if (expectedResult instanceof Boolean) {
-            assertEquals(ResultType.BOOLEAN, result.getResultType());
-        } else {
-            assertEquals(ResultType.STRING, result.getResultType());
-        }
-
-        assertEquals(expectedResult, result.getValue());
-    }
-
-    private void verifyEmpty(final String expression, final Map<String, String> attributes) {
-        Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(""), Query.evaluateExpressions(expression, attributes, null));
-    }
-
-    private String getResourceAsString(String resourceName) throws IOException {
-        try (final Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)))) {
-            int n = 0;
-            char[] buf = new char[1024];
-            StringBuilder sb = new StringBuilder();
-            while (n != -1) {
-                try {
-                    n = reader.read(buf, 0, buf.length);
-                } catch (IOException e) {
-                    throw new RuntimeException("failed to read resource", e);
-                }
-                if (n > 0) {
-                    sb.append(buf, 0, n);
-                }
-            }
-            return sb.toString();
-        }
     }
 }

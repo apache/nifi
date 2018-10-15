@@ -107,6 +107,7 @@ IP	: 'ip';
 UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
+EXEC : 'exec'; // can have 0 to n arguments.
 
 
 // 0 arg functions

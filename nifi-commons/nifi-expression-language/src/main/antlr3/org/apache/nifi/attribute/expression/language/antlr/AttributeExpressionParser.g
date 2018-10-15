@@ -131,7 +131,8 @@ booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | RANDOM) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
-standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
+multiArgStringStandaloneFunction : (EXEC^ LPAREN! anyArg (COMMA! anyArg)* RPAREN!);
+standaloneFunction : (zeroArgStandaloneFunction | oneArgStandaloneFunction | multiArgStringStandaloneFunction);
 
 attributeRefOrFunctionCall	: (attributeRef | standaloneFunction);
 

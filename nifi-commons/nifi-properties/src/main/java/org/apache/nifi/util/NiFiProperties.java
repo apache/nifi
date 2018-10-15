@@ -234,6 +234,8 @@ public abstract class NiFiProperties {
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
 
     // expression language properties
+
+    public static final String EXPRESSION_LANG_UDF_PATH = "nifi.expression.lang.udf.path";
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
     // defaults
@@ -1243,6 +1245,10 @@ public abstract class NiFiProperties {
         } else {
             return new Path[]{};
         }
+    }
+
+    public String getExpressionLangUDFPath() {
+        return getProperty(EXPRESSION_LANG_UDF_PATH);
     }
 
     /**

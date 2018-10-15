@@ -2312,3 +2312,35 @@ provides several functions for evaluating the same conditions against groups of 
 | `${allAttributes("abc", "non-existent-attr", "xyz"):count()}` | `2`
 | `${allMatchingAttributes(".*"):length():gt(10):count()}` | `2`
 |===========================================================================
+
+
+[[udf]]
+== User Defined Functions
+
+
+[[exec]]
+[.function]
+=== exec (experimental)
+*Description*: [.description]#Executes user defined function. This function has no subject and takes one or more attributes, that are a name of the UDF and its arguments.
+	Those arguments will be delegated to UDF in a given order. This function returns a result as String data type object.#
+	
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*:
+
+	- [.argName]#_UDF Class Name_# : [.argDesc]#Fully qualified class name. In order to add classes to a classpath, nifi.property _nifi.expression.lang.udf.path_ should be updated with a path.
+		The path should point to an existing directory (or comma-separated list of directories) containing JAR files with UDF classes. These module/s will be used for UDF functinality only (isolated classloader).#
+
+	- [.argName]#_Additional Arguments_# : [.argDesc]#The arguments that will be passed to UDF function. Types of the arguments should match UDF's arguments types in method's signature.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: Let's assume that _org.apache.nifi.attribute.expression.language.test.SimpleMaskCreditCard_ is a UDF function which masks credit card numbers, 
+	and _org.apache.nifi.attribute.expression.language.test.CamelCaseMaker_ is a UDF converting delimited text into camel cased string (with additional parameter "false" that tells to keep first letter in original case): 
+
+.exec Example
+|===========================================================================
+| Expression | Value
+| `${exec('org.apache.nifi.attribute.expression.language.test.SimpleMaskCreditCard', '1234-5678-9012-3456')}` | `xxxx-xxxx-xxxx-3456`
+| `${exec('org.apache.nifi.attribute.expression.language.test.CamelCaseMaker', 'python_style_to_java', false)}` | `pythonStyleToJava`
+|===========================================================================
