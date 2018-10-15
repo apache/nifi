@@ -75,6 +75,13 @@ public class TestStandardSchemaValidator {
         intMap.put("height", 48);
         intMap.put("width", 96);
 
+        List<RecordField> mapRecordFields = new ArrayList<>();
+        RecordField mapRecordField = new RecordField("mapRecord", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType()));
+        mapRecordFields.add(mapRecordField);
+        fields.add(mapRecordField);
+        RecordSchema mapRecordSchema = new SimpleRecordSchema(mapRecordFields);
+        MapRecord mapRecord = new MapRecord(mapRecordSchema, intMap);
+
         final RecordSchema schema = new SimpleRecordSchema(fields);
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("string", "string");
@@ -94,6 +101,7 @@ public class TestStandardSchemaValidator {
         valueMap.put("array", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", intMap);
+        valueMap.put("mapRecord", mapRecord);
 
         final Record record = new MapRecord(schema, valueMap);
 
