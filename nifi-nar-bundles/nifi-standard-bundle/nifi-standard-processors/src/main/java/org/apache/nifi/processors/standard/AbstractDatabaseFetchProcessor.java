@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -89,6 +90,9 @@ import static java.sql.Types.VARCHAR;
 public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFactoryProcessor {
 
     public static final String INITIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
