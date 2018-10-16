@@ -3292,6 +3292,10 @@ public final class DtoFactory {
             }
 
             final String serviceId = entry.getValue();
+            if (serviceId == null) {
+                continue;
+            }
+
             final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(serviceId);
             if (serviceNode == null) {
                 continue;
@@ -3572,6 +3576,8 @@ public final class DtoFactory {
                 snapshotDto.setCollectionMillis(status.getCollectionMillis());
                 gcSnapshots.add(snapshotDto);
             }
+
+            gcSnapshots.sort(Comparator.comparing(GCDiagnosticsSnapshotDTO::getTimestamp).reversed());
 
             final GarbageCollectionDiagnosticsDTO gcDto = new GarbageCollectionDiagnosticsDTO();
             gcDto.setMemoryManagerName(memoryManager);

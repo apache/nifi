@@ -48,7 +48,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue) {
         this(originalQueue, null);
-        this.type = RepositoryRecordType.CREATE;
+        setType(RepositoryRecordType.CREATE);
     }
 
     /**
@@ -59,13 +59,13 @@ public class StandardRepositoryRecord implements RepositoryRecord {
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue, final FlowFileRecord originalFlowFileRecord) {
         this(originalQueue, originalFlowFileRecord, null);
-        this.type = RepositoryRecordType.UPDATE;
+        setType(RepositoryRecordType.UPDATE);
     }
 
     public StandardRepositoryRecord(final FlowFileQueue originalQueue, final FlowFileRecord originalFlowFileRecord, final String swapLocation) {
         this.originalQueue = originalQueue;
         this.originalFlowFileRecord = originalFlowFileRecord;
-        this.type = RepositoryRecordType.SWAP_OUT;
+        setType(RepositoryRecordType.SWAP_OUT);
         this.swapLocation = swapLocation;
         this.originalAttributes = originalFlowFileRecord == null ? Collections.emptyMap() : originalFlowFileRecord.getAttributes();
     }
@@ -96,7 +96,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     public void setSwapLocation(final String swapLocation) {
         this.swapLocation = swapLocation;
         if (type != RepositoryRecordType.SWAP_OUT) {
-            type = RepositoryRecordType.SWAP_IN; // we are swapping in a new record
+            setType(RepositoryRecordType.SWAP_IN); // we are swapping in a new record
         }
     }
 
@@ -159,7 +159,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     }
 
     public void markForAbort() {
-        type = RepositoryRecordType.CONTENTMISSING;
+        setType(RepositoryRecordType.CONTENTMISSING);
     }
 
     @Override
@@ -168,7 +168,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     }
 
     public void markForDelete() {
-        type = RepositoryRecordType.DELETE;
+        setType(RepositoryRecordType.DELETE);
     }
 
     public boolean isMarkedForDelete() {
@@ -220,6 +220,20 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         }
 
         return updatedAttributes == null ? Collections.emptyMap() : updatedAttributes;
+    }
+
+    private void setType(final RepositoryRecordType newType) {
+        if (newType == this.type) {
+            return;
+        }
+
+        if (this.type == RepositoryRecordType.CREATE) {
+            // Because we don't copy updated attributes to `this.updatedAttributes` for CREATE records, we need to ensure
+            // that if a record is changed from CREATE to anything else that we do properly update the `this.updatedAttributes` field.
+            this.updatedAttributes = new HashMap<>(getCurrent().getAttributes());
+        }
+
+        this.type = newType;
     }
 
     @Override
