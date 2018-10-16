@@ -31,11 +31,14 @@ import java.util.regex.Pattern;
 public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<RemoteProcessGroupEntity> implements EndpointResponseMerger {
     public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
     public static final Pattern REMOTE_PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/remote-process-groups/[a-f0-9\\-]{36}");
+    public static final Pattern REMOTE_PROCESS_RUN_STATUS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/remote-process-groups/[a-f0-9\\-]{36}/run-status");
     private final RemoteProcessGroupEntityMerger remoteProcessGroupEntityMerger = new RemoteProcessGroupEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && REMOTE_PROCESS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches()) {
+            return true;
+        } else if ("PUT".equalsIgnoreCase(method) && REMOTE_PROCESS_RUN_STATUS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && REMOTE_PROCESS_GROUPS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
