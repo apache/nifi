@@ -68,6 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
@@ -465,6 +466,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         final Map<String, String> attributes = readAttributes(metadataIn);
+        final String sourceSystemUuid = attributes.get(CoreAttributes.UUID.key());
 
         logger.debug("Received Attributes {} from Peer {}", attributes, peerDescription);
 
@@ -476,6 +478,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(flowFileRepository.getNextFlowFileSequence())
             .addAttributes(attributes)
+            .addAttribute(CoreAttributes.UUID.key(), UUID.randomUUID().toString())
             .contentClaim(contentClaimTriple.getContentClaim())
             .contentClaimOffset(contentClaimTriple.getClaimOffset())
             .size(contentClaimTriple.getContentLength())
@@ -484,7 +487,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             .build();
 
         logger.debug("Received FlowFile {} with {} attributes and {} bytes of content", flowFileRecord, attributes.size(), contentClaimTriple.getContentLength());
-        return new RemoteFlowFileRecord(attributes.get(CoreAttributes.UUID.key()), flowFileRecord);
+        return new RemoteFlowFileRecord(sourceSystemUuid, flowFileRecord);
     }
 
     private Map<String, String> readAttributes(final DataInputStream in) throws IOException {
