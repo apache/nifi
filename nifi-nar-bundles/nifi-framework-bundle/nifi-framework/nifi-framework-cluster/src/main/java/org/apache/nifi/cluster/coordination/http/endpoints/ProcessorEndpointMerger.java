@@ -31,11 +31,14 @@ import java.util.regex.Pattern;
 public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity> implements EndpointResponseMerger {
     public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
     public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}");
+    public static final Pattern PROCESSOR_RUN_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/run-status");
     private final ProcessorEntityMerger processorEntityMerger = new ProcessorEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
+            return true;
+        } else if ("PUT".equalsIgnoreCase(method) && PROCESSOR_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
