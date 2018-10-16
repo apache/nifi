@@ -1676,12 +1676,19 @@ public class TestStandardProcessSession {
     }
 
     @Test
-    public void testBatchQueuedHaveSameQueuedTime() {
+    public void testBatchQueuedHaveSameQueuedTime() throws InterruptedException {
         for (int i = 0; i < 100; i++) {
             final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
                     .id(i)
                     .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
                     .build();
+
+            //Sleep for 1 second to ensure FlowFile's are not all queued at exact same timestamp
+            // On some fast systems this can happen and causes the test to fail
+            if(i==99) {
+                Thread.sleep(1000);
+            }
+
             this.flowFileQueue.put(flowFile);
         }
 
