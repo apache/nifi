@@ -306,10 +306,12 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             }
 
             log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+
             try {
                 ugi = hiveConfigurator.authenticate(hiveConfig, resolvedPrincipal, resolvedKeytab);
             } catch (AuthenticationFailedException ae) {
                 log.error(ae.getMessage(), ae);
+                throw new InitializationException(ae);
             }
 
             getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
