@@ -654,7 +654,7 @@ for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
 ===== Execution
-The Execution setting is used to determine which node(s) the Processor will be
+The Execution setting is used to determine on which node(s) the Processor will be
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
 'Primary Node' will result in this Processor being scheduled on the Primary Node only.  Processors that have been configured for 'Primary Node' execution are identified by a "P" next to the processor icon:
 
