@@ -30,7 +30,7 @@ public class NLKBufferedReader extends BufferedReader {
     private static final int UNMARKED = -1;
     private int markedChar = UNMARKED;
     private int readAheadLimit = 0; /* Valid only when markedChar > 0 */
-
+    private boolean lastCharWasReturn = false;
     private static int defaultCharBufferSize = 8192;
     private static int defaultExpectedLineLength = 80;
 
@@ -72,7 +72,7 @@ public class NLKBufferedReader extends BufferedReader {
 
         synchronized (lock) {
             ensureOpen();
-
+            lastCharWasReturn = false;
             bufferLoop:
             for (;;) {
 
@@ -94,11 +94,37 @@ public class NLKBufferedReader extends BufferedReader {
                 charLoop:
                 for (i = nextChar; i < nChars; i++) {
                     c = cb[i];
-                    if ((c == '\n') || (c == '\r')) {
-                        if ((c == '\r') && (cb.length > i + 1) && cb[i + 1] == '\n') { // windows case '\r\n' here verify the next character i+1
-                            i++;
+
+                    if ((c == '\r')) {
+                        if (lastCharWasReturn) {
+                            // 2 \r in a row
+                            eol = true;
+                            lastCharWasReturn = false;
+                            i--;
+                            break charLoop;
                         }
+
+                        lastCharWasReturn = true;
+                        // if there is a next char, then check it
+                        if ((cb.length > i + 1))  {
+                            if ((cb[i+1] == '\n')) {
+                                i++;
+                                eol = true;
+                                break charLoop;
+                            }
+                        }
+                        // This could always be followed by a \n, even in the next buffer
+                        // so we do not break the loop here, or set eof.
+                        // We will evaluate on the next char, either in this buffer or the next.
+                        // Thus, if a \r\n is split by a buffer, we'll still pick it up
+                        eol = false;
+                    } else if ((c == '\n')) {
                         eol = true;
+                        break charLoop;
+                    } else if (lastCharWasReturn){
+                        lastCharWasReturn = false;
+                        eol = true;
+                        i--;
                         break charLoop;
                     }
                 }

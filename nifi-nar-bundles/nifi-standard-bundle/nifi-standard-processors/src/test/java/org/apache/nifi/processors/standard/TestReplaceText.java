@@ -1203,6 +1203,46 @@ public class TestReplaceText {
         out.assertContentEquals("WO$1R$2D");
     }
 
+    @Test
+    public void testWindowsLineEndingsAcrossBufferLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "i do not exist anywhere in the text");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}");
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "13 B");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "abc.txt");
+        runner.enqueue("Hello\nWorld!\r\ntoday!\n".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("abc.txt\nabc.txt\r\nabc.txt\n");
+    }
+
+    @Test
+    public void testOnlyEndingsAcrossBufferLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "i do not exist anywhere in the text");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}");
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "10 B");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "abc.txt");
+        runner.enqueue("\n\n\r\r\n\n".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("abc.txt\nabc.txt\nabc.txt\rabc.txt\r\nabc.txt\n");
+    }
+
     /*
      * A repeated alternation regex such as (A|B)* can lead to StackOverflowError
      * on large input strings.
