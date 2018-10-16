@@ -157,12 +157,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
             originalService.initialize(new StandardControllerServiceInitializationContext(id, terminationAwareLogger, this, getStateManager(id), nifiProperties));
 
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
+
 
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, terminationAwareLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
 
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
+            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, componentVarRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
                 id, validationContextFactory, this, componentVarRegistry, flowController, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
