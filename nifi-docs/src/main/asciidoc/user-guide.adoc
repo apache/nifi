@@ -570,6 +570,7 @@ The second tab in the Processor Configuration dialog is the Scheduling Tab:
 
 image::scheduling-tab.png["Scheduling Tab"]
 
+===== Scheduling Strategy
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
 *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
@@ -636,13 +637,15 @@ For example:
 
 For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
 
-Next, the Scheduling Tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
+===== Concurrent Tasks
+Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
 resources that then are not usable by other Processors. This essentially provides a relative weighting of Processors -- it controls
 how much of the system's resources should be allocated to this Processor instead of other Processors. This field is available for
 most Processors. There are, however, some types of Processors that can only be scheduled with a single Concurrent task.
 
+===== Run Schedule
 The 'Run Schedule' dictates how often the Processor should be scheduled to run. The valid values for this field depend on the selected
 Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
 Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
@@ -650,7 +653,8 @@ The default value of `0 sec` means that the Processor should run as often as pos
 for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
-When configured for clustering, an Execution setting will be available. This setting is used to determine which node(s) the Processor will be
+===== Execution
+The Execution setting is used to determine on which node(s) the Processor will be
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
 'Primary Node' will result in this Processor being scheduled on the Primary Node only.  Processors that have been configured for 'Primary Node' execution are identified by a "P" next to the processor icon:
 
@@ -660,6 +664,7 @@ To quickly identify 'Primary Node' processors, the "P" icon is also shown in the
 
 image::primary-node-processors-summary.png["Primary Node Processors in Summary Page"]
 
+===== Run Duration
 The right-hand side of the Scheduling tab contains a slider for choosing the 'Run Duration'. This controls how long the Processor should be scheduled
 to run each time that it is triggered. On the left-hand side of the slider, it is marked 'Lower latency' while the right-hand side
 is marked 'Higher throughput'. When a Processor finishes running, it must update the repository in order to transfer the FlowFiles to
@@ -672,8 +677,8 @@ Lower Latency or Higher Throughput.
 
 ==== Properties Tab
 
-The Properties Tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
-must define which Properties make sense for its use case. Below, we see the Properties Tab for a RouteOnAttribute Processor:
+The Properties tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
+must define which Properties make sense for its use case. Below, we see the Properties tab for a RouteOnAttribute Processor:
 
 image::properties-tab.png["Properties Tab"]
 
@@ -973,7 +978,7 @@ and the same 'Create Connection' dialog appears.
 
 ==== Details Tab
 
-The Details Tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
+The Details tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
 image::create-connection.png["Create Connection"]
@@ -986,13 +991,11 @@ automatically be 'cloned', and a copy will be sent to each of those Connections.
 
 ==== Settings
 
-The Settings Tab provides the ability to configure the Connection's name, FlowFile expiration, Back Pressure thresholds, and
-Prioritization:
+The Settings tab provides the ability to configure the Connection's Name, FlowFile Expiration, Back Pressure Thresholds, Load Balance Strategy and Prioritization:
 
 image:connection-settings.png["Connection Settings"]
 
-The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships
-that are active for the Connection.
+The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships that are active for the Connection.
 
 ===== FlowFile Expiration
 FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
@@ -1027,6 +1030,54 @@ When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
 
+===== Load Balancing
+
+[[load_balance_strategy]]
+====== Load Balance Strategy
+To distribute the data in a flow across the nodes in the cluster, NiFi offers the following load balance strategies:
+
+- *Do not load balance*: Do not load balance FlowFiles between nodes in the cluster. This is the default.
+- *Partition by attribute*: Determines which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. All FlowFiles that have the same value for the Attribute will be sent to the same node in the cluster. If the destination node is disconnected from the cluster or if unable to communicate, the data does not fail over to another node. The data will queue, waiting for the node to be available again. Additionally, if a node joins or leaves the cluster necessitating a rebalance of the data, consistent hashing is applied to avoid having to redistribute all of the data.
+- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is queued for that node will be automatically redistributed to another node(s).
+- *Single node*: All FlowFiles will be sent to a single node in the cluster.  Which node they are sent to is not configurable. If the node is disconnected from the cluster or if unable to communicate with the node, the data that is queued for that node will remain queued until the node is available again.
+
+NOTE: In addition to the UI settings, there are <<administration-guide.adoc#cluster_node_properties,Cluster Node Properties>> related to load balancing that must also be configured in _nifi.properties_.
+
+NOTE: NiFi persists the nodes that are in a cluster across restarts.  This prevents the redistribution of data until all of the nodes have connected. If the cluster is shutdown and a node is not intended to be brought back up, the user is responsible for removing the node from the cluster via the "Cluster" dialog in the UI (see <<administration-guide.adoc#managing_nodes,Managing Nodes>> for more information).
+
+====== Load Balance Compression
+After selecting the load balance strategy, the user can configure whether or not data should be compressed when being transferred between nodes in the cluster.
+
+image:load_balance_compression_options.png["Load Balance Compression Options"]
+
+The following compression options are available:
+
+- *Do not compress*: FlowFiles will not be compressed. This is the default.
+- *Compress attributes only*: FlowFile attributes will be compressed, but FlowFile contents will not.
+- *Compress attributes and content*: FlowFile attributes and contents will be compressed.
+
+====== Load Balance Indicator
+When a load balance strategy has been implemented for a connection, a load balance indicator (image:iconLoadBalance.png["Load Balance Icon"]) will appear on the connection:
+
+image:load_balance_configured_connection.png["Connection Configured with Load Balance Strategy"]
+
+Hovering over the icon will display the connection's load balance strategy and compression configuration.  The icon in this state also indicates that all data in the connection has been distributed across the cluster.
+
+image:load_balance_distributed_connection.png["Distributed Load Balance Connection"]
+
+When data is actively being transferred between the nodes in the cluster, the load balance indicator will change orientation and color:
+
+image:load_balance_active_connection.png["Active Load Balance Connection"]
+
+====== Cluster Connection Summary
+To see where data has been distributed among the cluster nodes, select Summary from the Global Menu.  Then select the "Connections" tab and the "View Connection Details" icon for a source:
+
+image:summary_connections.png["NiFi Summary Connections"]
+
+This will open the Cluster Connection Summary dialog, which shows the data on each node in the cluster:
+
+image:cluster_connection_summary.png["Cluster Connection Summary Dialog"]
+
 ===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
 processed first. Prioritizers can be dragged from the top ('Available prioritizers') to the bottom ('Selected prioritizers').
@@ -1042,7 +1093,9 @@ The following prioritizers are available:
 - *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected'.
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
-===== Changing Configuration and Context Menu Options
+NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
+
+==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 image:nifi-connection.png["Connection"]
