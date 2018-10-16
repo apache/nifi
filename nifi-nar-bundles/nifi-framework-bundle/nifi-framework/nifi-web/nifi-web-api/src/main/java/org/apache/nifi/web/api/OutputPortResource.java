@@ -390,7 +390,7 @@ public class OutputPortResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyUpdateOutputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
                 (revision, runStatusEntity) -> {
-                    // update the input port
+                    // update the output port
                     final PortEntity entity = serviceFacade.updateOutputPort(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingOutputPortEntityContent(entity);
 
