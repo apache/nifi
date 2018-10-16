@@ -36,7 +36,6 @@ import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
 import org.apache.nifi.processors.parquet.record.AvroParquetHDFSRecordReader;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
-
 import java.io.IOException;
 
 @SupportsBatching

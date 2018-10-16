@@ -92,6 +92,7 @@
                         <exclude>src/test/resources/avro/user.avsc</exclude>
                         <exclude>src/test/resources/avro/user-with-array.avsc</exclude>
                         <exclude>src/test/resources/avro/user-with-nullable-array.avsc</exclude>
+                        <exclude>src/test/resources/avro/all-minus-enum.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

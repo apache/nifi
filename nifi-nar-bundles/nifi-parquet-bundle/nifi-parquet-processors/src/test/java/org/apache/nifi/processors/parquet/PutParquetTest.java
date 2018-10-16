@@ -42,6 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
+import org.apache.nifi.processors.parquet.utils.ParquetUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -184,7 +185,7 @@ public class PutParquetTest {
     @Test
     public void testWriteAvroWithGZIPCompression() throws IOException, InitializationException {
         configure(proc, 100);
-        testRunner.setProperty(PutParquet.COMPRESSION_TYPE, CompressionCodecName.GZIP.name());
+        testRunner.setProperty(ParquetUtils.COMPRESSION_TYPE, CompressionCodecName.GZIP.name());
 
         final String filename = "testWriteAvroWithGZIPCompression-" + System.currentTimeMillis();
 
@@ -472,7 +473,7 @@ public class PutParquetTest {
     @Test
     public void testRowGroupSize() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.ROW_GROUP_SIZE, "1024 B");
+        testRunner.setProperty(ParquetUtils.ROW_GROUP_SIZE, "1024 B");
 
         final String filename = "testRowGroupSize-" + System.currentTimeMillis();
 
@@ -487,7 +488,7 @@ public class PutParquetTest {
     @Test
     public void testInvalidRowGroupSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.ROW_GROUP_SIZE, "${row.group.size}");
+        testRunner.setProperty(ParquetUtils.ROW_GROUP_SIZE, "${row.group.size}");
 
         final String filename = "testInvalidRowGroupSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
@@ -503,7 +504,7 @@ public class PutParquetTest {
     @Test
     public void testPageSize() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.PAGE_SIZE, "1024 B");
+        testRunner.setProperty(ParquetUtils.PAGE_SIZE, "1024 B");
 
         final String filename = "testPageGroupSize-" + System.currentTimeMillis();
 
@@ -518,7 +519,7 @@ public class PutParquetTest {
     @Test
     public void testInvalidPageSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.PAGE_SIZE, "${page.size}");
+        testRunner.setProperty(ParquetUtils.PAGE_SIZE, "${page.size}");
 
         final String filename = "testInvalidPageSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
@@ -534,7 +535,7 @@ public class PutParquetTest {
     @Test
     public void testDictionaryPageSize() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.DICTIONARY_PAGE_SIZE, "1024 B");
+        testRunner.setProperty(ParquetUtils.DICTIONARY_PAGE_SIZE, "1024 B");
 
         final String filename = "testDictionaryPageGroupSize-" + System.currentTimeMillis();
 
@@ -549,7 +550,7 @@ public class PutParquetTest {
     @Test
     public void testInvalidDictionaryPageSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.DICTIONARY_PAGE_SIZE, "${dictionary.page.size}");
+        testRunner.setProperty(ParquetUtils.DICTIONARY_PAGE_SIZE, "${dictionary.page.size}");
 
         final String filename = "testInvalidDictionaryPageSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
@@ -565,7 +566,7 @@ public class PutParquetTest {
     @Test
     public void testMaxPaddingPageSize() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.MAX_PADDING_SIZE, "1024 B");
+        testRunner.setProperty(ParquetUtils.MAX_PADDING_SIZE, "1024 B");
 
         final String filename = "testMaxPaddingSize-" + System.currentTimeMillis();
 
@@ -580,7 +581,7 @@ public class PutParquetTest {
     @Test
     public void testInvalidMaxPaddingSizeFromELShouldRouteToFailure() throws IOException, InitializationException {
         configure(proc, 10);
-        testRunner.setProperty(PutParquet.MAX_PADDING_SIZE, "${max.padding.size}");
+        testRunner.setProperty(ParquetUtils.MAX_PADDING_SIZE, "${max.padding.size}");
 
         final String filename = "testInvalidMaxPaddingSizeFromELShouldRouteToFailure" + System.currentTimeMillis();
 
