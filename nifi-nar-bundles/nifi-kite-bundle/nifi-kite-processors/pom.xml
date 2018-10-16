@@ -186,7 +186,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>26.0-jre</version>
+            <version>18.0</version>
         </dependency>
 
         <dependency>
