@@ -2394,7 +2394,7 @@ happen automatically.
 When the DFM makes changes to the dataflow, the node that receives the request to change the flow communicates those changes to all
 nodes and waits for each node to respond, indicating that it has made the change on its local flow.
 
-
+[[managing_nodes]]
 === Managing Nodes
 
 ==== Disconnect Nodes
@@ -3950,6 +3950,7 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
+[[cluster_node_properties]]
 === Cluster Node Properties
 
 Configure these properties for cluster nodes.
@@ -3979,6 +3980,9 @@ to the cluster. It provides an additional layer of security. This value is blank
 long time before starting processing if we reach at least this number of nodes in the cluster.
 |`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
 |`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi.cluster.node.address` property.
+|`nifi.cluster.load.balance.connections.per.node`|The maximum number of connections to create between this node and each other node in the cluster. For example, if there are 5 nodes in the cluster and this value is set to 4, there will be up to 20 socket connections established for load-balancing purposes (5 x 4 = 20). The default value is `4`.
+|`nifi.cluster.load.balance.max.thread.count`|The maximum number of threads to use for transferring data from this node to other nodes in the cluster. If this value is set to 8, for example, there will be up to 8 threads responsible for transferring data to other nodes, regardless of how many nodes are in the cluster. While a given thread can only write to a single socket at a time, a single thread is capable of servicing multiple connections simultaneously because a given connection may not be available for reading/writing at any given time. The default value is `8`.
+|`nifi.cluster.load.balance.comms.timeout`|When communicating with another node, if this amount of time elapses without making any progress when reading from or writing to a socket, then a TimeoutException will be thrown. This will then result in the data either being retried or sent to another node in the cluster, depending on the configured Load Balancing Strategy. The default value is `30 sec`.
 |====
 
 [[claim_management]]
