@@ -638,7 +638,7 @@ For example:
 For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
 
 ===== Concurrent Tasks
-Next, the Scheduling Tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
+Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
 resources that then are not usable by other Processors. This essentially provides a relative weighting of Processors -- it controls
@@ -677,8 +677,8 @@ Lower Latency or Higher Throughput.
 
 ==== Properties Tab
 
-The Properties Tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
-must define which Properties make sense for its use case. Below, we see the Properties Tab for a RouteOnAttribute Processor:
+The Properties tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
+must define which Properties make sense for its use case. Below, we see the Properties tab for a RouteOnAttribute Processor:
 
 image::properties-tab.png["Properties Tab"]
 
@@ -978,7 +978,7 @@ and the same 'Create Connection' dialog appears.
 
 ==== Details Tab
 
-The Details Tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
+The Details tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
 image::create-connection.png["Create Connection"]
@@ -991,7 +991,7 @@ automatically be 'cloned', and a copy will be sent to each of those Connections.
 
 ==== Settings
 
-The Settings Tab provides the ability to configure the Connection's Name, FlowFile Expiration, Back Pressure Thresholds, Load Balance Strategy and Prioritization:
+The Settings tab provides the ability to configure the Connection's Name, FlowFile Expiration, Back Pressure Thresholds, Load Balance Strategy and Prioritization:
 
 image:connection-settings.png["Connection Settings"]
 
