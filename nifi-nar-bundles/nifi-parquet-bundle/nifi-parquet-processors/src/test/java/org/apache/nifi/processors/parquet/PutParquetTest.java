@@ -42,6 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
+import org.apache.nifi.processors.parquet.utils.ParquetBuilderProperties;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -184,7 +185,7 @@ public class PutParquetTest {
     @Test
     public void testWriteAvroWithGZIPCompression() throws IOException, InitializationException {
         configure(proc, 100);
-        testRunner.setProperty(PutParquet.COMPRESSION_TYPE, CompressionCodecName.GZIP.name());
+        testRunner.setProperty(ParquetBuilderProperties.COMPRESSION_TYPE, CompressionCodecName.GZIP.name());
 
         final String filename = "testWriteAvroWithGZIPCompression-" + System.currentTimeMillis();
 
