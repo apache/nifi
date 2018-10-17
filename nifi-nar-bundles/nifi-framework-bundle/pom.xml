@@ -312,7 +312,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>18.0</version>
+                <version>26.0-jre</version>
             </dependency>
 
             <!-- open id connect - override transitive dependency version ranges -->
@@ -584,12 +584,12 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
-                <version>2.11.0</version>
+                <version>4.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
-                <version>2.11.0</version>
+                <version>4.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
