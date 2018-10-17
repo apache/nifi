@@ -22,61 +22,48 @@ import java.io.Reader;
 
 //NLKBufferedReader = New Line Keeper Buffered Reader
 public class NLKBufferedReader extends BufferedReader {
-    /**
-     * Creates a buffering character-input stream that uses an input buffer of the specified size.
-     *
-     * @param in A Reader
-     * @param sz Input-buffer size
-     *
-     * @exception IllegalArgumentException If sz is <= 0
-     */
     public NLKBufferedReader(Reader in, int sz) {
         super(in, sz);
     }
 
-    /**
-     * Creates a buffering character-input stream that uses a default-sized input buffer.
-     *
-     * @param in A Reader
-     *
-     */
     public NLKBufferedReader(Reader in) {
         super(in);
     }
 
     /**
-     * Reads a line of text. A line is considered to be terminated by any one of a line feed ('\n'), a carriage return ('\r'), or a carriage return followed immediately by a linefeed.
+     * Reads a line of text in the same manner as {@link BufferedReader} except that any line-termination characters (\r and \n) are preserved in the String
+     * that is returned from this reader, whereas {@link BufferedReader} will strip those out.
      *
-     * @return A String containing the contents of the line, including any line-termination characters, or null if the end of the stream has been reached
+     * @return A String containing the next line of text (including any line-termination characters) from the underlying Reader, or null if no more data is available
      *
-     * @exception IOException If an I/O error occurs
+     * @throws IOException If unable to read from teh underlying Reader
      */
     @Override
     public String readLine() throws IOException {
-        StringBuilder stringBuilder = new StringBuilder();
+        final StringBuilder stringBuilder = new StringBuilder();
 
         int intchar = read();
-        while(intchar != -1){
-            char c = (char) intchar;
+        while (intchar != -1) {
+            final char c = (char) intchar;
             stringBuilder.append(c);
 
-            if(c == '\n') {
+            if (c == '\n') {
                 break;
-            } else if(c == '\r'){
+            } else if (c == '\r') {
                 // Peek at next character, check if it's \n
                 int charPeek = peek();
-                if(charPeek != -1 && (char)charPeek=='\n'){
-                    stringBuilder.append((char)read());
+                if (charPeek == '\n') {
+                    stringBuilder.append((char) read());
                 }
+
                 break;
             }
 
             intchar = read();
         }
 
-        String result = stringBuilder.toString();
-
-        return result.length()==0?null:result;
+        final String result = stringBuilder.toString();
+        return (result.length() == 0) ? null : result;
     }
 
     public int peek() throws IOException {
