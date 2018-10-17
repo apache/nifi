@@ -73,9 +73,38 @@ When NiFi first starts up, the following files and directories are created:
 
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
+== Port Configuration
+
+=== NiFi
+The following table lists the default ports used by NiFi and the corresponding property in the _nifi.properties_ file.
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Function                        |  Property                             | Default Value
+|HTTP Port                        | `nifi.web.http.port`                  | `8080`
+|HTTPS Port*                      | `nifi.web.https.port`                 | `9443`
+|Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
+|Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
+|Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
+|Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
+|==================================================================================================================================================
+
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<tls_generation_toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by TLS Toolkit is `8443`.
+
+=== Embedded Zookeeper
+The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Function                                         | Property       | Default Value
+|Zookeeper Client Port                             | `clientPort`   | `2181`
+|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
+|==================================================================================================================================================
+
+NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888`.
 
 == Configuration Best Practices
-NOTE: If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
+If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
 consult your distribution-specific documentation for how best to achieve these recommendations.
 
 Maximum File Handles::
@@ -159,7 +188,7 @@ the web server will REQUIRE certificate based client authentication. See <<user_
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
 
-
+[[tls_generation_toolkit]]
 === TLS Generation Toolkit
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
