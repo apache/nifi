@@ -86,7 +86,7 @@ The following table lists the default ports used by NiFi and the corresponding p
 |Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
 |Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
-|Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | blank
+|Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
 |==================================================================================================================================================
 
 NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<tls_generation_toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by TLS Toolkit is `8443`.
@@ -98,10 +98,10 @@ The following table lists the default ports used by an <<embedded_zookeeper>> an
 |==================================================================================================================================================
 | Function                                         | Property       | Default Value
 |Zookeeper Client Port                             | `clientPort`   | `2181`
-|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | `localhost:2888:3888`
+|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
 |==================================================================================================================================================
 
-NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file.
+NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888`.
 
 == Configuration Best Practices
 If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
