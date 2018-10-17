@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-commons</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.8.0</version>
   </parent>
 
   <artifactId>nifi-record-path</artifactId>
@@ -59,12 +59,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
