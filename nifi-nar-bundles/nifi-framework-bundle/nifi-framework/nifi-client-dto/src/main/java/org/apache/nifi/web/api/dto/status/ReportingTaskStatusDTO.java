@@ -29,7 +29,7 @@ public class ReportingTaskStatusDTO extends ComponentStatusDTO {
 
     @ApiModelProperty(value = "The run status of this ReportingTask",
             readOnly = true,
-            allowableValues = "RUNNING, STOPPED")
+            allowableValues = "RUNNING, STOPPED, DISABLED")
     @Override
     public String getRunStatus() {
         return super.getRunStatus();
