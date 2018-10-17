@@ -20,11 +20,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -35,7 +32,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @EventDriven
@@ -43,7 +39,8 @@ import java.util.Set;
 @SupportsBatching
 @Tags({"penalty", "penalize", "flowfile"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Penalizes a FlowFile.")
+@CapabilityDescription("Penalizes a FlowFile. "
+        + "Each FlowFile will be penalized per the 'Penalty Duration' settings of the processor.")
 public class PenalizeFlowFile extends AbstractProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successfully penalized FlowFile").build();
