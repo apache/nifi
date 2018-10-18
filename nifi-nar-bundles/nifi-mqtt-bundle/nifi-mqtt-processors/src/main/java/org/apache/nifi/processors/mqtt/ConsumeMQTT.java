@@ -20,35 +20,36 @@ package org.apache.nifi.processors.mqtt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,8 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.io.OutputStream;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
@@ -73,7 +72,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 @Tags({"subscribe", "MQTT", "IOT", "consume", "listen"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@TriggerSerially // we want to have a consistent mapping between clientID and MQTT connection
+@TriggerSerially
 @CapabilityDescription("Subscribes to a topic and receives messages from an MQTT broker")
 @SeeAlso({PublishMQTT.class})
 @WritesAttributes({
@@ -83,7 +82,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
     @WritesAttribute(attribute=IS_DUPLICATE_ATTRIBUTE_KEY, description="Whether or not this message might be a duplicate of one which has already been received."),
     @WritesAttribute(attribute=IS_RETAINED_ATTRIBUTE_KEY, description="Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
             "on the topic.")})
-public class ConsumeMQTT extends AbstractMQTTProcessor {
+public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback {
 
     public final static String BROKER_ATTRIBUTE_KEY =  "mqtt.broker";
     public final static String TOPIC_ATTRIBUTE_KEY =  "mqtt.topic";
@@ -119,7 +118,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .build();
 
 
-    private static int DISCONNECT_TIMEOUT = 5000;
     private volatile long maxQueueSize;
 
     private volatile int qos;
@@ -205,29 +203,19 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException, ClassNotFoundException {
+    public void onScheduled(final ProcessContext context) {
+        super.onScheduled(context);
         qos = context.getProperty(PROP_QOS).asInteger();
         maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
         topicFilter = context.getProperty(PROP_TOPIC_FILTER).getValue();
-
-        buildClient(context);
         scheduled.set(true);
     }
 
     @OnUnscheduled
     public void onUnscheduled(final ProcessContext context) {
         scheduled.set(false);
-
-        mqttClientConnectLock.writeLock().lock();
-        try {
-            if(isConnected()) {
-                mqttClient.disconnect(DISCONNECT_TIMEOUT);
-                logger.info("Disconnected the MQTT client.");
-            }
-        } catch(MqttException me) {
-            logger.error("Failed when disconnecting the MQTT client.", me);
-        } finally {
-            mqttClientConnectLock.writeLock().unlock();
+        synchronized (this) {
+            super.onStopped();
         }
     }
 
@@ -249,14 +237,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        if (mqttQueue.isEmpty() && !isConnected() && scheduled.get()){
-            logger.info("Queue is empty and client is not connected. Attempting to reconnect.");
-
-            try {
-                reconnect();
-            } catch (MqttException e) {
-                logger.error("Connection to " + broker + " lost (or was never connected) and ontrigger connect failed. Yielding processor", e);
-                context.yield();
+        final boolean isScheduled = scheduled.get();
+        if (!isConnected() && isScheduled){
+            synchronized (this) {
+                if (!isConnected()) {
+                    initializeClient(context);
+                }
             }
         }
 
@@ -265,6 +251,27 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         }
 
         transferQueue(session);
+    }
+
+    private void initializeClient(ProcessContext context) {
+        // NOTE: This method is called when isConnected returns false which can happen when the client is null, or when it is
+        // non-null but not connected, so we need to handle each case and only create a new client when it is null
+        try {
+            if (mqttClient == null) {
+                logger.debug("Creating client");
+                mqttClient = createMqttClient(broker, clientID, persistence);
+                mqttClient.setCallback(this);
+            }
+
+            if (!mqttClient.isConnected()) {
+                logger.debug("Connecting client");
+                mqttClient.connect(connOpts);
+                mqttClient.subscribe(topicFilter, qos);
+            }
+        } catch (MqttException e) {
+            logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{broker}, e);
+            context.yield();
+        }
     }
 
     private void transferQueue(ProcessSession session){
@@ -303,56 +310,33 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         }
     }
 
-    private class ConsumeMQTTCallback implements MqttCallback {
+    @Override
+    public void connectionLost(Throwable cause) {
+        logger.error("Connection to {} lost due to: {}", new Object[]{broker, cause.getMessage()}, cause);
+    }
 
-        @Override
-        public void connectionLost(Throwable cause) {
-            logger.warn("Connection to " + broker + " lost", cause);
-            try {
-                reconnect();
-            } catch (MqttException e) {
-                logger.error("Connection to " + broker + " lost and callback re-connect failed.");
-            }
-        }
-
-        @Override
-        public void messageArrived(String topic, MqttMessage message) throws Exception {
-            if (logger.isDebugEnabled()) {
-                byte[] payload = message.getPayload();
-                String text = new String(payload, "UTF-8");
-                if (StringUtils.isAsciiPrintable(text)) {
-                    logger.debug("Message arrived from topic {}. Payload: {}", new Object[] {topic, text});
-                } else {
-                    logger.debug("Message arrived from topic {}. Binary value of size {}", new Object[] {topic, payload.length});
-                }
-            }
-
-            if (mqttQueue.size() >= maxQueueSize){
-                throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
+    @Override
+    public void messageArrived(String topic, MqttMessage message) throws Exception {
+        if (logger.isDebugEnabled()) {
+            byte[] payload = message.getPayload();
+            String text = new String(payload, "UTF-8");
+            if (StringUtils.isAsciiPrintable(text)) {
+                logger.debug("Message arrived from topic {}. Payload: {}", new Object[] {topic, text});
             } else {
-                mqttQueue.add(new MQTTQueueMessage(topic, message));
+                logger.debug("Message arrived from topic {}. Binary value of size {}", new Object[] {topic, payload.length});
             }
         }
 
-        @Override
-        public void deliveryComplete(IMqttDeliveryToken token) {
-            logger.warn("Received MQTT 'delivery complete' message to subscriber:"+ token);
+        if (mqttQueue.size() >= maxQueueSize){
+            throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
+        } else {
+            mqttQueue.add(new MQTTQueueMessage(topic, message));
         }
     }
 
-    private void reconnect() throws MqttException {
-        mqttClientConnectLock.writeLock().lock();
-        try {
-            if (!mqttClient.isConnected()) {
-                setAndConnectClient(new ConsumeMQTTCallback());
-                mqttClient.subscribe(topicFilter, qos);
-            }
-        } finally {
-            mqttClientConnectLock.writeLock().unlock();
-        }
+    @Override
+    public void deliveryComplete(IMqttDeliveryToken token) {
+        logger.warn("Received MQTT 'delivery complete' message to subscriber: " + token);
     }
 
-    private boolean isConnected(){
-        return (mqttClient != null && mqttClient.isConnected());
-    }
 }

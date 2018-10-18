@@ -56,7 +56,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        public IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
             mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }
