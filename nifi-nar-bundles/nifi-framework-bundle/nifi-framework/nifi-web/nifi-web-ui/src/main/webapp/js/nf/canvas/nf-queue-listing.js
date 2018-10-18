@@ -110,13 +110,11 @@
 
         // function for formatting penalization
         var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
-            var markup = '';
-
-            if (value === true) {
-                markup += 'Yes';
+            if(value == 0) {
+                return 'No';
             }
 
-            return markup;
+            return nfCommon.formatDuration(value);
         };
 
         // initialize the queue listing table
@@ -185,7 +183,7 @@
             {
                 id: 'penalized',
                 name: 'Penalized',
-                field: 'penalized',
+                field: 'penaltyExpiresIn',
                 sortable: false,
                 resizable: false,
                 width: 100,
@@ -567,7 +565,7 @@
             $('#flowfile-file-size').html(nfCommon.formatValue(fileSize));
             $('#flowfile-queued-duration').text(nfCommon.formatDuration(flowFile.queuedDuration));
             $('#flowfile-lineage-duration').text(nfCommon.formatDuration(flowFile.lineageDuration));
-            $('#flowfile-penalized').text(flowFile.penalized === true ? 'Yes' : 'No');
+            $('#flowfile-penalized').text(flowFile.penaltyExpiresIn == 0 ? 'No' : nfCommon.formatDuration(flowFile.penaltyExpiresIn));
 
             // conditionally show the cluster node identifier
             if (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
