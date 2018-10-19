@@ -22,6 +22,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.junit.Assert;
+
 public class DefaultMarkLogicDatabaseClientServiceIT {
     protected String hostName = "localhost";
     protected String port = "8000";
@@ -29,6 +31,7 @@ public class DefaultMarkLogicDatabaseClientServiceIT {
     protected String username = "admin";
     protected String password = "admin";
     protected String authentication= "DIGEST";
+    protected String loadBalancer= "true";
     @Before
     public void init() {
 
@@ -44,8 +47,16 @@ public class DefaultMarkLogicDatabaseClientServiceIT {
         runner.setProperty(service, DefaultMarkLogicDatabaseClientService.USERNAME, username);
         runner.setProperty(service, DefaultMarkLogicDatabaseClientService.PASSWORD, password);
         runner.setProperty(service, DefaultMarkLogicDatabaseClientService.SECURITY_CONTEXT_TYPE, authentication);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.LOAD_BALANCER, loadBalancer);
         runner.enableControllerService(service);
         runner.assertValid(service);
+        runner.disableControllerService(service);
+        try {
+            service.getDatabaseClient().newBinaryDocumentManager().read("/test.json").getPageSize();
+            Assert.assertTrue("Should not be able to use client after shutdown", false);
+        } catch (Exception e) {
+            Assert.assertTrue("Should not be able to use client after shutdown", e instanceof IllegalStateException);
+        }
     }
 
 }
