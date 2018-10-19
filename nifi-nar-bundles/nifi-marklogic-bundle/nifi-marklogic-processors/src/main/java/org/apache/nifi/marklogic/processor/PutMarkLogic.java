@@ -346,9 +346,9 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
         // Get collections from processor property definition
         final PropertyValue collectionProperty = context.getProperty(COLLECTIONS);
-        final String collectionsValue = collectionProperty.isSet() ?
-                (collectionProperty.isExpressionLanguagePresent() ?
-                        collectionProperty.evaluateAttributeExpressions(flowFile).getValue() : collectionProperty.getValue()) : null;
+        final String collectionsValue = collectionProperty.isSet()
+             ? (collectionProperty.isExpressionLanguagePresent()
+                 ? collectionProperty.evaluateAttributeExpressions(flowFile).getValue() : collectionProperty.getValue()) : null;
 
         final String[] collections = getArrayFromCommaSeparatedString(collectionsValue);
 
