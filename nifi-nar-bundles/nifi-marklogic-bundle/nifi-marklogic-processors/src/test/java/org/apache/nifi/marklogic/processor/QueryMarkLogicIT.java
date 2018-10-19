@@ -20,6 +20,8 @@ import com.marklogic.client.datamovement.QueryBatcher;
 import com.marklogic.client.datamovement.WriteBatcher;
 import com.marklogic.client.io.DocumentMetadataHandle;
 import com.marklogic.client.io.StringHandle;
+
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -80,11 +82,11 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, numDocs);
-        runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,"uri");
+        runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute("uri").endsWith("3.json")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("3.json")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
