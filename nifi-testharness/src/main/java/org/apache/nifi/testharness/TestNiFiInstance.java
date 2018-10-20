@@ -117,7 +117,7 @@ import java.util.zip.ZipEntry;
  *
  * <p>
  *
- * The caller then can proceed to {@link #start()}} this {@code TestNiFiInstance},
+ * The caller then can proceed to {@link #start()} this {@code TestNiFiInstance},
  * which will bootstrap the NiFi engine, which in turn will pick up and start processing
  * the flow definition supplied by the caller in the configuration.
  * </p>
