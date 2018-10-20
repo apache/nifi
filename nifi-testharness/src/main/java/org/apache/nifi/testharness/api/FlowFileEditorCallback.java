@@ -38,7 +38,7 @@ public interface FlowFileEditorCallback {
 
     /**
      *
-     * @param document the document to change document (never {@code null})
+     * @param document the document to change (never {@code null})
      * @return the changed document (never {@code null})
      * @throws Exception in case the editing fails
      */
