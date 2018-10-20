@@ -82,7 +82,7 @@ public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallb
             // no external instance
         }
 
-        XPath xpath = XPathFactory.newInstance().newXPath();
+        private XPath xpath = XPathFactory.newInstance().newXPath();
         private final LinkedList<FlowFileEditorCallback> actions = new LinkedList<>();
 
         public Builder rawXmlChange(FlowFileEditorCallback flowFileEditorCallback) {
