@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-solr-bundle</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.8.0</version>
     </parent>
 
     <artifactId>nifi-solr-nar</artifactId>
@@ -33,12 +33,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-solr-processors</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
             <type>nar</type>
         </dependency>
     </dependencies>

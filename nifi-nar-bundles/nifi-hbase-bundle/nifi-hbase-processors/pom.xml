@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hbase-bundle</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.8.0</version>
     </parent>
     <artifactId>nifi-hbase-processors</artifactId>
     <description>Support for interacting with HBase</description>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase-client-service-api</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -87,13 +87,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
