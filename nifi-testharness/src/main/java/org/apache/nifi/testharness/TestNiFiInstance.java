@@ -19,20 +19,26 @@
 
 package org.apache.nifi.testharness;
 
-import org.apache.nifi.testharness.api.FlowFileEditorCallback;
 import org.apache.nifi.EmbeddedNiFi;
+import org.apache.nifi.testharness.api.FlowFileEditorCallback;
 import org.apache.nifi.testharness.util.FileUtils;
 import org.apache.nifi.testharness.util.NiFiCoreLibClassLoader;
 import org.apache.nifi.testharness.util.XmlUtils;
 import org.apache.nifi.testharness.util.Zip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -172,6 +178,8 @@ public class TestNiFiInstance {
 
     private final File placeholderNiFiHomeDir;
 
+    private String nifiVersion;
+
 
     private enum State {
         STOPPED,
@@ -189,12 +197,10 @@ public class TestNiFiInstance {
             this.allowedTransitions = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(allowedTransitions)));
         }
 
-        private State checkCanTransition(State newState) {
+        private void checkCanTransition(State newState) {
             if (!this.allowedTransitions.contains(newState)) {
                 throw new IllegalStateException("Cannot transition from " + this + " to " + newState);
             }
-
-            return newState;
         }
     }
 
@@ -228,7 +234,9 @@ public class TestNiFiInstance {
         currentState.checkCanTransition(State.INSTALLED);
 
         File[] staleInstallations = placeholderNiFiHomeDir.listFiles((dir, name) -> name.startsWith("nifi-"));
-        Arrays.stream(staleInstallations).forEach(TestNiFiInstance::deleteFileOrDirectoryRecursively);
+        if (staleInstallations != null) {
+            Arrays.stream(staleInstallations).forEach(TestNiFiInstance::deleteFileOrDirectoryRecursively);
+        }
 
         Path tempDirectory = null;
         try {
@@ -248,6 +256,10 @@ public class TestNiFiInstance {
             LOGGER.info("Uncompressing DONE");
 
             File actualNiFiHomeDir = getActualNiFiHomeDir(placeholderNiFiHomeDir);
+
+            nifiVersion = getNiFiVersion(actualNiFiHomeDir);
+
+            validateNiFiVersionAgainstFlowVersion(nifiVersion, installableFlowFile);
 
             FileUtils.createSymlinks(placeholderNiFiHomeDir, actualNiFiHomeDir);
 
@@ -283,6 +295,96 @@ public class TestNiFiInstance {
     private void installFlowFile(File fileToIncludeInGz) throws IOException {
         Zip.gzipFile(fileToIncludeInGz, flowXmlGz);
     }
+
+    private static String getNiFiVersion(File nifiInstallDir) {
+
+        File libDir = new File(nifiInstallDir, "lib");
+        if (!libDir.exists()) {
+            throw new IllegalStateException(
+                    "No \"lib\" directory found in NiFi home directory: " + nifiInstallDir);
+        }
+
+        File[] nifiApiJarLookupResults =
+                libDir.listFiles((dir, name) -> name.startsWith("nifi-api-") && name.endsWith(".jar"));
+
+        if (nifiApiJarLookupResults == null) {
+            // since we check the existence before, this can only be null in case of an I/O error
+            throw new IllegalStateException(
+                    "I/O error listing NiFi lib directory: " + libDir);
+        }
+
+        if (nifiApiJarLookupResults.length == 0) {
+            throw new IllegalStateException(
+                    "No \"\"nifi-api-*.jar\" file found in NiFi lib directory: " + libDir);
+        }
+
+        if (nifiApiJarLookupResults.length != 1) {
+            throw new IllegalStateException(
+                    "Multiple \"nifi-api-*.jar\" files found in NiFi lib directory: " + libDir);
+        }
+
+        File nifiApiJar = nifiApiJarLookupResults[0];
+
+
+        return nifiApiJar.getName()
+                .replace("nifi-api-", "")
+                .replace(".jar", "");
+    }
+
+    private static void validateNiFiVersionAgainstFlowVersion(String nifiVersion, File flowFile) {
+
+        String flowFileVersion = extractFlowFileVersion(flowFile);
+
+        if (flowFileVersion != null &&
+                !flowFileVersion.equalsIgnoreCase(nifiVersion)) {
+
+            // prevent user errors and fail fast in case we detect that the flow file
+            // was created by a different version of NiFi. This can prevent a lot of confusion!
+
+            throw new RuntimeException(String.format(
+                    "The NiFi version referenced in the flow file ('%s') does not match the version of NiFi being used ('%s')",
+                    flowFileVersion, nifiVersion));
+        }
+    }
+
+    private static String extractFlowFileVersion(File flowFile) {
+
+        Document flowDocument = XmlUtils.getFileAsDocument(flowFile);
+
+        XPath xpath = XPathFactory.newInstance().newXPath();
+
+        try {
+            NodeList processorNodeVersion = (NodeList)
+                    xpath.evaluate("//bundle/group[text() = \"org.apache.nifi\"]/parent::bundle/version/text()",
+                            flowDocument, XPathConstants.NODESET);
+
+            HashSet<String> versionNumbers = new HashSet<>();
+
+            final int length = processorNodeVersion.getLength();
+            for (int i=0; i<length; i++) {
+                Node item = processorNodeVersion.item(i);
+
+                String textContent = item.getTextContent();
+
+                versionNumbers.add(textContent);
+            }
+
+            if (versionNumbers.size() == 0) {
+                return null;
+            }
+
+            if (versionNumbers.size() > 1) {
+                throw new RuntimeException(
+                        "Multiple NiFi versions found in Flow file, this is unexpected: " + versionNumbers);
+            }
+
+            return versionNumbers.iterator().next();
+
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Failure extracting version information from flow file: " + flowFile, e);
+        }
+    }
+
 
     public void start() {
 
@@ -358,7 +460,7 @@ public class TestNiFiInstance {
     private static File getActualNiFiHomeDir(File currentDir) {
         File[] files = currentDir.listFiles((dir, name) -> name.startsWith("nifi-"));
 
-        if (files.length == 0) {
+        if (files == null || files.length == 0) {
             throw new IllegalStateException(
                     "No \"nifi-*\" directory found in temporary NiFi home directory container: " + currentDir);
         }
@@ -374,9 +476,12 @@ public class TestNiFiInstance {
     private static void removeNiFiFilesCreatedForTemporaryInstallation(File directoryToClear) {
 
         if (directoryToClear != null) {
-            Arrays.stream(directoryToClear.listFiles())
-                    .filter(file -> !"NIFI_TESTHARNESS_README.txt".equals(file.getName()))
-                    .forEach(TestNiFiInstance::deleteFileOrDirectoryRecursively);
+            File[] directoryContents = directoryToClear.listFiles();
+            if (directoryContents != null) {
+                Arrays.stream(directoryContents)
+                        .filter(file -> !"NIFI_TESTHARNESS_README.txt".equals(file.getName()))
+                        .forEach(TestNiFiInstance::deleteFileOrDirectoryRecursively);
+            }
         }
     }
 
@@ -384,7 +489,10 @@ public class TestNiFiInstance {
         if (file.isDirectory()) {
             FileUtils.deleteDirectoryRecursive(file);
         } else {
-            file.delete();
+            boolean deletedSuccessfully = file.delete();
+            if (!deletedSuccessfully) {
+                throw new RuntimeException("Could not delete: " + file);
+            }
         }
     }
 

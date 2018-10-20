@@ -36,11 +36,8 @@ public final class XmlUtils {
 
     public static void editXml(File inputFile, File outputFile, FlowFileEditorCallback editCallback) {
 
-      try(FileInputStream inputStream = new FileInputStream(inputFile)) {
-
-          DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-          DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-          Document document = documentBuilder.parse(new InputSource(inputStream));
+      try {
+          Document document = getFileAsDocument(inputFile);
 
           document = editCallback.edit(document);
 
@@ -53,4 +50,18 @@ public final class XmlUtils {
           throw new RuntimeException("Failed to change XML document: " + e.getMessage(), e);
       }
   }
+
+  public static Document getFileAsDocument(File xmlFile) {
+      try(FileInputStream inputStream = new FileInputStream(xmlFile)) {
+
+          DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+          DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+
+          return documentBuilder.parse(new InputSource(inputStream));
+
+      } catch (Exception e) {
+          throw new RuntimeException("Failed to parse XML file: " + xmlFile, e);
+      }
+  }
+
 }
