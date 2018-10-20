@@ -122,7 +122,7 @@ public class NiFiFlowTest {
     }
 
     @After
-    public void shutdownNiFi() throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void shutdownNiFi() {
 
         testNiFiInstance.stopAndCleanup();
     }
