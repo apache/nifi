@@ -25,10 +25,14 @@ import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.core.exceptions.AuthenticationException;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
+import org.apache.nifi.cassandra.CassandraSessionProviderService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -38,6 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
@@ -61,26 +66,36 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public static final int DEFAULT_CASSANDRA_PORT = 9042;
 
     // Common descriptors
-    public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CONNECTION_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+            .name("cassandra-connection-provider")
+            .displayName("Cassandra Connection Provider")
+            .description("Specifies the Cassandra connection providing controller service to be used to connect to Cassandra cluster.")
+            .required(false)
+            .identifiesControllerService(CassandraSessionProviderService.class)
+            .build();
+
+    static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
             .name("Cassandra Contact Points")
             .description("Contact points are addresses of Cassandra nodes. The list of contact points should be "
                     + "comma-separated and in hostname:port format. Example node1:port,node2:port,...."
                     + " The default client port for Cassandra is 9042, but the port(s) must be explicitly specified.")
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor KEYSPACE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor KEYSPACE = new PropertyDescriptor.Builder()
             .name("Keyspace")
-            .description("The Cassandra Keyspace to connect to. If not set, the keyspace name has to be provided with the " +
+            .description("The Cassandra Keyspace to connect to. If no keyspace is specified, the query will need to " +
+                    "include the keyspace name before any table reference, in case of 'query' native processors or " +
+                    "if the processor exposes the 'Table' property, the keyspace name has to be provided with the " +
                     "table name in the form of <KEYSPACE>.<TABLE>")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections.")
@@ -88,7 +103,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Auth")
             .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
@@ -98,7 +113,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .defaultValue("REQUIRED")
             .build();
 
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
             .description("Username to access the Cassandra cluster")
             .required(false)
@@ -106,7 +121,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("Password to access the Cassandra cluster")
             .required(false)
@@ -115,15 +130,15 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
             .name("Consistency Level")
             .description("The strategy for how many replicas must respond before results are returned.")
-            .required(true)
+            .required(false)
             .allowableValues(ConsistencyLevel.values())
             .defaultValue("ONE")
             .build();
 
-    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies the character set of the record data.")
             .required(true)
@@ -132,22 +147,25 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is transferred to this relationship if the operation completed successfully.")
             .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
+
+    static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is transferred to this relationship if the operation failed.")
             .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
+
+    static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
             .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
                     + "it again may succeed.")
             .build();
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+    protected static List<PropertyDescriptor> descriptors = new ArrayList<>();
 
     static {
+        descriptors.add(CONNECTION_PROVIDER_SERVICE);
         descriptors.add(CONTACT_POINTS);
         descriptors.add(KEYSPACE);
         descriptors.add(PROP_SSL_CONTEXT_SERVICE);
@@ -170,15 +188,53 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         // Ensure that if username or password is set, then the other is too
         String userName = validationContext.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         String password = validationContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+
         if (StringUtils.isEmpty(userName) != StringUtils.isEmpty(password)) {
-            results.add(new ValidationResult.Builder().valid(false).explanation(
+            results.add(new ValidationResult.Builder().subject("Username / Password configuration").valid(false).explanation(
                     "If username or password is specified, then the other must be specified as well").build());
+        }
+
+        // Ensure that both Connection provider service and the processor specific configurations are not provided
+        boolean connectionProviderIsSet = validationContext.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
+        boolean contactPointsIsSet = validationContext.getProperty(CONTACT_POINTS).isSet();
+
+        if (connectionProviderIsSet && contactPointsIsSet) {
+            results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("both " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
+                        " and processor level Cassandra configuration cannot be provided at the same time.").build());
+        }
+
+        if (!connectionProviderIsSet && !contactPointsIsSet) {
+            results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("either " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
+                        " or processor level Cassandra configuration has to be provided.").build());
         }
 
         return results;
     }
 
-    protected void connectToCassandra(ProcessContext context) {
+    @OnScheduled
+    public void onScheduled(ProcessContext context) {
+        final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
+
+        if (connectionProviderIsSet) {
+            CassandraSessionProviderService sessionProvider = context.getProperty(CONNECTION_PROVIDER_SERVICE).asControllerService(CassandraSessionProviderService.class);
+            cluster.set(sessionProvider.getCluster());
+            cassandraSession.set(sessionProvider.getCassandraSession());
+            return;
+        }
+
+        try {
+            connectToCassandra(context);
+        } catch (NoHostAvailableException nhae) {
+            getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this statement", nhae);
+            getLogger().error(nhae.getCustomMessage(10, true, false));
+            throw new ProcessException(nhae);
+        } catch (AuthenticationException ae) {
+            getLogger().error("Invalid username/password combination", ae);
+            throw new ProcessException(ae);
+        }
+    }
+
+    void connectToCassandra(ProcessContext context) {
         if (cluster.get() == null) {
             ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
@@ -186,13 +242,13 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
-            final SSLContextService sslService =
-                    context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
             final SSLContext sslContext;
 
             if (sslService != null) {
                 final SSLContextService.ClientAuth clientAuth;
+
                 if (StringUtils.isBlank(rawClientAuth)) {
                     clientAuth = SSLContextService.ClientAuth.REQUIRED;
                 } else {
@@ -203,6 +259,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                                 rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
                     }
                 }
+
                 sslContext = sslService.createSSLContext(clientAuth);
             } else {
                 sslContext = null;
@@ -223,15 +280,19 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             // Create the cluster and connect to it
             Cluster newCluster = createCluster(contactPoints, sslContext, username, password);
             PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
+
             final Session newSession;
             if (keyspaceProperty != null) {
                 newSession = newCluster.connect(keyspaceProperty.getValue());
             } else {
                 newSession = newCluster.connect();
             }
+
             newCluster.getConfiguration().getQueryOptions().setConsistencyLevel(ConsistencyLevel.valueOf(consistencyLevel));
             Metadata metadata = newCluster.getMetadata();
+
             log.info("Connected to Cassandra cluster: {}", new Object[]{metadata.getClusterName()});
+
             cluster.set(newCluster);
             cassandraSession.set(newSession);
         }
@@ -261,14 +322,20 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         return builder.build();
     }
 
-    public void stop() {
-        if (cassandraSession.get() != null) {
-            cassandraSession.get().close();
-            cassandraSession.set(null);
-        }
-        if (cluster.get() != null) {
-            cluster.get().close();
-            cluster.set(null);
+    public void stop(ProcessContext context) {
+        // We don't want to close the connection when using 'Cassandra Connection Provider'
+        // because each time @OnUnscheduled/@OnShutdown annotated method is triggered on a
+        // processor, the connection would be closed which is not ideal for a centralized
+        // connection provider controller service
+        if (!context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet()) {
+            if (cassandraSession.get() != null) {
+                cassandraSession.get().close();
+                cassandraSession.set(null);
+            }
+            if (cluster.get() != null) {
+                cluster.get().close();
+                cluster.set(null);
+            }
         }
     }
 
@@ -350,7 +417,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
      *
      * @param dataType The data type of the field
      */
-    public static Schema getUnionFieldType(String dataType) {
+    protected static Schema getUnionFieldType(String dataType) {
         return SchemaBuilder.builder().unionOf().nullBuilder().endNull().and().type(getSchemaForType(dataType)).endUnion();
     }
 
@@ -359,7 +426,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
      *
      * @param dataType The data type of the field
      */
-    public static Schema getSchemaForType(String dataType) {
+    protected static Schema getSchemaForType(String dataType) {
         SchemaBuilder.TypeBuilder<Schema> typeBuilder = SchemaBuilder.builder();
         Schema returnSchema;
         switch (dataType) {
@@ -390,7 +457,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         return returnSchema;
     }
 
-    public static String getPrimitiveAvroTypeFromCassandraType(DataType dataType) {
+    protected static String getPrimitiveAvroTypeFromCassandraType(DataType dataType) {
         // Map types from Cassandra to Avro where possible
         if (dataType.equals(DataType.ascii())
                 || dataType.equals(DataType.text())
@@ -428,7 +495,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         }
     }
 
-    public static DataType getPrimitiveDataTypeFromString(String dataTypeName) {
+    protected static DataType getPrimitiveDataTypeFromString(String dataTypeName) {
         Set<DataType> primitiveTypes = DataType.allPrimitiveTypes();
         for (DataType primitiveType : primitiveTypes) {
             if (primitiveType.toString().equals(dataTypeName)) {
@@ -444,7 +511,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
      * @param contactPointList A comma-separated list of Cassandra contact points (host:port,host2:port2, etc.)
      * @return List of InetSocketAddresses for the Cassandra contact points
      */
-    public List<InetSocketAddress> getContactPoints(String contactPointList) {
+    protected List<InetSocketAddress> getContactPoints(String contactPointList) {
 
         if (contactPointList == null) {
             return null;

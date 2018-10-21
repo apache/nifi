@@ -22,11 +22,15 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.service.CassandraSessionProvider;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -49,7 +53,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 /**
  * Unit tests for the AbstractCassandraProcessor class
@@ -204,7 +207,7 @@ public class AbstractCassandraProcessorTest {
         processor.setCluster(cluster);
         testRunner.setProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL, "ONE");
         processor.connectToCassandra(testRunner.getProcessContext());
-        processor.stop();
+        processor.stop(testRunner.getProcessContext());
         assertNull(processor.getCluster());
 
         // Now do a connect where a cluster is "built"
@@ -257,6 +260,33 @@ public class AbstractCassandraProcessorTest {
         assertNotNull(processor.getCluster());
     }
 
+    @Test
+    public void testCustomValidateCassandraConnectionConfiguration() throws InitializationException {
+        MockCassandraSessionProvider sessionProviderService = new MockCassandraSessionProvider();
+
+        testRunner.addControllerService("cassandra-connection-provider", sessionProviderService);
+        testRunner.setProperty(sessionProviderService, CassandraSessionProvider.CONTACT_POINTS, "localhost:9042");
+        testRunner.setProperty(sessionProviderService, CassandraSessionProvider.KEYSPACE, "somekyespace");
+
+        testRunner.setProperty(AbstractCassandraProcessor.CONNECTION_PROVIDER_SERVICE, "cassandra-connection-provider");
+        testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "localhost:9042");
+        testRunner.setProperty(AbstractCassandraProcessor.KEYSPACE, "some-keyspace");
+        testRunner.setProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL, "ONE");
+        testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "user");
+        testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "password");
+        testRunner.enableControllerService(sessionProviderService);
+
+        testRunner.assertNotValid();
+
+        testRunner.removeProperty(AbstractCassandraProcessor.CONTACT_POINTS);
+        testRunner.removeProperty(AbstractCassandraProcessor.KEYSPACE);
+        testRunner.removeProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL);
+        testRunner.removeProperty(AbstractCassandraProcessor.USERNAME);
+        testRunner.removeProperty(AbstractCassandraProcessor.PASSWORD);
+
+        testRunner.assertValid();
+    }
+
     /**
      * Provides a stubbed processor instance for testing
      */
@@ -264,7 +294,7 @@ public class AbstractCassandraProcessorTest {
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Arrays.asList(CONTACT_POINTS, KEYSPACE, USERNAME, PASSWORD, CONSISTENCY_LEVEL, CHARSET);
+            return Arrays.asList(CONNECTION_PROVIDER_SERVICE, CONTACT_POINTS, KEYSPACE, USERNAME, PASSWORD, CONSISTENCY_LEVEL, CHARSET);
         }
 
         @Override
@@ -291,5 +321,17 @@ public class AbstractCassandraProcessorTest {
         public void setCluster(Cluster newCluster) {
             this.cluster.set(newCluster);
         }
+    }
+
+    /**
+     * Mock CassandraSessionProvider implementation for testing purpose
+     */
+    private class MockCassandraSessionProvider extends CassandraSessionProvider {
+
+        @OnEnabled
+        public void onEnabled(final ConfigurationContext context) {
+
+        }
+
     }
 }

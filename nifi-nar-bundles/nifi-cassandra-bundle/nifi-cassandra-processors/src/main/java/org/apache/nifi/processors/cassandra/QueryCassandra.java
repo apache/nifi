@@ -22,7 +22,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
@@ -166,27 +165,15 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ComponentLog log = getLogger();
-        try {
-            connectToCassandra(context);
-            final int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
-            if (fetchSize > 0) {
-                synchronized (cluster.get()) {
-                    cluster.get().getConfiguration().getQueryOptions().setFetchSize(fetchSize);
-                }
+        super.onScheduled(context);
+
+        final int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        if (fetchSize > 0) {
+            synchronized (cluster.get()) {
+                cluster.get().getConfiguration().getQueryOptions().setFetchSize(fetchSize);
             }
-        } catch (final NoHostAvailableException nhae) {
-            log.error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
-            // Log up to 10 error messages. Otherwise if a 1000-node cluster was specified but there was no connectivity,
-            // a thousand error messages would be logged. However we would like information from Cassandra itself, so
-            // cap the error limit at 10, format the messages, and don't include the stack trace (it is displayed by the
-            // logger message above).
-            log.error(nhae.getCustomMessage(10, true, false));
-            throw new ProcessException(nhae);
-        } catch (final AuthenticationException ae) {
-            log.error("Invalid username/password combination", ae);
-            throw new ProcessException(ae);
         }
+
     }
 
     @Override
@@ -308,13 +295,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
 
     @OnUnscheduled
-    public void stop() {
-        super.stop();
+    public void stop(ProcessContext context) {
+        super.stop(context);
     }
 
     @OnShutdown
-    public void shutdown() {
-        super.stop();
+    public void shutdown(ProcessContext context) {
+        super.stop(context);
     }
 
     /**
