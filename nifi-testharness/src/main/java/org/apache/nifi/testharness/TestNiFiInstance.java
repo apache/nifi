@@ -335,8 +335,8 @@ public class TestNiFiInstance {
 
         String flowFileVersion = extractFlowFileVersion(flowFile);
 
-        if (flowFileVersion != null &&
-                !flowFileVersion.equalsIgnoreCase(nifiVersion)) {
+        if (flowFileVersion != null
+                && !flowFileVersion.equalsIgnoreCase(nifiVersion)) {
 
             // prevent user errors and fail fast in case we detect that the flow file
             // was created by a different version of NiFi. This can prevent a lot of confusion!

@@ -19,10 +19,10 @@
 package org.apache.nifi.testharness.samples;
 
 
+import org.apache.nifi.testharness.SimpleNiFiFlowDefinitionEditor;
 import org.apache.nifi.testharness.TestNiFiInstance;
 import org.apache.nifi.testharness.samples.mock.GetHTTPMock;
 import org.apache.nifi.testharness.util.FileUtils;
-import org.apache.nifi.testharness.SimpleNiFiFlowDefinitionEditor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +30,6 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.List;
 

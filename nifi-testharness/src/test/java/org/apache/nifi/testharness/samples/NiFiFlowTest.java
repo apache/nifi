@@ -20,20 +20,17 @@ package org.apache.nifi.testharness.samples;
 
 
 
+import org.apache.nifi.testharness.SimpleNiFiFlowDefinitionEditor;
 import org.apache.nifi.testharness.TestNiFiInstance;
 import org.apache.nifi.testharness.util.FileUtils;
-import org.apache.nifi.testharness.SimpleNiFiFlowDefinitionEditor;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
-
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -42,7 +39,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.List;
 
