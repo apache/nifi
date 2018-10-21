@@ -171,18 +171,18 @@ public class TestNeo4JCypherExecutor {
         runner.assertNotValid();
     }
 
-    @Test
-    public void testTestTrustStrategy() throws Exception {
-        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, AbstractNeo4JCypherExecutor.TRUST_ALL_CERTIFICATES.getValue());
-        runner.assertValid();
-        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue());
-        runner.assertNotValid();
-        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE, File.createTempFile("temp", "tmp").getAbsolutePath());
-        runner.assertValid();
-        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, "BadValue");
-        runner.assertNotValid();
-    }
-
+//    @Test
+//    public void testTestTrustStrategy() throws Exception {
+//        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, AbstractNeo4JCypherExecutor.TRUST_ALL_CERTIFICATES.getValue());
+//        runner.assertValid();
+//        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue());
+//        runner.assertNotValid();
+//        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE, File.createTempFile("temp", "tmp").getAbsolutePath());
+//        runner.assertValid();
+//        runner.setProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY, "BadValue");
+//        runner.assertNotValid();
+//    }
+//
     @Test
     public void testCreateNodeNoReturn() throws Exception {
         runner.setProperty(AbstractNeo4JCypherExecutor.QUERY, "create (n)");

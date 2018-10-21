@@ -92,8 +92,7 @@ public class Neo4JCypherExecutor extends AbstractNeo4JCypherExecutor {
         tempDescriptors.add(IDLE_TIME_BEFORE_CONNECTION_TEST);
         tempDescriptors.add(MAX_CONNECTION_LIFETIME);
         tempDescriptors.add(ENCRYPTION);
-        tempDescriptors.add(TRUST_STRATEGY);
-        tempDescriptors.add(TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE);
+        tempDescriptors.add(SSL_CONTEXT_SERVICE);
 
         propertyDescriptors = Collections.unmodifiableList(tempDescriptors);
     }
@@ -115,22 +114,22 @@ public class Neo4JCypherExecutor extends AbstractNeo4JCypherExecutor {
         super.onScheduled(context);
     }
 
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>();
-
-        PropertyValue trustStrategy = validationContext.getProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY);
-        if (trustStrategy.isSet() && trustStrategy.getValue().equals(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue())) {
-            if ( ! validationContext.getProperty(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE).evaluateAttributeExpressions().isSet() ) {
-                results.add(new ValidationResult.Builder()
-                    .subject(TRUST_STRATEGY.getDisplayName() + " with " + TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getDisplayName())
-                    .explanation(TRUST_STRATEGY.getDisplayName() + " with " + TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getDisplayName() + " requires "
-                         + AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE.getDisplayName() + " to be set").valid(false).build());
-            }
-        }
-        return results;
-
-    }
+//    @Override
+//    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+//        List<ValidationResult> results = new ArrayList<>();
+//
+//        PropertyValue trustStrategy = validationContext.getProperty(AbstractNeo4JCypherExecutor.TRUST_STRATEGY);
+//        if (trustStrategy.isSet() && trustStrategy.getValue().equals(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue())) {
+//            if ( ! validationContext.getProperty(AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE).evaluateAttributeExpressions().isSet() ) {
+//                results.add(new ValidationResult.Builder()
+//                    .subject(TRUST_STRATEGY.getDisplayName() + " with " + TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getDisplayName())
+//                    .explanation(TRUST_STRATEGY.getDisplayName() + " with " + TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getDisplayName() + " requires "
+//                         + AbstractNeo4JCypherExecutor.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE.getDisplayName() + " to be set").valid(false).build());
+//            }
+//        }
+//        return results;
+//
+//    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

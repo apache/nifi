@@ -19,6 +19,8 @@ package org.apache.nifi.processors.neo4j;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -31,6 +33,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Config.ConfigBuilder;
@@ -155,35 +158,44 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
             .sensitive(false)
             .build();
 
-    public static AllowableValue TRUST_SYSTEM_CA_SIGNED_CERTIFICATES =
-        new AllowableValue(TrustStrategy.Strategy.TRUST_SYSTEM_CA_SIGNED_CERTIFICATES.name(),
-            "Trust System CA Signed Certificates", "Trust system specified CA signed certificates");
-
-    public static AllowableValue TRUST_CUSTOM_CA_SIGNED_CERTIFICATES =
-        new AllowableValue(TrustStrategy.Strategy.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.name(),
-            "Trust Custom CA Signed Certificates", "Trust custom CA signed certificates defined in the file");
-
-    public static AllowableValue TRUST_ALL_CERTIFICATES =
-        new AllowableValue(TrustStrategy.Strategy.TRUST_ALL_CERTIFICATES.name(),
-            "Trust All Certificates", "Trust all certificate");
-
-    protected static final PropertyDescriptor TRUST_STRATEGY = new PropertyDescriptor.Builder()
-            .name("neo4j-trust-strategy")
-            .displayName("Trust Strategy")
-            .description("Trust Strategy (Trust All Certificates, System CA Signed Certificates or Custom CA Signed Certificates)")
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                    + "connections.")
             .required(false)
-            .defaultValue(TRUST_ALL_CERTIFICATES.getValue())
-            .allowableValues(TRUST_ALL_CERTIFICATES, TRUST_SYSTEM_CA_SIGNED_CERTIFICATES, TRUST_CUSTOM_CA_SIGNED_CERTIFICATES)
+            .identifiesControllerService(SSLContextService.class)
             .build();
 
-    protected static final PropertyDescriptor TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE = new PropertyDescriptor.Builder()
-            .name("neo4j-custom-ca-strategy-certificates-file")
-            .displayName("Custom Trust CA Signed Certificates File")
-            .description("Custom file containing CA signed certificates to be trusted.")
-            .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
+    
+//    public static AllowableValue TRUST_SYSTEM_CA_SIGNED_CERTIFICATES =
+//        new AllowableValue(TrustStrategy.Strategy.TRUST_SYSTEM_CA_SIGNED_CERTIFICATES.name(),
+//            "Trust System CA Signed Certificates", "Trust system specified CA signed certificates");
+//
+//    public static AllowableValue TRUST_CUSTOM_CA_SIGNED_CERTIFICATES =
+//        new AllowableValue(TrustStrategy.Strategy.TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.name(),
+//            "Trust Custom CA Signed Certificates", "Trust custom CA signed certificates defined in the file");
+//
+//    public static AllowableValue TRUST_ALL_CERTIFICATES =
+//        new AllowableValue(TrustStrategy.Strategy.TRUST_ALL_CERTIFICATES.name(),
+//            "Trust All Certificates", "Trust all certificate");
+//
+//    protected static final PropertyDescriptor TRUST_STRATEGY = new PropertyDescriptor.Builder()
+//            .name("neo4j-trust-strategy")
+//            .displayName("Trust Strategy")
+//            .description("Trust Strategy (Trust All Certificates, System CA Signed Certificates or Custom CA Signed Certificates)")
+//            .required(false)
+//            .defaultValue(TRUST_ALL_CERTIFICATES.getValue())
+//            .allowableValues(TRUST_ALL_CERTIFICATES, TRUST_SYSTEM_CA_SIGNED_CERTIFICATES, TRUST_CUSTOM_CA_SIGNED_CERTIFICATES)
+//            .build();
+//
+//    protected static final PropertyDescriptor TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE = new PropertyDescriptor.Builder()
+//            .name("neo4j-custom-ca-strategy-certificates-file")
+//            .displayName("Custom Trust CA Signed Certificates File")
+//            .description("Custom file containing CA signed certificates to be trusted.")
+//            .required(false)
+//            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+//            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+//            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Sucessful FlowFiles are routed to this relationship").build();
@@ -253,17 +265,26 @@ abstract class AbstractNeo4JCypherExecutor extends AbstractProcessor {
             configBuilder.withoutEncryption();
         }
 
-        PropertyValue trustStrategy = context.getProperty(TRUST_STRATEGY);
-        if ( trustStrategy.isSet() ) {
-            if ( trustStrategy.getValue().equals(TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue())) {
-                configBuilder.withTrustStrategy(TrustStrategy.trustCustomCertificateSignedBy(new File(
-                    context.getProperty(TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE).getValue())));
-            } else if ( trustStrategy.getValue().equals(TRUST_SYSTEM_CA_SIGNED_CERTIFICATES.getValue())) {
-                configBuilder.withTrustStrategy(TrustStrategy.trustSystemCertificates());
-            } else if ( trustStrategy.getValue().equals(TRUST_ALL_CERTIFICATES.getValue())) {
-                configBuilder.withTrustStrategy(TrustStrategy.trustAllCertificates());
-            }
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sslService != null) {
+          if ( sslService.isTrustStoreConfigured()) {
+              configBuilder.withTrustStrategy(TrustStrategy.trustCustomCertificateSignedBy(new File(
+            		  sslService.getTrustStoreFile())));
+          } else {
+              configBuilder.withTrustStrategy(TrustStrategy.trustSystemCertificates());
+          } 
         }
+//        PropertyValue trustStrategy = context.getProperty(TRUST_STRATEGY);
+//        if ( trustStrategy.isSet() ) {
+//            if ( trustStrategy.getValue().equals(TRUST_CUSTOM_CA_SIGNED_CERTIFICATES.getValue())) {
+//                configBuilder.withTrustStrategy(TrustStrategy.trustCustomCertificateSignedBy(new File(
+//                    context.getProperty(TRUST_CUSTOM_CA_SIGNED_CERTIFICATES_FILE).getValue())));
+//            } else if ( trustStrategy.getValue().equals(TRUST_SYSTEM_CA_SIGNED_CERTIFICATES.getValue())) {
+//                configBuilder.withTrustStrategy(TrustStrategy.trustSystemCertificates());
+//            } else if ( trustStrategy.getValue().equals(TRUST_ALL_CERTIFICATES.getValue())) {
+//                configBuilder.withTrustStrategy(TrustStrategy.trustAllCertificates());
+//            }
+//        }
 
         return GraphDatabase.driver( connectionUrl, AuthTokens.basic( username, password),
                  configBuilder.toConfig());
