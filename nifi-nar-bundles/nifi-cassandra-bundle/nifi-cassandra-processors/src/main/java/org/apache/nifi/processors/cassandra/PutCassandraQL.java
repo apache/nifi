@@ -22,7 +22,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
-import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
@@ -163,7 +162,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ComponentLog log = getLogger();
+        super.onScheduled(context);
 
         // Initialize the prepared statement cache
         int statementCacheSize = context.getProperty(STATEMENT_CACHE_SIZE).evaluateAttributeExpressions().asInteger();
@@ -171,22 +170,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                 .maximumSize(statementCacheSize)
                 .<String, PreparedStatement>build()
                 .asMap();
-
-        try {
-            connectToCassandra(context);
-
-        } catch (final NoHostAvailableException nhae) {
-            log.error("No host in the Cassandra cluster can be contacted successfully to execute this statement", nhae);
-            // Log up to 10 error messages. Otherwise if a 1000-node cluster was specified but there was no connectivity,
-            // a thousand error messages would be logged. However we would like information from Cassandra itself, so
-            // cap the error limit at 10, format the messages, and don't include the stack trace (it is displayed by the
-            // logger message above).
-            log.error(nhae.getCustomMessage(10, true, false));
-            throw new ProcessException(nhae);
-        } catch (final AuthenticationException ae) {
-            log.error("Invalid username/password combination", ae);
-            throw new ProcessException(ae);
-        }
     }
 
     @Override
@@ -417,8 +400,8 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     }
 
     @OnStopped
-    public void stop() {
-        super.stop();
+    public void stop(ProcessContext context) {
+        super.stop(context);
         statementCache.clear();
     }
 }
