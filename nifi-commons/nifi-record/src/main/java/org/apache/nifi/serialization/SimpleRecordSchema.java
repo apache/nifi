@@ -38,6 +38,8 @@ public class SimpleRecordSchema implements RecordSchema {
     private final AtomicReference<String> text = new AtomicReference<>();
     private final String schemaFormat;
     private final SchemaIdentifier schemaIdentifier;
+    private String schemaName;
+    private String schemaNamespace;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
         this(fields, createText(fields), null, false, SchemaIdentifier.EMPTY);
@@ -212,5 +214,31 @@ public class SimpleRecordSchema implements RecordSchema {
     @Override
     public SchemaIdentifier getIdentifier() {
         return schemaIdentifier;
+    }
+
+    /**
+     * Set schema name.
+     * @param schemaName schema name as defined in a root record.
+     */
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
+    }
+
+    @Override
+    public Optional<String> getSchemaName() {
+        return Optional.ofNullable(schemaName);
+    }
+
+    /**
+     * Set schema namespace.
+     * @param schemaNamespace schema namespace as defined in a root record.
+     */
+    public void setSchemaNamespace(String schemaNamespace) {
+        this.schemaNamespace = schemaNamespace;
+    }
+
+    @Override
+    public Optional<String> getSchemaNamespace() {
+        return Optional.ofNullable(schemaNamespace);
     }
 }
