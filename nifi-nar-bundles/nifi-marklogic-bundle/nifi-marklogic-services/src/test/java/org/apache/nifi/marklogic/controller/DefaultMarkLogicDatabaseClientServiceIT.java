@@ -53,7 +53,7 @@ public class DefaultMarkLogicDatabaseClientServiceIT {
         runner.disableControllerService(service);
         try {
             service.getDatabaseClient().newBinaryDocumentManager().read("/test.json").getPageSize();
-            Assert.assertTrue("Should not be able to use client after shutdown", false);
+            Assert.fail("Should not be able to use client after shutdown");
         } catch (Exception e) {
             Assert.assertTrue("Should not be able to use client after shutdown", e instanceof IllegalStateException);
         }
