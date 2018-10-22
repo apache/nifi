@@ -137,6 +137,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public static final PropertyDescriptor PROP_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("Password to use when connecting to the broker")
+            .sensitive(true)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
