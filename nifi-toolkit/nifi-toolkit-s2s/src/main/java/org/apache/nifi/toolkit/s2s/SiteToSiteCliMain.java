@@ -72,7 +72,6 @@ public class SiteToSiteCliMain {
     public static final String PROXY_PASSWORD_OPTION = "proxyPassword";
     public static final String PROXY_PORT_OPTION_DEFAULT = "80";
     public static final String KEYSTORE_TYPE_OPTION_DEFAULT = KeystoreType.JKS.toString();
-    public static final String NEED_CLIENT_AUTH_OPTION = "needClientAuth";
 
     /**
      * Prints the usage to System.out
@@ -141,7 +140,6 @@ public class SiteToSiteCliMain {
         options.addOption(null, TRUST_STORE_OPTION, true, "Truststore");
         options.addOption(null, TRUST_STORE_TYPE_OPTION, true, "Truststore type (default: " + KEYSTORE_TYPE_OPTION_DEFAULT + ")");
         options.addOption(null, TRUST_STORE_PASSWORD_OPTION, true, "Truststore password");
-        options.addOption(null, NEED_CLIENT_AUTH_OPTION, false, "Need client auth");
         options.addOption("c", COMPRESSION_OPTION, false, "Use compression");
         options.addOption(null, PEER_PERSISTENCE_FILE_OPTION, true, "File to write peer information to so it can be recovered on restart");
         options.addOption("p", TRANSPORT_PROTOCOL_OPTION, true, "Site to site transport protocol (default: " + TRANSPORT_PROTOCOL_OPTION_DEFAULT + ")");

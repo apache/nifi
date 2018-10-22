@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.framework.security.util;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.util.NiFiProperties;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,13 +32,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * A factory for creating SSL contexts using the application's security
@@ -40,30 +40,13 @@ import org.apache.commons.lang3.StringUtils;
  */
 public final class SslContextFactory {
 
-    public static enum ClientAuth {
-
-        WANT,
-        REQUIRED,
-        NONE
-    }
-
     public static SSLContext createSslContext(final NiFiProperties props)
             throws SslContextCreationException {
-        return createSslContext(props, false);
-    }
 
-    public static SSLContext createSslContext(final NiFiProperties props, final boolean strict)
-            throws SslContextCreationException {
-
-        final boolean hasKeystoreProperties = hasKeystoreProperties(props);
-        if (hasKeystoreProperties == false) {
-            if (strict) {
-                throw new SslContextCreationException("SSL context cannot be created because keystore properties have not been configured.");
-            } else {
-                return null;
-            }
-        } else if (props.getNeedClientAuth() && hasTruststoreProperties(props) == false) {
-            throw new SslContextCreationException("Need client auth is set to 'true', but no truststore properties are configured.");
+        if (hasKeystoreProperties(props) == false) {
+            return null;
+        } else if (hasTruststoreProperties(props) == false) {
+            throw new SslContextCreationException("SSL context cannot be created because truststore properties have not been configured.");
         }
 
         try {
@@ -98,7 +81,7 @@ public final class SslContextFactory {
             final SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagerFactory.getKeyManagers(),
                     trustManagerFactory.getTrustManagers(), null);
-            sslContext.getDefaultSSLParameters().setNeedClientAuth(props.getNeedClientAuth());
+            sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
 
             return sslContext;
 

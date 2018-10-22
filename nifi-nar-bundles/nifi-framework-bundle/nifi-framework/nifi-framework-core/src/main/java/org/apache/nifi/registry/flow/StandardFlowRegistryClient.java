@@ -17,16 +17,15 @@
 
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.util.NiFiProperties;
+
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.framework.security.util.SslContextFactory;
-import org.apache.nifi.util.NiFiProperties;
 
 public class StandardFlowRegistryClient implements FlowRegistryClient {
     private NiFiProperties nifiProperties;
@@ -76,7 +75,7 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
 
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
-            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
+            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties);
             if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
                 throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
                     + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "

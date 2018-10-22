@@ -17,11 +17,13 @@
 package org.apache.nifi.framework.security.util;
 
 import org.apache.nifi.security.util.KeystoreType;
-import java.io.File;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +44,6 @@ public class SslContextFactoryTest {
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
-        when(authProps.getNeedClientAuth()).thenReturn(false);
 
         mutualAuthProps = mock(NiFiProperties.class);
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
@@ -51,7 +52,6 @@ public class SslContextFactoryTest {
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn(trustFile.getAbsolutePath());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
-        when(mutualAuthProps.getNeedClientAuth()).thenReturn(true);
 
     }
 
@@ -60,9 +60,9 @@ public class SslContextFactoryTest {
         Assert.assertNotNull(SslContextFactory.createSslContext(mutualAuthProps));
     }
 
-    @Test
+    @Test(expected = SslContextCreationException.class)
     public void testCreateSslContextWithNoMutualAuth() {
-        Assert.assertNotNull(SslContextFactory.createSslContext(authProps));
+        SslContextFactory.createSslContext(authProps);
     }
 
 }

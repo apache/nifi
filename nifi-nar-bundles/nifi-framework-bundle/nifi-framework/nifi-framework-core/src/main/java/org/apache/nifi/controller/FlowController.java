@@ -513,7 +513,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.encryptor = encryptor;
         this.nifiProperties = nifiProperties;
         this.heartbeatMonitor = heartbeatMonitor;
-        sslContext = SslContextFactory.createSslContext(nifiProperties, false);
+        sslContext = SslContextFactory.createSslContext(nifiProperties);
         extensionManager = new ExtensionManager();
         this.clusterCoordinator = clusterCoordinator;
 
