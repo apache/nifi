@@ -103,7 +103,7 @@ public class SwappablePriorityQueue {
         return flowFileQueue.getIdentifier();
     }
 
-    public synchronized List<FlowFilePrioritizer> getPriorities() {
+    public List<FlowFilePrioritizer> getPriorities() {
         readLock.lock();
         try {
             return Collections.unmodifiableList(priorities);
