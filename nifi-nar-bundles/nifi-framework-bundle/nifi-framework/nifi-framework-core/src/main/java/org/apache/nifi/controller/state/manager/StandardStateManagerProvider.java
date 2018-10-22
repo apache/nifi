@@ -194,7 +194,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, variableRegistry));
         }
 
-        final SSLContext sslContext = SslContextFactory.createSslContext(properties, false);
+        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
         final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
 

@@ -36,7 +36,7 @@ public class ServerSocketConfigurationFactoryBean implements FactoryBean<ServerS
     public ServerSocketConfiguration getObject() throws Exception {
         if (configuration == null) {
             configuration = new ServerSocketConfiguration();
-            configuration.setNeedClientAuth(properties.getNeedClientAuth());
+            configuration.setNeedClientAuth(true);
 
             final int timeout = (int) FormatUtils.getTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
             configuration.setSocketTimeout(timeout);
