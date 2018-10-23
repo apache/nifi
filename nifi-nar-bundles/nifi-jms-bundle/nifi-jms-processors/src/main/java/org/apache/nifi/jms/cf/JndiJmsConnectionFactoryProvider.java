@@ -34,6 +34,9 @@ import javax.jms.ConnectionFactory;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
@@ -49,7 +52,7 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDA
     value = "The value of the JNDI Initial Context Environment variable.",
     expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS", "org.apache.nifi.jms.cf.JMSConnectionFactoryProvider"})
-public class JndiJmsConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition{
+public class JndiJmsConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 
     static final PropertyDescriptor INITIAL_NAMING_FACTORY_CLASS = new Builder()
         .name("java.naming.factory.initial")
@@ -146,34 +149,15 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
         return connectionFactory;
     }
 
+
     private ConnectionFactory lookupConnectionFactory() {
         try {
             final ConfigurationContext context = getConfigurationContext();
 
-            final Hashtable<String, String> env = new Hashtable<>();
-            env.put(Context.INITIAL_CONTEXT_FACTORY, context.getProperty(INITIAL_NAMING_FACTORY_CLASS).evaluateAttributeExpressions().getValue().trim());
-            env.put(Context.PROVIDER_URL, context.getProperty(NAMING_PROVIDER_URL).evaluateAttributeExpressions().getValue().trim());
-
-            final String principal = context.getProperty(PRINCIPAL).evaluateAttributeExpressions().getValue();
-            if (principal != null) {
-                env.put(Context.SECURITY_PRINCIPAL, principal);
-            }
-
-            final String credentials = context.getProperty(CREDENTIALS).getValue();
-            if (credentials != null) {
-                env.put(Context.SECURITY_CREDENTIALS, credentials);
-            }
-
-            context.getProperties().keySet().forEach(descriptor -> {
-                if (descriptor.isDynamic()) {
-                    env.put(descriptor.getName(), context.getProperty(descriptor).evaluateAttributeExpressions().getValue());
-                }
-            });
-
             final String factoryName = context.getProperty(CONNECTION_FACTORY_NAME).evaluateAttributeExpressions().getValue().trim();
-            getLogger().debug("Looking up Connection Factory with name [{}] using JNDI Environment {}", new Object[] {factoryName, env});
+            getLogger().debug("Looking up Connection Factory with name [{}]", new Object[] {factoryName});
 
-            final Context initialContext = new InitialContext(env);
+            final Context initialContext = createInitialContext();
             final Object factoryObject = initialContext.lookup(factoryName);
 
             getLogger().debug("Obtained {} from JNDI", new Object[] {factoryObject});
@@ -186,9 +170,57 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
                     "Instead, is of type " + factoryObject.getClass() + " : " + factoryObject);
             }
 
-            return (ConnectionFactory) factoryObject;
+            return (ConnectionFactory) instrumentWithClassLoader(factoryObject, Thread.currentThread().getContextClassLoader(), ConnectionFactory.class);
         } catch (final NamingException ne) {
             throw new ProcessException("Could not obtain JMS Connection Factory from JNDI", ne);
         }
+    }
+
+
+    private Context createInitialContext() throws NamingException {
+        final ConfigurationContext context = getConfigurationContext();
+
+        final Hashtable<String, String> env = new Hashtable<>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, context.getProperty(INITIAL_NAMING_FACTORY_CLASS).evaluateAttributeExpressions().getValue().trim());
+        env.put(Context.PROVIDER_URL, context.getProperty(NAMING_PROVIDER_URL).evaluateAttributeExpressions().getValue().trim());
+
+        final String principal = context.getProperty(PRINCIPAL).evaluateAttributeExpressions().getValue();
+        if (principal != null) {
+            env.put(Context.SECURITY_PRINCIPAL, principal);
+        }
+
+        final String credentials = context.getProperty(CREDENTIALS).getValue();
+        if (credentials != null) {
+            env.put(Context.SECURITY_CREDENTIALS, credentials);
+        }
+
+        context.getProperties().keySet().forEach(descriptor -> {
+            if (descriptor.isDynamic()) {
+                env.put(descriptor.getName(), context.getProperty(descriptor).evaluateAttributeExpressions().getValue());
+            }
+        });
+
+        getLogger().debug("Creating Initial Context using JNDI Environment {}", new Object[] {env});
+
+        final Context initialContext = new InitialContext(env);
+        return initialContext;
+    }
+
+    public static Object instrumentWithClassLoader(final Object obj, final ClassLoader classLoader, final Class<?>... interfaces) {
+        final InvocationHandler invocationHandler = new InvocationHandler() {
+            @Override
+            public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+                final Thread thread = Thread.currentThread();
+                final ClassLoader currentClassLoader = thread.getContextClassLoader();
+                try {
+                    thread.setContextClassLoader(classLoader);
+                    return method.invoke(obj, args);
+                } finally {
+                    thread.setContextClassLoader(currentClassLoader);
+                }
+            }
+        };
+
+        return Proxy.newProxyInstance(classLoader, interfaces, invocationHandler);
     }
 }
