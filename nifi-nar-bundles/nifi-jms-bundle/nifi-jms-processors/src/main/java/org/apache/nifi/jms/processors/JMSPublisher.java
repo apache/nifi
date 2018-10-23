@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
+import org.apache.nifi.logging.ComponentLog;
+import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
+import org.springframework.jms.core.SessionCallback;
+import org.springframework.jms.support.JmsHeaders;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
@@ -30,13 +31,11 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
-import org.apache.nifi.logging.ComponentLog;
-import org.springframework.jms.connection.CachingConnectionFactory;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
-import org.springframework.jms.core.SessionCallback;
-import org.springframework.jms.support.JmsHeaders;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Generic publisher of messages to JMS compliant messaging system.
@@ -62,10 +61,6 @@ final class JMSPublisher extends JMSWorker {
                 return message;
             }
         });
-    }
-
-    void publish(String destinationName, String messageText) {
-        this.publish(destinationName, messageText, null);
     }
 
     void publish(String destinationName, String messageText, final Map<String, String> flowFileAttributes) {
