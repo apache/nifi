@@ -210,13 +210,17 @@ public class TestFetchFile {
         moveTargetParentDir.mkdirs();
         moveTargetParentDir.setReadable(false);
         moveTargetParentDir.setWritable(false);
+        try {
+            runner.enqueue(new byte[0]);
+            runner.run();
+            runner.assertAllFlowFilesTransferred(FetchFile.REL_FAILURE, 1);
+            runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).get(0).assertContentEquals("");
 
-        runner.enqueue(new byte[0]);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(FetchFile.REL_FAILURE, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).get(0).assertContentEquals("");
-
-        assertTrue(sourceFile.exists());
+            assertTrue(sourceFile.exists());
+        } finally {
+            moveTargetParentDir.setReadable(true);
+            moveTargetParentDir.setWritable(true);
+        }
     }
 
     @Test
