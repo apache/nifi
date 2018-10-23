@@ -39,13 +39,11 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.AbstractPutHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.processors.parquet.record.AvroParquetHDFSRecordWriter;
-import org.apache.nifi.processors.parquet.utils.ParquetBuilderProperties;
 import org.apache.nifi.processors.parquet.utils.ParquetUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -71,7 +69,7 @@ import java.util.List;
         requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
         explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem.")
 })
-public class PutParquet extends AbstractPutHDFSRecord implements ParquetBuilderProperties {
+public class PutParquet extends AbstractPutHDFSRecord {
 
     public static final PropertyDescriptor REMOVE_CRC_FILES = new PropertyDescriptor.Builder()
             .name("remove-crc-files")
@@ -104,13 +102,13 @@ public class PutParquet extends AbstractPutHDFSRecord implements ParquetBuilderP
     @Override
     public List<PropertyDescriptor> getAdditionalProperties() {
         final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(ROW_GROUP_SIZE);
-        props.add(PAGE_SIZE);
-        props.add(DICTIONARY_PAGE_SIZE);
-        props.add(MAX_PADDING_SIZE);
-        props.add(ENABLE_DICTIONARY_ENCODING);
-        props.add(ENABLE_VALIDATION);
-        props.add(WRITER_VERSION);
+        props.add(ParquetUtils.ROW_GROUP_SIZE);
+        props.add(ParquetUtils.PAGE_SIZE);
+        props.add(ParquetUtils.DICTIONARY_PAGE_SIZE);
+        props.add(ParquetUtils.MAX_PADDING_SIZE);
+        props.add(ParquetUtils.ENABLE_DICTIONARY_ENCODING);
+        props.add(ParquetUtils.ENABLE_VALIDATION);
+        props.add(ParquetUtils.WRITER_VERSION);
         props.add(REMOVE_CRC_FILES);
         return Collections.unmodifiableList(props);
     }
@@ -125,7 +123,7 @@ public class PutParquet extends AbstractPutHDFSRecord implements ParquetBuilderP
                 .<GenericRecord>builder(path)
                 .withSchema(avroSchema);
 
-        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this, this);
+        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this);
 
         return new AvroParquetHDFSRecordWriter(parquetWriter.build(), avroSchema);
     }

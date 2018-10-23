@@ -40,7 +40,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.parquet.stream.NifiParquetOutputFile;
-import org.apache.nifi.processors.parquet.utils.ParquetBuilderProperties;
 import org.apache.nifi.processors.parquet.utils.ParquetUtils;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.avro.AvroReadSupport;
@@ -55,10 +54,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.Collections;
-
-
-
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Tags({"avro", "parquet", "convert"})
@@ -70,7 +65,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "filename", description = "Sets the filename to the existing filename with the extension replaced by / added to by .parquet"),
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the parquet file.")
 })
-public class ConvertAvroToParquet extends AbstractProcessor implements ParquetBuilderProperties {
+public class ConvertAvroToParquet extends AbstractProcessor {
 
     // Attributes
     public static final String RECORD_COUNT_ATTRIBUTE = "record.count";
@@ -100,14 +95,14 @@ public class ConvertAvroToParquet extends AbstractProcessor implements ParquetBu
 
         final List<PropertyDescriptor> props = new ArrayList<>();
 
-        props.add(COMPRESSION_TYPE);
-        props.add(ROW_GROUP_SIZE);
-        props.add(PAGE_SIZE);
-        props.add(DICTIONARY_PAGE_SIZE);
-        props.add(MAX_PADDING_SIZE);
-        props.add(ENABLE_DICTIONARY_ENCODING);
-        props.add(ENABLE_VALIDATION);
-        props.add(WRITER_VERSION);
+        props.add(ParquetUtils.COMPRESSION_TYPE);
+        props.add(ParquetUtils.ROW_GROUP_SIZE);
+        props.add(ParquetUtils.PAGE_SIZE);
+        props.add(ParquetUtils.DICTIONARY_PAGE_SIZE);
+        props.add(ParquetUtils.MAX_PADDING_SIZE);
+        props.add(ParquetUtils.ENABLE_DICTIONARY_ENCODING);
+        props.add(ParquetUtils.ENABLE_VALIDATION);
+        props.add(ParquetUtils.WRITER_VERSION);
 
         this.parquetProps = Collections.unmodifiableList(props);
     }
@@ -162,7 +157,6 @@ public class ConvertAvroToParquet extends AbstractProcessor implements ParquetBu
                 }
             });
 
-
             // Add attributes and transfer to success
             StringBuilder newFilename = new StringBuilder();
             int extensionIndex = fileName.lastIndexOf(".");
@@ -202,7 +196,7 @@ public class ConvertAvroToParquet extends AbstractProcessor implements ParquetBu
         conf.setBoolean("parquet.avro.add-list-element-records", false);
         conf.setBoolean("parquet.avro.write-old-list-structure", false);
 
-        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this, this);
+        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this);
 
         return parquetWriter.build();
     }
