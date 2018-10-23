@@ -47,6 +47,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileStore;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -335,7 +336,7 @@ public class GetFile extends AbstractProcessor {
                 
                 Stream<Path> listStream;
                 if (recurseSubdirectories) {
-                    listStream = Files.walk(p);
+                    listStream = Files.walk(p, FileVisitOption.FOLLOW_LINKS);
                 } else {
                     listStream = Files.list(p);
                 }
