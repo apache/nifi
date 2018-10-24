@@ -78,7 +78,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> {};
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> nodeIds == null ? null : nodeIds.iterator().next();
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;

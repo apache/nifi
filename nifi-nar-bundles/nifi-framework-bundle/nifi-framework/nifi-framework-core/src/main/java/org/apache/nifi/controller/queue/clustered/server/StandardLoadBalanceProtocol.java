@@ -130,9 +130,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             final Set<String> certIdentities;
             try {
                 certIdentities = getCertificateIdentities(sslSession);
-
-                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
-                peerDescription = CertificateUtils.extractUsername(dn);
             } catch (final CertificateException e) {
                 throw new IOException("Failed to extract Client Certificate", e);
             }
@@ -140,7 +137,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             logger.debug("Connection received from peer {}. Will perform authorization against Client Identities '{}'",
                 peerDescription, certIdentities);
 
-            authorizer.authorize(certIdentities);
+            peerDescription = authorizer.authorize(certIdentities);
             logger.debug("Client Identities {} are authorized to load balance data", certIdentities);
         }
 
