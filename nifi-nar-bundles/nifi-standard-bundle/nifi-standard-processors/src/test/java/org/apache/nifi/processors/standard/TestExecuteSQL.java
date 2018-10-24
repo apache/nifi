@@ -52,6 +52,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -463,7 +464,7 @@ public class TestExecuteSQL {
         ResultSet rs = mock(ResultSet.class);
         when(statement.getResultSet()).thenReturn(rs);
         // Throw an exception the first time you access the ResultSet, this is after the flow file to hold the results has been created.
-        when(rs.getMetaData()).thenThrow(SQLException.class);
+        when(rs.getMetaData()).thenThrow(new SQLException("test execute statement failed"));
 
         runner.addControllerService("mockdbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
@@ -475,6 +476,10 @@ public class TestExecuteSQL {
 
         runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 1);
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
+
+        // Assert exception message has been put to flow file attribute
+        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).get(0);
+        Assert.assertEquals("java.sql.SQLException: test execute statement failed",failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
     public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String,String> attrs, final boolean setQueryProperty)

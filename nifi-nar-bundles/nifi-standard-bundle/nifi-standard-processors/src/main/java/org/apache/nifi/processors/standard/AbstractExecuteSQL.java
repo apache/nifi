@@ -61,6 +61,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
+    public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
 
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
@@ -402,6 +403,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                             new Object[]{selectQuery, e});
                     context.yield();
                 }
+                session.putAttribute(fileToProcess,RESULT_ERROR_MESSAGE,e.getMessage());
                 session.transfer(fileToProcess, REL_FAILURE);
             }
         }
