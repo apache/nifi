@@ -20,5 +20,13 @@ package org.apache.nifi.controller.queue.clustered.server;
 import java.util.Collection;
 
 public interface LoadBalanceAuthorizer {
-    void authorize(Collection<String> clientIdentities) throws NotAuthorizedException;
+    /**
+     * Checks if any of the given identities is allowed to load balance data. If so, the identity that has been
+     * permitted is returned. If not, a NotAuthorizedException is thrown.
+     *
+     * @param clientIdentities the collection of identities to check
+     * @return the identity that is authorized, or null if the given collection of identities is null
+     * @throws NotAuthorizedException if none of the given identities is authorized to load balance data
+     */
+    String authorize(Collection<String> clientIdentities) throws NotAuthorizedException;
 }

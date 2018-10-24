@@ -101,7 +101,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> {};
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> nodeIds == null ? null : nodeIds.iterator().next();
     private final LoadBalanceAuthorizer NEVER_AUTHORIZED = nodeIds -> {
         throw new NotAuthorizedException("Intentional Unit Test Failure - Not Authorized");
     };
@@ -269,7 +269,7 @@ public class LoadBalancedQueueIT {
                 }
             }
 
-            final int totalFlowFileCount = 6;
+            final int totalFlowFileCount = 7;
 
             // Wait up to 10 seconds for the server's FlowFile Repository to be updated
             final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(10L);
