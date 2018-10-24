@@ -21,6 +21,7 @@ import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
 import com.google.common.io.Files;
+import java.security.Principal;
 import okhttp3.Cache;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
@@ -132,7 +133,6 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
                     description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
                             + "the Attribute Expression Language set in the value of the Dynamic Property.")
 public final class InvokeHTTP extends AbstractProcessor {
-
     // flowfile attribute keys returned after reading the response
     public final static String STATUS_CODE = "invokehttp.status.code";
     public final static String STATUS_MESSAGE = "invokehttp.status.message";
@@ -1182,8 +1182,12 @@ public final class InvokeHTTP extends AbstractProcessor {
                 map.put(key, value);
         });
 
-        if ("HTTPS".equals(url.getProtocol().toUpperCase())) {
-            map.put(REMOTE_DN, responseHttp.handshake().peerPrincipal().getName());
+        if (responseHttp.request().isHttps()) {
+            Principal principal = responseHttp.handshake().peerPrincipal();
+
+            if (principal != null) {
+                map.put(REMOTE_DN, principal.getName());
+            }
         }
 
         return map;
