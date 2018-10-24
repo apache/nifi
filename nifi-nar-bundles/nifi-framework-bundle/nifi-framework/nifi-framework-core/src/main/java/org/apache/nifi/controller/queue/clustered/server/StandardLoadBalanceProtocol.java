@@ -248,13 +248,15 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     "not configured to allow for Load Balancing");
         }
 
+        final LoadBalancedFlowFileQueue loadBalancedFlowFileQueue = (LoadBalancedFlowFileQueue) flowFileQueue;
+
         final int spaceCheck = dataIn.read();
         if (spaceCheck < 0) {
             throw new EOFException("Expected to receive a request to determine whether or not space was available for Connection with ID " + connectionId + " from Peer " + peerDescription);
         }
 
         if (spaceCheck == CHECK_SPACE) {
-            if (flowFileQueue.isFull()) {
+            if (loadBalancedFlowFileQueue.isLocalPartitionFull()) {
                 logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
                 out.write(QUEUE_FULL);
                 out.flush();

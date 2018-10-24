@@ -601,6 +601,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
     }
 
+    @Override
+    public boolean isLocalPartitionFull() {
+        return isFull(localPartition.size());
+    }
+
     /**
      * Determines which QueuePartition the given FlowFile belongs to. Must be called with partition read lock held.
      *
