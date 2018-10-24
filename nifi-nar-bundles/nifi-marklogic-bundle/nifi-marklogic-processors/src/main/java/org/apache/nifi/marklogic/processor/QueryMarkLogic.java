@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.marklogic.processor;
 
-import com.marklogic.client.DatabaseClient;
-import com.marklogic.client.datamovement.DataMovementManager;
-import com.marklogic.client.datamovement.QueryBatch;
-import com.marklogic.client.datamovement.QueryBatcher;
-import com.marklogic.client.document.DocumentPage;
-import com.marklogic.client.document.DocumentRecord;
-import com.marklogic.client.document.GenericDocumentManager;
-import com.marklogic.client.impl.GenericDocumentImpl;
-import com.marklogic.client.io.BytesHandle;
-import com.marklogic.client.query.QueryManager;
-import com.marklogic.client.query.StructuredQueryDefinition;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,9 +32,11 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -47,14 +47,25 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.marklogic.client.DatabaseClient;
+import com.marklogic.client.datamovement.DataMovementManager;
+import com.marklogic.client.datamovement.QueryBatch;
+import com.marklogic.client.datamovement.QueryBatcher;
+import com.marklogic.client.document.DocumentPage;
+import com.marklogic.client.document.DocumentRecord;
+import com.marklogic.client.document.GenericDocumentManager;
+import com.marklogic.client.impl.GenericDocumentImpl;
+import com.marklogic.client.io.BytesHandle;
+import com.marklogic.client.io.Format;
+import com.marklogic.client.io.StringHandle;
+import com.marklogic.client.query.QueryManager;
+import com.marklogic.client.query.RawCombinedQueryDefinition;
+import com.marklogic.client.query.RawStructuredQueryDefinition;
+import com.marklogic.client.query.StringQueryDefinition;
+import com.marklogic.client.query.StructuredQueryDefinition;
 
 @Tags({"MarkLogic", "Get", "Query", "Read"})
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @CapabilityDescription("Creates FlowFiles from batches of documents, matching the given criteria," +
     " retrieved from a MarkLogic server using the MarkLogic Data Movement SDK (DMSDK)")
@@ -72,10 +83,29 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
+        .name("Query")
+        .displayName("Query")
+        .description("Query text that corresponds with the selected Query Type")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(Validator.VALID)
+        .build();
+
+    public static final PropertyDescriptor QUERY_TYPE = new PropertyDescriptor.Builder()
+        .name("Query Type")
+        .displayName("Query Type")
+        .description("Type of query that will be used to retrieve data from MarkLogic")
+        .required(true)
+        .allowableValues(QueryTypes.values())
+        .defaultValue(QueryTypes.COMBINED_JSON.name())
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor COLLECTIONS = new PropertyDescriptor.Builder()
         .name("Collections")
         .displayName("Collections")
-        .description("Comma-separated list of collections to query from a MarkLogic server")
+        .description("**Deprecated: Use Query Type and Query** Comma-separated list of collections to query from a MarkLogic server")
         .required(false)
         .addValidator(Validator.VALID)
         .build();
@@ -93,6 +123,8 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
         List<PropertyDescriptor> list = new ArrayList<>(properties);
         list.add(CONSISTENT_SNAPSHOT);
+        list.add(QUERY);
+        list.add(QUERY_TYPE);
         list.add(COLLECTIONS);
         properties = Collections.unmodifiableList(list);
         Set<Relationship> set = new HashSet<>();
@@ -104,17 +136,35 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         Set<ValidationResult> validationResultSet = new HashSet<>();
         String collections = validationContext.getProperty(COLLECTIONS).getValue();
-        if(collections == null) {
-            validationResultSet.add(new ValidationResult.Builder().subject("Query").valid(false).explanation("one " +
-                "of the following properties need to be set - " + COLLECTIONS.getDisplayName()).build());
+        String query = validationContext.getProperty(QUERY).getValue();
+        if(collections == null && query == null) {
+            validationResultSet.add(new ValidationResult.Builder().subject("Query").valid(false).explanation("The Query value must be set. " +
+              "The deprecated Collections property will be migrated appropriately.").build());
         }
         return validationResultSet;
     }
 
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session);
+        } catch (final Throwable t) {
+            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            session.rollback(true);
+            throw new ProcessException(t);
+        }
+    }
+
+    public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile input = null;
+
+        if (context.hasIncomingConnection()) {
+            input = session.get();
+        }
+
         DataMovementManager dataMovementManager = getDatabaseClient(context).newDataMovementManager();
-        queryBatcher = createQueryBatcherWithQueryCriteria(context, getDatabaseClient(context), dataMovementManager);
+        queryBatcher = createQueryBatcherWithQueryCriteria(context, input, getDatabaseClient(context), dataMovementManager);
         if(context.getProperty(BATCH_SIZE).asInteger() != null) queryBatcher.withBatchSize(context.getProperty(BATCH_SIZE).asInteger());
         if(context.getProperty(THREAD_COUNT).asInteger() != null) queryBatcher.withThreadCount(context.getProperty(THREAD_COUNT).asInteger());
         final boolean consistentSnapshot;
@@ -124,8 +174,8 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
             queryBatcher.withConsistentSnapshot();
             consistentSnapshot = true;
         }
+
         queryBatcher.onUrisReady(batch -> {
-            final ProcessSession session = sessionFactory.createSession();
             try( DocumentPage docs = getDocs(batch, consistentSnapshot) ) {
                 while ( docs.hasNext() ) {
                     DocumentRecord documentRecord = docs.next();
@@ -149,19 +199,50 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         dataMovementManager.stopJob(queryBatcher);
     }
 
-    private QueryBatcher createQueryBatcherWithQueryCriteria(ProcessContext context, DatabaseClient databaseClient, DataMovementManager dataMovementManager) {
+    private QueryBatcher createQueryBatcherWithQueryCriteria(ProcessContext context, FlowFile flowFile, DatabaseClient databaseClient, DataMovementManager dataMovementManager) {
+        final PropertyValue queryProperty = context.getProperty(QUERY);
+        final String queryValue;
+        final String queryTypeValue;
 
-        QueryManager queryManager = databaseClient.newQueryManager();
-
+        // Gracefully migrate old Collections templates
         String collectionsValue = context.getProperty(COLLECTIONS).getValue();
-        String[] collections = getArrayFromCommaSeparatedString(collectionsValue);
-
-        // Collections can never be null since that is a required property. However, if that is null for some reason
-        // we do NOT query the database and fetch all the documents
-        if (collections != null) {
-            StructuredQueryDefinition query = queryManager.newStructuredQueryBuilder()
-                    .collection(collections);
-            queryBatcher = dataMovementManager.newQueryBatcher(query);
+        if (!(collectionsValue == null || "".equals(collectionsValue))) {
+            queryValue = collectionsValue;
+            queryTypeValue = QueryTypes.COLLECTION.name();
+        } else {
+            queryValue = queryProperty.evaluateAttributeExpressions(flowFile).getValue();
+            queryTypeValue = context.getProperty(QUERY_TYPE).getValue();
+        }
+        if (queryValue != null) {
+            final QueryManager queryManager = databaseClient.newQueryManager();
+            switch (QueryTypes.valueOf(queryTypeValue)) {
+                case COLLECTION:
+                    String[] collections = getArrayFromCommaSeparatedString(queryValue);
+                    if (collections != null) {
+                        StructuredQueryDefinition query = queryManager.newStructuredQueryBuilder()
+                                .collection(collections);
+                        queryBatcher = dataMovementManager.newQueryBatcher(query);
+                    }
+                    break;
+                case COMBINED_JSON:
+                    queryBatcher = batcherFromCombinedQuery(dataMovementManager, queryManager, queryValue, Format.JSON);
+                    break;
+                case COMBINED_XML:
+                    queryBatcher = batcherFromCombinedQuery(dataMovementManager, queryManager, queryValue, Format.XML);
+                    break;
+                case STRING:
+                    StringQueryDefinition strDef = queryManager.newStringDefinition().withCriteria(queryValue);
+                    queryBatcher = dataMovementManager.newQueryBatcher(strDef);
+                    break;
+                case STRUCTURED_JSON:
+                    queryBatcher = batcherFromStructuredQuery(dataMovementManager, queryManager, queryValue, Format.JSON);
+                    break;
+                case STRUCTURED_XML:
+                    queryBatcher = batcherFromStructuredQuery(dataMovementManager, queryManager, queryValue, Format.XML);
+                    break;
+                default:
+                    throw new IllegalStateException("No valid Query type selected!");
+            }
         }
         if(queryBatcher == null) {
             throw new IllegalStateException("No valid Query criteria specified!");
@@ -180,5 +261,42 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     QueryBatcher getQueryBatcher() {
         return this.queryBatcher;
+    }
+
+    StringHandle handleForQuery(String queryValue, Format format) {
+        StringHandle handle = new StringHandle().withFormat(format).with(queryValue);
+        return handle;
+    }
+
+    QueryBatcher batcherFromCombinedQuery(DataMovementManager dataMovementManager, QueryManager queryMgr, String queryValue, Format format) {
+        RawCombinedQueryDefinition qdef = queryMgr.newRawCombinedQueryDefinition(handleForQuery(queryValue, format));
+        return dataMovementManager.newQueryBatcher(qdef);
+    }
+
+    QueryBatcher batcherFromStructuredQuery(DataMovementManager dataMovementManager, QueryManager queryMgr, String queryValue, Format format) {
+        RawStructuredQueryDefinition qdef = queryMgr.newRawStructuredQueryDefinition(handleForQuery(queryValue, format));
+        return dataMovementManager.newQueryBatcher(qdef);
+    }
+
+    public enum QueryTypes {
+        COLLECTION("Collection Query"),
+        COMBINED_JSON("Combined Query (JSON)"),
+        COMBINED_XML("Combined Query (XML)"),
+        STRING("String Query"),
+        STRUCTURED_JSON("Structured Query (JSON)"),
+        STRUCTURED_XML("Structured Query (XML)");
+        private final String text;
+
+        /**
+         * @param text Display text for Query Type enumerators
+         */
+        QueryTypes(final String text) {
+           this.text = text;
+       }
+
+        @Override
+        public String toString() {
+           return text;
+       }
     }
 }
