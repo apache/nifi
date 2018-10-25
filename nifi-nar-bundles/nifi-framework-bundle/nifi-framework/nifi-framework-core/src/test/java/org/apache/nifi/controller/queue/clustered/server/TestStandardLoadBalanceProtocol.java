@@ -204,7 +204,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);
@@ -266,7 +266,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);
@@ -331,7 +331,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -393,7 +393,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException eof) {
             // expected
@@ -440,7 +440,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(COMPLETE_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -492,7 +492,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException e) {
             // expected
@@ -541,7 +541,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(ABORT_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -590,7 +590,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);

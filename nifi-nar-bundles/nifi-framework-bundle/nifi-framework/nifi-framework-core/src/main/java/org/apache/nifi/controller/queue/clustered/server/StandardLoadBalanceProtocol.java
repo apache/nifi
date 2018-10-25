@@ -123,7 +123,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final InputStream in = new BufferedInputStream(socket.getInputStream());
         final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
 
-        String peerDescription = socket.getInetAddress().toString();
+        String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
             final SSLSession sslSession = ((SSLSocket) socket).getSession();
 
@@ -152,7 +152,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName());
+        receiveFlowFiles(in, out, peerDescription, version);
     }
 
     private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
@@ -222,7 +222,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion, final String nodeName) throws IOException {
+    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);
         final long startTimestamp = System.currentTimeMillis();
 
@@ -306,7 +306,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             }
 
             verifyChecksum(checksum, in, out, peerDescription, flowFilesReceived.size());
-            completeTransaction(in, out, peerDescription, flowFilesReceived, nodeName, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
+            completeTransaction(in, out, peerDescription, flowFilesReceived, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
         } catch (final Exception e) {
             // If any Exception occurs, we need to decrement the claimant counts for the Content Claims that we wrote to because
             // they are no longer needed.
@@ -321,7 +321,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
     private void completeTransaction(final InputStream in, final OutputStream out, final String peerDescription, final List<RemoteFlowFileRecord> flowFilesReceived,
-                                     final String nodeName, final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
+                                     final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
         final int completionIndicator = in.read();
         if (completionIndicator < 0) {
             throw new EOFException("Expected to receive a Transaction Completion Indicator from Peer " + peerDescription + " but encountered EOF");
@@ -340,7 +340,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         logger.debug("Received Complete Transaction indicator from Peer {}", peerDescription);
-        registerReceiveProvenanceEvents(flowFilesReceived, nodeName, connectionId, startTimestamp);
+        registerReceiveProvenanceEvents(flowFilesReceived, peerDescription, connectionId, startTimestamp);
         updateFlowFileRepository(flowFilesReceived, flowFileQueue);
         transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
 
