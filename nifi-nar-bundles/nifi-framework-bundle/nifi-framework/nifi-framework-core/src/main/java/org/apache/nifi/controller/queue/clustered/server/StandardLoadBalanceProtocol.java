@@ -39,15 +39,12 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -60,14 +57,10 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -125,20 +118,10 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
-            final SSLSession sslSession = ((SSLSocket) socket).getSession();
+            logger.debug("Connection received from peer {}", peerDescription);
 
-            final Set<String> certIdentities;
-            try {
-                certIdentities = getCertificateIdentities(sslSession);
-            } catch (final CertificateException e) {
-                throw new IOException("Failed to extract Client Certificate", e);
-            }
-
-            logger.debug("Connection received from peer {}. Will perform authorization against Client Identities '{}'",
-                peerDescription, certIdentities);
-
-            peerDescription = authorizer.authorize(certIdentities);
-            logger.debug("Client Identities {} are authorized to load balance data", certIdentities);
+            peerDescription = authorizer.authorize((SSLSocket) socket);
+            logger.debug("Client Identities are authorized to load balance data for peer {}", peerDescription);
         }
 
         final int version = negotiateProtocolVersion(in, out, peerDescription);
@@ -153,22 +136,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         receiveFlowFiles(in, out, peerDescription, version);
-    }
-
-    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
-        final Certificate[] certs = sslSession.getPeerCertificates();
-        if (certs == null || certs.length == 0) {
-            throw new SSLPeerUnverifiedException("No certificates found");
-        }
-
-        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
-        cert.checkValidity();
-
-        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
-                .map(CertificateUtils::extractUsername)
-                .collect(Collectors.toSet());
-
-        return identities;
     }
 
 
