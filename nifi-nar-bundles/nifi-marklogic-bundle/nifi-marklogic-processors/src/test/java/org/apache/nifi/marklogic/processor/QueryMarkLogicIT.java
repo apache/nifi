@@ -95,12 +95,12 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("3.json")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/" + Integer.toString(jsonMod) + ".json")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(3).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(jsonMod).getContent().getBytes();
         assertEquals(expectedByteArray.length, actualByteArray.length);
         assertTrue(Arrays.equals(expectedByteArray, actualByteArray));
     }
@@ -116,12 +116,12 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("3.json")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/" + Integer.toString(jsonMod) + ".json")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(3).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(jsonMod).getContent().getBytes();
         assertEquals(expectedByteArray.length, actualByteArray.length);
         assertTrue(Arrays.equals(expectedByteArray, actualByteArray));
     }
@@ -140,20 +140,18 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON.name());
         runner.assertValid();
         runner.run();
-        // mod 3 == 0 docs are JSON, but mod 5 == 0 docs are XML and take precedence in doc generation
-        int expectedSize = (int) (Math.ceil((numDocs - 1.0) / 3.0) - Math.ceil((numDocs - 1.0) / 15.0));
-        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedSize);
+        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedJsonCount);
         runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
-        assertEquals(flowFiles.size(), expectedSize);
+        assertEquals(flowFiles.size(), expectedJsonCount);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("3.json")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/" + Integer.toString(jsonMod) + ".json")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(3).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(jsonMod).getContent().getBytes();
         assertEquals(expectedByteArray.length, actualByteArray.length);
         assertTrue(Arrays.equals(expectedByteArray, actualByteArray));
         runner.shutdown();
@@ -169,20 +167,18 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_XML.name());
         runner.assertValid();
         runner.run();
-        // mod 5 == 0 docs are generated as XML
-        int expectedSize = (int) Math.ceil((numDocs - 1.0) / 5.0);
-        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedSize);
+        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
         runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
-        assertEquals(flowFiles.size(), expectedSize);
+        assertEquals(flowFiles.size(), expectedXmlCount);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/5.xml")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/"+ Integer.toString(xmlMod) +".xml")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(5).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(xmlMod).getContent().getBytes();
 
         assertBytesAreEqualXMLDocs(expectedByteArray,actualByteArray);
         runner.shutdown();
@@ -207,20 +203,18 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_JSON.name());
         runner.assertValid();
         runner.run();
-        // mod 3 == 0 docs are JSON, but mod 5 == 0 docs are XML and take precedence in doc generation
-        int expectedSize = (int) (Math.ceil((numDocs - 1.0) / 3.0) - Math.ceil((numDocs - 1.0) / 15.0));
-        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedSize);
+        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedJsonCount);
         runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
-        assertEquals(flowFiles.size(), expectedSize);
+        assertEquals(flowFiles.size(), expectedJsonCount);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("3.json")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/" + Integer.toString(jsonMod) + ".json")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(3).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(jsonMod).getContent().getBytes();
         assertEquals(expectedByteArray.length, actualByteArray.length);
         assertTrue(Arrays.equals(expectedByteArray, actualByteArray));
         runner.shutdown();
@@ -238,20 +232,18 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_XML.name());
         runner.assertValid();
         runner.run();
-        // mod 5 == 0 docs are generated as XML
-        int expectedSize = (int) Math.ceil((numDocs - 1.0) / 5.0);
-        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedSize);
+        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
         runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
-        assertEquals(flowFiles.size(), expectedSize);
+        assertEquals(flowFiles.size(), expectedXmlCount);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/5.xml")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/"+ Integer.toString(xmlMod) +".xml")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(5).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(xmlMod).getContent().getBytes();
 
         assertBytesAreEqualXMLDocs(expectedByteArray,actualByteArray);
         runner.shutdown();
@@ -265,20 +257,18 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
         runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRING.name());
         runner.assertValid();
         runner.run();
-        // mod 5 == 0 docs are generated as XML
-        int expectedSize = (int) Math.ceil((numDocs - 1.0) / 5.0);
-        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedSize);
+        runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
         runner.assertAllFlowFilesContainAttribute(QueryMarkLogic.SUCCESS,CoreAttributes.FILENAME.key());
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryMarkLogic.SUCCESS);
-        assertEquals(flowFiles.size(), expectedSize);
+        assertEquals(flowFiles.size(), expectedXmlCount);
         byte[] actualByteArray = null;
         for(MockFlowFile flowFile : flowFiles) {
-            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/5.xml")) {
+            if(flowFile.getAttribute(CoreAttributes.FILENAME.key()).endsWith("/"+ Integer.toString(xmlMod) +".xml")) {
                 actualByteArray = runner.getContentAsByteArray(flowFile);
                 break;
             }
         }
-        byte[] expectedByteArray = documents.get(5).getContent().getBytes();
+        byte[] expectedByteArray = documents.get(xmlMod).getContent().getBytes();
 
         assertBytesAreEqualXMLDocs(expectedByteArray,actualByteArray);
         runner.shutdown();
