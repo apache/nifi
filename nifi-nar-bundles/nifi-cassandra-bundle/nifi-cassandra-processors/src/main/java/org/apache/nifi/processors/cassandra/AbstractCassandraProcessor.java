@@ -135,7 +135,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Successfully created FlowFile from CQL query result set.")
+            .description("A FlowFile is transferred to this relationship if the operation completed successfully.")
             .build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
