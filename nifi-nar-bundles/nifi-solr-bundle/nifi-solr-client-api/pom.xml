@@ -38,31 +38,4 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
-    <!--<build>-->
-        <!--<plugins>-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.rat</groupId>-->
-                <!--<artifactId>apache-rat-plugin</artifactId>-->
-                <!--<configuration>-->
-                    <!--<excludes combine.children="append">-->
-                        <!--<exclude>src/test/resources/solr/solr.xml</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/core.properties</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/_rest_managed.json</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/protowords.txt</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/schema.xml</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/solrconfig.xml</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/synonyms.txt</exclude>-->
-                        <!--<exclude>src/test/resources/solr/testCollection/conf/lang/stopwords_en.txt</exclude>-->
-                        <!--<exclude>src/test/resources/testdata/test-csv-multiple-docs.csv</exclude>-->
-                        <!--<exclude>src/test/resources/testdata/test-custom-json-single-doc.json</exclude>-->
-                        <!--<exclude>src/test/resources/testdata/test-solr-json-multiple-docs.json</exclude>-->
-                        <!--<exclude>src/test/resources/testdata/test-xml-multiple-docs.xml</exclude>-->
-                        <!--<exclude>src/test/resources/log4j.properties</exclude>-->
-                        <!--<exclude>src/test/resources/jaas-client.conf</exclude>-->
-                        <!--<exclude>src/test/resources/test-schema.avsc</exclude>-->
-                    <!--</excludes>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
-        <!--</plugins>-->
-    <!--</build>-->
 </project>
