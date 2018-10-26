@@ -32,50 +32,45 @@ import com.marklogic.client.query.RawStructuredQueryDefinition;
 import com.marklogic.client.query.StringQueryDefinition;
 import com.marklogic.client.query.StructuredQueryDefinition;
 
+/*
+ * Methods of DataMovementManager interface are minimally implemented for the purpose of testing.
+ */
 class TestDataMovementManager implements DataMovementManager {
     QueryDefinition queryDef = null;
     @Override
     public void release() {
-        // TODO Auto-generated method stub
     }
 
     @Override
     public JobTicket startJob(WriteBatcher batcher) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public JobTicket startJob(QueryBatcher batcher) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public JobReport getJobReport(JobTicket ticket) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public JobTicket getActiveJob(String jobId) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public void stopJob(JobTicket ticket) {
-        // TODO Auto-generated method stub
     }
 
     @Override
     public void stopJob(Batcher batcher) {
-        // TODO Auto-generated method stub
     }
 
     @Override
     public WriteBatcher newWriteBatcher() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -103,19 +98,16 @@ class TestDataMovementManager implements DataMovementManager {
 
     @Override
     public QueryBatcher newQueryBatcher(Iterator<String> iterator) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public ForestConfiguration readForestConfig() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public ConnectionType getConnectionType() {
-        // TODO Auto-generated method stub
         return null;
     }
 }
