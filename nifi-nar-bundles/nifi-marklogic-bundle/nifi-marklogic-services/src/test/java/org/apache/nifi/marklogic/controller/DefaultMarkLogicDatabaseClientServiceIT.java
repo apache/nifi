@@ -25,13 +25,13 @@ import org.junit.Test;
 import org.junit.Assert;
 
 public class DefaultMarkLogicDatabaseClientServiceIT {
-    protected String hostName = "localhost";
-    protected String port = "8000";
-    protected String database = "Documents";
-    protected String username = "admin";
-    protected String password = "admin";
-    protected String authentication= "DIGEST";
-    protected String loadBalancer= "true";
+    protected String hostName = MarkLogicTestConfig.hostName;
+    protected String port = MarkLogicTestConfig.port;
+    protected String database = MarkLogicTestConfig.database;
+    protected String username = MarkLogicTestConfig.username;
+    protected String password = MarkLogicTestConfig.password;
+    protected String authentication= MarkLogicTestConfig.authentication;
+    protected String loadBalancer= MarkLogicTestConfig.loadBalancer;
     @Before
     public void init() {
 

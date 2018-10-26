@@ -64,11 +64,24 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-marklogic-services</artifactId>
             <version>${marklogicnar.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-marklogic-services</artifactId>
+            <version>${marklogicnar.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
+            <version>${nifi.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service</artifactId>
             <version>${nifi.version}</version>
             <scope>test</scope>
         </dependency>
