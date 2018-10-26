@@ -134,6 +134,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
+            .name("database-session-autocommit")
+            .displayName("Database session autocommit value")
+            .description("The autocommit mode to set on the database connection being used.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor SUPPORT_TRANSACTIONS = new PropertyDescriptor.Builder()
             .name("Support Fragmented Transactions")
             .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
@@ -189,6 +197,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         properties.add(CONNECTION_POOL);
         properties.add(SQL_STATEMENT);
         properties.add(SUPPORT_TRANSACTIONS);
+        properties.add(AUTO_COMMIT);
         properties.add(TRANSACTION_TIMEOUT);
         properties.add(BATCH_SIZE);
         properties.add(OBTAIN_GENERATED_KEYS);
@@ -239,7 +248,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
+            final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
+            if(fc.originalAutoCommit != autocommit) {
+                connection.setAutoCommit(autocommit);
+            }
         } catch (SQLException e) {
             throw new ProcessException("Failed to disable auto commit due to " + e, e);
         }
@@ -521,9 +533,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.cleanup((c, s, fc, conn) -> {
             // make sure that we try to set the auto commit back to whatever it was.
-            if (fc.originalAutoCommit) {
+            final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
+            if (fc.originalAutoCommit != autocommit) {
                 try {
-                    conn.setAutoCommit(true);
+                    conn.setAutoCommit(fc.originalAutoCommit);
                 } catch (final SQLException se) {
                     getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
                 }
