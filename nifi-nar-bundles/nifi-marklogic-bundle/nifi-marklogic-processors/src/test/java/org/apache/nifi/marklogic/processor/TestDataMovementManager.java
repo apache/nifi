@@ -37,7 +37,6 @@ class TestDataMovementManager implements DataMovementManager {
     @Override
     public void release() {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
@@ -67,13 +66,11 @@ class TestDataMovementManager implements DataMovementManager {
     @Override
     public void stopJob(JobTicket ticket) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void stopJob(Batcher batcher) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override

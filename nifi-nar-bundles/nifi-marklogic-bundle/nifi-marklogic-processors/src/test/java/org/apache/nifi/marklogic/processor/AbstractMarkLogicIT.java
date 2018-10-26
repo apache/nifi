@@ -16,18 +16,7 @@
  */
 package org.apache.nifi.marklogic.processor;
 
-import com.marklogic.client.DatabaseClient;
-import com.marklogic.client.DatabaseClientFactory;
-import com.marklogic.client.datamovement.DataMovementManager;
-import com.marklogic.client.datamovement.DeleteListener;
-import com.marklogic.client.datamovement.QueryBatcher;
-import com.marklogic.client.query.StructuredQueryBuilder;
-import com.marklogic.client.query.StructuredQueryDefinition;
-import org.apache.nifi.marklogic.controller.MarkLogicDatabaseClientService;
-import org.apache.nifi.marklogic.controller.DefaultMarkLogicDatabaseClientService;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
+import static junit.framework.TestCase.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +24,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static junit.framework.TestCase.assertTrue;
+import org.apache.nifi.marklogic.controller.DefaultMarkLogicDatabaseClientService;
+import org.apache.nifi.marklogic.controller.MarkLogicDatabaseClientService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+
+import com.marklogic.client.DatabaseClient;
+import com.marklogic.client.DatabaseClientFactory;
+import com.marklogic.client.datamovement.DataMovementManager;
+import com.marklogic.client.datamovement.DeleteListener;
+import com.marklogic.client.datamovement.QueryBatcher;
+import com.marklogic.client.query.StructuredQueryBuilder;
+import com.marklogic.client.query.StructuredQueryDefinition;
 
 public class AbstractMarkLogicIT {
     protected String hostName = "localhost";

@@ -94,7 +94,6 @@ class TestQueryBatcher implements QueryBatcher {
     @Override
     public void retry(QueryEvent queryEvent) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
@@ -124,19 +123,16 @@ class TestQueryBatcher implements QueryBatcher {
     @Override
     public void setUrisReadyListeners(QueryBatchListener... listeners) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void setQueryFailureListeners(QueryFailureListener... listeners) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void setQueryJobCompletionListeners(QueryBatcherListener... listeners) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
@@ -200,13 +196,11 @@ class TestQueryBatcher implements QueryBatcher {
     @Override
     public void retryListener(QueryBatch batch, QueryBatchListener queryBatchListener) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void retryWithFailureListeners(QueryEvent queryEvent) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override

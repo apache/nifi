@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.marklogic.processor;
 
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.marklogic.client.DatabaseClient;
 import com.marklogic.client.io.Format;
 import com.marklogic.client.io.StringHandle;
 import com.marklogic.client.query.RawCombinedQueryDefinition;
@@ -42,9 +44,11 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
     }
 
     @Test
-    public void testCollectionsQueryMarLogic() throws Exception {
+    public void testCollectionsQueryMarkLogic() throws Exception {
         runner.enableControllerService(service);
         runner.assertValid(service);
+
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.name());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         TestQueryBatcher queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();
@@ -52,12 +56,12 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         assertEquals(5, queryBatcher.getThreadCount());
         assertTrue(queryBatcher.getQueryDefinition() instanceof StructuredQueryDefinition);
     }
-    
+
     @Test
-    public void testCombinedJsonQueryMarLogic() throws Exception {
+    public void testCombinedJsonQueryMarkLogic() throws Exception {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
-        
+
         processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON.name());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
@@ -68,7 +72,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
     }
 
     @Test
-    public void testCombinedXmlQueryMarLogic() throws Exception {
+    public void testCombinedXmlQueryMarkLogic() throws Exception {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
@@ -82,7 +86,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
     }
     @Test
 
-    public void testStructuredJsonQueryMarLogic() throws Exception {
+    public void testStructuredJsonQueryMarkLogic() throws Exception {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
@@ -98,7 +102,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
     }
 
     @Test
-    public void testStructuredXmlQueryMarLogic() throws Exception {
+    public void testStructuredXmlQueryMarkLogic() throws Exception {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
@@ -110,4 +114,12 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         handle = (StringHandle) ((RawStructuredQueryDefinition)queryBatcher.getQueryDefinition()).getHandle();
         assertEquals(handle.getFormat(), Format.XML);
     }
+
+    class TestQueryMarkLogic extends QueryMarkLogic {
+        @Override
+        public DatabaseClient getDatabaseClient(ProcessContext context) {
+            return new TestMLDatabaseClient();
+        }
+    }
+
 }
