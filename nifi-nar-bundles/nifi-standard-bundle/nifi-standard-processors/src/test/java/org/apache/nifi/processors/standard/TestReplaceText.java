@@ -1227,6 +1227,31 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
     }
 
+    /**
+     * Related to
+     * <a href="https://issues.apache.org/jira/browse/NIFI-5761">NIFI-5761</a>. It
+     * verifies that if a runtime exception is raised during replace text
+     * evaluation, it sends the error to failure relationship.
+     */
+    @Test
+    public void testWithInvalidExpression() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, ".*");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${date:toDate(\"yyyy/MM/dd\")}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", "12");
+        runner.enqueue("hi", attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_FAILURE).get(0);
+        final String outContent = translateNewLines(new String(out.toByteArray(), StandardCharsets.UTF_8));
+        Assert.assertTrue(outContent.equals("hi"));
+    }
+
     private String translateNewLines(final File file) throws IOException {
         return translateNewLines(file.toPath());
     }

@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
+import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -297,16 +299,18 @@ public class ReplaceText extends AbstractProcessor {
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
-            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
+            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() }, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
         logger.info("Transferred {} to 'success'", new Object[] {flowFile});
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
     }
-
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
     // groups and the Replacement Value has the value is "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather
