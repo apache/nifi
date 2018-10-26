@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web</artifactId>
     <packaging>pom</packaging>
@@ -40,31 +40,31 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-api</artifactId>
                 <type>war</type>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-error</artifactId>
                 <type>war</type>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-docs</artifactId>
                 <type>war</type>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-ui</artifactId>
                 <type>war</type>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

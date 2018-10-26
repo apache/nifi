@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-amqp-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>A bundle of processors that publish to and consume messages from AMQP.</description>
     <modules>
@@ -33,7 +33,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-amqp-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
