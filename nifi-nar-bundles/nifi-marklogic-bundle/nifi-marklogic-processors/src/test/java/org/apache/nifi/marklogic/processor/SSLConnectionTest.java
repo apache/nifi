@@ -36,7 +36,7 @@ public class SSLConnectionTest extends AbstractMarkLogicProcessorTest {
     }
 
     @Test
-    public void testcreateClientWithSSL() throws Exception {
+    public void testCreateClientWithSSL() throws Exception {
         final Map<String, String> sslProperties = new HashMap<String, String>();
         sslProperties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
         sslProperties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
