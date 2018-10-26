@@ -34,6 +34,11 @@
             <artifactId>avro</artifactId>
             <version>1.8.1</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>2.6.2</version>
+        </dependency>
         <!-- Other modules using nifi-avro-record-utils are expected to have these APIs available, typically through a NAR dependency -->
         <dependency>
             <groupId>org.apache.nifi</groupId>

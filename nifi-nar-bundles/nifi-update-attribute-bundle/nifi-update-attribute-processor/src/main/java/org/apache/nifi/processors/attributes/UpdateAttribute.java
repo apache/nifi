@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.attributes;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -65,7 +67,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -97,12 +98,18 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     private final static Set<Relationship> statelessRelationshipSet;
     private final static Set<Relationship> statefulRelationshipSet;
 
-    private final Map<String, String> canonicalValueLookup = new LinkedHashMap<String, String>() {
-        @Override
-        protected boolean removeEldestEntry(final Map.Entry eldest) {
-            return size() > 100;
-        }
-    };
+    /**
+     * This field caches a 'canonical' value for a given attribute value. When this processor is used to update an attribute or add a new
+     * attribute, if Expression Language is used, we may well end up with a new String object for each attribute for each FlowFile. As a result,
+     * we will store a different String object for the attribute value of every FlowFile, meaning that we have to keep a lot of String objects
+     * in heap. By using this 'canonical lookup', we are able to keep only a single String object on the heap.
+     *
+     * For example, if we have a property named "abc" and the value is "${abc}${xyz}", and we send through 1,000 FlowFiles with attributes abc="abc"
+     * and xyz="xyz", then would end up with 1,000 String objects with a value of "abcxyz". By using this canonical representation, we are able to
+     * instead hold a single String whose value is "abcxyz" instead of holding 1,000 String objects in heap (1,000 String objects may still be created
+     * when calling PropertyValue.evaluateAttributeExpressions, but this way those values are garbage collected).
+     */
+    private LoadingCache<String, String> canonicalValueLookup;
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -185,6 +192,15 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .addValidator(Validator.VALID)
             .build();
 
+    public static final PropertyDescriptor CANONICAL_VALUE_LOOKUP_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("canonical-value-lookup-cache-size")
+            .displayName("Cache Value Lookup Cache Size")
+            .description("Specifies how many canonical lookup values should be stored in the cache")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("100")
+            .required(true)
+            .build();
+
     private volatile Map<String, Action> defaultActions;
     private volatile boolean debugEnabled;
     private volatile boolean stateful = false;
@@ -205,6 +221,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         descriptors.add(DELETE_ATTRIBUTES);
         descriptors.add(STORE_STATE);
         descriptors.add(STATEFUL_VARIABLES_INIT_VALUE);
+        descriptors.add(CANONICAL_VALUE_LOOKUP_CACHE_SIZE);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -245,6 +262,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
+        final int cacheSize = context.getProperty(CANONICAL_VALUE_LOOKUP_CACHE_SIZE).asInteger();
+        canonicalValueLookup = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .build(attributeValue -> attributeValue);
+
         criteriaCache.set(CriteriaSerDe.deserialize(context.getAnnotationData()));
 
         propertyValues.clear();
@@ -594,30 +616,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     }
 
-    /**
-     * This method caches a 'canonical' value for a given attribute value. When this processor is used to update an attribute or add a new
-     * attribute, if Expression Language is used, we may well end up with a new String object for each attribute for each FlowFile. As a result,
-     * we will store a different String object for the attribute value of every FlowFile, meaning that we have to keep a lot of String objects
-     * in heap. By using this 'canonical lookup', we are able to keep only a single String object on the heap.
-     *
-     * For example, if we have a property named "abc" and the value is "${abc}${xyz}", and we send through 1,000 FlowFiles with attributes abc="abc"
-     * and xyz="xyz", then would end up with 1,000 String objects with a value of "abcxyz". By using this canonical representation, we are able to
-     * instead hold a single String whose value is "abcxyz" instead of holding 1,000 String objects in heap (1,000 String objects may still be created
-     * when calling PropertyValue.evaluateAttributeExpressions, but this way those values are garbage collected).
-     *
-     * @param attributeValue the value whose canonical value should be return
-     * @return the canonical representation of the given attribute value
-     */
-    private synchronized String getCanonicalRepresentation(final String attributeValue) {
-        final String canonical = this.canonicalValueLookup.get(attributeValue);
-        if (canonical != null) {
-            return canonical;
-        }
-
-        this.canonicalValueLookup.put(attributeValue, attributeValue);
-        return attributeValue;
-    }
-
     // Executes the specified action on the specified flowfile.
     private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile,
                                     final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
@@ -688,7 +686,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 if (notDeleted || setStatefulAttribute) {
                     try {
                         String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
-                        newAttributeValue = getCanonicalRepresentation(newAttributeValue);
+                        newAttributeValue = canonicalValueLookup.get(newAttributeValue);
 
                         // log if appropriate
                         if (debugEnabled) {
@@ -746,7 +744,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, Action> defaultActions = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE) {
+            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE
+                    && entry.getKey() != CANONICAL_VALUE_LOOKUP_CACHE_SIZE) {
                 final Action action = new Action();
                 action.setAttribute(entry.getKey().getName());
                 action.setValue(entry.getValue());
