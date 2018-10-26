@@ -122,7 +122,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
@@ -209,7 +209,7 @@ public class TestLoadBalanceSession {
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 

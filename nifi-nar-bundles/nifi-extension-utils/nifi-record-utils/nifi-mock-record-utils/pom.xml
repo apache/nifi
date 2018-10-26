@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-record-utils</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     
     <artifactId>nifi-mock-record-utils</artifactId>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <!-- Other modules using nifi-standard-record-utils are expected to have this API available, typically through a NAR dependency -->
         <dependency>
@@ -49,7 +49,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

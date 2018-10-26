@@ -320,11 +320,23 @@ g.connection path.connection-path.unauthorized {
     stroke-dasharray: 3,3;
 }
 
-text.connection-from-run-status, text.connection-to-run-status, text.expiration-icon {
+text.connection-from-run-status, text.connection-to-run-status, text.expiration-icon, text.load-balance-icon {
     fill: #728e9b;
     font-family: FontAwesome;
-    font-size: 10px;
+    font-size: 12px;
     text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+text.load-balance-icon-active {
+    fill: #44a3cf
+}
+
+text.load-balance-icon-184 {
+    transform-origin: 189px 10px 0;
+}
+
+text.load-balance-icon-200 {
+    transform-origin: 205px 10px 0;
 }
 
 text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {

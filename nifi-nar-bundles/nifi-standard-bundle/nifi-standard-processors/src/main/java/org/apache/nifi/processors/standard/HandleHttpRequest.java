@@ -32,6 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -52,12 +53,18 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -109,9 +116,26 @@ import java.util.regex.Pattern;
             + "This value will not be populated unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
-            + "will be added to an attribute named \"http.headers.x-my-header\"")})
+            + "will be added to an attribute named \"http.headers.x-my-header\""),
+    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the mulipart request will be added as an "
+        + "attribute, prefixed with \"http.headers.multipart.\" For example, if the multipart request contains an HTTP Header named \"content-disposition\", then the value "
+        + "will be added to an attribute named \"http.headers.multipart.content-disposition\""),
+    @WritesAttribute(attribute = "http.multipart.size",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's content size is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.content.type",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's content type is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.name",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's name is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.filename",
+        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute"),
+    @WritesAttribute(attribute = "http.multipart.fragments.sequence.number",
+        description = "For requests with Content-Type \"multipart/form-data\", the part's index is recorded into this attribute. The index starts with 1."),
+    @WritesAttribute(attribute = "http.multipart.fragments.total.number",
+      description = "For requests with Content-Type \"multipart/form-data\", the count of all parts is recorded into this attribute.")})
 @SeeAlso(value = {HandleHttpResponse.class})
 public class HandleHttpRequest extends AbstractProcessor {
+
+    private static final String MIME_TYPE__MULTIPART_FORM_DATA = "multipart/form-data";
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
 
@@ -229,7 +253,25 @@ public class HandleHttpRequest extends AbstractProcessor {
             .name("container-queue-size").displayName("Container Queue Size")
             .description("The size of the queue for Http Request Containers").required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("50").build();
-
+    public static final PropertyDescriptor MULTIPART_REQUEST_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("multipart-request-max-size")
+            .displayName("Multipart Request Max Size")
+            .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
+                    + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("1 MB")
+            .build();
+    public static final PropertyDescriptor MULTIPART_READ_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("multipart-read-buffer-size")
+            .description("The threshold size, at which the contents of an incoming file would be written to disk. "
+                    + "Only applies for requests with Content-Type: multipart/form-data. "
+                    + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
+            .displayName("Multipart Read Buffer Size")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("512 KB")
+            .build();
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All content that is received is routed to the 'success' relationship")
@@ -254,6 +296,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(ADDITIONAL_METHODS);
         descriptors.add(CLIENT_AUTH);
         descriptors.add(CONTAINER_QUEUE_SIZE);
+        descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
+        descriptors.add(MULTIPART_READ_BUFFER_SIZE);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
@@ -521,161 +565,234 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         final long start = System.nanoTime();
         final HttpServletRequest request = container.getRequest();
-        FlowFile flowFile = session.create();
-        try (OutputStream flowFileOut = session.write(flowFile)) {
-            StreamUtils.copy(request.getInputStream(), flowFileOut);
-        } catch (final IOException e) {
-            // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
-            // bad requests, the connection to the client is not closed. In order to address also these cases, we try
-            // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
-            // processed and makes it aware that the connection can be closed.
-            getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
-                    new Object[]{request.getRemoteAddr(), e});
-            session.remove(flowFile);
 
-            try {
-                HttpServletResponse response = container.getResponse();
-                response.sendError(Status.BAD_REQUEST.getStatusCode());
-                response.flushBuffer();
-                container.getContext().complete();
-            } catch (final IOException ioe) {
-                getLogger().warn("Failed to send HTTP response to {} due to {}",
-                        new Object[]{request.getRemoteAddr(), ioe});
+        if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
+          final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
+          final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+          String tempDir = System.getProperty("java.io.tmpdir");
+          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          try {
+            List<Part> parts = ImmutableList.copyOf(request.getParts());
+            int allPartsCount = parts.size();
+            final String contextIdentifier = UUID.randomUUID().toString();
+            for (int i = 0; i < allPartsCount; i++) {
+              Part part = parts.get(i);
+              FlowFile flowFile = session.create();
+              try (OutputStream flowFileOut = session.write(flowFile)) {
+                StreamUtils.copy(part.getInputStream(), flowFileOut);
+              } catch (IOException e) {
+                handleFlowContentStreamingError(session, container, request, Optional.of(flowFile), e);
+                return;
+              }
+              flowFile = savePartAttributes(context, session, part, flowFile, i, allPartsCount);
+              flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
+              if (i == 0) {
+                // each one of multipart comes from a single request, thus registering only once per loop.
+                boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+                if (!requestRegistrationSuccess)
+                  break;
+              }
+              forwardFlowFile(context, session, container, start, request, flowFile);
             }
+          } catch (IOException | ServletException | IllegalStateException e) {
+            handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
             return;
-        }
-
-        final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
-
-        final String contextIdentifier = UUID.randomUUID().toString();
-        final Map<String, String> attributes = new HashMap<>();
-        try {
-            putAttribute(attributes, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier);
-            putAttribute(attributes, "mime.type", request.getContentType());
-            putAttribute(attributes, "http.servlet.path", request.getServletPath());
-            putAttribute(attributes, "http.context.path", request.getContextPath());
-            putAttribute(attributes, "http.method", request.getMethod());
-            putAttribute(attributes, "http.local.addr", request.getLocalAddr());
-            putAttribute(attributes, HTTPUtils.HTTP_LOCAL_NAME, request.getLocalName());
-            final String queryString = request.getQueryString();
-            if (queryString != null) {
-                putAttribute(attributes, "http.query.string", URLDecoder.decode(queryString, charset));
-            }
-            putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
-            putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
-            putAttribute(attributes, "http.remote.user", request.getRemoteUser());
-            putAttribute(attributes, "http.protocol", request.getProtocol());
-            putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
-            putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
-            putAttribute(attributes, "http.auth.type", request.getAuthType());
-
-            putAttribute(attributes, "http.requested.session.id", request.getRequestedSessionId());
-            final DispatcherType dispatcherType = request.getDispatcherType();
-            if (dispatcherType != null) {
-                putAttribute(attributes, "http.dispatcher.type", dispatcherType.name());
-            }
-            putAttribute(attributes, "http.character.encoding", request.getCharacterEncoding());
-            putAttribute(attributes, "http.locale", request.getLocale());
-            putAttribute(attributes, "http.server.name", request.getServerName());
-            putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
-
-            final Enumeration<String> paramEnumeration = request.getParameterNames();
-            while (paramEnumeration.hasMoreElements()) {
-                final String paramName = paramEnumeration.nextElement();
-                final String value = request.getParameter(paramName);
-                attributes.put("http.param." + paramName, value);
-            }
-
-            final Cookie[] cookies = request.getCookies();
-            if (cookies != null) {
-                for (final Cookie cookie : cookies) {
-                    final String name = cookie.getName();
-                    final String cookiePrefix = "http.cookie." + name + ".";
-                    attributes.put(cookiePrefix + "value", cookie.getValue());
-                    attributes.put(cookiePrefix + "domain", cookie.getDomain());
-                    attributes.put(cookiePrefix + "path", cookie.getPath());
-                    attributes.put(cookiePrefix + "max.age", String.valueOf(cookie.getMaxAge()));
-                    attributes.put(cookiePrefix + "version", String.valueOf(cookie.getVersion()));
-                    attributes.put(cookiePrefix + "secure", String.valueOf(cookie.getSecure()));
-                }
-            }
-
-            if (queryString != null) {
-                final String[] params = URL_QUERY_PARAM_DELIMITER.split(queryString);
-                for (final String keyValueString : params) {
-                    final int indexOf = keyValueString.indexOf("=");
-                    if (indexOf < 0) {
-                        // no =, then it's just a key with no value
-                        attributes.put("http.query.param." + URLDecoder.decode(keyValueString, charset), "");
-                    } else {
-                        final String key = keyValueString.substring(0, indexOf);
-                        final String value;
-
-                        if (indexOf == keyValueString.length() - 1) {
-                            value = "";
-                        } else {
-                            value = keyValueString.substring(indexOf + 1);
-                        }
-
-                        attributes.put("http.query.param." + URLDecoder.decode(key, charset), URLDecoder.decode(value, charset));
-                    }
-                }
-            }
-        } catch (final UnsupportedEncodingException uee) {
-            throw new ProcessException("Invalid character encoding", uee);  // won't happen because charset has been validated
-        }
-
-        final Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            final String headerName = headerNames.nextElement();
-            final String headerValue = request.getHeader(headerName);
-            putAttribute(attributes, "http.headers." + headerName, headerValue);
-        }
-
-        final Principal principal = request.getUserPrincipal();
-        if (principal != null) {
-            putAttribute(attributes, "http.principal.name", principal.getName());
-        }
-
-        final X509Certificate certs[] = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-        final String subjectDn;
-        if (certs != null && certs.length > 0) {
-            final X509Certificate cert = certs[0];
-            subjectDn = cert.getSubjectDN().getName();
-            final String issuerDn = cert.getIssuerDN().getName();
-
-            putAttribute(attributes, HTTPUtils.HTTP_SSL_CERT, subjectDn);
-            putAttribute(attributes, "http.issuer.dn", issuerDn);
+          }
         } else {
-            subjectDn = null;
-        }
-
-        flowFile = session.putAllAttributes(flowFile, attributes);
-
-        final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
-        final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
-
-        if (!registered) {
-            getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
-                    new Object[]{request.getRemoteAddr()});
-
-            try {
-                container.getResponse().setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
-                container.getResponse().flushBuffer();
-                container.getContext().complete();
-            } catch (final Exception e) {
-                getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
-                        new Object[]{request.getRemoteAddr(), e});
-            }
-
-            session.remove(flowFile);
+          FlowFile flowFile = session.create();
+          try (OutputStream flowFileOut = session.write(flowFile)) {
+            StreamUtils.copy(request.getInputStream(), flowFileOut);
+          } catch (final IOException e) {
+            handleFlowContentStreamingError(session, container, request, Optional.of(flowFile), e);
             return;
+          }
+          final String contextIdentifier = UUID.randomUUID().toString();
+          flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
+          boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+          if (requestRegistrationSuccess)
+            forwardFlowFile(context, session, container, start, request, flowFile);
+        }
+    }
+
+    private FlowFile savePartAttributes(ProcessContext context, ProcessSession session, Part part, FlowFile flowFile, final int i, final int allPartsCount) {
+      final Map<String, String> attributes = new HashMap<>();
+      for (String headerName : part.getHeaderNames()) {
+        final String headerValue = part.getHeader(headerName);
+        putAttribute(attributes, "http.headers.multipart." + headerName, headerValue);
+      }
+      putAttribute(attributes, "http.multipart.size", part.getSize());
+      putAttribute(attributes, "http.multipart.content.type", part.getContentType());
+      putAttribute(attributes, "http.multipart.name", part.getName());
+      putAttribute(attributes, "http.multipart.filename", part.getSubmittedFileName());
+      putAttribute(attributes, "http.multipart.fragments.sequence.number", i+1);
+      putAttribute(attributes, "http.multipart.fragments.total.number", allPartsCount);
+      return session.putAllAttributes(flowFile, attributes);
+    }
+
+    private FlowFile saveRequestAttributes(final ProcessContext context, final ProcessSession session, HttpServletRequest request, FlowFile flowFile, String contextIdentifier) {
+      final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
+
+      final Map<String, String> attributes = new HashMap<>();
+      try {
+          putAttribute(attributes, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier);
+          putAttribute(attributes, "mime.type", request.getContentType());
+          putAttribute(attributes, "http.servlet.path", request.getServletPath());
+          putAttribute(attributes, "http.context.path", request.getContextPath());
+          putAttribute(attributes, "http.method", request.getMethod());
+          putAttribute(attributes, "http.local.addr", request.getLocalAddr());
+          putAttribute(attributes, HTTPUtils.HTTP_LOCAL_NAME, request.getLocalName());
+          final String queryString = request.getQueryString();
+          if (queryString != null) {
+              putAttribute(attributes, "http.query.string", URLDecoder.decode(queryString, charset));
+          }
+          putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
+          putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
+          putAttribute(attributes, "http.remote.user", request.getRemoteUser());
+          putAttribute(attributes, "http.protocol", request.getProtocol());
+          putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
+          putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
+          putAttribute(attributes, "http.auth.type", request.getAuthType());
+
+          putAttribute(attributes, "http.requested.session.id", request.getRequestedSessionId());
+          final DispatcherType dispatcherType = request.getDispatcherType();
+          if (dispatcherType != null) {
+              putAttribute(attributes, "http.dispatcher.type", dispatcherType.name());
+          }
+          putAttribute(attributes, "http.character.encoding", request.getCharacterEncoding());
+          putAttribute(attributes, "http.locale", request.getLocale());
+          putAttribute(attributes, "http.server.name", request.getServerName());
+          putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
+
+          final Enumeration<String> paramEnumeration = request.getParameterNames();
+          while (paramEnumeration.hasMoreElements()) {
+              final String paramName = paramEnumeration.nextElement();
+              final String value = request.getParameter(paramName);
+              attributes.put("http.param." + paramName, value);
+          }
+
+          final Cookie[] cookies = request.getCookies();
+          if (cookies != null) {
+              for (final Cookie cookie : cookies) {
+                  final String name = cookie.getName();
+                  final String cookiePrefix = "http.cookie." + name + ".";
+                  attributes.put(cookiePrefix + "value", cookie.getValue());
+                  attributes.put(cookiePrefix + "domain", cookie.getDomain());
+                  attributes.put(cookiePrefix + "path", cookie.getPath());
+                  attributes.put(cookiePrefix + "max.age", String.valueOf(cookie.getMaxAge()));
+                  attributes.put(cookiePrefix + "version", String.valueOf(cookie.getVersion()));
+                  attributes.put(cookiePrefix + "secure", String.valueOf(cookie.getSecure()));
+              }
+          }
+
+          if (queryString != null) {
+              final String[] params = URL_QUERY_PARAM_DELIMITER.split(queryString);
+              for (final String keyValueString : params) {
+                  final int indexOf = keyValueString.indexOf("=");
+                  if (indexOf < 0) {
+                      // no =, then it's just a key with no value
+                      attributes.put("http.query.param." + URLDecoder.decode(keyValueString, charset), "");
+                  } else {
+                      final String key = keyValueString.substring(0, indexOf);
+                      final String value;
+
+                      if (indexOf == keyValueString.length() - 1) {
+                          value = "";
+                      } else {
+                          value = keyValueString.substring(indexOf + 1);
+                      }
+
+                      attributes.put("http.query.param." + URLDecoder.decode(key, charset), URLDecoder.decode(value, charset));
+                  }
+              }
+          }
+      } catch (final UnsupportedEncodingException uee) {
+          throw new ProcessException("Invalid character encoding", uee);  // won't happen because charset has been validated
+      }
+
+      final Enumeration<String> headerNames = request.getHeaderNames();
+      while (headerNames.hasMoreElements()) {
+          final String headerName = headerNames.nextElement();
+          final String headerValue = request.getHeader(headerName);
+          putAttribute(attributes, "http.headers." + headerName, headerValue);
+      }
+
+      final Principal principal = request.getUserPrincipal();
+      if (principal != null) {
+          putAttribute(attributes, "http.principal.name", principal.getName());
+      }
+
+      final X509Certificate certs[] = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+      final String subjectDn;
+      if (certs != null && certs.length > 0) {
+          final X509Certificate cert = certs[0];
+          subjectDn = cert.getSubjectDN().getName();
+          final String issuerDn = cert.getIssuerDN().getName();
+
+          putAttribute(attributes, HTTPUtils.HTTP_SSL_CERT, subjectDn);
+          putAttribute(attributes, "http.issuer.dn", issuerDn);
+      } else {
+          subjectDn = null;
+      }
+
+      return session.putAllAttributes(flowFile, attributes);
+    }
+
+    private void forwardFlowFile(final ProcessContext context, final ProcessSession session,
+        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
+      final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+      String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
+      session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
+          "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
+      session.transfer(flowFile, REL_SUCCESS);
+      getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
+    }
+
+
+    private boolean registerRequest(final ProcessContext context, final ProcessSession session,
+        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
+        final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
+        String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+        final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
+        if (registered)
+          return true;
+
+        getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
+            new Object[]{request.getRemoteAddr()});
+
+        try {
+          container.getResponse().setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
+          container.getResponse().flushBuffer();
+          container.getContext().complete();
+        } catch (final Exception e) {
+          getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
+              new Object[]{request.getRemoteAddr(), e});
         }
 
-        final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(attributes), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
-        session.transfer(flowFile, REL_SUCCESS);
-        getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
+        session.remove(flowFile);
+        return false;
+    }
+
+
+    protected void handleFlowContentStreamingError(final ProcessSession session, HttpRequestContainer container,
+        final HttpServletRequest request, Optional<FlowFile> flowFile, final Exception e) {
+      // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
+      // bad requests, the connection to the client is not closed. In order to address also these cases, we try
+      // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
+      // processed and makes it aware that the connection can be closed.
+      getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
+              new Object[]{request.getRemoteAddr(), e});
+      if (flowFile.isPresent())
+        session.remove(flowFile.get());
+
+      try {
+          HttpServletResponse response = container.getResponse();
+          response.sendError(Status.BAD_REQUEST.getStatusCode());
+          response.flushBuffer();
+          container.getContext().complete();
+      } catch (final IOException ioe) {
+          getLogger().warn("Failed to send HTTP response to {} due to {}",
+                  new Object[]{request.getRemoteAddr(), ioe});
+      }
     }
 
     private void putAttribute(final Map<String, String> map, final String key, final Object value) {

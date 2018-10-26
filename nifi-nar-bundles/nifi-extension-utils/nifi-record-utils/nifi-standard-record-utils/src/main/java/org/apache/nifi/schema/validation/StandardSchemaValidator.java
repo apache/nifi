@@ -196,21 +196,32 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
                 return true;
             case MAP:
-                if (!(value instanceof Map)) {
+                if (value instanceof Map) {
+                    final MapDataType mapDataType = (MapDataType) dataType;
+                    final DataType valueDataType = mapDataType.getValueType();
+                    final Map<?, ?> map = (Map<?, ?>) value;
+
+                    for (final Object mapValue : map.values()) {
+                        if (!isTypeCorrect(mapValue, valueDataType)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else if (value instanceof Record) {
+                    Record record = (Record) value;
+                    final MapDataType mapDataType = (MapDataType) dataType;
+                    final DataType valueDataType = mapDataType.getValueType();
+
+                    for (final String fieldName : record.getRawFieldNames()) {
+                        final Object fieldValue = record.getValue(fieldName);
+                        if (!isTypeCorrect(fieldValue, valueDataType)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
                     return false;
                 }
-
-                final MapDataType mapDataType = (MapDataType) dataType;
-                final DataType valueDataType = mapDataType.getValueType();
-                final Map<?, ?> map = (Map<?, ?>) value;
-
-                for (final Object mapValue : map.values()) {
-                    if (!isTypeCorrect(mapValue, valueDataType)) {
-                        return false;
-                    }
-                }
-
-                return true;
             case RECORD:
                 return value instanceof Record;
             case CHOICE:

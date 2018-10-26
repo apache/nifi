@@ -1103,6 +1103,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 final S record;
                 try {
                     record = serde.deserializeEdit(recoveryIn, currentRecordMap, recoveryVersion);
+                    if (record == null) {
+                        throw new EOFException();
+                    }
                 } catch (final EOFException eof) {
                     throw eof;
                 } catch (final Exception e) {

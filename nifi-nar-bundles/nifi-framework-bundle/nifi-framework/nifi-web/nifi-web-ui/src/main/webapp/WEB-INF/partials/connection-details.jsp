@@ -83,25 +83,60 @@
                         </div>
                         <div class="clear"></div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Back pressure object threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
+                    <div class="multi-column-settings">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Back Pressure<br/>Object threshold
+                                <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
+                            </div>
+                            <div class="setting-field">
+                                <span id="read-only-back-pressure-object-threshold"></span>
+                            </div>
+                            <div class="clear"></div>
                         </div>
-                        <div class="setting-field">
-                            <span id="read-only-back-pressure-object-threshold"></span>
+                        <div class="separator">&nbsp;</div>
+                        <div class="setting">
+                            <div class="setting-name">
+                                &nbsp;<br/>Size threshold
+                                <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
+                            </div>
+                            <div class="setting-field">
+                                <span id="read-only-back-pressure-data-size-threshold"></span>
+                            </div>
+                            <div class="clear"></div>
                         </div>
-                        <div class="clear"></div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Back pressure data size threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
+                    <div>
+                        <div class="multi-column-settings">
+                            <div class="setting">
+                                <div class="setting-name">
+                                    Load Balance Strategy
+                                    <div class="fa fa-question-circle" alt="Info" title="How to load balance the data in this Connection across the nodes in the cluster."></div>
+                                </div>
+                                <div class="setting-field">
+                                    <div id="read-only-load-balance-strategy"></div>
+                                </div>
+                            </div>
+                            <div class="separator">&nbsp;</div>
+                            <div id="read-only-load-balance-partition-attribute-setting" class="setting">
+                                <div class="setting-name">
+                                    Attribute Name
+                                    <div class="fa fa-question-circle" alt="Info" title="The FlowFile Attribute to use for determining which node a FlowFile will go to."></div>
+                                </div>
+                                <div class="setting-field">
+                                    <span id="read-only-load-balance-partition-attribute"></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="setting-field">
-                            <span id="read-only-back-pressure-data-size-threshold"></span>
+                        <div id="read-only-load-balance-compression-setting" class="setting">
+                            <div class="setting-name">
+                                Load Balance Compression
+                                <div class="fa fa-question-circle" alt="Info" title="Whether or not data should be compressed when being transferred between nodes in the cluster."></div>
+                            </div>
+                            <div class="setting-field">
+                                <div id="read-only-load-balance-compression"></div>
+                            </div>
                         </div>
-                        <div class="clear"></div>
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>

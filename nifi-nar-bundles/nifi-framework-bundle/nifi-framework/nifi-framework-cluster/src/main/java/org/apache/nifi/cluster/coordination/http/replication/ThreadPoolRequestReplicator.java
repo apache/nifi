@@ -31,6 +31,7 @@ import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestExc
 import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.manager.exception.OffloadedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -170,6 +171,24 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         // If the request is mutable, ensure that all nodes are connected.
         if (mutable) {
+            final List<NodeIdentifier> offloaded = stateMap.get(NodeConnectionState.OFFLOADED);
+            if (offloaded != null && !offloaded.isEmpty()) {
+                if (offloaded.size() == 1) {
+                    throw new OffloadedNodeMutableRequestException("Node " + offloaded.iterator().next() + " is currently offloaded");
+                } else {
+                    throw new OffloadedNodeMutableRequestException(offloaded.size() + " Nodes are currently offloaded");
+                }
+            }
+
+            final List<NodeIdentifier> offloading = stateMap.get(NodeConnectionState.OFFLOADING);
+            if (offloading != null && !offloading.isEmpty()) {
+                if (offloading.size() == 1) {
+                    throw new OffloadedNodeMutableRequestException("Node " + offloading.iterator().next() + " is currently offloading");
+                } else {
+                    throw new OffloadedNodeMutableRequestException(offloading.size() + " Nodes are currently offloading");
+                }
+            }
+
             final List<NodeIdentifier> disconnected = stateMap.get(NodeConnectionState.DISCONNECTED);
             if (disconnected != null && !disconnected.isEmpty()) {
                 if (disconnected.size() == 1) {

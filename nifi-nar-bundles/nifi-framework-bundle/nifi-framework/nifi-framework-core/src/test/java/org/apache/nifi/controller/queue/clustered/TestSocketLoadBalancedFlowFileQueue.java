@@ -96,12 +96,12 @@ public class TestSocketLoadBalancedFlowFileQueue {
         swapManager = new MockSwapManager();
         eventReporter = EventReporter.NO_OP;
 
-        final NodeIdentifier localNodeIdentifier = createNodeIdentifier();
+        final NodeIdentifier localNodeIdentifier = createNodeIdentifier("00000000-0000-0000-0000-000000000000");
 
         nodeIds = new ArrayList<>();
         nodeIds.add(localNodeIdentifier);
-        nodeIds.add(createNodeIdentifier());
-        nodeIds.add(createNodeIdentifier());
+        nodeIds.add(createNodeIdentifier("11111111-1111-1111-1111-111111111111"));
+        nodeIds.add(createNodeIdentifier("22222222-2222-2222-2222-222222222222"));
 
         Mockito.doAnswer(new Answer<Set<NodeIdentifier>>() {
             @Override
@@ -128,7 +128,11 @@ public class TestSocketLoadBalancedFlowFileQueue {
     }
 
     private NodeIdentifier createNodeIdentifier() {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", nodePort++, "localhost", nodePort++,
+        return createNodeIdentifier(UUID.randomUUID().toString());
+    }
+
+    private NodeIdentifier createNodeIdentifier(final String uuid) {
+        return new NodeIdentifier(uuid, "localhost", nodePort++, "localhost", nodePort++,
             "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, Collections.emptySet());
     }
 
@@ -339,9 +343,12 @@ public class TestSocketLoadBalancedFlowFileQueue {
         }
     }
 
-    @Test(timeout = 10000)
+
+    @Test(timeout = 30000)
     public void testChangeInClusterTopologyTriggersRebalanceOnlyOnRemovedNodeIfNecessary() throws InterruptedException {
-        // Create partitioner that sends first 2 FlowFiles to Partition 0, next 2 to Partition 1, and then next 4 to Partition 3.
+        // Create partitioner that sends first 1 FlowFile to Partition 0, next to Partition 2, and then next 2 to Partition 2.
+        // Then, cycle back to partitions 0 and 1. This will result in partitions 0 & 1 getting 1 FlowFile each and Partition 2
+        // getting 2 FlowFiles. Then, when Partition 2 is removed, those 2 FlowFiles will be rebalanced to Partitions 0 and 1.
         queue.setFlowFilePartitioner(new StaticSequencePartitioner(new int[] {0, 1, 2, 2, 0, 1}, false));
 
         for (int i = 0; i < 4; i++) {
@@ -359,6 +366,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final int[] expectedPartitionSizes = new int[] {2, 2};
         final int[] partitionSizes = new int[2];
+
         while (!Arrays.equals(expectedPartitionSizes, partitionSizes)) {
             Thread.sleep(10L);
 

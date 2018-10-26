@@ -42,22 +42,57 @@
                             <input type="text" id="flow-file-expiration" name="flow-file-expiration" class="setting-input"/>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Back pressure object threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
+                    <div class="multi-column-settings">
+                        <div class="setting">
+                            <div class="setting-name">
+                                Back Pressure<br/>Object threshold
+                                <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
+                            </div>
+                            <div class="setting-field">
+                                <input type="text" id="back-pressure-object-threshold" name="back-pressure-object-threshold" class="setting-input"/>
+                            </div>
                         </div>
-                        <div class="setting-field">
-                            <input type="text" id="back-pressure-object-threshold" name="back-pressure-object-threshold" class="setting-input"/>
+                        <div class="separator">&nbsp;</div>
+                        <div class="setting">
+                            <div class="setting-name">
+                                &nbsp;<br/>Size threshold
+                                <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
+                            </div>
+                            <div class="setting-field">
+                                <input type="text" id="back-pressure-data-size-threshold" name="back-pressure-data-size-threshold" class="setting-input"/>
+                            </div>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Back pressure data size threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
+                    <div>
+                        <div class="multi-column-settings">
+                            <div class="setting">
+                                <div class="setting-name">
+                                    Load Balance Strategy
+                                    <div class="fa fa-question-circle" alt="Info" title="How to load balance the data in this Connection across the nodes in the cluster."></div>
+                                </div>
+                                <div class="setting-field">
+                                    <div id="load-balance-strategy-combo"></div>
+                                </div>
+                            </div>
+                            <div id="load-balance-partition-attribute-setting-separator" class="separator">&nbsp;</div>
+                            <div id="load-balance-partition-attribute-setting" class="setting">
+                                <div class="setting-name">
+                                    Attribute Name
+                                    <div class="fa fa-question-circle" alt="Info" title="The FlowFile Attribute to use for determining which node a FlowFile will go to."></div>
+                                </div>
+                                <div class="setting-field">
+                                    <input type="text" id="load-balance-partition-attribute" name="load-balance-partition-attribute" class="setting-input"/>
+                                </div>
+                            </div>
                         </div>
-                        <div class="setting-field">
-                            <input type="text" id="back-pressure-data-size-threshold" name="back-pressure-data-size-threshold" class="setting-input"/>
+                        <div id="load-balance-compression-setting" class="setting">
+                            <div class="setting-name">
+                                Load Balance Compression
+                                <div class="fa fa-question-circle" alt="Info" title="Whether or not data should be compressed when being transferred between nodes in the cluster."></div>
+                            </div>
+                            <div class="setting-field">
+                                <div id="load-balance-compression-combo"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

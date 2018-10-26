@@ -20,6 +20,7 @@ package org.apache.nifi.cluster.coordination.heartbeat;
 import org.apache.nifi.cluster.ReportedEvent;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -242,6 +243,16 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public synchronized void finishNodeConnection(NodeIdentifier nodeId) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
+        }
+
+        @Override
+        public synchronized void finishNodeOffload(NodeIdentifier nodeId) {
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
+        }
+
+        @Override
+        public synchronized void requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation) {
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
         }
 
         @Override

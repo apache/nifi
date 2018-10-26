@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-parquet-bundle</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-parquet-nar</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.9.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -34,12 +34,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-parquet-processors</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-libraries-nar</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>

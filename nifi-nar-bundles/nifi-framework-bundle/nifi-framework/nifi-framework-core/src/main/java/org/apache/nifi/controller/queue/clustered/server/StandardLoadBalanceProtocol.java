@@ -68,6 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
@@ -122,16 +123,13 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final InputStream in = new BufferedInputStream(socket.getInputStream());
         final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
 
-        String peerDescription = socket.getInetAddress().toString();
+        String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
             final SSLSession sslSession = ((SSLSocket) socket).getSession();
 
             final Set<String> certIdentities;
             try {
                 certIdentities = getCertificateIdentities(sslSession);
-
-                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
-                peerDescription = CertificateUtils.extractUsername(dn);
             } catch (final CertificateException e) {
                 throw new IOException("Failed to extract Client Certificate", e);
             }
@@ -139,7 +137,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             logger.debug("Connection received from peer {}. Will perform authorization against Client Identities '{}'",
                 peerDescription, certIdentities);
 
-            authorizer.authorize(certIdentities);
+            peerDescription = authorizer.authorize(certIdentities);
             logger.debug("Client Identities {} are authorized to load balance data", certIdentities);
         }
 
@@ -154,7 +152,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName());
+        receiveFlowFiles(in, out, peerDescription, version);
     }
 
     private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
@@ -224,7 +222,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion, final String nodeName) throws IOException {
+    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);
         final long startTimestamp = System.currentTimeMillis();
 
@@ -250,13 +248,15 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     "not configured to allow for Load Balancing");
         }
 
+        final LoadBalancedFlowFileQueue loadBalancedFlowFileQueue = (LoadBalancedFlowFileQueue) flowFileQueue;
+
         final int spaceCheck = dataIn.read();
         if (spaceCheck < 0) {
             throw new EOFException("Expected to receive a request to determine whether or not space was available for Connection with ID " + connectionId + " from Peer " + peerDescription);
         }
 
         if (spaceCheck == CHECK_SPACE) {
-            if (flowFileQueue.isFull()) {
+            if (loadBalancedFlowFileQueue.isLocalPartitionFull()) {
                 logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
                 out.write(QUEUE_FULL);
                 out.flush();
@@ -308,7 +308,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             }
 
             verifyChecksum(checksum, in, out, peerDescription, flowFilesReceived.size());
-            completeTransaction(in, out, peerDescription, flowFilesReceived, nodeName, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
+            completeTransaction(in, out, peerDescription, flowFilesReceived, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
         } catch (final Exception e) {
             // If any Exception occurs, we need to decrement the claimant counts for the Content Claims that we wrote to because
             // they are no longer needed.
@@ -323,7 +323,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
     private void completeTransaction(final InputStream in, final OutputStream out, final String peerDescription, final List<RemoteFlowFileRecord> flowFilesReceived,
-                                     final String nodeName, final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
+                                     final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
         final int completionIndicator = in.read();
         if (completionIndicator < 0) {
             throw new EOFException("Expected to receive a Transaction Completion Indicator from Peer " + peerDescription + " but encountered EOF");
@@ -342,7 +342,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         logger.debug("Received Complete Transaction indicator from Peer {}", peerDescription);
-        registerReceiveProvenanceEvents(flowFilesReceived, nodeName, connectionId, startTimestamp);
+        registerReceiveProvenanceEvents(flowFilesReceived, peerDescription, connectionId, startTimestamp);
         updateFlowFileRepository(flowFilesReceived, flowFileQueue);
         transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
 
@@ -465,6 +465,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         final Map<String, String> attributes = readAttributes(metadataIn);
+        final String sourceSystemUuid = attributes.get(CoreAttributes.UUID.key());
 
         logger.debug("Received Attributes {} from Peer {}", attributes, peerDescription);
 
@@ -476,6 +477,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(flowFileRepository.getNextFlowFileSequence())
             .addAttributes(attributes)
+            .addAttribute(CoreAttributes.UUID.key(), UUID.randomUUID().toString())
             .contentClaim(contentClaimTriple.getContentClaim())
             .contentClaimOffset(contentClaimTriple.getClaimOffset())
             .size(contentClaimTriple.getContentLength())
@@ -484,7 +486,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             .build();
 
         logger.debug("Received FlowFile {} with {} attributes and {} bytes of content", flowFileRecord, attributes.size(), contentClaimTriple.getContentLength());
-        return new RemoteFlowFileRecord(attributes.get(CoreAttributes.UUID.key()), flowFileRecord);
+        return new RemoteFlowFileRecord(sourceSystemUuid, flowFileRecord);
     }
 
     private Map<String, String> readAttributes(final DataInputStream in) throws IOException {

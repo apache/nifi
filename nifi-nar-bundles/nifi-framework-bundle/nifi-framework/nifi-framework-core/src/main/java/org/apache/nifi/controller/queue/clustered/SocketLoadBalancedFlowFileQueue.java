@@ -19,6 +19,8 @@ package org.apache.nifi.controller.queue.clustered;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
@@ -40,6 +42,7 @@ import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalPartitionPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.LocalQueuePartition;
+import org.apache.nifi.controller.queue.clustered.partition.NonLocalPartitionPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.QueuePartition;
 import org.apache.nifi.controller.queue.clustered.partition.RebalancingPartition;
 import org.apache.nifi.controller.queue.clustered.partition.RemoteQueuePartition;
@@ -113,6 +116,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private QueuePartition[] queuePartitions;
     private FlowFilePartitioner partitioner;
     private boolean stopped = true;
+    private volatile boolean offloaded = false;
 
 
     public SocketLoadBalancedFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
@@ -182,8 +186,17 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             return;
         }
 
-        // We are already load balancing but are changing how we are load balancing.
-        final FlowFilePartitioner partitioner;
+        if (!offloaded) {
+            // We are already load balancing but are changing how we are load balancing.
+            final FlowFilePartitioner partitioner;
+            partitioner = getPartitionerForLoadBalancingStrategy(strategy, partitioningAttribute);
+
+            setFlowFilePartitioner(partitioner);
+        }
+    }
+
+    private FlowFilePartitioner getPartitionerForLoadBalancingStrategy(LoadBalanceStrategy strategy, String partitioningAttribute) {
+        FlowFilePartitioner partitioner;
         switch (strategy) {
             case DO_NOT_LOAD_BALANCE:
                 partitioner = new LocalPartitionPartitioner();
@@ -200,8 +213,66 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             default:
                 throw new IllegalArgumentException();
         }
+        return partitioner;
+    }
 
-        setFlowFilePartitioner(partitioner);
+    @Override
+    public void offloadQueue() {
+        if (clusterCoordinator == null) {
+            // Not clustered, cannot offload the queue to other nodes
+            return;
+        }
+
+        logger.debug("Setting queue {} on node {} as offloaded", this, clusterCoordinator.getLocalNodeIdentifier());
+        offloaded = true;
+
+        partitionWriteLock.lock();
+        try {
+            final Set<NodeIdentifier> nodesToKeep = new HashSet<>();
+
+            // If we have any nodes that are connected, we only want to send data to the connected nodes.
+            for (final QueuePartition partition : queuePartitions) {
+                final Optional<NodeIdentifier> nodeIdOption = partition.getNodeIdentifier();
+                if (!nodeIdOption.isPresent()) {
+                    continue;
+                }
+
+                final NodeIdentifier nodeId = nodeIdOption.get();
+                final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
+                if (status != null && status.getState() == NodeConnectionState.CONNECTED) {
+                    nodesToKeep.add(nodeId);
+                }
+            }
+
+            if (!nodesToKeep.isEmpty()) {
+                setNodeIdentifiers(nodesToKeep, false);
+            }
+
+            // Update our partitioner so that we don't keep any data on the local partition
+            setFlowFilePartitioner(new NonLocalPartitionPartitioner());
+        } finally {
+            partitionWriteLock.unlock();
+        }
+    }
+
+    @Override
+    public void resetOffloadedQueue() {
+        if (clusterCoordinator == null) {
+            // Not clustered, was not offloading the queue to other nodes
+            return;
+        }
+
+        if (offloaded) {
+            // queue was offloaded previously, allow files to be added to the local partition
+            offloaded = false;
+            logger.debug("Queue {} on node {} was previously offloaded, resetting offloaded status to {}",
+                    this, clusterCoordinator.getLocalNodeIdentifier(), offloaded);
+            // reset the partitioner based on the load balancing strategy, since offloading previously changed the partitioner
+            FlowFilePartitioner partitioner = getPartitionerForLoadBalancingStrategy(getLoadBalanceStrategy(), getPartitioningAttribute());
+            setFlowFilePartitioner(partitioner);
+            logger.debug("Queue {} is no longer offloaded, restored load balance strategy to {} and partitioning attribute to \"{}\"",
+                    this, getLoadBalanceStrategy(), getPartitioningAttribute());
+        }
     }
 
     public synchronized void startLoadBalancing() {
@@ -530,6 +601,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         adjustSize(-flowFiles.size(), -flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
     }
 
+    @Override
+    public boolean isLocalPartitionFull() {
+        return isFull(localPartition.size());
+    }
+
     /**
      * Determines which QueuePartition the given FlowFile belongs to. Must be called with partition read lock held.
      *
@@ -571,9 +647,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             // Re-define 'queuePartitions' array
             final List<NodeIdentifier> sortedNodeIdentifiers = new ArrayList<>(updatedNodeIdentifiers);
-            sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
+            sortedNodeIdentifiers.sort(Comparator.comparing(nodeId -> nodeId.getApiAddress() + ":" + nodeId.getApiPort()));
 
-            final QueuePartition[] updatedQueuePartitions;
+            QueuePartition[] updatedQueuePartitions;
             if (sortedNodeIdentifiers.isEmpty()) {
                 updatedQueuePartitions = new QueuePartition[] { localPartition };
             } else {
@@ -581,10 +657,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             }
 
             // Populate the new QueuePartitions.
+            boolean localPartitionIncluded = false;
             for (int i = 0; i < sortedNodeIdentifiers.size(); i++) {
                 final NodeIdentifier nodeId = sortedNodeIdentifiers.get(i);
                 if (nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
                     updatedQueuePartitions[i] = localPartition;
+                    localPartitionIncluded = true;
 
                     // If we have RemoteQueuePartition with this Node ID with data, that data must be migrated to the local partition.
                     // This can happen if we didn't previously know our Node UUID.
@@ -600,6 +678,13 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                 final QueuePartition existingPartition = partitionMap.get(nodeId);
                 updatedQueuePartitions[i] = existingPartition == null ? createRemotePartition(nodeId) : existingPartition;
+            }
+
+            if (!localPartitionIncluded) {
+                final QueuePartition[] withLocal = new QueuePartition[updatedQueuePartitions.length + 1];
+                System.arraycopy(updatedQueuePartitions, 0, withLocal, 0, updatedQueuePartitions.length);
+                withLocal[withLocal.length - 1] = localPartition;
+                updatedQueuePartitions = withLocal;
             }
 
             // If the partition requires that all partitions be re-balanced when the number of partitions changes, then do so.
@@ -649,6 +734,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     protected void rebalance(final QueuePartition partition) {
+        logger.debug("Rebalancing Partition {}", partition);
         final FlowFileQueueContents contents = partition.packageForRebalance(rebalancingPartition.getSwapPartitionName());
         rebalancingPartition.rebalance(contents);
     }
@@ -830,8 +916,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public boolean isPropagateBackpressureAcrossNodes() {
-        // TODO: We will want to modify this when we have the ability to offload flowfiles from a node.
-        return true;
+        // If offloaded = false, the queue is not offloading; return true to honor backpressure
+        // If offloaded = true, the queue is offloading or has finished offloading; return false to ignore backpressure
+        return !offloaded;
     }
 
     @Override
@@ -973,7 +1060,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
-                updatedNodeIds.remove(nodeId);
+                final boolean removed = updatedNodeIds.remove(nodeId);
+                if (!removed) {
+                    return;
+                }
 
                 logger.debug("Node Identifier {} removed from cluster. Node ID's changing from {} to {}", nodeId, nodeIdentifiers, updatedNodeIds);
                 setNodeIdentifiers(updatedNodeIds, false);
@@ -988,6 +1078,14 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             try {
                 if (localNodeId == null) {
                     return;
+                }
+
+                if (!nodeIdentifiers.contains(localNodeId)) {
+                    final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+                    updatedNodeIds.add(localNodeId);
+
+                    logger.debug("Local Node Identifier has now been determined to be {}. Adding to set of Node Identifiers for {}", localNodeId, SocketLoadBalancedFlowFileQueue.this);
+                    setNodeIdentifiers(updatedNodeIds, false);
                 }
 
                 logger.debug("Local Node Identifier set to {}; current partitions = {}", localNodeId, queuePartitions);
@@ -1009,12 +1107,41 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                         logger.debug("{} Local Node Identifier set to {} and found Queue Partition {} with that Node Identifier. Will force update of partitions",
                                 SocketLoadBalancedFlowFileQueue.this, localNodeId, partition);
 
-                        setNodeIdentifiers(SocketLoadBalancedFlowFileQueue.this.nodeIdentifiers, true);
+                        final Set<NodeIdentifier> updatedNodeIds = new HashSet<>(nodeIdentifiers);
+                        updatedNodeIds.add(localNodeId);
+                        setNodeIdentifiers(updatedNodeIds, true);
                         return;
                     }
                 }
 
                 logger.debug("{} Local Node Identifier set to {} but found no Queue Partition with that Node Identifier.", SocketLoadBalancedFlowFileQueue.this, localNodeId);
+            } finally {
+                partitionWriteLock.unlock();
+            }
+        }
+
+        @Override
+        public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
+            partitionWriteLock.lock();
+            try {
+                if (!offloaded) {
+                    return;
+                }
+
+                switch (newState) {
+                    case CONNECTED:
+                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                            resetOffloadedQueue();
+                        }
+                        break;
+                    case OFFLOADED:
+                    case OFFLOADING:
+                    case DISCONNECTED:
+                    case DISCONNECTING:
+                        onNodeRemoved(nodeId);
+                        break;
+                }
             } finally {
                 partitionWriteLock.unlock();
             }

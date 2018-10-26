@@ -47,6 +47,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -1124,6 +1125,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         if (NodeConnectionState.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterCoordinator.requestNodeConnect(nodeId, userDn);
+        } else if (NodeConnectionState.OFFLOADING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
+            clusterCoordinator.requestNodeOffload(nodeId, OffloadCode.OFFLOADED,
+                    "User " + userDn + " requested that node be offloaded");
         } else if (NodeConnectionState.DISCONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.USER_DISCONNECTED,
                     "User " + userDn + " requested that node be disconnected from cluster");
@@ -4008,6 +4012,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
             .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
+            .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
@@ -4046,6 +4051,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // Ignore differences for adding remote ports
             if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
+                continue;
+            }
+
+            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
                 continue;
             }
 
@@ -4297,6 +4306,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             snapshot = flowRegistry.getFlowContents(versionControlInfo.getBucketId(), versionControlInfo.getFlowId(), versionControlInfo.getVersion(), fetchRemoteFlows, NiFiUserUtils.getNiFiUser());
         } catch (final NiFiRegistryException | IOException e) {
+            logger.error(e.getMessage(), e);
             throw new IllegalArgumentException("The Flow Registry with ID " + versionControlInfo.getRegistryId() + " reports that no Flow exists with Bucket "
                 + versionControlInfo.getBucketId() + ", Flow " + versionControlInfo.getFlowId() + ", Version " + versionControlInfo.getVersion());
         }
@@ -4702,8 +4712,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
-        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
-            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId + " because it is not disconnected, current state = " + nodeConnectionStatus.getState());
+        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.OFFLOADED) && !nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
+            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId +
+                    " because it is not disconnected or offloaded, current state = " + nodeConnectionStatus.getState());
         }
 
         clusterCoordinator.removeNode(nodeIdentifier, userDn);

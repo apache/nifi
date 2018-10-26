@@ -139,7 +139,6 @@ public abstract class NiFiProperties {
     public static final String SECURITY_TRUSTSTORE = "nifi.security.truststore";
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
-    public static final String SECURITY_NEED_CLIENT_AUTH = "nifi.security.needClientAuth";
     public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
@@ -571,20 +570,6 @@ public abstract class NiFiProperties {
         } else {
             return new File(value);
         }
-    }
-
-    /**
-     * Will default to true unless the value is explicitly set to false.
-     *
-     * @return Whether client auth is required
-     */
-    public boolean getNeedClientAuth() {
-        boolean needClientAuth = true;
-        String rawNeedClientAuth = getProperty(SECURITY_NEED_CLIENT_AUTH);
-        if ("false".equalsIgnoreCase(rawNeedClientAuth)) {
-            needClientAuth = false;
-        }
-        return needClientAuth;
     }
 
     // getters for web properties //

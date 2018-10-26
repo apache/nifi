@@ -13,7 +13,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <artifactId>nifi-standard-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-standard-utils</artifactId>
@@ -21,7 +21,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>

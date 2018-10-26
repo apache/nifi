@@ -19,6 +19,8 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 
@@ -104,4 +106,89 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
         });
     }
 
+    @Override
+    public NodeEntity deleteNode(final String nodeId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(nodeId)) {
+            throw new IllegalArgumentException("Node ID cannot be null or empty");
+        }
+
+        return executeAction("Error deleting node", () -> {
+            final WebTarget target = controllerTarget.path("cluster/nodes/" + nodeId);
+
+            return getRequestBuilder(target).delete(NodeEntity.class);
+        });
+    }
+
+    @Override
+    public NodeEntity connectNode(final String nodeId, final NodeEntity nodeEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(nodeId)) {
+            throw new IllegalArgumentException("Node ID cannot be null or empty");
+        }
+
+        if (nodeEntity == null) {
+            throw new IllegalArgumentException("Node entity cannot be null");
+        }
+
+        return executeAction("Error connecting node", () -> {
+            final WebTarget target = controllerTarget.path("cluster/nodes/" + nodeId);
+
+            return getRequestBuilder(target).put(Entity.entity(nodeEntity, MediaType.APPLICATION_JSON), NodeEntity.class);
+        });
+    }
+
+    @Override
+    public NodeEntity offloadNode(final String nodeId, final NodeEntity nodeEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(nodeId)) {
+            throw new IllegalArgumentException("Node ID cannot be null or empty");
+        }
+
+        if (nodeEntity == null) {
+            throw new IllegalArgumentException("Node entity cannot be null");
+        }
+
+        return executeAction("Error offloading node", () -> {
+            final WebTarget target = controllerTarget.path("cluster/nodes/" + nodeId);
+
+            return getRequestBuilder(target).put(Entity.entity(nodeEntity, MediaType.APPLICATION_JSON), NodeEntity.class);
+        });
+    }
+
+    @Override
+    public NodeEntity disconnectNode(final String nodeId, final NodeEntity nodeEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(nodeId)) {
+            throw new IllegalArgumentException("Node ID cannot be null or empty");
+        }
+
+        if (nodeEntity == null) {
+            throw new IllegalArgumentException("Node entity cannot be null");
+        }
+
+        return executeAction("Error disconnecting node", () -> {
+            final WebTarget target = controllerTarget.path("cluster/nodes/" + nodeId);
+
+            return getRequestBuilder(target).put(Entity.entity(nodeEntity, MediaType.APPLICATION_JSON), NodeEntity.class);
+        });
+    }
+
+    @Override
+    public NodeEntity getNode(String nodeId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(nodeId)) {
+            throw new IllegalArgumentException("Node ID cannot be null or empty");
+        }
+
+        return executeAction("Error retrieving node status", () -> {
+            final WebTarget target = controllerTarget.path("cluster/nodes/" + nodeId);
+
+            return getRequestBuilder(target).get(NodeEntity.class);
+        });
+    }
+
+    @Override
+    public ClusterEntity getNodes() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving node status", () -> {
+            final WebTarget target = controllerTarget.path("cluster");
+
+            return getRequestBuilder(target).get(ClusterEntity.class);
+        });
+    }
 }

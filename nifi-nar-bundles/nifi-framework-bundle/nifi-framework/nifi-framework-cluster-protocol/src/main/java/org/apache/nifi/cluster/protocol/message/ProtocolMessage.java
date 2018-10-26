@@ -21,6 +21,7 @@ public abstract class ProtocolMessage {
     public static enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
+        OFFLOAD_REQUEST,
         DISCONNECTION_REQUEST,
         EXCEPTION,
         FLOW_REQUEST,

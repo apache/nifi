@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -34,6 +34,17 @@
         <module>nifi-hive3-processors</module>
         <module>nifi-hive3-nar</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.7.1.Final</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <properties>
         <hive.version>1.2.1</hive.version>

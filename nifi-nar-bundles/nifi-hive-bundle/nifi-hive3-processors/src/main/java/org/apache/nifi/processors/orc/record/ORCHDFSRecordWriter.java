@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.processors.orc.record;
 
-import org.apache.avro.Schema;
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
 import org.apache.hadoop.hive.ql.io.orc.Writer;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 import java.io.IOException;
@@ -33,27 +35,27 @@ import java.util.Map;
 import static org.apache.nifi.processors.orc.PutORC.HIVE_DDL_ATTRIBUTE;
 
 /**
- * HDFSRecordWriter that writes ORC files using Avro as the schema representation.
+ * HDFSRecordWriter that writes ORC files using the NiFi Record API as the schema representation.
  */
 
 public class ORCHDFSRecordWriter implements HDFSRecordWriter {
 
-    private final Schema avroSchema;
+    private final RecordSchema recordSchema;
     private final TypeInfo orcSchema;
     private final Writer orcWriter;
     private final String hiveTableName;
     private final boolean hiveFieldNames;
-    private final List<Schema.Field> recordFields;
+    private final List<RecordField> recordFields;
     private final int numRecordFields;
     private Object[] workingRow;
 
-    public ORCHDFSRecordWriter(final Writer orcWriter, final Schema avroSchema, final String hiveTableName, final boolean hiveFieldNames) {
-        this.avroSchema = avroSchema;
+    public ORCHDFSRecordWriter(final Writer orcWriter, final RecordSchema recordSchema, final String hiveTableName, final boolean hiveFieldNames) {
+        this.recordSchema = recordSchema;
         this.orcWriter = orcWriter;
         this.hiveFieldNames = hiveFieldNames;
-        this.orcSchema = NiFiOrcUtils.getOrcField(avroSchema, this.hiveFieldNames);
+        this.orcSchema = NiFiOrcUtils.getOrcSchema(recordSchema, this.hiveFieldNames);
         this.hiveTableName = hiveTableName;
-        this.recordFields = avroSchema != null ? avroSchema.getFields() : null;
+        this.recordFields = recordSchema != null ? recordSchema.getFields() : null;
         this.numRecordFields = recordFields != null ? recordFields.size() : -1;
         // Reuse row object
         this.workingRow = numRecordFields > -1 ? new Object[numRecordFields] : null;
@@ -63,17 +65,18 @@ public class ORCHDFSRecordWriter implements HDFSRecordWriter {
     public void write(final Record record) throws IOException {
         if (recordFields != null) {
             for (int i = 0; i < numRecordFields; i++) {
-                final Schema.Field field = recordFields.get(i);
-                final Schema fieldSchema = field.schema();
-                final String fieldName = field.name();
-                Object o = record.getValue(fieldName);
+                final RecordField field = recordFields.get(i);
+                final DataType fieldType = field.getDataType();
+                final String fieldName = field.getFieldName();
+                Object o = record.getValue(field);
                 try {
-                    workingRow[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema, hiveFieldNames), o, hiveFieldNames);
+                    workingRow[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldType, hiveFieldNames), o, hiveFieldNames);
                 } catch (ArrayIndexOutOfBoundsException aioobe) {
                     final String errorMsg = "Index out of bounds for column " + i + ", type " + fieldName + ", and object " + o.toString();
                     throw new IOException(errorMsg, aioobe);
                 }
             }
+
             orcWriter.addRow(NiFiOrcUtils.createOrcStruct(orcSchema, workingRow));
         }
     }
@@ -93,7 +96,7 @@ public class ORCHDFSRecordWriter implements HDFSRecordWriter {
         }
 
         // Add Hive DDL Attribute
-        String hiveDDL = NiFiOrcUtils.generateHiveDDL(avroSchema, hiveTableName, hiveFieldNames);
+        String hiveDDL = NiFiOrcUtils.generateHiveDDL(recordSchema, hiveTableName, hiveFieldNames);
         Map<String, String> attributes = new HashMap<String, String>() {{
             put(HIVE_DDL_ATTRIBUTE, hiveDDL);
         }};

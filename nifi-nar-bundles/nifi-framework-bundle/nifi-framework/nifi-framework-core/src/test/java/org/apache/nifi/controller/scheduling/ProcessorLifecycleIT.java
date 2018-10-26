@@ -81,9 +81,9 @@ import static org.mockito.Mockito.mock;
  * Validate Processor's life-cycle operation within the context of
  * {@link FlowController} and {@link StandardProcessScheduler}
  */
-public class TestProcessorLifecycle {
+public class ProcessorLifecycleIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorLifecycleIT.class);
     private static final long SHORT_DELAY_TOLERANCE = 10000L;
     private static final long MEDIUM_DELAY_TOLERANCE = 15000L;
     private static final long LONG_DELAY_TOLERANCE = 20000L;
@@ -493,11 +493,11 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
         ps.disableProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
     }
 
     /**

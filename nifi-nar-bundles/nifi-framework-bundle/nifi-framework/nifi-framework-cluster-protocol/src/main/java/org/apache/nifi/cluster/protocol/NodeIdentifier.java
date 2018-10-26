@@ -17,12 +17,14 @@
 package org.apache.nifi.cluster.protocol;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -106,7 +108,8 @@ public class NodeIdentifier {
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
                           final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, socketAddress, 6342, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
+        this(id, apiAddress, apiPort, socketAddress, socketPort, socketAddress, NiFiProperties.DEFAULT_LOAD_BALANCE_PORT, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure,
+                null);
     }
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
@@ -254,22 +257,19 @@ public class NodeIdentifier {
         if (other == null) {
             return false;
         }
-        if ((this.apiAddress == null) ? (other.apiAddress != null) : !this.apiAddress.equals(other.apiAddress)) {
+        if (other == this) {
+            return true;
+        }
+        if (!Objects.equals(apiAddress, other.apiAddress)) {
             return false;
         }
         if (this.apiPort != other.apiPort) {
             return false;
         }
-        if ((this.socketAddress == null) ? (other.socketAddress != null) : !this.socketAddress.equals(other.socketAddress)) {
+        if (!Objects.equals(socketAddress, other.socketAddress)) {
             return false;
         }
         if (this.socketPort != other.socketPort) {
-            return false;
-        }
-        if (!this.loadBalanceAddress.equals(other.loadBalanceAddress)) {
-            return false;
-        }
-        if (this.loadBalancePort != other.loadBalancePort) {
             return false;
         }
 
@@ -286,6 +286,12 @@ public class NodeIdentifier {
     @Override
     public String toString() {
         return apiAddress + ":" + apiPort;
+    }
+
+    public String getFullDescription() {
+        return "NodeIdentifier[UUID=" + id + ", API Address = " + apiAddress + ":" + apiPort + ", Cluster Socket Address = " + socketAddress + ":" + socketPort
+            + ", Load Balance Address = " + loadBalanceAddress + ":" + loadBalancePort + ", Site-to-Site Raw Address = " + siteToSiteAddress + ":" + siteToSitePort
+            + ", Site-to-Site HTTP Address = " + apiAddress + ":" + siteToSiteHttpApiPort + ", Site-to-Site Secure = " + siteToSiteSecure + ", Node Identities = " + nodeIdentities + "]";
     }
 
 }

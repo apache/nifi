@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,13 +124,14 @@ public class ConvertExcelToCSVProcessorTest {
         Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertTrue(rowsSheet == 9);
 
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
         ff.assertContentEquals("Numbers,Timestamps,Money\n" +
-                "1234.456,1/1/17,$   123.45\n" +
-                "1234.46,12:00:00 PM,£   123.45\n" +
-                "1234.5,\"Sunday, January 01, 2017\",¥   123.45\n" +
-                "\"1,234.46\",1/1/17 12:00,\"$   1,023.45\"\n" +
-                "\"1,234.4560\",12:00 PM,\"£   1,023.45\"\n" +
-                "9.88E+08,2017/01/01/ 12:00,\"¥   1,023.45\"\n" +
+                "1234.456," + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + ",$   123.45\n" +
+                "1234.46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123.45\n" +
+                "1234.5,\"" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "\",¥   123.45\n" +
+                "\"1,234.46\"," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",\"$   1,023.45\"\n" +
+                "\"1,234.4560\"," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",\"£   1,023.45\"\n" +
+                "9.88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",\"¥   1,023.45\"\n" +
                 "9.877E+08,,\n" +
                 "9.8765E+08,,\n");
     }
@@ -150,11 +153,12 @@ public class ConvertExcelToCSVProcessorTest {
         Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertEquals("Row count does match expected value.", "7", rowsSheet.toString());
 
-        ff.assertContentEquals("1234.46,12:00:00 PM,£   123.45\n" +
-                "1234.5,Sunday\\, January 01\\, 2017,¥   123.45\n" +
-                "1\\,234.46,1/1/17 12:00,$   1\\,023.45\n" +
-                "1\\,234.4560,12:00 PM,£   1\\,023.45\n" +
-                "9.88E+08,2017/01/01/ 12:00,¥   1\\,023.45\n" +
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
+        ff.assertContentEquals("1234.46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123.45\n" +
+                "1234.5," + DateTimeFormatter.ofPattern("EEEE\\, MMMM dd\\, yyyy").format(localDt) + ",¥   123.45\n" +
+                "1\\,234.46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1\\,023.45\n" +
+                "1\\,234.4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1\\,023.45\n" +
+                "9.88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1\\,023.45\n" +
                 "9.877E+08,,\n" +
                 "9.8765E+08,,\n");
     }
@@ -178,11 +182,12 @@ public class ConvertExcelToCSVProcessorTest {
         Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertEquals("Row count does match expected value.", "7", rowsSheet.toString());
 
-        ff.assertContentEquals("1234.46,12:00:00 PM,£   123.45\n" +
-                "1234.5,Sunday\\, January 01\\, 2017,¥   123.45\n" +
-                "1\\,234.46,1/1/17 12:00,$   1\\,023.45\n" +
-                "1\\,234.4560,12:00 PM,£   1\\,023.45\n" +
-                "9.88E+08,2017/01/01/ 12:00,¥   1\\,023.45\n" +
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
+        ff.assertContentEquals("1234.46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123.45\n" +
+                "1234.5," + DateTimeFormatter.ofPattern("EEEE\\, MMMM dd\\, yyyy").format(localDt) + ",¥   123.45\n" +
+                "1\\,234.46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1\\,023.45\n" +
+                "1\\,234.4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1\\,023.45\n" +
+                "9.88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1\\,023.45\n" +
                 "9.877E+08,,\n" +
                 "9.8765E+08,,\n");
     }
@@ -263,13 +268,14 @@ public class ConvertExcelToCSVProcessorTest {
         Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertTrue(rowsSheet == 9);
 
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
         ff.assertContentEquals("Numbers|Timestamps|Money\r\n" +
-                "1234.456|1/1/17|$   123.45\r\n" +
-                "1234.46|12:00:00 PM|£   123.45\r\n" +
-                "1234.5|Sunday, January 01, 2017|¥   123.45\r\n" +
-                "1,234.46|1/1/17 12:00|$   1,023.45\r\n" +
-                "1,234.4560|12:00 PM|£   1,023.45\r\n" +
-                "9.88E+08|2017/01/01/ 12:00|¥   1,023.45\r\n" +
+                "1234.456|" + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + "|$   123.45\r\n" +
+                "1234.46|" + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + "|£   123.45\r\n" +
+                "1234.5|" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "|¥   123.45\r\n" +
+                "1,234.46|" + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + "|$   1,023.45\r\n" +
+                "1,234.4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1,023.45\r\n" +
+                "9.88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1,023.45\r\n" +
                 "9.877E+08||\r\n" +
                 "9.8765E+08||\r\n");
     }

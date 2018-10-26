@@ -173,7 +173,8 @@ public class RemoteQueuePartition implements QueuePartition {
                         final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(flowFileQueue, flowFile);
                         repoRecord.markForAbort();
 
-                        updateRepositories(Collections.emptyList(), Collections.singleton(repoRecord));
+                        // We can send 'null' for the node identifier only because the list of FlowFiles sent is empty.
+                        updateRepositories(Collections.emptyList(), Collections.singleton(repoRecord), null);
 
                         // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
                         // In either case, transfer those FlowFiles that we failed to send.
@@ -204,12 +205,12 @@ public class RemoteQueuePartition implements QueuePartition {
 
         final TransactionCompleteCallback successCallback = new TransactionCompleteCallback() {
             @Override
-            public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent) {
+            public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent, final NodeIdentifier nodeIdentifier) {
                 // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
                 // with the queue so that its size remains accurate.
                 priorityQueue.acknowledge(flowFilesSent);
                 flowFileQueue.onTransfer(flowFilesSent);
-                updateRepositories(flowFilesSent, Collections.emptyList());
+                updateRepositories(flowFilesSent, Collections.emptyList(), nodeIdentifier);
             }
         };
 
@@ -230,7 +231,7 @@ public class RemoteQueuePartition implements QueuePartition {
      * @param flowFilesSent the FlowFiles that were sent to another node.
      * @param abortedRecords the Repository Records for any FlowFile whose content was missing.
      */
-    private void updateRepositories(final List<FlowFileRecord> flowFilesSent, final Collection<RepositoryRecord> abortedRecords) {
+    private void updateRepositories(final List<FlowFileRecord> flowFilesSent, final Collection<RepositoryRecord> abortedRecords, final NodeIdentifier nodeIdentifier) {
         // We update the Provenance Repository first. This way, even if we restart before we update the FlowFile repo, we have the record
         // that the data was sent in the Provenance Repository. We then update the content claims and finally the FlowFile Repository. We do it
         // in this order so that when the FlowFile repo is sync'ed to disk, we know which Content Claims are no longer in use. Updating the FlowFile
@@ -242,7 +243,7 @@ public class RemoteQueuePartition implements QueuePartition {
         // are ever created.
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFilesSent.size() * 2 + abortedRecords.size());
         for (final FlowFileRecord sent : flowFilesSent) {
-            provenanceEvents.add(createSendEvent(sent));
+            provenanceEvents.add(createSendEvent(sent, nodeIdentifier));
             provenanceEvents.add(createDropEvent(sent));
         }
 
@@ -279,7 +280,7 @@ public class RemoteQueuePartition implements QueuePartition {
         return record;
     }
 
-    private ProvenanceEventRecord createSendEvent(final FlowFileRecord flowFile) {
+    private ProvenanceEventRecord createSendEvent(final FlowFileRecord flowFile, final NodeIdentifier nodeIdentifier) {
 
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder()
                 .fromFlowFile(flowFile)
@@ -289,7 +290,7 @@ public class RemoteQueuePartition implements QueuePartition {
                 .setComponentType("Connection")
                 .setSourceQueueIdentifier(flowFileQueue.getIdentifier())
                 .setSourceSystemFlowFileIdentifier(flowFile.getAttribute(CoreAttributes.UUID.key()))
-                .setTransitUri("nifi:connection:" + flowFileQueue.getIdentifier());
+                .setTransitUri("nifi://" + nodeIdentifier.getApiAddress() + "/loadbalance/" + flowFileQueue.getIdentifier());
 
         final ContentClaim contentClaim = flowFile.getContentClaim();
         if (contentClaim != null) {

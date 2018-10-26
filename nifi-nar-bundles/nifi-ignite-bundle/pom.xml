@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-ignite-bundle</artifactId>
@@ -29,13 +29,22 @@
         <module>nifi-ignite-processors</module>
         <module>nifi-ignite-nar</module>
     </modules>
-
+    <properties>
+        <spring.version>4.3.19.RELEASE</spring.version>
+    </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ignite-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

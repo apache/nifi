@@ -61,6 +61,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -731,7 +732,7 @@ public class StatusMerger {
             gcDiagnosticsDto.setMemoryManagerName(memoryManagerName);
 
             final List<GCDiagnosticsSnapshotDTO> gcDiagnosticsSnapshots = new ArrayList<>(snapshotMap.values());
-            Collections.sort(gcDiagnosticsSnapshots, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+            gcDiagnosticsSnapshots.sort(Comparator.comparing(GCDiagnosticsSnapshotDTO::getTimestamp).reversed());
 
             gcDiagnosticsDto.setSnapshots(gcDiagnosticsSnapshots);
             gcDiagnosticsDtos.add(gcDiagnosticsDto);

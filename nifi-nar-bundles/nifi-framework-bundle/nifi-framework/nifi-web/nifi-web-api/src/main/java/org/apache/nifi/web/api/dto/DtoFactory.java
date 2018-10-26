@@ -2312,6 +2312,10 @@ public final class DtoFactory {
                 continue;
             }
 
+            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
+                continue;
+            }
+
             final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
             final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
 
@@ -3288,6 +3292,10 @@ public final class DtoFactory {
             }
 
             final String serviceId = entry.getValue();
+            if (serviceId == null) {
+                continue;
+            }
+
             final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(serviceId);
             if (serviceNode == null) {
                 continue;
@@ -3568,6 +3576,8 @@ public final class DtoFactory {
                 snapshotDto.setCollectionMillis(status.getCollectionMillis());
                 gcSnapshots.add(snapshotDto);
             }
+
+            gcSnapshots.sort(Comparator.comparing(GCDiagnosticsSnapshotDTO::getTimestamp).reversed());
 
             final GarbageCollectionDiagnosticsDTO gcDto = new GarbageCollectionDiagnosticsDTO();
             gcDto.setMemoryManagerName(memoryManager);

@@ -919,6 +919,10 @@
         var backPressureObjectThreshold = $('#back-pressure-object-threshold').val();
         var backPressureDataSizeThreshold = $('#back-pressure-data-size-threshold').val();
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
+        var loadBalanceStrategy = $('#load-balance-strategy-combo').combo('getSelectedOption').value;
+        var shouldLoadBalance = 'DO_NOT_LOAD_BALANCE' !== loadBalanceStrategy;
+        var loadBalancePartitionAttribute = shouldLoadBalance && 'PARTITION_BY_ATTRIBUTE' === loadBalanceStrategy ? $('#load-balance-partition-attribute').val() : '';
+        var loadBalanceCompression = shouldLoadBalance ? $('#load-balance-compression-combo').combo('getSelectedOption').value : 'DO_NOT_COMPRESS';
 
         if (validateSettings()) {
             var connectionEntity = {
@@ -945,7 +949,10 @@
                     'backPressureDataSizeThreshold': backPressureDataSizeThreshold,
                     'backPressureObjectThreshold': backPressureObjectThreshold,
                     'bends': bends,
-                    'prioritizers': prioritizers
+                    'prioritizers': prioritizers,
+                    'loadBalanceStrategy': loadBalanceStrategy,
+                    'loadBalancePartitionAttribute': loadBalancePartitionAttribute,
+                    'loadBalanceCompression': loadBalanceCompression
                 }
             };
 
@@ -1007,6 +1014,10 @@
         var backPressureObjectThreshold = $('#back-pressure-object-threshold').val();
         var backPressureDataSizeThreshold = $('#back-pressure-data-size-threshold').val();
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
+        var loadBalanceStrategy = $('#load-balance-strategy-combo').combo('getSelectedOption').value;
+        var shouldLoadBalance = 'DO_NOT_LOAD_BALANCE' !== loadBalanceStrategy;
+        var loadBalancePartitionAttribute = shouldLoadBalance && 'PARTITION_BY_ATTRIBUTE' === loadBalanceStrategy ? $('#load-balance-partition-attribute').val() : '';
+        var loadBalanceCompression = shouldLoadBalance ? $('#load-balance-compression-combo').combo('getSelectedOption').value : 'DO_NOT_COMPRESS';
 
         if (validateSettings()) {
             var d = nfConnection.get(connectionId);
@@ -1025,7 +1036,10 @@
                     'flowFileExpiration': flowFileExpiration,
                     'backPressureDataSizeThreshold': backPressureDataSizeThreshold,
                     'backPressureObjectThreshold': backPressureObjectThreshold,
-                    'prioritizers': prioritizers
+                    'prioritizers': prioritizers,
+                    'loadBalanceStrategy': loadBalanceStrategy,
+                    'loadBalancePartitionAttribute': loadBalancePartitionAttribute,
+                    'loadBalanceCompression': loadBalanceCompression
                 }
             };
 
@@ -1099,6 +1113,10 @@
         if (nfCommon.isBlank($('#back-pressure-data-size-threshold').val())) {
             errors.push('Back pressure data size threshold must be specified');
         }
+        if ($('#load-balance-strategy-combo').combo('getSelectedOption').value === 'PARTITION_BY_ATTRIBUTE'
+            && nfCommon.isBlank($('#load-balance-partition-attribute').val())) {
+            errors.push('Cannot set Load Balance Strategy to "Partition by attribute" without providing a partitioning "Attribute Name"');
+        }
 
         if (errors.length > 0) {
             nfDialog.showOkDialog({
@@ -1171,6 +1189,11 @@
         $('#output-port-options').empty();
         $('#input-port-options').empty();
 
+        // clear load balance settings
+        $('#load-balance-strategy-combo').combo('setSelectedOption', nfCommon.loadBalanceStrategyOptions[0]);
+        $('#load-balance-partition-attribute').val('');
+        $('#load-balance-compression-combo').combo('setSelectedOption', nfCommon.loadBalanceCompressionOptions[0]);
+
         // see if the temp edge needs to be removed
         removeTempEdge();
     };
@@ -1220,6 +1243,32 @@
                     name: 'Settings',
                     tabContentId: 'connection-settings-tab-content'
                 }]
+            });
+
+            // initialize the load balance strategy combo
+            $('#load-balance-strategy-combo').combo({
+                options: nfCommon.loadBalanceStrategyOptions,
+                select: function (selectedOption) {
+                    // Show the appropriate configurations
+                    if (selectedOption.value === 'PARTITION_BY_ATTRIBUTE') {
+                        $('#load-balance-partition-attribute-setting-separator').show();
+                        $('#load-balance-partition-attribute-setting').show();
+                    } else {
+                        $('#load-balance-partition-attribute-setting-separator').hide();
+                        $('#load-balance-partition-attribute-setting').hide();
+                    }
+                    if (selectedOption.value === 'DO_NOT_LOAD_BALANCE') {
+                        $('#load-balance-compression-setting').hide();
+                    } else {
+                        $('#load-balance-compression-setting').show();
+                    }
+                }
+            });
+
+
+            // initialize the load balance compression combo
+            $('#load-balance-compression-combo').combo({
+                options: nfCommon.loadBalanceCompressionOptions
             });
 
             // load the processor prioritizers
@@ -1392,6 +1441,15 @@
                     $('#flow-file-expiration').val(connection.flowFileExpiration);
                     $('#back-pressure-object-threshold').val(connection.backPressureObjectThreshold);
                     $('#back-pressure-data-size-threshold').val(connection.backPressureDataSizeThreshold);
+
+                    // select the load balance combos
+                    $('#load-balance-strategy-combo').combo('setSelectedOption', {
+                        value: connection.loadBalanceStrategy
+                    });
+                    $('#load-balance-compression-combo').combo('setSelectedOption', {
+                        value: connection.loadBalanceCompression
+                    });
+                    $('#load-balance-partition-attribute').val(connection.loadBalancePartitionAttribute);
 
                     // format the connection id
                     nfCommon.populateField('connection-id', connection.id);

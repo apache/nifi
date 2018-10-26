@@ -141,6 +141,10 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     @Override
     public boolean isFull() {
+        return isFull(size());
+    }
+
+    protected boolean isFull(final QueueSize queueSize) {
         final MaxQueueSize maxSize = getMaxQueueSize();
 
         // Check if max size is set
@@ -148,7 +152,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             return false;
         }
 
-        final QueueSize queueSize = size();
         if (maxSize.getMaxCount() > 0 && queueSize.getObjectCount() >= maxSize.getMaxCount()) {
             return true;
         }

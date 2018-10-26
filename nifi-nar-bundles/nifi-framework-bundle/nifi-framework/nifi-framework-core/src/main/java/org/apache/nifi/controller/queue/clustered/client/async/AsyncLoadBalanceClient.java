@@ -39,6 +39,8 @@ public interface AsyncLoadBalanceClient {
 
     void unregister(String connectionId);
 
+    int getRegisteredConnectionCount();
+
     boolean isRunning();
 
     boolean isPenalized();

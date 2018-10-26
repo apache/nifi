@@ -40,10 +40,10 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     }
 
     @Override
-    public void authorize(final Collection<String> clientIdentities) throws NotAuthorizedException {
+    public String authorize(final Collection<String> clientIdentities) throws NotAuthorizedException {
         if (clientIdentities == null) {
             logger.debug("Client Identities is null, so assuming that Load Balancing communications are not secure. Authorizing client to participate in Load Balancing");
-            return;
+            return null;
         }
 
         final Set<String> nodeIds = clusterCoordinator.getNodeIdentifiers().stream()
@@ -53,7 +53,7 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
         for (final String clientId : clientIdentities) {
             if (nodeIds.contains(clientId)) {
                 logger.debug("Client ID '{}' is in the list of Nodes in the Cluster. Authorizing Client to Load Balance data", clientId);
-                return;
+                return clientId;
             }
         }
 

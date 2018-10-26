@@ -15,6 +15,12 @@ The following binary components are provided under the Apache Software License v
         Apache Commons Pool
         Copyright 1999-2009 The Apache Software Foundation.
 
+    (ASLv2) Spring Framework
+        The following NOTICE information applies:
+          Spring Framework 5.1.0.RELEASE
+          Copyright (c) 2002-2018 Pivotal, Inc.
+
+
 ************************
 The MIT License
 ************************
@@ -23,11 +29,3 @@ The following binary components are provided under the MIT License.  See project
 
   (MIT License) Jedis (redis.clients:jedis:2.9.0 - https://github.com/xetorthio/jedis)
 
-
-*****************
-Public Domain
-*****************
-
-The following binary components are provided to the 'Public Domain'.  See project link for details.
-
-    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)

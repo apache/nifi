@@ -17,7 +17,6 @@
 
 package org.apache.nifi.csv;
 
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
@@ -79,7 +78,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             return value;
         }
 
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") && (value.length() > 1) ? value.substring(1, value.length() - 1) : value;
+        final String trimmed = trim(value);
         if (trimmed.isEmpty()) {
             return null;
         }
@@ -92,7 +91,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             return value;
         }
 
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
+        final String trimmed = trim(value);
         if (trimmed.isEmpty()) {
             return null;
         }
@@ -130,6 +129,10 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         }
 
         return value;
+    }
+
+    private String trim(String value) {
+        return (value.length() > 1) && value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
     }
 
     @Override

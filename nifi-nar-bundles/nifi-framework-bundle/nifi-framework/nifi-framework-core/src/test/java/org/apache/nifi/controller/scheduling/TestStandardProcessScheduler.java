@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -53,7 +33,6 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor;
@@ -91,6 +70,28 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardProcessScheduler {
 
@@ -136,7 +137,7 @@ public class TestStandardProcessScheduler {
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
         Mockito.doAnswer(new Answer<ProcessorNode>() {
             @Override
-            public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
+            public ProcessorNode answer(InvocationOnMock invocation) {
                 final String id = invocation.getArgumentAt(0, String.class);
                 return processorMap.get(id);
             }
@@ -144,7 +145,7 @@ public class TestStandardProcessScheduler {
 
         Mockito.doAnswer(new Answer<Object>() {
             @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
+            public Object answer(InvocationOnMock invocation) {
                 final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
@@ -169,7 +170,7 @@ public class TestStandardProcessScheduler {
      * run. This unit test is intended to verify that we have this resolved.
      */
     @Test
-    public void testReportingTaskDoesntKeepRunningAfterStop() throws InterruptedException, InitializationException {
+    public void testReportingTaskDoesntKeepRunningAfterStop() throws InterruptedException {
         taskNode.performValidation();
         scheduler.schedule(taskNode);
 
@@ -221,18 +222,18 @@ public class TestStandardProcessScheduler {
 
         scheduler.stopProcessor(procNode);
         assertTrue(service.isActive());
-        assertTrue(service.getState() == ControllerServiceState.ENABLING);
+        assertSame(service.getState(), ControllerServiceState.ENABLING);
         scheduler.disableControllerService(service);
-        assertTrue(service.getState() == ControllerServiceState.DISABLING);
+        assertSame(service.getState(), ControllerServiceState.DISABLING);
         assertFalse(service.isActive());
 
         while (service.getState() != ControllerServiceState.DISABLED) {
             Thread.sleep(5L);
         }
-        assertTrue(service.getState() == ControllerServiceState.DISABLED);
+        assertSame(service.getState(), ControllerServiceState.DISABLED);
     }
 
-    private class TestReportingTask extends AbstractReportingTask {
+    public class TestReportingTask extends AbstractReportingTask {
 
         private final AtomicBoolean failOnScheduled = new AtomicBoolean(true);
         private final AtomicInteger onScheduleAttempts = new AtomicInteger(0);
@@ -253,7 +254,7 @@ public class TestStandardProcessScheduler {
         }
     }
 
-    private static class ServiceReferencingProcessor extends AbstractProcessor {
+    public static class ServiceReferencingProcessor extends AbstractProcessor {
 
         static final PropertyDescriptor SERVICE_DESC = new PropertyDescriptor.Builder()
                 .name("service")
@@ -413,7 +414,7 @@ public class TestStandardProcessScheduler {
          * services, shut down processors etc) before shutting down itself
          */
         assertTrue(serviceNode.isActive());
-        assertTrue(serviceNode.getState() == ControllerServiceState.ENABLING);
+        assertSame(serviceNode.getState(), ControllerServiceState.ENABLING);
     }
 
     /**
@@ -421,11 +422,11 @@ public class TestStandardProcessScheduler {
      * be disabled. This test is set up in such way that disabling of the
      * service could be initiated by both disable and enable methods. In other
      * words it tests two conditions in
-     * {@link StandardControllerServiceNode#disable(java.util.concurrent.ScheduledExecutorService, Heartbeater)}
+     * {@link StandardControllerServiceNode#disable(ScheduledExecutorService)}
      * where the disabling of the service can be initiated right there (if
      * ENABLED), or if service is still enabling its disabling will be deferred
      * to the logic in
-     * {@link StandardControllerServiceNode#enable(java.util.concurrent.ScheduledExecutorService, long, Heartbeater)}
+     * {@link StandardControllerServiceNode#enable(ScheduledExecutorService, long)}
      * IN any even the resulting state of the service is DISABLED
      */
     @Test
@@ -454,7 +455,7 @@ public class TestStandardProcessScheduler {
             });
             Thread.sleep(100);
             assertFalse(serviceNode.isActive());
-            assertTrue(serviceNode.getState() == ControllerServiceState.DISABLED);
+            assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
         }
 
         // need to sleep a while since we are emulating async invocations on

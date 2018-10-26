@@ -16,16 +16,30 @@
  */
 package org.wali;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class DummyRecordSerde implements SerDe<DummyRecord> {
+    private static final int INLINE_RECORD_INDICATOR = 1;
+    private static final int EXTERNAL_FILE_INDICATOR = 8;
 
     private int throwIOEAfterNserializeEdits = -1;
     private int throwOOMEAfterNserializeEdits = -1;
     private int serializeEditCount = 0;
+
+    private final Set<File> externalFilesWritten = new HashSet<>();
+    private Queue<DummyRecord> externalRecords;
 
     @SuppressWarnings("fallthrough")
     @Override
@@ -37,6 +51,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
             throw new OutOfMemoryError("Serialized " + (serializeEditCount - 1) + " records successfully, so now it's time to throw OOME");
         }
 
+        out.write(INLINE_RECORD_INDICATOR);
         out.writeUTF(record.getUpdateType().name());
         out.writeUTF(record.getId());
 
@@ -72,6 +87,57 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     @Override
     @SuppressWarnings("fallthrough")
     public DummyRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+        if (externalRecords != null) {
+            final DummyRecord record = externalRecords.poll();
+            if (record != null) {
+                return record;
+            }
+
+            externalRecords = null;
+        }
+
+        final int recordLocationIndicator = in.read();
+        if (recordLocationIndicator == EXTERNAL_FILE_INDICATOR) {
+            final String externalFilename = in.readUTF();
+            final File externalFile = new File(externalFilename);
+
+            try (final InputStream fis = new FileInputStream(externalFile);
+                 final InputStream bufferedIn = new BufferedInputStream(fis);
+                 final DataInputStream dis = new DataInputStream(bufferedIn)) {
+
+                externalRecords = new LinkedBlockingQueue<>();
+
+                DummyRecord record;
+                while ((record = deserializeRecordInline(dis, version, true)) != null) {
+                    externalRecords.offer(record);
+                }
+
+                return externalRecords.poll();
+            }
+        } else if (recordLocationIndicator == INLINE_RECORD_INDICATOR) {
+            return deserializeRecordInline(in, version, false);
+        } else {
+            throw new IOException("Encountered invalid record location indicator: " + recordLocationIndicator);
+        }
+    }
+
+    @Override
+    public boolean isMoreInExternalFile() {
+        return externalRecords != null && !externalRecords.isEmpty();
+    }
+
+    private DummyRecord deserializeRecordInline(final DataInputStream in, final int version, final boolean expectInlineRecordIndicator) throws IOException {
+        if (expectInlineRecordIndicator) {
+            final int locationIndicator = in.read();
+            if (locationIndicator < 0) {
+                return null;
+            }
+
+            if (locationIndicator != INLINE_RECORD_INDICATOR) {
+                throw new IOException("Expected inline record indicator but encountered " + locationIndicator);
+            }
+        }
+
         final String updateTypeName = in.readUTF();
         final UpdateType updateType = UpdateType.valueOf(updateTypeName);
         final String id = in.readUTF();
@@ -134,5 +200,22 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     @Override
     public String getLocation(final DummyRecord record) {
         return record.getSwapLocation();
+    }
+
+    @Override
+    public boolean isWriteExternalFileReferenceSupported() {
+        return true;
+    }
+
+    @Override
+    public void writeExternalFileReference(final File externalFile, final DataOutputStream out) throws IOException {
+        out.write(EXTERNAL_FILE_INDICATOR);
+        out.writeUTF(externalFile.getAbsolutePath());
+
+        externalFilesWritten.add(externalFile);
+    }
+
+    public Set<File> getExternalFileReferences() {
+        return Collections.unmodifiableSet(externalFilesWritten);
     }
 }

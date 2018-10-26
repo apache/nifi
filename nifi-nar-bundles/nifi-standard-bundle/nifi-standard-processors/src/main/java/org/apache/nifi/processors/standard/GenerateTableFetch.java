@@ -290,7 +290,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
             String columnsClause = null;
             List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
-            maxValueSelectColumns.add("COUNT(*)");
+
+            // replace unnecessary row count with -1 stub value when paging is used
+            if (useColumnValsForPaging) {
+                maxValueSelectColumns.add("-1");
+            } else {
+                maxValueSelectColumns.add("COUNT(*)");
+            }
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
             IntStream.range(0, numMaxValueColumns).forEach((index) -> {
