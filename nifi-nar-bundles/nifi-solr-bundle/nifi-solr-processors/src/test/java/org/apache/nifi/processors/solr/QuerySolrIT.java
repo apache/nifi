@@ -34,6 +34,7 @@ import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xmlunit.matchers.CompareMatcher;
 
@@ -55,6 +56,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
+@Ignore
 public class QuerySolrIT {
     /*
 

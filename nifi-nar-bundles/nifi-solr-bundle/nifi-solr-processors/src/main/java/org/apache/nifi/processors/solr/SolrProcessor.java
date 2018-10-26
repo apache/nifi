@@ -28,10 +28,10 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.krb.KerberosAction;
-import org.apache.nifi.security.krb.KerberosUser;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.security.krb.KeytabAction;
+import org.apache.nifi.security.krb.KeytabUser;
+import org.apache.nifi.security.krb.StandardKeytabUser;
+import org.apache.nifi.services.solr.SolrClientService;
 import org.apache.solr.client.solrj.SolrClient;
 
 import javax.security.auth.login.LoginException;
@@ -46,6 +46,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.createSolrClient;
 import static org.apache.nifi.processors.solr.SolrUtils.validateConnectionDetails;
 
 /**
@@ -59,23 +60,32 @@ public abstract class SolrProcessor extends AbstractProcessor {
     private volatile String basicUsername;
     private volatile String basicPassword;
     private volatile boolean basicAuthEnabled = false;
+    private volatile boolean usedControllerService = false;
 
     private volatile KerberosUser kerberosUser;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
-        this.solrLocation =  context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
-        this.basicUsername = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
-        this.basicPassword = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isBlank(basicUsername) && !StringUtils.isBlank(basicPassword)) {
-            basicAuthEnabled = true;
-        }
+        if (context.getProperty(CLIENT_SERVICE).isSet()) {
+            SolrClientService client = context.getProperty(CLIENT_SERVICE).asControllerService(SolrClientService.class);
+            solrClient = client.getClient();
+            usedControllerService = true;
+        } else {
+            this.solrLocation = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
+            this.basicUsername = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
+            this.basicPassword = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
+            if (!StringUtils.isBlank(basicUsername) && !StringUtils.isBlank(basicPassword)) {
+                basicAuthEnabled = true;
+            }
 
-        this.solrClient = createSolrClient(context, solrLocation);
+            this.solrClient = createSolrClient(context, solrLocation);
 
-        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (kerberosCredentialsService != null) {
-            this.kerberosUser = createKeytabUser(kerberosCredentialsService);
+            final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            if (kerberosCredentialsService != null) {
+                this.kerberosUser = createKeytabUser(kerberosCredentialsService);
+            }
+
+            usedControllerService = false;
         }
     }
 
@@ -85,13 +95,14 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
     @OnStopped
     public final void closeClient() {
-        if (solrClient != null) {
-            try {
-                solrClient.close();
-            } catch (IOException e) {
-                getLogger().debug("Error closing SolrClient", e);
+        if (!usedControllerService) {
+            if (solrClient != null) {
+                try {
+                    solrClient.close();
+                } catch (IOException e) {
+                    getLogger().debug("Error closing SolrClient", e);
+                }
             }
-        }
 
         if (kerberosUser != null) {
             try {
@@ -136,7 +147,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
      * @return an HttpSolrClient or CloudSolrClient
      */
     protected SolrClient createSolrClient(final ProcessContext context, final String solrLocation) {
-        return SolrUtils.createSolrClient(context, solrLocation);
+        return createSolrClient(context, solrLocation);
     }
 
     /**

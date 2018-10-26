@@ -30,7 +30,7 @@
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
             <version>${solr.version}</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
