@@ -297,16 +297,27 @@ public class ReplaceText extends AbstractProcessor {
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
-            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
-            session.transfer(flowFile, REL_FAILURE);
+            sendToFailure(session, flowFile, logger, e);
+            return;
+        } catch (RuntimeException e) {
+            // The exceptions for expression language are not available at compile time. It ignores other types
+            // of exceptions.
+            if (!e.getClass().getName().startsWith("org.apache.nifi.attribute.expression.language.exception")) {
+                throw e;
+            }
+            sendToFailure(session, flowFile, logger, e);
             return;
         }
-
         logger.info("Transferred {} to 'success'", new Object[] {flowFile});
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
+    private static void sendToFailure(final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
+            Throwable e) {
+        logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
+        session.transfer(flowFile, REL_FAILURE);
+    }
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
     // groups and the Replacement Value has the value is "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather
