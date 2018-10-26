@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -69,7 +71,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -265,17 +266,18 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("table-schema-cache-size")
+            .displayName("Table Schema Cache Size")
+            .description("Specifies how many Table Schemas should be cached")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("100")
+            .required(true)
+            .build();
+
     protected static List<PropertyDescriptor> propDescriptors;
 
-    private final Map<SchemaKey, TableSchema> schemaCache = new LinkedHashMap<SchemaKey, TableSchema>(100) {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<SchemaKey, TableSchema> eldest) {
-            return size() >= 100;
-        }
-    };
-
+    private Cache<SchemaKey, TableSchema> schemaCache;
 
     static {
         final Set<Relationship> r = new HashSet<>();
@@ -300,6 +302,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
+        pds.add(TABLE_SCHEMA_CACHE_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -410,9 +413,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        synchronized (this) {
-            schemaCache.clear();
-        }
+        final int tableSchemaCacheSize = context.getProperty(TABLE_SCHEMA_CACHE_SIZE).asInteger();
+        schemaCache = Caffeine.newBuilder()
+                .maximumSize(tableSchemaCacheSize)
+                .build();
 
         process = new Put<>();
 
@@ -582,19 +586,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         // cached but the primary keys will not be retrieved, causing future UPDATE statements to not have primary keys available
         final boolean includePrimaryKeys = updateKeys == null;
 
-        // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
-        // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
-        // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
-        // Java Heap if there are a lot of different SQL statements being generated that reference different tables.
-        TableSchema tableSchema;
-        synchronized (this) {
-            tableSchema = schemaCache.get(schemaKey);
-            if (tableSchema == null) {
-                // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
-                tableSchema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
-                schemaCache.put(schemaKey, tableSchema);
+        TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
+            try {
+                return TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+            } catch (SQLException e) {
+                throw new ProcessException(e);
             }
-        }
+        });
         if (tableSchema == null) {
             throw new IllegalArgumentException("No table schema specified!");
         }
