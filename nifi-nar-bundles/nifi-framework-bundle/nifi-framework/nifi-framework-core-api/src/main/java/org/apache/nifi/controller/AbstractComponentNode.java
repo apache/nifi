@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
@@ -57,6 +37,26 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
@@ -85,17 +85,16 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                                  final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
-                                 final boolean isExtensionMissing) {
+                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
         this.name = new AtomicReference<>(componentType);
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
+        this.reloadComponent = reloadComponent;
         this.variableRegistry = variableRegistry;
         this.validationTrigger = validationTrigger;
-        this.reloadComponent = reloadComponent;
         this.extensionManager = extensionManager;
         this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
     }

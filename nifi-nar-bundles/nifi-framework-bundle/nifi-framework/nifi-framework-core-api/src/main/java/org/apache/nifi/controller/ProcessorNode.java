@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.Connectable;
@@ -39,6 +31,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class ProcessorNode extends AbstractComponentNode implements Connectable {
 
@@ -176,6 +176,8 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      *            initiate processor <i>start</i> task
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
+     * @param timeoutMillis the number of milliseconds to wait after triggering the Processor's @OnScheduled methods before timing out and considering
+     * the startup a failure. This will result in the thread being interrupted and trying again.
      * @param processContext
      *            the instance of {@link ProcessContext}
      * @param schedulingAgentCallback
@@ -186,8 +188,8 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
      *            will throw an {@link IllegalStateException}.
      */
-    public abstract void start(ScheduledExecutorService scheduler,
-        long administrativeYieldMillis, ProcessContext processContext, SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
+    public abstract void start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, ProcessContext processContext,
+                               SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
 
     /**
      * Will stop the {@link Processor} represented by this {@link ProcessorNode}.

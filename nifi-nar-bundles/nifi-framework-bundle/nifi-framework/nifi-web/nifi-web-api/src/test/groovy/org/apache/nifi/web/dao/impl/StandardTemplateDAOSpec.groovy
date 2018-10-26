@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl
 
 import org.apache.nifi.authorization.Authorizer
 import org.apache.nifi.controller.FlowController
+import org.apache.nifi.controller.flow.FlowManager
 import org.apache.nifi.controller.serialization.FlowEncodingVersion
 import org.apache.nifi.controller.service.ControllerServiceProvider
 import org.apache.nifi.groups.ProcessGroup
@@ -39,6 +40,8 @@ class StandardTemplateDAOSpec extends Specification {
     def "test InstantiateTemplate moves and scales templates"() {
         given:
         def flowController = Mock FlowController
+        def flowManager = Mock FlowManager
+        flowController.flowManager >> flowManager
         def snippetUtils = new SnippetUtils()
         snippetUtils.flowController = flowController
         def dtoFactory = new DtoFactory()
@@ -68,7 +71,7 @@ class StandardTemplateDAOSpec extends Specification {
         def instantiatedTemplate = standardTemplateDAO.instantiateTemplate(rootGroupId, newOriginX, newOriginY, encodingVersion, snippet, idGenerationSeed)
 
         then:
-        flowController.getGroup(_) >> { String gId ->
+        flowManager.getGroup(_) >> { String gId ->
             def pg = Mock ProcessGroup
             pg.identifier >> gId
             pg.inputPorts >> []
@@ -76,9 +79,8 @@ class StandardTemplateDAOSpec extends Specification {
             pg.processGroups >> []
             return pg
         }
-        flowController.rootGroupId >> rootGroupId
-        flowController.instantiateSnippet(*_) >> {}
-        0 * _
+        flowManager.rootGroupId >> rootGroupId
+        flowManager.instantiateSnippet(*_) >> {}
 
         def instantiatedComponents = [instantiatedTemplate.connections + instantiatedTemplate.inputPorts + instantiatedTemplate.outputPorts + instantiatedTemplate.labels +
                                               instantiatedTemplate.processGroups + instantiatedTemplate.processGroups + instantiatedTemplate.processors + instantiatedTemplate.funnels +
@@ -119,7 +121,7 @@ class StandardTemplateDAOSpec extends Specification {
                 processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0001-c4af042cb1559", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0000-c4af042cb1559", 
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0000-c4af042cb1559",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
                                 contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0002-c4af042cb1559", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),

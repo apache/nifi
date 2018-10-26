@@ -71,7 +71,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     private Authorizer authorizer;
 
     private Connection locateConnection(final String connectionId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Connection connection = rootGroup.findConnection(connectionId);
 
         if (connection == null) {
@@ -83,7 +83,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
     @Override
     public boolean hasConnection(String id) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findConnection(id) != null;
     }
 
@@ -159,7 +159,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             newPrioritizers = new ArrayList<>();
             for (final String className : newPrioritizersClasses) {
                 try {
-                    newPrioritizers.add(flowController.createPrioritizer(className));
+                    newPrioritizers.add(flowController.getFlowManager().createPrioritizer(className));
                 } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
                     throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                 }
@@ -267,7 +267,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     public Connection createConnection(final String groupId, final ConnectionDTO connectionDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        if (isNotNull(connectionDTO.getParentGroupId()) && !flowController.areGroupsSame(connectionDTO.getParentGroupId(), groupId)) {
+        if (isNotNull(connectionDTO.getParentGroupId()) && !flowController.getFlowManager().areGroupsSame(connectionDTO.getParentGroupId(), groupId)) {
             throw new IllegalStateException("Cannot specify a different Parent Group ID than the Group to which the Connection is being added");
         }
 

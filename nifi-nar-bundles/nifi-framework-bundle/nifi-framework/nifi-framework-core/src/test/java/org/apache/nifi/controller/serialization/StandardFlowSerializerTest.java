@@ -102,9 +102,11 @@ public class StandardFlowSerializerTest {
 
     @Test
     public void testSerializationEscapingAndFiltering() throws Exception {
-        final ProcessorNode dummy = controller.createProcessor(DummyScheduledProcessor.class.getName(), UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+        final ProcessorNode dummy = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(),
+            UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+
         dummy.setComments(RAW_COMMENTS);
-        controller.getRootGroup().addProcessor(dummy);
+        controller.getFlowManager().getRootGroup().addProcessor(dummy);
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();

@@ -428,7 +428,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
-        if (classLoader != null && (classLoader instanceof URLClassLoader)) {
+        if ((classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {
                 urlClassLoader.close();

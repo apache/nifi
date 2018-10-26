@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -58,7 +59,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public ProcessGroup createProcessGroup(String parentGroupId, ProcessGroupDTO processGroup) {
-        if (processGroup.getParentGroupId() != null && !flowController.areGroupsSame(processGroup.getParentGroupId(), parentGroupId)) {
+        final FlowManager flowManager = flowController.getFlowManager();
+        if (processGroup.getParentGroupId() != null && !flowManager.areGroupsSame(processGroup.getParentGroupId(), parentGroupId)) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Process Group is being added.");
         }
 
@@ -66,7 +68,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         ProcessGroup parentGroup = locateProcessGroup(flowController, parentGroupId);
 
         // create the process group
-        ProcessGroup group = flowController.createProcessGroup(processGroup.getId());
+        ProcessGroup group = flowManager.createProcessGroup(processGroup.getId());
         if (processGroup.getName() != null) {
             group.setName(processGroup.getName());
         }
@@ -83,7 +85,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public boolean hasProcessGroup(String groupId) {
-        return flowController.getGroup(groupId) != null;
+        return flowController.getFlowManager().getGroup(groupId) != null;
     }
 
     @Override
@@ -156,8 +158,10 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyActivateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
+        final FlowManager flowManager = flowController.getFlowManager();
+
         final Set<ControllerServiceNode> serviceNodes = serviceIds.stream()
-            .map(flowController::getControllerServiceNode)
+            .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toSet());
 
         for (final ControllerServiceNode serviceNode : serviceNodes) {
@@ -174,7 +178,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         // We do this, rather than calling ProcessGroup.findLocalConnectable because for any component that is buried several
         // layers of Process Groups deep, that method becomes quite a bit more expensive than this method, due to all of the
         // Read Locks that must be obtained while recursing through the Process Group's descendant groups.
-        final Connectable connectable = flowController.findLocalConnectable(componentId);
+        final Connectable connectable = flowController.getFlowManager().findConnectable(componentId);
         if (connectable == null) {
             throw new ResourceNotFoundException("Could not find Component with ID " + componentId);
         }
@@ -283,14 +287,15 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public Future<Void> activateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
+        final FlowManager flowManager = flowController.getFlowManager();
         final List<ControllerServiceNode> serviceNodes = serviceIds.stream()
-            .map(flowController::getControllerServiceNode)
+            .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
 
         if (state == ControllerServiceState.ENABLED) {
-            return flowController.enableControllerServicesAsync(serviceNodes);
+            return flowController.getControllerServiceProvider().enableControllerServicesAsync(serviceNodes);
         } else {
-            return flowController.disableControllerServicesAsync(serviceNodes);
+            return flowController.getControllerServiceProvider().disableControllerServicesAsync(serviceNodes);
         }
     }
 
@@ -329,7 +334,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String registryName = flowRegistry == null ? registryId : flowRegistry.getName();
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
-        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController, flowController.getFlowRegistryClient(), false);
+        final VersionedProcessGroup flowSnapshot = mapper.mapProcessGroup(group, flowController.getControllerServiceProvider(), flowController.getFlowRegistryClient(), false);
 
         final StandardVersionControlInformation vci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .registryName(registryName)
@@ -393,7 +398,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyDeleteFlowRegistry(String registryId) {
-        final ProcessGroup rootGroup = flowController.getRootGroup();
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
 
         final VersionControlInformation versionControlInformation = rootGroup.getVersionControlInformation();
         if (versionControlInformation != null && versionControlInformation.getRegistryIdentifier().equals(registryId)) {
