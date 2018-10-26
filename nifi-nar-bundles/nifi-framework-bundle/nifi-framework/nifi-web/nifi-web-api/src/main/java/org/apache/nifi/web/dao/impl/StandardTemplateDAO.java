@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.StandardFlowSnippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.TemplateUtils;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -45,7 +46,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     private Template locateTemplate(String templateId) {
         // get the template
-        Template template = flowController.getGroup(flowController.getRootGroupId()).findTemplate(templateId);
+        Template template = flowController.getFlowManager().getRootGroup().findTemplate(templateId);
 
         // ensure the template exists
         if (template == null) {
@@ -57,7 +58,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     @Override
     public void verifyCanAddTemplate(String name, String groupId) {
-        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
@@ -70,13 +71,14 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
-    public void verifyComponentTypes(FlowSnippetDTO snippet) {
-        flowController.verifyComponentTypesInSnippet(snippet);
+    public void verifyComponentTypes(FlowSnippetDTO snippetDto) {
+        final StandardFlowSnippet flowSnippet = new StandardFlowSnippet(snippetDto, flowController.getExtensionManager());
+        flowSnippet.verifyComponentTypesInSnippet();
     }
 
     @Override
     public Template createTemplate(TemplateDTO templateDTO, String groupId) {
-        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
@@ -123,7 +125,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
             childProcessGroups.stream().forEach(processGroup -> org.apache.nifi.util.SnippetUtils.scaleSnippet(processGroup.getContents(), factorX, factorY));
 
             // instantiate the template into this group
-            flowController.instantiateSnippet(group, snippet);
+            flowController.getFlowManager().instantiateSnippet(group, snippet);
 
             return snippet;
         } catch (ProcessorInstantiationException pie) {
@@ -149,7 +151,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     @Override
     public Set<Template> getTemplates() {
         final Set<Template> templates = new HashSet<>();
-        for (final Template template : flowController.getGroup(flowController.getRootGroupId()).findAllTemplates()) {
+        for (final Template template : flowController.getFlowManager().getRootGroup().findAllTemplates()) {
             templates.add(template);
         }
         return templates;

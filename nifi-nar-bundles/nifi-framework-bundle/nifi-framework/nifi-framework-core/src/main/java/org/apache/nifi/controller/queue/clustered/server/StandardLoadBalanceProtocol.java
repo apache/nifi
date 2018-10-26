@@ -236,7 +236,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        final Connection connection = flowController.getConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
         if (connection == null) {
             logger.error("Attempted to receive FlowFiles from Peer {} for Connection with ID {} but no connection exists with that ID", peerDescription, connectionId);
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but no Connection exists with that ID");

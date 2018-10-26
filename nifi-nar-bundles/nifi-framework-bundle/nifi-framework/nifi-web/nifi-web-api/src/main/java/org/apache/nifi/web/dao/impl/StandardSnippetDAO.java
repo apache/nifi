@@ -62,7 +62,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY, final String idGenerationSeed) {
         try {
             // ensure the parent group exist
-            final ProcessGroup processGroup = flowController.getGroup(groupId);
+            final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
             if (processGroup == null) {
                 throw new IllegalArgumentException("The specified parent process group could not be found");
             }
@@ -71,7 +71,7 @@ public class StandardSnippetDAO implements SnippetDAO {
             Snippet existingSnippet = getSnippet(snippetId);
 
             // get the process group
-            ProcessGroup existingSnippetProcessGroup = flowController.getGroup(existingSnippet.getParentGroupId());
+            ProcessGroup existingSnippetProcessGroup = flowController.getFlowManager().getGroup(existingSnippet.getParentGroupId());
 
             // ensure the group could be found
             if (existingSnippetProcessGroup == null) {
@@ -94,7 +94,7 @@ public class StandardSnippetDAO implements SnippetDAO {
 
             try {
                 // instantiate the snippet and return the contents
-                flowController.instantiateSnippet(processGroup, snippetContents);
+                flowController.getFlowManager().instantiateSnippet(processGroup, snippetContents);
                 return snippetContents;
             } catch (IllegalStateException ise) {
                 // illegal state will be thrown from instantiateSnippet when there is an issue with the snippet _before_ any of the
@@ -143,7 +143,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
 
         // ensure the parent group exist
-        final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(snippet.getParentGroupId());
         if (processGroup == null) {
             throw new IllegalArgumentException("The specified parent process group could not be found.");
         }
@@ -158,7 +158,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         final Snippet snippet = locateSnippet(snippetId);
 
         // ensure the parent group exist
-        final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(snippet.getParentGroupId());
         if (processGroup == null) {
             throw new IllegalArgumentException("The specified parent process group could not be found.");
         }
@@ -176,7 +176,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         final Snippet snippet = locateSnippet(snippetId);
 
         // remove the contents
-        final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(snippet.getParentGroupId());
         if (processGroup == null) {
             throw new IllegalArgumentException("The specified parent process group could not be found.");
         }
@@ -209,13 +209,13 @@ public class StandardSnippetDAO implements SnippetDAO {
         // if the group is changing move it
         if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             // get the current process group
-            final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+            final ProcessGroup processGroup = flowController.getFlowManager().getGroup(snippet.getParentGroupId());
             if (processGroup == null) {
                 throw new IllegalArgumentException("The specified parent process group could not be found.");
             }
 
             // get the new process group
-            final ProcessGroup newProcessGroup = flowController.getGroup(snippetDTO.getParentGroupId());
+            final ProcessGroup newProcessGroup = flowController.getFlowManager().getGroup(snippetDTO.getParentGroupId());
             if (newProcessGroup == null) {
                 throw new IllegalArgumentException("The new process group could not be found.");
             }
@@ -235,12 +235,12 @@ public class StandardSnippetDAO implements SnippetDAO {
 
         // if the group is changing move it
         if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
-            final ProcessGroup currentProcessGroup = flowController.getGroup(snippet.getParentGroupId());
+            final ProcessGroup currentProcessGroup = flowController.getFlowManager().getGroup(snippet.getParentGroupId());
             if (currentProcessGroup == null) {
                 throw new IllegalArgumentException("The current process group could not be found.");
             }
 
-            final ProcessGroup newProcessGroup = flowController.getGroup(snippetDTO.getParentGroupId());
+            final ProcessGroup newProcessGroup = flowController.getFlowManager().getGroup(snippetDTO.getParentGroupId());
             if (newProcessGroup == null) {
                 throw new IllegalArgumentException("The new process group could not be found.");
             }
@@ -277,7 +277,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     private void lookupSensitiveProcessorProperties(final Set<ProcessorDTO> processors) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
 
         // go through each processor
         for (final ProcessorDTO processorDTO : processors) {
@@ -313,7 +313,7 @@ public class StandardSnippetDAO implements SnippetDAO {
             final Map<String, String> serviceProperties = serviceDTO.getProperties();
             if (serviceProperties != null) {
                 // find the corresponding controller service
-                final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(serviceDTO.getId());
+                final ControllerServiceNode serviceNode = flowController.getFlowManager().getControllerServiceNode(serviceDTO.getId());
                 if (serviceNode == null) {
                     throw new IllegalArgumentException(String.format("Unable to create snippet because Controller Service '%s' could not be found", serviceDTO.getId()));
                 }

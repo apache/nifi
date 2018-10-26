@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -134,7 +135,9 @@ public class TestStandardLoadBalanceProtocol {
         }).when(contentRepo).write(Mockito.any(ContentClaim.class));
 
         final Connection connection = Mockito.mock(Connection.class);
-        when(flowController.getConnection(Mockito.anyString())).thenReturn(connection);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
 
         flowFileQueue = Mockito.mock(LoadBalancedFlowFileQueue.class);
         when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);

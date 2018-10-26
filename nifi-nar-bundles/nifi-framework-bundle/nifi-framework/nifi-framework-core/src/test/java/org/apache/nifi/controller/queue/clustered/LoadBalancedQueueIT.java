@@ -27,6 +27,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
@@ -95,7 +96,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -167,7 +167,9 @@ public class LoadBalancedQueueIT {
         doAnswer(invocation -> compressionReference.get()).when(serverQueue).getLoadBalanceCompression();
 
         flowController = mock(FlowController.class);
-        when(flowController.getConnection(anyString())).thenReturn(connection);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
 
         // Create repos for the server
         serverRepoRecords = Collections.synchronizedList(new ArrayList<>());

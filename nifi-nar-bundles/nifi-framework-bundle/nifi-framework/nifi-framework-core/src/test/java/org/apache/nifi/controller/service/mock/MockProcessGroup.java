@@ -277,13 +277,17 @@ public class MockProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
         processorMap.put(processor.getIdentifier(), processor);
-        flowController.onProcessorAdded(processor);
+        if (flowController.getFlowManager() != null) {
+            flowController.getFlowManager().onProcessorAdded(processor);
+        }
     }
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         processorMap.remove(processor.getIdentifier());
-        flowController.onProcessorRemoved(processor);
+        if (flowController.getFlowManager() != null) {
+            flowController.getFlowManager().onProcessorRemoved(processor);
+        }
     }
 
     @Override

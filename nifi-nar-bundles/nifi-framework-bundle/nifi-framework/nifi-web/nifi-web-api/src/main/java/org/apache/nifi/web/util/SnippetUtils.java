@@ -102,7 +102,7 @@ public final class SnippetUtils {
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
-        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
 
         // ensure the group could be found
         if (processGroup == null) {
@@ -366,7 +366,7 @@ public final class SnippetUtils {
             if (descriptor.getControllerServiceDefinition() != null) {
                 final String controllerServiceId = entry.getValue();
                 if (controllerServiceId != null) {
-                    final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(controllerServiceId);
+                    final ControllerServiceNode serviceNode = flowController.getFlowManager().getControllerServiceNode(controllerServiceId);
                     if (serviceNode != null) {
                         serviceDtos.add(dtoFactory.createControllerServiceDto(serviceNode));
 
