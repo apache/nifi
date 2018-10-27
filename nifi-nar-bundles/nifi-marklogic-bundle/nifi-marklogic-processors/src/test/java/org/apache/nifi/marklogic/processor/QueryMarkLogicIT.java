@@ -87,7 +87,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
     public void testSimpleCollectionQuery() throws InitializationException {
         TestRunner runner = getNewTestRunner(QueryMarkLogic.class);
         runner.setProperty(QueryMarkLogic.QUERY, collection);
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, numDocs);
@@ -137,7 +137,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
                 "      } \n" +
                 "  }\n" +
                 "} }");
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedJsonCount);
@@ -164,7 +164,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
                 "  <cts:element>sample</cts:element>\n" +
                 "  <cts:text xml:lang=\"en\">xmlcontent</cts:text>\n" +
                 "</cts:element-value-query>");
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_XML.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_XML);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
@@ -200,7 +200,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
                 "    ]\n" +
                 "  }\n" +
                 "}");
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_JSON.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_JSON);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedJsonCount);
@@ -229,7 +229,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
                 "    <text>xmlcontent</text>\n" +
                 "  </word-query>\n" +
                 "</query>");
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_XML.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_XML);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
@@ -254,7 +254,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
     public void testStringQuery() throws InitializationException, SAXException, IOException, ParserConfigurationException {
         TestRunner runner = getNewTestRunner(QueryMarkLogic.class);
         runner.setProperty(QueryMarkLogic.QUERY, "xmlcontent");
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRING.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRING);
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(QueryMarkLogic.SUCCESS, expectedXmlCount);
@@ -278,7 +278,7 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
     public void testJobProperties() throws InitializationException {
         TestRunner runner = getNewTestRunner(QueryMarkLogic.class);
         runner.setProperty(QueryMarkLogic.QUERY, collection);
-        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.name());
+        runner.setProperty(QueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION);
         runner.run();
         Processor processor = runner.getProcessor();
         if(processor instanceof QueryMarkLogic) {

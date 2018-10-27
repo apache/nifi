@@ -38,7 +38,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         initialize(processor);
         processContext.setProperty(TestQueryMarkLogic.THREAD_COUNT.getName(), "5");
         processContext.setProperty(TestQueryMarkLogic.BATCH_SIZE, "15");
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.getValue());
         processContext.setProperty(TestQueryMarkLogic.QUERY, "test");
         processContext.setProperty(TestQueryMarkLogic.DATABASE_CLIENT_SERVICE, databaseClientServiceIdentifier);
     }
@@ -48,7 +48,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COLLECTION.getValue());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         TestQueryBatcher queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();
@@ -62,7 +62,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_JSON.getValue());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();
@@ -76,7 +76,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_XML.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.COMBINED_XML.getValue());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();
@@ -92,7 +92,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
 
         processContext.setProperty(TestQueryMarkLogic.CONSISTENT_SNAPSHOT, "false");
 
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_JSON.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_JSON.getValue());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();
@@ -106,7 +106,7 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
         StringHandle handle;
         TestQueryBatcher queryBatcher;
 
-        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_XML.name());
+        processContext.setProperty(TestQueryMarkLogic.QUERY_TYPE, QueryMarkLogic.QueryTypes.STRUCTURED_XML.getValue());
         processor.initialize(initializationContext);
         processor.onTrigger(processContext, mockProcessSessionFactory);
         queryBatcher = (TestQueryBatcher) processor.getQueryBatcher();

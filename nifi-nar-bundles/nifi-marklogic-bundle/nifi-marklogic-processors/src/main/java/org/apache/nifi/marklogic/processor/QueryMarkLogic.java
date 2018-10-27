@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -98,7 +99,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         .description("Type of query that will be used to retrieve data from MarkLogic")
         .required(true)
         .allowableValues(QueryTypes.values())
-        .defaultValue(QueryTypes.COMBINED_JSON.name())
+        .defaultValue(QueryTypes.COMBINED_JSON.getValue())
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -208,15 +209,15 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         String collectionsValue = context.getProperty(COLLECTIONS).getValue();
         if (!(collectionsValue == null || "".equals(collectionsValue))) {
             queryValue = collectionsValue;
-            queryTypeValue = QueryTypes.COLLECTION.name();
+            queryTypeValue = QueryTypes.COLLECTION.getValue();
         } else {
             queryValue = queryProperty.evaluateAttributeExpressions(flowFile).getValue();
             queryTypeValue = context.getProperty(QUERY_TYPE).getValue();
         }
         if (queryValue != null) {
             final QueryManager queryManager = databaseClient.newQueryManager();
-            switch (QueryTypes.valueOf(queryTypeValue)) {
-                case COLLECTION:
+            switch (queryTypeValue) {
+                case QueryTypes.COLLECTION_STR:
                     String[] collections = getArrayFromCommaSeparatedString(queryValue);
                     if (collections != null) {
                         StructuredQueryDefinition query = queryManager.newStructuredQueryBuilder()
@@ -224,20 +225,20 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
                         queryBatcher = dataMovementManager.newQueryBatcher(query);
                     }
                     break;
-                case COMBINED_JSON:
+                case QueryTypes.COMBINED_JSON_STR:
                     queryBatcher = batcherFromCombinedQuery(dataMovementManager, queryManager, queryValue, Format.JSON);
                     break;
-                case COMBINED_XML:
+                case QueryTypes.COMBINED_XML_STR:
                     queryBatcher = batcherFromCombinedQuery(dataMovementManager, queryManager, queryValue, Format.XML);
                     break;
-                case STRING:
+                case QueryTypes.STRING_STR:
                     StringQueryDefinition strDef = queryManager.newStringDefinition().withCriteria(queryValue);
                     queryBatcher = dataMovementManager.newQueryBatcher(strDef);
                     break;
-                case STRUCTURED_JSON:
+                case QueryTypes.STRUCTURED_JSON_STR:
                     queryBatcher = batcherFromStructuredQuery(dataMovementManager, queryManager, queryValue, Format.JSON);
                     break;
-                case STRUCTURED_XML:
+                case QueryTypes.STRUCTURED_XML_STR:
                     queryBatcher = batcherFromStructuredQuery(dataMovementManager, queryManager, queryValue, Format.XML);
                     break;
                 default:
@@ -278,25 +279,41 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         return dataMovementManager.newQueryBatcher(qdef);
     }
 
-    public enum QueryTypes {
-        COLLECTION("Collection Query"),
-        COMBINED_JSON("Combined Query (JSON)"),
-        COMBINED_XML("Combined Query (XML)"),
-        STRING("String Query"),
-        STRUCTURED_JSON("Structured Query (JSON)"),
-        STRUCTURED_XML("Structured Query (XML)");
-        private final String text;
+    public static class QueryTypes {
+        public static final String COLLECTION_STR = "Collection Query";
+        public static final AllowableValue COLLECTION = new AllowableValue(COLLECTION_STR, COLLECTION_STR,
+                "Comma-separated list of collections to query from a MarkLogic server");
+        public static final String COMBINED_JSON_STR = "Combined Query (JSON)";
+        public static final AllowableValue COMBINED_JSON = new AllowableValue(COMBINED_JSON_STR, COMBINED_JSON_STR,
+                "Combine a string or structured query with dynamic query options (Allows JSON serialized cts queries)");
+        public static final String COMBINED_XML_STR = "Combined Query (XML)";
+        public static final AllowableValue COMBINED_XML = new AllowableValue(COMBINED_XML_STR, COMBINED_XML_STR,
+                "Combine a string or structured query with dynamic query options (Allows XML serialized cts queries)");
+        public static final String STRING_STR = "String Query";
+        public static final AllowableValue STRING = new AllowableValue(STRING_STR, STRING_STR,
+                "A Google-style query string to search documents and metadata.");
+        public static final String STRUCTURED_JSON_STR = "Structured Query (JSON)";
+        public static final AllowableValue STRUCTURED_JSON = new AllowableValue(STRUCTURED_JSON_STR, STRUCTURED_JSON_STR,
+                "A simple and easy way to construct queries as a JSON structure, allowing you to manipulate complex queries");
+        public static final String STRUCTURED_XML_STR = "Structured Query (XML)";
+        public static final AllowableValue STRUCTURED_XML = new AllowableValue(STRUCTURED_XML_STR, STRUCTURED_XML_STR,
+                "A simple and easy way to construct queries as a XML structure, allowing you to manipulate complex queries");
 
-        /**
-         * @param text Display text for Query Type enumerators
-         */
-        QueryTypes(final String text) {
-           this.text = text;
-       }
+        public static final AllowableValue[] allValues = new AllowableValue[] { COLLECTION, COMBINED_JSON, COMBINED_XML, STRING, STRUCTURED_JSON, STRUCTURED_XML };
 
-        @Override
-        public String toString() {
-           return text;
-       }
+        public static AllowableValue[] values() {
+            return allValues;
+        }
+
+        public static AllowableValue valueOf(String valueString) {
+            AllowableValue value = null;
+            for (int i = 0; i < allValues.length; i++) {
+                if (allValues[i].getValue().equals(valueString)) {
+                    value = allValues[i];
+                    break;
+                }
+            }
+            return value;
+        }
     }
 }
