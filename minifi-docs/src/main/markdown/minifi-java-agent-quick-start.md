@@ -55,33 +55,33 @@ You can also install MiNiFi as a service:
 bin/minifi.sh install
 ```
 **Note:** You can also specify a custom name for your MiNiFi installation, by specifying that name during your install command. For example, to install MiNiFi as a service and named dataflow, enter:
-
 ```
 bin/minifi.sh install dataflow
 ```
-Once you have downloaded and installed MiNiFi, you need to start MiNiF. You can start NiFi in the foreground, background, or as a service.
+Once you have downloaded and installed MiNiFi, you need to start MiNiFi. You can start NiFi in the foreground, background, or as a service.
 
 To launch MiNiFi in the foreground:
 
-1. From a terminal window, navigate to the MiNiFi installation directory.Enter:
-
+1. From a terminal window, navigate to the MiNiFi installation directory.
+2. Enter:
 ```
 bin/minifi.sh run
 ```
 To launch MiNiFi in the background:
+
 1. From a terminal window, navigate to the MiNiFi installation directory.
 2. Enter:
 ```
 bin/minifi.sh start
 ```
-
 To launch MiNiFi as a service:
+
 1. From a terminal window, enter:
 ```
 sudo service minifi start
 ```
 ## For Windows Users
-For Windows users, navigate to the folder where MiNiFi was installed. Navigate to the /bin subdirectory and double-click the run-minifi.bat file.
+For Windows users, navigate to the folder where MiNiFi was installed. Navigate to the `/bin` subdirectory and double-click the _run-minifi.bat_ file.
 
 This launches MiNiFi and leaves it running in the foreground. To shut down NiFi, select the window that was launched and hold the Ctrl key while pressing C.
 
@@ -99,14 +99,15 @@ You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, a
 ```
 config.sh transform input_file output_file
 ```
-6. Move your new .yml file to minifi/conf.
-7. Rename your .yml file config.yml.
+6. Move your new .yml file to `minifi/conf`.
+7. Rename your .yml file _config.yml_.
+
 **Note:** You can use one template at a time, per MiNiFi instance.
 
 
-**Result:** Once you have your config.yml file in the minifi/conf directory, launch that instance of MiNiFi and your dataflow begins automatically.
+**Result:** Once you have your _config.yml_ file in the `minifi/conf` directory, launch that instance of MiNiFi and your dataflow begins automatically.
 
-##Using Processors Not Packaged with MiNiFi
+## Using Processors Not Packaged with MiNiFi
 MiNiFi is able to use following processors out of the box:
 * UpdateAttribute
 * AttributesToJSON
@@ -174,9 +175,10 @@ MiNiFi is able to use following processors out of the box:
 
 MiNiFi is able to use the StandardSSLContextService out of the box.
 
-If you want to create a dataflow with a processor not shipped with MiNiFi, you can do so.
+If you want to create a dataflow with a processor not shipped with MiNiFi, you can do so by following these steps:
+
 1. Set up your dataflow as described above.
-2. Copy the desired NAR file into the MiNiFi lib directory.
+2. Copy the desired NAR file into the MiNiFi `lib` directory.
 3. Restart your MiNiFi instance.
 
 **Note:** The following processors are also a part of the default distribution but require adding a NAR for a Controller Service not packaged by default. The processors are grouped by the NAR that is required.
@@ -199,11 +201,11 @@ If you want to create a dataflow with a processor not shipped with MiNiFi, you c
 # Securing your Dataflow
 You can secure your MiNiFi dataflow using keystore or trust store SSL protocols, however, this information is not automatically generated. You will need to generate your security configuration information yourself.
 
-To run a MiNiFi dataflow securely, modify the Security Properties section of your config.yml file.
-1. Create your dataflow template as discussed above.
-2. Move it to minifi.conf and rename config.yml.
-3. Manually modify the Security Properties section of config.yml. For example:
+To run a MiNiFi dataflow securely:
 
+1. Create your dataflow template as discussed above.
+2. Move it to `minifi/conf` and rename _config.yml_.
+3. Manually modify the Security Properties section of _config.yml_. For example:
 ```
 Security Properties:
 keystore:  
@@ -224,52 +226,56 @@ provider: BC
 You can also perform some management tasks using MiNiFi.
 
 ## Monitoring Status
-You can use the minifi.sh flowStatus option to monitor a range of aspects of your MiNiFi operational and dataflow status. You can use the flowStatus option to get information dataflow component health and functionality, a MiNiFi instance, or system diagnostics.
+You can use the `minifi.sh flowStatus` option to monitor a range of aspects of your MiNiFi operational and dataflow status. You can use the `flowStatus` option to get information about dataflow component health and functionality, a MiNiFi instance, or system diagnostics.
 
 FlowStatus accepts the following flags and options:
-* processors
-  * health
-  * bulletins
-  * status
-* connections
-  * health
-  * stats
-* remoteProcessGroups
-  * health
-  * bulletins
-  * status
-  * authorizationIssues
-  * inputPorts
-* controllerServices
-  * health
-  * bulletins
-* provenancereporting
-  * health
-  * bulletins
-* instance
-  * health
-  * bulletins
-  * status
-* systemdiagnostics
-  * heap
-  * processorstats
-  * contentrepositoryusage
-  * flowfilerepositoryusage
-  * garbagecollection
+* `processor`
+  * `health`
+  * `bulletins`
+  * `status`
+* `connection`
+  * `health`
+  * `stats`
+* `remoteProcessGroup`
+  * `health`
+  * `bulletins`
+  * `status`
+  * `authorizationIssues`
+  * `inputPorts`
+* `controllerServices`
+  * `health`
+  * `bulletins`
+* `provenancereporting`
+  * `health`
+  * `bulletins`
+* `instance`
+  * `health`
+  * `bulletins`
+  * `status`
+* `systemdiagnostics`
+  * `heap`
+  * `processorstats`
+  * `contentrepositoryusage`
+  * `flowfilerepositoryusage`
+  * `garbagecollection`
 
-For example, this query gets the health, stats, and bulletins for the TailFile processors:
+For example, this query gets the health, stats, and bulletins for the TailFile processor:
+
+```
+minifi.sh flowStatus processor:TailFile:health,stats,bulletins
+```
 
 **Note:** Currently, the script only accepts one high level option at a time.
 
 **Note:** Any connections, remote process groups or processors names that contain ":", ";" or "," will cause parsing errors when querying.
 
-For details on the flowStatus option, see the _FlowStatus Query Option_ section of the [Administration Guide](http://nifi.apache.org/minifi/system-admin-guide.html).
+For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administration Guide](http://nifi.apache.org/minifi/system-admin-guide.html).
 
 ## Loading a New Dataflow
 You can load a new dataflow for a MiNiFi instance to run:
 
-1. Create a new config.yml file with the new dataflow.
-2. Replace the existing config.yml in minifi/conf with the new file.
+1. Create a new _config.yml_ file with the new dataflow.
+2. Replace the existing _config.yml_ in `minifi/conf` with the new file.
 3. Restart MiNiFi.
 
 ## Stopping MiNiFi
