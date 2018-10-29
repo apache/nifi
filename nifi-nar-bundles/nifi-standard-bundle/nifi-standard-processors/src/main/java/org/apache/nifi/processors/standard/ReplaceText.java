@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
+import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -299,12 +301,7 @@ public class ReplaceText extends AbstractProcessor {
             // do not log the StackOverflowError stack trace
             sendToFailure(session, flowFile, logger, e);
             return;
-        } catch (RuntimeException e) {
-            // The exceptions for expression language are not available at compile time. It ignores other types
-            // of exceptions.
-            if (!e.getClass().getName().startsWith("org.apache.nifi.attribute.expression.language.exception")) {
-                throw e;
-            }
+        } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
             sendToFailure(session, flowFile, logger, e);
             return;
         }
