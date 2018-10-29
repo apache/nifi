@@ -21,7 +21,7 @@ import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
@@ -68,7 +68,7 @@ public class AccessControlHelper {
         // load extensions
         final Bundle systemBundle = SystemBundle.create(props);
         NarClassLoadersHolder.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
+        ExtensionManagerHolder.getInstance().discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
 
         // start the server
         server = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);

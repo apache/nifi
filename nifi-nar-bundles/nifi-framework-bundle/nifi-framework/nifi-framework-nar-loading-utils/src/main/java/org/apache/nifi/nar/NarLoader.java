@@ -45,17 +45,20 @@ public class NarLoader {
     private File extensionsWorkingDir;
     private File docsWorkingDir;
     private NarClassLoaders narClassLoaders;
+    private ExtensionManager extensionManager;
     private ExtensionMapping extensionMapping;
     private ExtensionUiLoader extensionUiLoader;
 
     public NarLoader(final File extensionsWorkingDir,
                      final File docsWorkingDir,
                      final NarClassLoaders narClassLoaders,
+                     final ExtensionManager extensionManager,
                      final ExtensionMapping extensionMapping,
                      final ExtensionUiLoader extensionUiLoader) {
         this.extensionsWorkingDir = extensionsWorkingDir;
         this.docsWorkingDir = docsWorkingDir;
         this.narClassLoaders = narClassLoaders;
+        this.extensionManager = extensionManager;
         this.extensionMapping = extensionMapping;
         this.extensionUiLoader = extensionUiLoader;
     }
@@ -90,19 +93,19 @@ public class NarLoader {
 
         if (!loadedBundles.isEmpty()) {
             LOGGER.debug("Discovering extensions...");
-            ExtensionManager.discoverExtensions(loadedBundles);
+            extensionManager.discoverExtensions(loadedBundles);
 
             // Call the DocGenerator for the classes that were loaded from each Bundle
             for (final Bundle bundle : loadedBundles) {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-                final Set<Class> extensions = ExtensionManager.getTypes(bundleCoordinate);
+                final Set<Class> extensions = extensionManager.getTypes(bundleCoordinate);
                 if (extensions.isEmpty()) {
                     LOGGER.debug("No documentation to generate for {} because no extensions were found",
                             new Object[]{bundleCoordinate.getCoordinate()});
                 } else {
                     LOGGER.debug("Generating documentation for {} extensions in {}",
                             new Object[]{extensions.size(), bundleCoordinate.getCoordinate()});
-                    DocGenerator.documentConfigurableComponent(extensions, docsWorkingDir);
+                    DocGenerator.documentConfigurableComponent(extensions, docsWorkingDir, extensionManager);
                 }
             }
 
@@ -131,7 +134,7 @@ public class NarLoader {
 
             final BundleCoordinate coordinate = new BundleCoordinate(groupId, narId, version);
 
-            final Bundle bundle = ExtensionManager.getBundle(coordinate);
+            final Bundle bundle = extensionManager.getBundle(coordinate);
             if (bundle != null) {
                 LOGGER.warn("Found existing bundle with coordinate {}, will not load {}",
                         new Object[]{coordinate, narFile.getAbsolutePath()});

@@ -441,7 +441,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final StringEncryptor encryptor,
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient) {
+            final FlowRegistryClient flowRegistryClient,
+            final ExtensionManager extensionManager) {
 
         return new FlowController(
                 flowFileEventRepo,
@@ -456,7 +457,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 /* heartbeat monitor */ null,
                 /* leader election manager */ null,
                 /* variable registry */ variableRegistry,
-                flowRegistryClient);
+                flowRegistryClient,
+                extensionManager);
     }
 
     public static FlowController createClusteredInstance(
@@ -471,7 +473,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient) {
+            final FlowRegistryClient flowRegistryClient,
+            final ExtensionManager extensionManager) {
 
         final FlowController flowController = new FlowController(
                 flowFileEventRepo,
@@ -486,7 +489,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 heartbeatMonitor,
                 leaderElectionManager,
                 variableRegistry,
-                flowRegistryClient);
+                flowRegistryClient,
+                extensionManager);
 
         return flowController;
     }
@@ -505,7 +509,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final HeartbeatMonitor heartbeatMonitor,
             final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry,
-            final FlowRegistryClient flowRegistryClient) {
+            final FlowRegistryClient flowRegistryClient,
+            final ExtensionManager extensionManager) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
         maxEventDrivenThreads = new AtomicInteger(5);
@@ -513,14 +518,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.encryptor = encryptor;
         this.nifiProperties = nifiProperties;
         this.heartbeatMonitor = heartbeatMonitor;
-        sslContext = SslContextFactory.createSslContext(nifiProperties);
-        extensionManager = new ExtensionManager();
+        this.sslContext = SslContextFactory.createSslContext(nifiProperties);
+        this.extensionManager = extensionManager;
         this.clusterCoordinator = clusterCoordinator;
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
 
-        final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, resourceClaimManager);
+        final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
         flowFileRepository = flowFileRepo;
         flowFileEventRepository = flowFileEventRepo;
         counterRepositoryRef = new AtomicReference<>(new StandardCounterRepository());
@@ -542,7 +547,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, this.variableRegistry);
+            this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, this.variableRegistry, extensionManager);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
@@ -553,7 +558,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
 
         eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
-            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor);
+            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor);
@@ -743,7 +748,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return ResourceFactory.getControllerResource();
     }
 
-    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {
+    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ExtensionManager extensionManager, final ResourceClaimManager contentClaimManager) {
         final String implementationClassName = properties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION, DEFAULT_FLOWFILE_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create FlowFile Repository because the NiFi Properties is missing the following property: "
@@ -751,7 +756,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            final FlowFileRepository created = NarThreadContextClassLoader.createInstance(implementationClassName, FlowFileRepository.class, properties);
+            final FlowFileRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, FlowFileRepository.class, properties);
             synchronized (created) {
                 created.initialize(contentClaimManager);
             }
@@ -761,14 +766,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    private static FlowFileSwapManager createSwapManager(final NiFiProperties properties) {
+    private static FlowFileSwapManager createSwapManager(final NiFiProperties properties, final ExtensionManager extensionManager) {
         final String implementationClassName = properties.getProperty(NiFiProperties.FLOWFILE_SWAP_MANAGER_IMPLEMENTATION, DEFAULT_SWAP_MANAGER_IMPLEMENTATION);
         if (implementationClassName == null) {
             return null;
         }
 
         try {
-            return NarThreadContextClassLoader.createInstance(implementationClassName, FlowFileSwapManager.class, properties);
+            return NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, FlowFileSwapManager.class, properties);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -876,7 +881,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void notifyComponentsConfigurationRestored() {
         for (final ProcessorNode procNode : getGroup(getRootGroupId()).findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
             }
         }
@@ -884,7 +889,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -892,7 +897,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass(), task.getIdentifier())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
             }
         }
@@ -1020,7 +1025,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            final ContentRepository contentRepo = NarThreadContextClassLoader.createInstance(implementationClassName, ContentRepository.class, properties);
+            final ContentRepository contentRepo = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ContentRepository.class, properties);
             synchronized (contentRepo) {
                 contentRepo.initialize(resourceClaimManager);
             }
@@ -1038,7 +1043,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            return NarThreadContextClassLoader.createInstance(implementationClassName, ProvenanceRepository.class, properties);
+            return NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ProvenanceRepository.class, properties);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -1052,7 +1057,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            return NarThreadContextClassLoader.createInstance(implementationClassName, ComponentStatusRepository.class, nifiProperties);
+            return NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ComponentStatusRepository.class, nifiProperties);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -1083,7 +1088,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // Create and initialize a FlowFileSwapManager for this connection
-        final FlowFileSwapManager swapManager = createSwapManager(nifiProperties);
+        final FlowFileSwapManager swapManager = createSwapManager(nifiProperties, extensionManager);
         final EventReporter eventReporter = createEventReporter(getBulletinRepository());
 
         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -1288,12 +1293,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProcessorNode procNode;
         if (creationSuccessful) {
             procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider,
-                nifiProperties, componentVarRegistry, this, validationTrigger);
+                nifiProperties, componentVarRegistry, this, extensionManager, validationTrigger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
             procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider,
-                componentType, type, nifiProperties, componentVarRegistry, this, validationTrigger, true);
+                componentType, type, nifiProperties, componentVarRegistry, this, extensionManager, validationTrigger, true);
         }
 
         if (registerLogObserver) {
@@ -1331,7 +1336,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         if (firstTimeAdded) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
                 if (registerLogObserver) {
@@ -1341,7 +1346,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             if (firstTimeAdded) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
             }
@@ -1353,14 +1358,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private LoggableComponent<Processor> instantiateProcessor(final String type, final String identifier, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
             throws ProcessorInstantiationException {
 
-        final Bundle processorBundle = ExtensionManager.getBundle(bundleCoordinate);
+        final Bundle processorBundle = extensionManager.getBundle(bundleCoordinate);
         if (processorBundle == null) {
             throw new ProcessorInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
         }
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForInstance = ExtensionManager.createInstanceClassLoader(type, identifier, processorBundle, additionalUrls);
+            final ClassLoader detectedClassLoaderForInstance = extensionManager.createInstanceClassLoader(type, identifier, processorBundle, additionalUrls);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForInstance);
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForInstance);
 
@@ -1400,7 +1405,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // createProcessor will create a new instance class loader for the same id so
         // save the instance class loader to use it for calling OnRemoved on the existing processor
-        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
         // create a new node with firstTimeAdded as true so lifecycle methods get fired
         // attempt the creation to make sure it works before firing the OnRemoved methods below
@@ -1412,7 +1417,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final StandardProcessContext processContext = new StandardProcessContext(existingNode, controllerServiceProvider, encryptor, stateManager, () -> false);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
-            ExtensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+            extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
 
         // set the new processor in the existing node
@@ -1655,7 +1660,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(
+                        extensionManager, serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
                 }
@@ -1664,7 +1670,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
                 final ConfigurationContext configContext = taskNode.getConfigurationContext();
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
                 }
             }
@@ -1987,7 +1993,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final List<ControllerServiceNode> serviceNodes = new ArrayList<>();
             try {
                 for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                    final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+                    final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                     final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, Collections.emptySet(), true);
                     serviceNode.pauseValidationTrigger();
                     serviceNodes.add(serviceNode);
@@ -2097,7 +2103,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate the processors
             //
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
-                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle());
+                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, processorDTO.getType(), processorDTO.getBundle());
                 final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
                 procNode.pauseValidationTrigger();
 
@@ -2489,21 +2495,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
             final String name = c.getName();
-            processorClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+            processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInSnippet(templateContents, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
             final String name = c.getName();
-            controllerServiceClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+            controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInSnippet(templateContents, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
             prioritizerClasses.add(c.getName());
         }
 
@@ -2527,21 +2533,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public void verifyComponentTypesInSnippet(final VersionedProcessGroup versionedFlow) {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
             final String name = c.getName();
-            processorClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+            processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInVersionedFlow(versionedFlow, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
             final String name = c.getName();
-            controllerServiceClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+            controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInVersionedFlow(versionedFlow, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
+        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
             prioritizerClasses.add(c.getName());
         }
 
@@ -2666,7 +2672,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final List<Bundle> prioritizerBundles = ExtensionManager.getBundles(type);
+            final List<Bundle> prioritizerBundles = extensionManager.getBundles(type);
             if (prioritizerBundles.size() == 0) {
                 throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
@@ -2754,12 +2760,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     //
     @SuppressWarnings("rawtypes")
     public Set<Class> getFlowFileProcessorClasses() {
-        return ExtensionManager.getExtensions(Processor.class);
+        return extensionManager.getExtensions(Processor.class);
     }
 
     @SuppressWarnings("rawtypes")
     public Set<Class> getFlowFileComparatorClasses() {
-        return ExtensionManager.getExtensions(FlowFilePrioritizer.class);
+        return extensionManager.getExtensions(FlowFilePrioritizer.class);
     }
 
     /**
@@ -3677,12 +3683,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVarRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentVarRegistry, this, validationTrigger);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentVarRegistry,
+                    this, extensionManager, validationTrigger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, componentVarRegistry, this, validationTrigger, true);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, componentVarRegistry,
+                    this, extensionManager, validationTrigger, true);
         }
 
         taskNode.setName(taskNode.getReportingTask().getClass().getSimpleName());
@@ -3697,7 +3705,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + type, ie);
             }
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getReportingTask().getIdentifier())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getReportingTask().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
@@ -3721,12 +3729,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final Bundle reportingTaskBundle = ExtensionManager.getBundle(bundleCoordinate);
+            final Bundle reportingTaskBundle = extensionManager.getBundle(bundleCoordinate);
             if (reportingTaskBundle == null) {
                 throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
             }
 
-            final ClassLoader detectedClassLoader = ExtensionManager.createInstanceClassLoader(type, id, reportingTaskBundle, additionalUrls);
+            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, id, reportingTaskBundle, additionalUrls);
             final Class<?> rawClass = Class.forName(type, false, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
@@ -3763,7 +3771,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // createReportingTask will create a new instance class loader for the same id so
         // save the instance class loader to use it for calling OnRemoved on the existing processor
-        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
         // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
         // attempt the creation to make sure it works before firing the OnRemoved methods below
@@ -3773,7 +3781,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), existingNode.getConfigurationContext());
         } finally {
-            ExtensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+            extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
 
         // set the new reporting task into the existing node
@@ -3828,7 +3836,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         reportingTaskNode.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getReportingTask().getIdentifier())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getReportingTask().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
@@ -3849,7 +3857,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         LogRepositoryFactory.removeRepository(reportingTaskNode.getIdentifier());
         processScheduler.onReportingTaskRemoved(reportingTaskNode);
 
-        ExtensionManager.removeInstanceClassLoader(reportingTaskNode.getIdentifier());
+        extensionManager.removeInstanceClassLoader(reportingTaskNode.getIdentifier());
     }
 
     @Override
@@ -3875,7 +3883,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (firstTimeAdded) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -3899,7 +3907,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // createControllerService will create a new instance class loader for the same id so
         // save the instance class loader to use it for calling OnRemoved on the existing service
-        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        final ClassLoader existingInstanceClassLoader = extensionManager.getInstanceClassLoader(id);
 
         // create a new node with firstTimeAdded as true so lifecycle methods get called
         // attempt the creation to make sure it works before firing the OnRemoved methods below
@@ -3910,7 +3918,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, controllerServiceProvider, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
         } finally {
-            ExtensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+            extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
 
         // take the invocation handler that was created for new proxy and is set to look at the new node,
@@ -4059,7 +4067,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         service.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
@@ -4080,7 +4088,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         rootControllerServices.remove(service.getIdentifier());
         getStateManagerProvider().onComponentRemoved(service.getIdentifier());
 
-        ExtensionManager.removeInstanceClassLoader(service.getIdentifier());
+        extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
         LOG.info("{} removed from Flow Controller", service, this);
     }
@@ -4508,17 +4516,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
         final ProcessGroup rootGroup = getGroup(getRootGroupId());
         for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
         }
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
         }
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getIdentifier())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
         }
@@ -4920,7 +4928,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     @SuppressWarnings("rawtypes")
     public List<String> getComponentTypes() {
-        final Set<Class> procClasses = ExtensionManager.getExtensions(Processor.class);
+        final Set<Class> procClasses = extensionManager.getExtensions(Processor.class);
         final List<String> componentTypes = new ArrayList<>(procClasses.size() + 2);
         componentTypes.add(ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE);
         componentTypes.add(ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE);

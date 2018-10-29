@@ -174,6 +174,10 @@ public class ControllerFacade implements Authorizable {
         return flowController;
     }
 
+    public ExtensionManager getExtensionManager() {
+        return flowController.getExtensionManager();
+    }
+
     /**
      * Sets the name of this controller.
      *
@@ -211,7 +215,9 @@ public class ControllerFacade implements Authorizable {
      * @throws IllegalStateException if no temporary component exists for the given type and bundle
      */
     public ConfigurableComponent getTemporaryComponent(final String type, final BundleDTO bundle) {
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(type, BundleUtils.getBundle(type, bundle));
+        final ExtensionManager extensionManager = getExtensionManager();
+        final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, type, bundle);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(type, bundleCoordinate);
 
         if (configurableComponent == null) {
             throw new IllegalStateException("Unable to obtain temporary component for " + type);
@@ -451,7 +457,7 @@ public class ControllerFacade implements Authorizable {
      * @return types
      */
     public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(Processor.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
@@ -460,7 +466,7 @@ public class ControllerFacade implements Authorizable {
      * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class), null, null, null);
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(FlowFilePrioritizer.class), null, null, null);
     }
 
     /**
@@ -496,12 +502,12 @@ public class ControllerFacade implements Authorizable {
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
                                                             final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
 
-        final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
+        final Set<Class> serviceImplementations = getExtensionManager().getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
         if (serviceType != null) {
             final BundleCoordinate bundleCoordinate = new BundleCoordinate(serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion);
-            final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+            final Bundle csBundle = getExtensionManager().getBundle(bundleCoordinate);
             if (csBundle == null) {
                 throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
             }
@@ -521,7 +527,7 @@ public class ControllerFacade implements Authorizable {
             // check each type and remove those that aren't in the specified ancestry
             for (final Class csClass : serviceImplementations) {
                 if (implementsServiceType(serviceClass, csClass)) {
-                    matchingServiceImplementations.put(csClass, ExtensionManager.getBundle(csClass.getClassLoader()));
+                    matchingServiceImplementations.put(csClass, getExtensionManager().getBundle(csClass.getClassLoader()));
                 }
             }
 
@@ -540,7 +546,7 @@ public class ControllerFacade implements Authorizable {
      * @return the ReportingTask types that this controller supports
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**

@@ -60,6 +60,7 @@ public class StandardFlowSerializerTest {
 
     private FlowController controller;
     private Bundle systemBundle;
+    private ExtensionManager extensionManager;
     private StandardFlowSerializer serializer;
 
     @Before
@@ -78,14 +79,15 @@ public class StandardFlowSerializerTest {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
         final VariableRegistry variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
 
         serializer = new StandardFlowSerializer(encryptor);
     }

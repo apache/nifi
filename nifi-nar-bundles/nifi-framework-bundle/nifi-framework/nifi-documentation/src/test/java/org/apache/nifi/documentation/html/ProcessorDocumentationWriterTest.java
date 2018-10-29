@@ -32,6 +32,7 @@ import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.init.ProcessorInitializer;
+import org.apache.nifi.nar.ExtensionManager;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,11 +40,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testFullyDocumentedProcessor() throws IOException {
+        ExtensionManager extensionManager = new ExtensionManager();
+
         FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -114,11 +117,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testNakedProcessor() throws IOException {
+        ExtensionManager extensionManager = new ExtensionManager();
+
         NakedProcessor processor = new NakedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -152,11 +157,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testProcessorWithLoggerInitialization() throws IOException {
+        ExtensionManager extensionManager = new ExtensionManager();
+
         ProcessorWithLogger processor = new ProcessorWithLogger();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -170,11 +177,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testDeprecatedProcessor() throws IOException {
+        ExtensionManager extensionManager = new ExtensionManager();
+
         DeprecatedProcessor processor = new DeprecatedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

@@ -55,7 +55,6 @@ import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
@@ -1700,7 +1699,7 @@ public class ProcessGroupResource extends ApplicationResource {
             versionControlInfo.setState(flowState.name());
 
             // Step 3: Resolve Bundle info
-            BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+            serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
             // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
@@ -1729,7 +1728,8 @@ public class ProcessGroupResource extends ApplicationResource {
                     // for write access to the RestrictedComponents resource
                     final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
-                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents());
+                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(
+                                versionedFlowSnapshot.getFlowContents(), serviceFacade);
                         restrictedComponents.forEach(restrictedComponent -> {
                             final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                             authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
@@ -3142,14 +3142,14 @@ public class ProcessGroupResource extends ApplicationResource {
     private void discoverCompatibleBundles(final FlowSnippetDTO snippet) {
         if (snippet.getProcessors() != null) {
             snippet.getProcessors().forEach(processor -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(processor.getType(), processor.getBundle());
+                final BundleCoordinate coordinate = serviceFacade.getCompatibleBundle(processor.getType(), processor.getBundle());
                 processor.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
             });
         }
 
         if (snippet.getControllerServices() != null) {
             snippet.getControllerServices().forEach(controllerService -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerService.getType(), controllerService.getBundle());
+                final BundleCoordinate coordinate = serviceFacade.getCompatibleBundle(controllerService.getType(), controllerService.getBundle());
                 controllerService.setBundle(new BundleDTO(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion()));
             });
         }

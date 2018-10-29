@@ -37,9 +37,10 @@ public class NarThreadContextClassLoaderTest {
     public void validateWithPropertiesConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
         Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        ExtensionManager extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        Object obj = NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(),
+        Object obj = NarThreadContextClassLoader.createInstance(extensionManager, WithPropertiesConstructor.class.getName(),
                 WithPropertiesConstructor.class, properties);
         assertTrue(obj instanceof WithPropertiesConstructor);
         WithPropertiesConstructor withPropertiesConstructor = (WithPropertiesConstructor) obj;
@@ -52,16 +53,18 @@ public class NarThreadContextClassLoaderTest {
         additionalProperties.put("fail", "true");
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", additionalProperties);
         Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
-        NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(), WithPropertiesConstructor.class, properties);
+        ExtensionManager extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        NarThreadContextClassLoader.createInstance(extensionManager, WithPropertiesConstructor.class.getName(), WithPropertiesConstructor.class, properties);
     }
 
     @Test
     public void validateWithDefaultConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
         Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
-        assertTrue(NarThreadContextClassLoader.createInstance(WithDefaultConstructor.class.getName(),
+        ExtensionManager extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        assertTrue(NarThreadContextClassLoader.createInstance(extensionManager, WithDefaultConstructor.class.getName(),
                 WithDefaultConstructor.class, properties) instanceof WithDefaultConstructor);
     }
 

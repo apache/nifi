@@ -32,6 +32,7 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -46,8 +47,10 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public ProcessorNode(final String id,
                          final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                          final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                         final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
+                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
+                         final boolean isExtensionMissing) {
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+                extensionManager, validationTrigger, isExtensionMissing);
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 

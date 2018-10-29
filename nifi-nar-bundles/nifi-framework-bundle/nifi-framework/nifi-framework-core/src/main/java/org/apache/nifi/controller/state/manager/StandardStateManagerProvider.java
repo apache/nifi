@@ -70,16 +70,17 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         this.clusterStateProvider = clusterStateProvider;
     }
 
-    public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry) throws ConfigParseException, IOException {
+    public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
+            throws ConfigParseException, IOException {
         if (provider != null) {
             return provider;
         }
 
-        final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry);
+        final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry, extensionManager);
 
         final StateProvider clusterProvider;
         if (properties.isNode()) {
-            clusterProvider = createClusteredStateProvider(properties,variableRegistry);
+            clusterProvider = createClusteredStateProvider(properties,variableRegistry, extensionManager);
         } else {
             clusterProvider = null;
         }
@@ -88,20 +89,23 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         return provider;
     }
 
-    private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry) throws IOException, ConfigParseException {
+    private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
+            throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry);
+        return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager);
     }
 
 
-    private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry) throws IOException, ConfigParseException {
+    private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
+            throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry);
+        return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager);
     }
 
 
     private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties,
-                                                     final VariableRegistry variableRegistry) throws ConfigParseException, IOException {
+                                                     final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
+            throws ConfigParseException, IOException {
         final String providerId;
         final String providerIdPropertyName;
         final String providerDescription;
@@ -169,7 +173,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
 
         final StateProvider provider;
         try {
-            provider = instantiateStateProvider(providerClassName);
+            provider = instantiateStateProvider(extensionManager, providerClassName);
         } catch (final Exception e) {
             throw new RuntimeException("Cannot create " + providerDescription + " of type " + providerClassName, e);
         }
@@ -223,10 +227,10 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         return provider;
     }
 
-    private static StateProvider instantiateStateProvider(final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final List<Bundle> bundles = ExtensionManager.getBundles(type);
+            final List<Bundle> bundles = extensionManager.getBundles(type);
             if (bundles.size() == 0) {
                 throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }

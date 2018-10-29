@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
  * Utility class for Bundles.
  */
 public final class BundleUtils {
-    private static BundleCoordinate findBundleForType(final String type, final BundleCoordinate desiredCoordinate) {
-        final List<Bundle> bundles = ExtensionManager.getBundles(type);
+    private static BundleCoordinate findBundleForType(final ExtensionManager extensionManager, final String type, final BundleCoordinate desiredCoordinate) {
+        final List<Bundle> bundles = extensionManager.getBundles(type);
         if (bundles.isEmpty()) {
             throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
         } else if (bundles.size() > 1) {
@@ -44,18 +44,19 @@ public final class BundleUtils {
         }
     }
 
-    private static BundleCoordinate findCompatibleBundle(final String type, final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
+    private static BundleCoordinate findCompatibleBundle(final ExtensionManager extensionManager, final String type,
+                                                         final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
         final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
-        final Bundle bundle = ExtensionManager.getBundle(coordinate);
+        final Bundle bundle = extensionManager.getBundle(coordinate);
 
         if (bundle == null) {
             if (allowCompatibleBundle) {
-                return findBundleForType(type, coordinate);
+                return findBundleForType(extensionManager, type, coordinate);
             } else {
                 throw new IllegalStateException(String.format("%s from %s is not known to this NiFi instance.", type, coordinate));
             }
         } else {
-            final List<BundleCoordinate> bundlesForType = ExtensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
+            final List<BundleCoordinate> bundlesForType = extensionManager.getBundles(type).stream().map(b -> b.getBundleDetails().getCoordinate()).collect(Collectors.toList());
             if (bundlesForType.contains(coordinate)) {
                 return coordinate;
             } else {
@@ -91,11 +92,11 @@ public final class BundleUtils {
      * @return the bundle coordinate
      * @throws IllegalStateException bundle not found
      */
-    public static BundleCoordinate getBundle(final String type, final BundleDTO bundleDTO) {
+    public static BundleCoordinate getBundle(final ExtensionManager extensionManager, final String type, final BundleDTO bundleDTO) {
         if (bundleDTO == null) {
-            return findBundleForType(type, null);
+            return findBundleForType(extensionManager, type, null);
         } else {
-            return findCompatibleBundle(type, bundleDTO, false);
+            return findCompatibleBundle(extensionManager, type, bundleDTO, false);
         }
     }
 
@@ -132,11 +133,11 @@ public final class BundleUtils {
      * @return the bundle coordinate
      * @throws IllegalStateException no compatible bundle found
      */
-    public static BundleCoordinate getCompatibleBundle(final String type, final BundleDTO bundleDTO) {
+    public static BundleCoordinate getCompatibleBundle(final ExtensionManager extensionManager, final String type, final BundleDTO bundleDTO) {
         if (bundleDTO == null) {
-            return findBundleForType(type, null);
+            return findBundleForType(extensionManager, type, null);
         } else {
-            return findCompatibleBundle(type, bundleDTO, true);
+            return findCompatibleBundle(extensionManager, type, bundleDTO, true);
         }
     }
 
@@ -147,10 +148,10 @@ public final class BundleUtils {
      *
      * @param versionedGroup the versioned group
      */
-    public static void discoverCompatibleBundles(final VersionedProcessGroup versionedGroup) {
+    public static void discoverCompatibleBundles(final ExtensionManager extensionManager, final VersionedProcessGroup versionedGroup) {
         if (versionedGroup.getProcessors() != null) {
             versionedGroup.getProcessors().forEach(processor -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(processor.getType(), createBundleDto(processor.getBundle()));
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, processor.getType(), createBundleDto(processor.getBundle()));
 
                 final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
                 bundle.setArtifact(coordinate.getId());
@@ -162,7 +163,7 @@ public final class BundleUtils {
 
         if (versionedGroup.getControllerServices() != null) {
             versionedGroup.getControllerServices().forEach(controllerService -> {
-                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerService.getType(), createBundleDto(controllerService.getBundle()));
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle()));
 
                 final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
                 bundle.setArtifact(coordinate.getId());
@@ -174,7 +175,7 @@ public final class BundleUtils {
 
         if (versionedGroup.getProcessGroups() != null) {
             versionedGroup.getProcessGroups().forEach(processGroup -> {
-                discoverCompatibleBundles(processGroup);
+                discoverCompatibleBundles(extensionManager, processGroup);
             });
         }
     }

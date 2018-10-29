@@ -29,6 +29,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.ExtensionUiLoader;
 import org.apache.nifi.nar.NarAutoLoader;
@@ -915,10 +916,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public void start() {
         try {
-            ExtensionManager.discoverExtensions(systemBundle, bundles);
-            ExtensionManager.logClassLoaderMapping();
+            // initialize the singleton instance of ExtensionManager, will be made available to the Spring context via a factory bean
+            final ExtensionManager extensionManager = ExtensionManagerHolder.getInstance();
+            extensionManager.discoverExtensions(systemBundle, bundles);
+            extensionManager.logClassLoaderMapping();
 
-            DocGenerator.generate(props, extensionMapping);
+            DocGenerator.generate(props, extensionManager, extensionMapping);
 
             // start the server
             server.start();
@@ -1013,6 +1016,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     props.getExtensionsWorkingDirectory(),
                     props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
+                    ExtensionManagerHolder.getInstance(),
                     extensionMapping, this);
 
             narAutoLoader = new NarAutoLoader(props.getNarAutoLoadDirectory(), narLoader);

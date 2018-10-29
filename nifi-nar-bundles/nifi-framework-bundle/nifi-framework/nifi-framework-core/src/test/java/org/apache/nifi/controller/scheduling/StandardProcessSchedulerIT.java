@@ -46,6 +46,7 @@ public class StandardProcessSchedulerIT {
     private FlowController controller;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private ExtensionManager extensionManager;
     private volatile String propsFile = TestStandardProcessScheduler.class.getResource("/standardprocessschedulertest.nifi.properties").getFile();
 
     @Before
@@ -54,7 +55,8 @@ public class StandardProcessSchedulerIT {
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         controller = Mockito.mock(FlowController.class);
     }

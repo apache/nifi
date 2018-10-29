@@ -118,15 +118,16 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         ClassLoader cl = null;
         final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
         try {
             final Class<?> rawClass;
             try {
-                final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+                final Bundle csBundle = extensionManager.getBundle(bundleCoordinate);
                 if (csBundle == null) {
                     throw new ControllerServiceInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
                 }
 
-                cl = ExtensionManager.createInstanceClassLoader(type, id, csBundle, additionalUrls);
+                cl = extensionManager.createInstanceClassLoader(type, id, csBundle, additionalUrls);
                 Thread.currentThread().setContextClassLoader(cl);
                 rawClass = Class.forName(type, false, cl);
             } catch (final Exception e) {
@@ -138,7 +139,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
 
             final ControllerService originalService = controllerServiceClass.newInstance();
-            final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(originalService);
+            final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, originalService);
 
             // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
             final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(controllerServiceClass);
@@ -165,13 +166,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, componentVarRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                id, validationContextFactory, this, componentVarRegistry, flowController, validationTrigger);
+                id, validationContextFactory, this, componentVarRegistry, flowController, flowController.getExtensionManager(), validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
 
             if (firstTimeAdded) {
-                try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
+                try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), originalService.getClass(), originalService.getIdentifier())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
                 } catch (final Exception e) {
                     throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
@@ -244,7 +245,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
-            new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController, validationTrigger, true);
+            new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController,
+                flowController.getExtensionManager(), validationTrigger, true);
 
         serviceCache.putIfAbsent(id, serviceNode);
         return serviceNode;
@@ -710,7 +712,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         group.removeControllerService(serviceNode);
         LogRepositoryFactory.removeRepository(serviceNode.getIdentifier());
-        ExtensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+        extensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
         serviceCache.remove(serviceNode.getIdentifier());
     }
 
@@ -818,5 +821,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) throws IllegalArgumentException {
         throw new UnsupportedOperationException("Cannot obtain Controller Service Identifiers for service type " + serviceType + " without providing a Process Group Identifier");
+    }
+
+    @Override
+    public ExtensionManager getExtensionManager() {
+        return flowController.getExtensionManager();
     }
 }

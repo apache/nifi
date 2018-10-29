@@ -64,6 +64,7 @@ public class TestStandardReportingContext {
     private StringEncryptor encryptor;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private ExtensionManager extensionManager;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private FlowRegistryClient flowRegistry;
@@ -89,7 +90,8 @@ public class TestStandardReportingContext {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -132,7 +134,8 @@ public class TestStandardReportingContext {
         flowRegistry = Mockito.mock(FlowRegistryClient.class);
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry, flowRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor,
+                bulletinRepo, variableRegistry, flowRegistry, extensionManager);
     }
 
     @After

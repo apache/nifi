@@ -39,7 +39,9 @@ import java.util.Set;
 
 
 /**
- * A singleton class used to initialize the extension and framework classloaders.
+ * Used to initialize the extension and framework classloaders.
+ *
+ * The core framework should obtain a singleton reference from NarClassLoadersHolder.
  */
 public final class NarClassLoaders {
 

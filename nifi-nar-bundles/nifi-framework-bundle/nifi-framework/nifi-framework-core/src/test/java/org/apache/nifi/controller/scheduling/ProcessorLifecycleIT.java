@@ -654,12 +654,13 @@ public class ProcessorLifecycleIT {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, addProps);
 
         final Bundle systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        final ExtensionManager extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-            mock(FlowRegistryClient.class));
+            mock(FlowRegistryClient.class), extensionManager);
 
         return new FlowControllerAndSystemBundle(flowController, systemBundle);
     }

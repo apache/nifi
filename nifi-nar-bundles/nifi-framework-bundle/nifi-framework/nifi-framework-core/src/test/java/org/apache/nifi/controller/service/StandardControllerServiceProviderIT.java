@@ -49,6 +49,7 @@ import org.mockito.Mockito;
 public class StandardControllerServiceProviderIT {
     private static Bundle systemBundle;
     private static NiFiProperties niFiProperties;
+    private static ExtensionManager extensionManager;
     private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
     private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
@@ -81,7 +82,8 @@ public class StandardControllerServiceProviderIT {
 
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     /**
@@ -102,6 +104,7 @@ public class StandardControllerServiceProviderIT {
         final FlowController controller = Mockito.mock(FlowController.class);
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
             stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());

@@ -27,6 +27,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.nar.ExtensionManager;
 
 /**
  *
@@ -225,4 +226,10 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *         identifier
      */
     ControllerService getControllerServiceForComponent(String serviceIdentifier, String componentId);
+
+    /**
+     * @return the ExtensionManager used by this provider
+     */
+    ExtensionManager getExtensionManager();
+
 }

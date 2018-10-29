@@ -34,6 +34,7 @@ import org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElection;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,10 +135,11 @@ public class Cluster {
         final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
         final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor);
+        final ExtensionManager extensionManager = new ExtensionManager();
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
         final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
 
-        final Node node = new Node(nifiProperties, flowElection);
+        final Node node = new Node(nifiProperties, extensionManager, flowElection);
         node.start();
         nodes.add(node);
 

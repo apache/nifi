@@ -77,6 +77,7 @@ import java.util.concurrent.TimeUnit;
 public class Node {
     private final NodeIdentifier nodeId;
     private final NiFiProperties nodeProperties;
+    private final ExtensionManager extensionManager;
 
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
@@ -95,11 +96,11 @@ public class Node {
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
 
-    public Node(final NiFiProperties properties, final FlowElection flowElection) {
-        this(createNodeId(), properties, flowElection);
+    public Node(final NiFiProperties properties, final ExtensionManager extensionManager, final FlowElection flowElection) {
+        this(createNodeId(), properties, extensionManager, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final FlowElection flowElection) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionManager extensionManager, final FlowElection flowElection) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override
@@ -125,7 +126,8 @@ public class Node {
         };
 
         final Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        this.extensionManager = extensionManager;
 
         revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
@@ -163,7 +165,7 @@ public class Node {
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
             null, null, createEncryptorFromProperties(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
-            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class));
+            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager);
 
         try {
             flowController.initializeFlow();
@@ -301,7 +303,7 @@ public class Node {
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
         try {
             return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
-                    revisionManager, nodeProperties, protocolSender);
+                    revisionManager, nodeProperties, extensionManager, protocolSender);
         } catch (IOException e) {
             Assert.fail(e.toString());
             return null;

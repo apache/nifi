@@ -190,7 +190,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = nifiProperties.getAutoResumeState();
 
-        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor, nifiProperties);
+        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor, nifiProperties, controller.getExtensionManager());
         this.clusterCoordinator = clusterCoordinator;
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);

@@ -36,6 +36,7 @@ public class TestNarLoader {
 
     private NarLoader narLoader;
     private NarClassLoaders narClassLoaders;
+    private ExtensionManager extensionManager;
 
     @Before
     public void setup() throws IOException, ClassNotFoundException {
@@ -51,21 +52,24 @@ public class TestNarLoader {
         // Initialize NarClassLoaders
         narClassLoaders = new NarClassLoaders();
         narClassLoaders.init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(systemBundle, narClassLoaders.getBundles());
+
+        extensionManager = new ExtensionManager();
+        extensionManager.discoverExtensions(systemBundle, narClassLoaders.getBundles());
 
         // Should have Framework and Jetty NARs loaded here
         assertEquals(2, narClassLoaders.getBundles().size());
 
         // No extensions should be loaded yet
-        assertEquals(0, ExtensionManager.getExtensions(Processor.class).size());
-        assertEquals(0, ExtensionManager.getExtensions(ControllerService.class).size());
-        assertEquals(0, ExtensionManager.getExtensions(ReportingTask.class).size());
+        assertEquals(0, extensionManager.getExtensions(Processor.class).size());
+        assertEquals(0, extensionManager.getExtensions(ControllerService.class).size());
+        assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
 
         // Create class we are testing
         narLoader = new NarLoader(
                 properties.getExtensionsWorkingDirectory(),
                 properties.getComponentDocumentationWorkingDirectory(),
-                NarClassLoadersHolder.getInstance(),
+                narClassLoaders,
+                extensionManager,
                 extensionMapping,
                 (bundles) -> {});
     }

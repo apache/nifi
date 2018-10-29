@@ -27,7 +27,7 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
@@ -53,9 +53,9 @@ public class DocGeneratorTest {
 
         NarClassLoadersHolder.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
+        ExtensionManagerHolder.getInstance().discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
 
-        DocGenerator.generate(properties, mapping);
+        DocGenerator.generate(properties, ExtensionManagerHolder.getInstance(), mapping);
 
         final String extensionClassName = "org.apache.nifi.processors.WriteResourceToStream";
         final BundleCoordinate coordinate = mapping.getProcessorNames().get(extensionClassName).stream().findFirst().get();

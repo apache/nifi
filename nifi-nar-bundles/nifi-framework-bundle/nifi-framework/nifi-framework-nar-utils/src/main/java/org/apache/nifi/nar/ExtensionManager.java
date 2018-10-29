@@ -68,18 +68,18 @@ public class ExtensionManager {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionManager.class);
 
     // Maps a service definition (interface) to those classes that implement the interface
-    private static final Map<Class, Set<Class>> definitionMap = new HashMap<>();
+    private final Map<Class, Set<Class>> definitionMap = new HashMap<>();
 
-    private static final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
-    private static final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesLookup = new HashMap<>();
-    private static final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
-    private static final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
-    private static final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
+    private final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
+    private final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesLookup = new HashMap<>();
+    private final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
+    private final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
+    private final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
-    private static final Map<String, Class<?>> requiresInstanceClassLoading = new HashMap<>();
-    private static final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
+    private final Map<String, Class<?>> requiresInstanceClassLoading = new HashMap<>();
+    private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
-    static {
+    public ExtensionManager() {
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
@@ -96,7 +96,7 @@ public class ExtensionManager {
         definitionMap.put(StateProvider.class, new HashSet<>());
     }
 
-    public static Set<Bundle> getAllBundles() {
+    public Set<Bundle> getAllBundles() {
         return classNameBundleLookup.values().stream()
             .flatMap(List::stream)
             .collect(Collectors.toSet());
@@ -106,7 +106,7 @@ public class ExtensionManager {
      * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class types that can be found on the bootstrap classloader and by creating classloaders for all NARs found within the classpath.
      * @param narBundles the bundles to scan through in search of extensions
      */
-    public static void discoverExtensions(final Bundle systemBundle, final Set<Bundle> narBundles) {
+    public void discoverExtensions(final Bundle systemBundle, final Set<Bundle> narBundles) {
         // load the system bundle first so that any extensions found in JARs directly in lib will be registered as
         // being from the system bundle and not from all the other NARs
         loadExtensions(systemBundle);
@@ -115,7 +115,7 @@ public class ExtensionManager {
         discoverExtensions(narBundles);
     }
 
-    public static void discoverExtensions(final Set<Bundle> narBundles) {
+    public void discoverExtensions(final Set<Bundle> narBundles) {
         // get the current context class loader
         ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -143,7 +143,7 @@ public class ExtensionManager {
      * @param bundle from which to load extensions
      */
     @SuppressWarnings("unchecked")
-    private static void loadExtensions(final Bundle bundle) {
+    private void loadExtensions(final Bundle bundle) {
         for (final Map.Entry<Class, Set<Class>> entry : definitionMap.entrySet()) {
             final boolean isControllerService = ControllerService.class.equals(entry.getKey());
             final boolean isProcessor = Processor.class.equals(entry.getKey());
@@ -189,10 +189,10 @@ public class ExtensionManager {
         }
     }
 
-    private static void initializeTempComponent(final ConfigurableComponent configurableComponent) {
+    private void initializeTempComponent(final ConfigurableComponent configurableComponent) {
         ConfigurableComponentInitializer initializer = null;
         try {
-            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(configurableComponent.getClass());
+            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(this, configurableComponent.getClass());
             initializer.initialize(configurableComponent);
         } catch (final InitializationException e) {
             logger.warn(String.format("Unable to initialize component %s due to %s", configurableComponent.getClass().getName(), e.getMessage()));
@@ -261,7 +261,7 @@ public class ExtensionManager {
      * @param bundle the Bundle being mapped to
      * @param classes to map to this classloader but which come from its ancestors
      */
-    private static void registerServiceClass(final Class<?> type,
+    private void registerServiceClass(final Class<?> type,
                                              final Map<String, List<Bundle>> classNameBundleMap,
                                              final Map<BundleCoordinate, Set<Class>> bundleCoordinateClassesMap,
                                              final Bundle bundle, final Set<Class> classes) {
@@ -324,7 +324,7 @@ public class ExtensionManager {
      * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    public static InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
+    public InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
         if (StringUtils.isEmpty(classType)) {
             throw new IllegalArgumentException("Class-Type is required");
         }
@@ -400,7 +400,7 @@ public class ExtensionManager {
      *
      * @param component the component being instantiated
      */
-    protected static Set<BundleCoordinate> findReachableApiBundles(final ConfigurableComponent component) {
+    protected Set<BundleCoordinate> findReachableApiBundles(final ConfigurableComponent component) {
         final Set<BundleCoordinate> reachableApiBundles = new HashSet<>();
 
         try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
@@ -425,7 +425,7 @@ public class ExtensionManager {
      * @param instanceIdentifier the identifier of a component
      * @return the instance class loader for the component
      */
-    public static InstanceClassLoader getInstanceClassLoader(final String instanceIdentifier) {
+    public InstanceClassLoader getInstanceClassLoader(final String instanceIdentifier) {
         return instanceClassloaderLookup.get(instanceIdentifier);
     }
 
@@ -434,7 +434,7 @@ public class ExtensionManager {
      *
      * @param instanceIdentifier the of a component
      */
-    public static InstanceClassLoader removeInstanceClassLoader(final String instanceIdentifier) {
+    public InstanceClassLoader removeInstanceClassLoader(final String instanceIdentifier) {
         if (instanceIdentifier == null) {
             return null;
         }
@@ -450,7 +450,7 @@ public class ExtensionManager {
      * @param instanceIdentifier the instance id the class loader corresponds to
      * @param classLoader the class loader to close
      */
-    public static void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
+    public void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
         if (classLoader != null && (classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {
@@ -467,7 +467,7 @@ public class ExtensionManager {
      * @param classType the class name of an extension
      * @return the list of bundles that contain an extension with the given class name
      */
-    public static List<Bundle> getBundles(final String classType) {
+    public List<Bundle> getBundles(final String classType) {
         if (classType == null) {
             throw new IllegalArgumentException("Class type cannot be null");
         }
@@ -481,7 +481,7 @@ public class ExtensionManager {
      * @param bundleCoordinate a coordinate to look up
      * @return the bundle with the given coordinate, or null if none exists
      */
-    public static Bundle getBundle(final BundleCoordinate bundleCoordinate) {
+    public Bundle getBundle(final BundleCoordinate bundleCoordinate) {
         if (bundleCoordinate == null) {
             throw new IllegalArgumentException("BundleCoordinate cannot be null");
         }
@@ -494,7 +494,7 @@ public class ExtensionManager {
      * @param bundleCoordinate the coordinate
      * @return the classes from the bundle with that coordinate
      */
-    public static Set<Class> getTypes(final BundleCoordinate bundleCoordinate) {
+    public Set<Class> getTypes(final BundleCoordinate bundleCoordinate) {
         if (bundleCoordinate == null) {
             throw new IllegalArgumentException("BundleCoordinate cannot be null");
         }
@@ -508,14 +508,14 @@ public class ExtensionManager {
      * @param classLoader the class loader to look up the bundle for
      * @return the bundle for the given class loader
      */
-    public static Bundle getBundle(final ClassLoader classLoader) {
+    public Bundle getBundle(final ClassLoader classLoader) {
         if (classLoader == null) {
             throw new IllegalArgumentException("ClassLoader cannot be null");
         }
         return classLoaderBundleLookup.get(classLoader);
     }
 
-    public static Set<Class> getExtensions(final Class<?> definition) {
+    public Set<Class> getExtensions(final Class<?> definition) {
         if (definition == null) {
             throw new IllegalArgumentException("Class cannot be null");
         }
@@ -523,7 +523,7 @@ public class ExtensionManager {
         return (extensions == null) ? Collections.<Class>emptySet() : extensions;
     }
 
-    public static ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
+    public ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
         if (classType == null) {
             throw new IllegalArgumentException("Class type cannot be null");
         }
@@ -539,7 +539,7 @@ public class ExtensionManager {
         return classType + "_" + bundleCoordinate.getCoordinate();
     }
 
-    public static void logClassLoaderMapping() {
+    public void logClassLoaderMapping() {
         final StringBuilder builder = new StringBuilder();
 
         builder.append("Extension Type Mapping to Bundle:");

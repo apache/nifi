@@ -19,6 +19,8 @@ package org.apache.nifi.web;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -31,6 +33,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
@@ -2117,4 +2120,32 @@ public interface NiFiServiceFacade {
      * @return the resources
      */
     List<ResourceDTO> getResources();
+
+    // ----------------------------------------
+    // Bundle methods
+    // ----------------------------------------
+
+    /**
+     * Discovers the compatible bundle details for the components in the specified Versioned Process Group and updates the Versioned Process Group
+     * to reflect the appropriate bundles.
+     *
+     * @param versionedGroup the versioned group
+     */
+    void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
+
+    /**
+     * @param type the component type
+     * @param bundleDTO bundle to find the component
+     * @return the bundle coordinate
+     * @throws IllegalStateException no compatible bundle found
+     */
+    BundleCoordinate getCompatibleBundle(String type, BundleDTO bundleDTO);
+
+    /**
+     * @param classType the class name
+     * @param bundleCoordinate the bundle coordinate
+     * @return the temp component
+     */
+    ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
+
 }
