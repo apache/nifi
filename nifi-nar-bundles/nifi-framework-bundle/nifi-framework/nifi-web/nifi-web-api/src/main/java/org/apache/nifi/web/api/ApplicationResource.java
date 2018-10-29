@@ -107,9 +107,12 @@ public abstract class ApplicationResource {
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
 
     public static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto";
-    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Server";
+    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host";
     public static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port";
     public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+
+    // Traefik-specific headers
+    public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
