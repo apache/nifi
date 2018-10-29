@@ -107,9 +107,12 @@ public abstract class ApplicationResource {
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
 
     public static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto";
-    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Server";
+    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host";
     public static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port";
     public static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+
+    // Traefik-specific headers
+    public static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
@@ -151,8 +154,11 @@ public abstract class ApplicationResource {
             // check for proxy settings
 
             final String scheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
-            final String host = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
-            final String port = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
+            final String hostHeaderValue = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+            final String portHeaderValue = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
+
+            final String host = determineProxiedHost(hostHeaderValue);
+            final String port = determineProxiedPort(hostHeaderValue, portHeaderValue);
 
             // Catch header poisoning
             String whitelistedContextPaths = properties.getWhitelistedContextPaths();
@@ -186,6 +192,44 @@ public abstract class ApplicationResource {
             throw new UriBuilderException(use);
         }
         return uri;
+    }
+
+    private String determineProxiedHost(String hostHeaderValue) {
+        final String host;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        if (hostSplits.length >= 1 && hostSplits.length <= 2) {
+            // zero or one occurrence of ':', this is an IPv4 address
+            // strip off the port by reassigning host the 0th split
+            host = hostSplits[0];
+        } else if (hostSplits.length == 0) {
+            // hostHeaderValue passed in was null, no splits
+            host = null;
+        } else {
+            // hostHeaderValue has more than one occurrence of ":", IPv6 address
+            host = hostHeaderValue;
+        }
+        return host;
+    }
+
+    private String determineProxiedPort(String hostHeaderValue, String portHeaderValue) {
+        final String port;
+        // check for a port in the proxied host header
+        String[] hostSplits = hostHeaderValue == null ? new String[] {} : hostHeaderValue.split(":");
+        // determine the proxied port
+        final String portFromHostHeader;
+        if (hostSplits.length == 2) {
+            // if the port is specified in the proxied host header, it will be overridden by the
+            // port specified in X-ProxyPort or X-Forwarded-Port
+            portFromHostHeader = hostSplits[1];
+        } else {
+            portFromHostHeader = null;
+        }
+        if (StringUtils.isNotBlank(portFromHostHeader) && StringUtils.isNotBlank(portHeaderValue)) {
+            logger.warn(String.format("The proxied host header contained a port, but was overridden by the proxied port header"));
+        }
+        port = StringUtils.isNotBlank(portHeaderValue) ? portHeaderValue : (StringUtils.isNotBlank(portFromHostHeader) ? portFromHostHeader : null);
+        return port;
     }
 
     /**

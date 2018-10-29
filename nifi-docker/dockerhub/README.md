@@ -191,6 +191,9 @@ can be published to the host.
 
 The Variable Registry can be configured for the docker image using the `NIFI_VARIABLE_REGISTRY_PROPERTIES` environment variable.
 
-=======
+=======  
+**NOTE**: If NiFi is proxied at context paths other than the root path of the proxy, the paths need to be set in the 
+_nifi.web.proxy.context.path_ property, which can be assigned via the environment variable _NIFI\_WEB\_PROXY\_CONTEXT\_PATH_.
+
 **NOTE**: If mapping the HTTPS port specifying trusted hosts should be provided for the property _nifi.web.proxy.host_.  This property can be specified to running instances
 via specifying an environment variable at container instantiation of _NIFI\_WEB\_PROXY\_HOST_.
