@@ -17,17 +17,8 @@
 
 package org.apache.nifi.json;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.math.BigInteger;
-import java.text.DateFormat;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -48,6 +39,15 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.util.MinimalPrettyPrinter;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.text.DateFormat;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private final ComponentLog logger;
@@ -376,7 +376,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             default:
                 if (coercedValue instanceof Object[]) {
                     final Object[] values = (Object[]) coercedValue;
-                    final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                    final ArrayDataType arrayDataType = (ArrayDataType) chosenDataType;
                     final DataType elementType = arrayDataType.getElementType();
                     writeArray(values, fieldName, generator, elementType);
                 } else {
