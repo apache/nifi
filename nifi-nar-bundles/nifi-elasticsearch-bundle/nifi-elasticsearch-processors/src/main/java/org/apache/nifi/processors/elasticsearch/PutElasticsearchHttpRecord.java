@@ -569,7 +569,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             default:
                 if (coercedValue instanceof Object[]) {
                     final Object[] values = (Object[]) coercedValue;
-                    final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                    final ArrayDataType arrayDataType = (ArrayDataType) chosenDataType;
                     final DataType elementType = arrayDataType.getElementType();
                     writeArray(values, fieldName, generator, elementType);
                 } else {
