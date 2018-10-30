@@ -299,21 +299,17 @@ public class ReplaceText extends AbstractProcessor {
         } catch (StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
-            sendToFailure(session, flowFile, logger, e);
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
+            session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {
-            sendToFailure(session, flowFile, logger, e);
+            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() }, e);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
         logger.info("Transferred {} to 'success'", new Object[] {flowFile});
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
-    }
-
-    private static void sendToFailure(final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            Throwable e) {
-        logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
-        session.transfer(flowFile, REL_FAILURE);
     }
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
