@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.jar.Attributes;
@@ -80,6 +81,11 @@ public class NarLoader {
         if (previouslySkippedBundles != null && !previouslySkippedBundles.isEmpty()) {
             LOGGER.info("Including {} previously skipped bundle(s)", new Object[]{previouslySkippedBundles.size()});
             previouslySkippedBundles.stream().forEach(b -> unpackedNars.add(b.getWorkingDirectory()));
+        }
+
+        if (unpackedNars.isEmpty()) {
+            LOGGER.info("No NARs were unpacked, nothing to do");
+            return new NarLoadResult(Collections.emptySet(), Collections.emptySet());
         }
 
         LOGGER.info("Creating class loaders for {} NARs...", new Object[]{unpackedNars.size()});
