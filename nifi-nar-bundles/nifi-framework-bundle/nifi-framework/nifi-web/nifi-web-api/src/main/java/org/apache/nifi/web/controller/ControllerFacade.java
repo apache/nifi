@@ -256,19 +256,19 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Gets the input ports on the root group.
-     *
+     * Gets the remotely accessible InputPorts in any ProcessGroup.
      * @return input ports
      */
-    public Set<RootGroupPort> getInputPorts() {
-        final Set<RootGroupPort> inputPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
-        for (final Port port : rootGroup.getInputPorts()) {
-            if (port instanceof RootGroupPort) {
-                inputPorts.add((RootGroupPort) port);
-            }
-        }
-        return inputPorts;
+    public Set<Port> getPublicInputPorts() {
+        return flowController.getFlowManager().getPublicInputPorts();
+    }
+
+    /**
+     * Gets the remotely accessible OutputPorts in any ProcessGroup.
+     * @return output ports
+     */
+    public Set<Port> getPublicOutputPorts() {
+        return flowController.getFlowManager().getPublicOutputPorts();
     }
 
     /**

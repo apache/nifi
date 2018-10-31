@@ -472,6 +472,7 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "id"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "name"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "allowRemoteAccess"));
 
         final NodeList userAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
         if (userAccessControlNodeList == null || userAccessControlNodeList.getLength() == 0) {

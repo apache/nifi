@@ -22,7 +22,10 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 
@@ -63,23 +66,34 @@ public class LocalPort extends AbstractPort {
         maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
     }
 
+
+    private boolean[] validateConnections() {
+        boolean isPublicPort = getPublicPort() != null;
+        final boolean isInputPort = ConnectableType.INPUT_PORT.equals(getConnectableType());
+        // - InputPort requires outgoing connections to pass the received FlowFiles.
+        //   Local incoming connections are required for local connection.
+        // - OutputPort requires incoming connections to feed FlowFiles to transfer.
+        //   Local outgoing connections are required for local connection.
+        final boolean requireInput = !isInputPort || !isPublicPort;
+        final boolean requireOutput = isInputPort || !isPublicPort;
+
+        return new boolean[]{requireInput, hasIncomingConnection(),
+                                requireOutput, !getConnections(Relationship.ANONYMOUS).isEmpty()};
+    }
+
     @Override
     public boolean isValid() {
-        return !getConnections(Relationship.ANONYMOUS).isEmpty() && hasIncomingConnection();
+        final boolean[] connectionRequirements = validateConnections();
+        return (!connectionRequirements[0] || connectionRequirements[1])
+                 && (!connectionRequirements[2] || connectionRequirements[3]);
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
+        final boolean[] connectionRequirements = validateConnections();
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
-        if (getConnections(Relationship.ANONYMOUS).isEmpty()) {
-            validationErrors.add(new ValidationResult.Builder()
-                .explanation("Port has no outgoing connections")
-                .subject(String.format("Port '%s'", getName()))
-                .valid(false)
-                .build());
-        }
-
-        if (!hasIncomingConnection()) {
+        // Incoming connections are required but not set
+        if (connectionRequirements[0] && !connectionRequirements[1]) {
             validationErrors.add(new ValidationResult.Builder()
                 .explanation("Port has no incoming connections")
                 .subject(String.format("Port '%s'", getName()))
@@ -87,7 +101,43 @@ public class LocalPort extends AbstractPort {
                 .build());
         }
 
+        // Outgoing connections are required but not set
+        if (connectionRequirements[2] && !connectionRequirements[3]) {
+            validationErrors.add(new ValidationResult.Builder()
+                .explanation("Port has no outgoing connections")
+                .subject(String.format("Port '%s'", getName()))
+                .valid(false)
+                .build());
+        }
+
         return validationErrors;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        if (publicPort != null) {
+            // If this is a publicly accessible port, then process remote transactions first.
+            publicPort.onTrigger(context, sessionFactory);
+        }
+
+        // Then process local connections if it has any local outgoing connection.
+        if (getConnections(Relationship.ANONYMOUS).isEmpty()) {
+            return;
+        }
+
+        final ProcessSession session = sessionFactory.createSession();
+
+        try {
+            onTrigger(context, session);
+            session.commit();
+        } catch (final ProcessException e) {
+            session.rollback();
+            throw e;
+        } catch (final Throwable t) {
+            session.rollback();
+            throw new RuntimeException(t);
+        }
+
     }
 
     @Override
@@ -191,7 +241,7 @@ public class LocalPort extends AbstractPort {
 
     @Override
     public boolean isTriggerWhenEmpty() {
-        return false;
+        return publicPort != null;
     }
 
     @Override
@@ -207,5 +257,10 @@ public class LocalPort extends AbstractPort {
     @Override
     public String getComponentType() {
         return "Local Port";
+    }
+
+    @Override
+    public PublicPort getPublicPort() {
+        return publicPort;
     }
 }

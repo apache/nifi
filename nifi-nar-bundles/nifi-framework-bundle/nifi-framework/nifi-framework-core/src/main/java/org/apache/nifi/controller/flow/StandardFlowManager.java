@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -62,7 +63,10 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.remote.StandardRootGroupPort;
 import org.apache.nifi.remote.TransferDirection;
@@ -84,6 +88,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -122,21 +127,74 @@ public class StandardFlowManager implements FlowManager {
         this.isSiteToSiteSecure = Boolean.TRUE.equals(nifiProperties.isSiteToSiteSecure());
     }
 
-    public Port createRemoteInputPort(String id, String name) {
+    public Port createRootGroupInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
-            authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, nifiProperties);
+        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
+        setRemoteAccessibility(port, true);
+        return port;
     }
 
-    public Port createRemoteOutputPort(String id, String name) {
+    public Port createRootGroupOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT,
-            authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, nifiProperties);
+        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties);
+        setRemoteAccessibility(port, true);
+        return port;
     }
+
+    public void setRemoteAccessibility(final Port port, final boolean allowRemoteAccess) {
+        if (port instanceof RootGroupPort && !allowRemoteAccess) {
+            throw new IllegalArgumentException("Cannot disable remote access for RootGroupPorts.");
+        }
+        final TransferDirection direction = ConnectableType.INPUT_PORT == port.getConnectableType() ? TransferDirection.RECEIVE : TransferDirection.SEND;
+        if (allowRemoteAccess) {
+            ((AbstractPort) port).setPublicPort(createPublicPort(port, direction));
+        } else {
+            ((AbstractPort) port).setPublicPort(null);
+        }
+    }
+
+    private PublicPort createPublicPort(Port port, TransferDirection direction) {
+        return new StandardPublicPort(port, direction, authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, nifiProperties);
+    }
+
+    /**
+     * Gets all remotely accessible ports in any process group.
+     *
+     * @return input ports
+     */
+    public Set<Port> getPublicInputPorts() {
+        return getPublicPorts(ProcessGroup::getInputPorts);
+    }
+
+    /**
+     * Gets all remotely accessible ports in any process group.
+     *
+     * @return output ports
+     */
+    public Set<Port> getPublicOutputPorts() {
+        return getPublicPorts(ProcessGroup::getOutputPorts);
+    }
+
+    private Set<Port> getPublicPorts(final Function<ProcessGroup, Set<Port>> getPorts) {
+        final Set<Port> publicPorts = new HashSet<>();
+        ProcessGroup rootGroup = getRootGroup();
+        getPublicPorts(publicPorts, rootGroup, getPorts);
+        return publicPorts;
+    }
+
+    private void getPublicPorts(final Set<Port> publicPorts, final ProcessGroup group, final Function<ProcessGroup, Set<Port>> getPorts) {
+        for (final Port port : getPorts.apply(group)) {
+            if (port.isAllowRemoteAccess()) {
+                publicPorts.add(port);
+            }
+        }
+        group.getProcessGroups().forEach(childGroup -> getPublicPorts(publicPorts, childGroup, getPorts));
+    }
+
 
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
         return new StandardRemoteProcessGroup(requireNonNull(id), uris, null, processScheduler, bulletinRepository, sslContext, nifiProperties);

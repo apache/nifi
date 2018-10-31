@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.connectable;
 
+import org.apache.nifi.remote.PublicPort;
+
 public interface Port extends Connectable {
 
     void shutdown();
@@ -28,4 +30,12 @@ public interface Port extends Connectable {
      * Port a chance to initialize any resources needed.</p>
      */
     void onSchedulingStart();
+
+    default boolean isAllowRemoteAccess() {
+        return getPublicPort() != null;
+    }
+
+    default PublicPort getPublicPort() {
+        return null;
+    }
 }

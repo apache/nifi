@@ -1272,9 +1272,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final Port port;
             if (processGroup.isRootGroup()) {
-                port = flowManager.createRemoteInputPort(portDTO.getId(), portDTO.getName());
+                port = flowManager.createRootGroupInputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
+                flowManager.setRemoteAccessibility(port, Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()));
             }
 
             port.setVersionedComponentId(portDTO.getVersionedComponentId());
@@ -1287,14 +1288,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 if (!(port instanceof RootGroupPort)) {
                     throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setUserAccessControl(userControls);
+                port.getPublicPort().setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
                     throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setGroupAccessControl(groupControls);
+                port.getPublicPort().setGroupAccessControl(groupControls);
             }
 
             processGroup.addInputPort(port);
@@ -1317,9 +1318,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final Port port;
             if (processGroup.isRootGroup()) {
-                port = flowManager.createRemoteOutputPort(portDTO.getId(), portDTO.getName());
+                port = flowManager.createRootGroupOutputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());
+                flowManager.setRemoteAccessibility(port, Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()));
             }
 
             port.setVersionedComponentId(portDTO.getVersionedComponentId());
@@ -1332,14 +1334,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 if (!(port instanceof RootGroupPort)) {
                     throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setUserAccessControl(userControls);
+                port.getPublicPort().setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
                     throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setGroupAccessControl(groupControls);
+                port.getPublicPort().setGroupAccessControl(groupControls);
             }
 
             processGroup.addOutputPort(port);

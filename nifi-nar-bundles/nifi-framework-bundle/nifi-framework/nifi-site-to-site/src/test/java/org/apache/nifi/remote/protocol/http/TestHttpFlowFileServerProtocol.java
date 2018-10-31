@@ -31,6 +31,7 @@ import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.codec.FlowFileCodec;
@@ -72,6 +73,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -154,10 +156,13 @@ public class TestHttpFlowFileServerProtocol {
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort publicPort = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
-        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(port).when(processGroup).findOutputPort("port-identifier");
+        doReturn(true).when(port).isAllowRemoteAccess();
+        doReturn(publicPort).when(port).getPublicPort();
+        doReturn(authResult).when(publicPort).checkUserAuthorization(any(String.class));
 
         serverProtocol.setRootProcessGroup(processGroup);
         try {
@@ -179,10 +184,13 @@ public class TestHttpFlowFileServerProtocol {
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort publicPort = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
-        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(port).when(processGroup).findInputPort(eq("port-identifier"));
+        doReturn(true).when(port).isAllowRemoteAccess();
+        doReturn(publicPort).when(port).getPublicPort();
+        doReturn(authResult).when(publicPort).checkUserAuthorization(any(String.class));
         doReturn(true).when(authResult).isAuthorized();
 
         serverProtocol.setRootProcessGroup(processGroup);
@@ -205,10 +213,13 @@ public class TestHttpFlowFileServerProtocol {
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort publicPort = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
-        doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
+        doReturn(port).when(processGroup).findOutputPort("port-identifier");
+        doReturn(true).when(port).isAllowRemoteAccess();
+        doReturn(publicPort).when(port).getPublicPort();
+        doReturn(authResult).when(publicPort).checkUserAuthorization(any(String.class));
         doReturn(true).when(authResult).isAuthorized();
         doReturn(true).when(port).isValid();
         doReturn(true).when(port).isRunning();

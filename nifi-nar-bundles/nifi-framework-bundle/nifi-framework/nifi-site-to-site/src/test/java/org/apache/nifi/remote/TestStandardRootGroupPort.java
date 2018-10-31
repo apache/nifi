@@ -56,9 +56,12 @@ public class TestStandardRootGroupPort {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
-        return new StandardRootGroupPort("id", "name", processGroup,
-            TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
-            processScheduler, true, nifiProperties);
+        final StandardRootGroupPort rootGroupPort = new StandardRootGroupPort("id", "name", processGroup,
+                TransferDirection.SEND, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
+
+        final StandardPublicPort publicPort = new StandardPublicPort(rootGroupPort, TransferDirection.SEND, authorizer, bulletinRepository, processScheduler, true, nifiProperties);
+        rootGroupPort.setPublicPort(publicPort);
+        return rootGroupPort;
     }
 
     @Test
@@ -68,10 +71,10 @@ public class TestStandardRootGroupPort {
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
+        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.checkUserAuthorization("node1@nifi.test");
+        authResult = port.getPublicPort().checkUserAuthorization("node1@nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 
@@ -93,10 +96,10 @@ public class TestStandardRootGroupPort {
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
+        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
+        authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 
@@ -121,10 +124,10 @@ public class TestStandardRootGroupPort {
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
+        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
+        authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 

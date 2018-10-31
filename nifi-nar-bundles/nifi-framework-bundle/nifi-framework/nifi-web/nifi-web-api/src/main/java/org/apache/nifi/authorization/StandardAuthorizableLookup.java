@@ -45,7 +45,6 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.remote.PortAuthorizationResult;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -206,8 +205,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public RootGroupPortAuthorizable getRootGroupInputPort(String id) {
         final Port inputPort = inputPortDAO.getPort(id);
 
-        if (!(inputPort instanceof RootGroupPort)) {
-            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an input port in the root group.", id));
+        if (!inputPort.isAllowRemoteAccess()) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an input port which can be accessed remotely.", id));
         }
 
         final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(inputPort);
@@ -220,7 +219,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             @Override
             public AuthorizationResult checkAuthorization(NiFiUser user) {
                 // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
-                final PortAuthorizationResult authorizationResult = ((RootGroupPort) inputPort).checkUserAuthorization(user);
+                final PortAuthorizationResult authorizationResult = inputPort.getPublicPort().checkUserAuthorization(user);
                 if (authorizationResult.isAuthorized()) {
                     return AuthorizationResult.approved();
                 } else {
@@ -234,8 +233,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public RootGroupPortAuthorizable getRootGroupOutputPort(String id) {
         final Port outputPort = outputPortDAO.getPort(id);
 
-        if (!(outputPort instanceof RootGroupPort)) {
-            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an output port in the root group.", id));
+        if (!outputPort.isAllowRemoteAccess()) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an output port which can be accessed remotely.", id));
         }
 
         final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(outputPort);
@@ -248,7 +247,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             @Override
             public AuthorizationResult checkAuthorization(NiFiUser user) {
                 // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
-                final PortAuthorizationResult authorizationResult = ((RootGroupPort) outputPort).checkUserAuthorization(user);
+                final PortAuthorizationResult authorizationResult = outputPort.getPublicPort().checkUserAuthorization(user);
                 if (authorizationResult.isAuthorized()) {
                     return AuthorizationResult.approved();
                 } else {

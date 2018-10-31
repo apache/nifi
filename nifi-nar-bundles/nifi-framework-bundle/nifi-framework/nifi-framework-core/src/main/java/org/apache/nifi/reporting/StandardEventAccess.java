@@ -52,7 +52,6 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -406,9 +405,8 @@ public class StandardEventAccess implements UserAwareEventAccess {
             }
 
             // special handling for root group ports
-            if (port instanceof RootGroupPort) {
-                final RootGroupPort rootGroupPort = (RootGroupPort) port;
-                portStatus.setTransmitting(rootGroupPort.isTransmitting());
+            if (port.isAllowRemoteAccess()) {
+                portStatus.setTransmitting(port.getPublicPort().isTransmitting());
             }
 
             final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
@@ -469,9 +467,8 @@ public class StandardEventAccess implements UserAwareEventAccess {
             }
 
             // special handling for root group ports
-            if (port instanceof RootGroupPort) {
-                final RootGroupPort rootGroupPort = (RootGroupPort) port;
-                portStatus.setTransmitting(rootGroupPort.isTransmitting());
+            if (port.isAllowRemoteAccess()) {
+                portStatus.setTransmitting(port.getPublicPort().isTransmitting());
             }
 
             final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());

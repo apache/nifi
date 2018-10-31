@@ -503,6 +503,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         writeLock.lock();
         try {
+            // Unique port check within the same group.
             if (inputPorts.containsKey(requireNonNull(port).getIdentifier())
                     || getInputPortByName(port.getName()) != null) {
                 throw new IllegalStateException("The input port name or identifier is not available to be added.");
@@ -588,9 +589,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         writeLock.lock();
         try {
+            // Unique port check within the same group.
             if (outputPorts.containsKey(requireNonNull(port).getIdentifier())
-                    || getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("Output Port with given identifier or name is not available");
+                || getOutputPortByName(port.getName()) != null) {
+                throw new IllegalStateException("The output port name or identifier is not available to be added.");
             }
 
             port.setProcessGroup(this);

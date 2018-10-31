@@ -122,7 +122,6 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -3088,7 +3087,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * authorized for the transfer. This method is only invoked when obtaining the site to site
      * details so the entire chain isn't necessary.
      */
-    private boolean isUserAuthorized(final NiFiUser user, final RootGroupPort port) {
+    private boolean isUserAuthorized(final NiFiUser user, final Port port) {
         final boolean isSiteToSiteSecure = Boolean.TRUE.equals(properties.isSiteToSiteSecure());
 
         // if site to site is not secure, allow all users
@@ -3128,8 +3127,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // serialize the input ports this NiFi has access to
         final Set<PortDTO> inputPortDtos = new LinkedHashSet<>();
-        final Set<RootGroupPort> inputPorts = controllerFacade.getInputPorts();
-        for (final RootGroupPort inputPort : inputPorts) {
+        for (final Port inputPort : controllerFacade.getPublicInputPorts()) {
             if (isUserAuthorized(user, inputPort)) {
                 final PortDTO dto = new PortDTO();
                 dto.setId(inputPort.getIdentifier());
@@ -3142,7 +3140,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // serialize the output ports this NiFi has access to
         final Set<PortDTO> outputPortDtos = new LinkedHashSet<>();
-        for (final RootGroupPort outputPort : controllerFacade.getOutputPorts()) {
+        for (final Port outputPort : controllerFacade.getPublicOutputPorts()) {
             if (isUserAuthorized(user, outputPort)) {
                 final PortDTO dto = new PortDTO();
                 dto.setId(outputPort.getIdentifier());
@@ -4798,6 +4796,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         };
     }
 
+    @Override
+    public void verifyPublicInputPortUniqueness(final String portId, final String portName) {
+        inputPortDAO.verifyPublicPortUniqueness(portId, portName);
+    }
+
+    @Override
+    public void verifyPublicOutputPortUniqueness(final String portId, final String portName) {
+        outputPortDAO.verifyPublicPortUniqueness(portId, portName);
+    }
 
     /* setters */
     public void setProperties(final NiFiProperties properties) {
