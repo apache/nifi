@@ -172,8 +172,8 @@
                     portEnableStyle = 'checkbox-unchecked';
                 }
 
-                // show concurrent tasks for root groups only
-                if (nfCanvasUtils.getParentGroupId() === null) {
+                // show concurrent tasks for site-to-site port only
+                if (selectionData.allowRemoteAccess === true) {
                     $('#port-concurrent-task-container').show();
                 } else {
                     $('#port-concurrent-task-container').hide();

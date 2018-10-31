@@ -82,4 +82,15 @@ public interface PortDAO {
      * @param portId The port id
      */
     void deletePort(String portId);
+
+    /**
+     * Verifies public port unique constraint throughout the flow will be retained,
+     * even if a new port is added with the given port id and name.
+     *
+     * @param portId port id
+     * @param portName port name
+     *
+     * @throws IllegalStateException If there is any port with the same name or the same identifier
+     */
+    void verifyPublicPortUniqueness(final String portId, final String portName);
 }

@@ -14,43 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-    Local port configuration
-*/
+package org.apache.nifi.web.api.dto.util;
 
-#port-configuration {
-    z-index: 1301;
-    display: none;
-    width: 400px;
-    height: 470px;
-}
+/**
+ * Utility class for numbers.
+ */
+public class NumberUtil {
 
-#port-name {
-    width: 70%;
-    float: left;
-}
+    /**
+     * Calculate sum of Integers those can be null.
+     * This method can be used to avoid getting NullPointerException when a null Integer being auto-boxed into an int.
+     * @param values Integers to add
+     * @return the sum of given values or null if all values are null
+     */
+    public static Integer sumNullableIntegers(Integer ... values) {
+        int sum = 0;
+        int count = 0;
+        for (Integer value : values) {
+            if (value == null) {
+                continue;
+            }
+            sum += value;
+            count++;
+        }
+        return count == 0 ? null : sum;
+    }
 
-#port-name-container {
-    height: 32px;
-}
-
-textarea.port-field {
-    height: 100px;
-}
-
-div.port-setting {
-    margin-bottom: 15px;
-}
-
-div.port-enabled {
-    width: 20%;
-    height: 12px;
-    float: left;
-    margin-right: 4px;
-}
-
-div.port-enabled-container {
-    float: left;
-    margin-top: 5px;
-    margin-left: 10px;
 }

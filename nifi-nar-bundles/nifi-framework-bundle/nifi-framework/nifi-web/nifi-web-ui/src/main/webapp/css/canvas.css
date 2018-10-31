@@ -31,6 +31,7 @@
 @import url(shell.css);
 @import url(dialog.css);
 @import url(new-processor-dialog.css);
+@import url(new-port-dialog.css);
 @import url(new-controller-service-dialog.css);
 @import url(new-reporting-task-dialog.css);
 @import url(graph.css);

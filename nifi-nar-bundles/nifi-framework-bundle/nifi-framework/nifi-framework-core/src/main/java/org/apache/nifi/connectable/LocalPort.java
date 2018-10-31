@@ -63,25 +63,40 @@ public class LocalPort extends AbstractPort {
         maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
     }
 
+
+    private boolean[] validateConnections() {
+        // LocalPort requires both in/out.
+        final boolean requireInput = true;
+        final boolean requireOutput = true;
+
+        return new boolean[]{requireInput, hasIncomingConnection(),
+                                requireOutput, !getConnections(Relationship.ANONYMOUS).isEmpty()};
+    }
+
     @Override
     public boolean isValid() {
-        return !getConnections(Relationship.ANONYMOUS).isEmpty() && hasIncomingConnection();
+        final boolean[] connectionRequirements = validateConnections();
+        return (!connectionRequirements[0] || connectionRequirements[1])
+                 && (!connectionRequirements[2] || connectionRequirements[3]);
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
+        final boolean[] connectionRequirements = validateConnections();
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
-        if (getConnections(Relationship.ANONYMOUS).isEmpty()) {
+        // Incoming connections are required but not set
+        if (connectionRequirements[0] && !connectionRequirements[1]) {
             validationErrors.add(new ValidationResult.Builder()
-                .explanation("Port has no outgoing connections")
+                .explanation("Port has no incoming connections")
                 .subject(String.format("Port '%s'", getName()))
                 .valid(false)
                 .build());
         }
 
-        if (!hasIncomingConnection()) {
+        // Outgoing connections are required but not set
+        if (connectionRequirements[2] && !connectionRequirements[3]) {
             validationErrors.add(new ValidationResult.Builder()
-                .explanation("Port has no incoming connections")
+                .explanation("Port has no outgoing connections")
                 .subject(String.format("Port '%s'", getName()))
                 .valid(false)
                 .build());

@@ -133,8 +133,8 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -280,8 +280,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroupCounts getCounts() {
-        int inputPortCount = 0;
-        int outputPortCount = 0;
+        int localInputPortCount = 0;
+        int localOutputPortCount = 0;
+        int publicInputPortCount = 0;
+        int publicOutputPortCount = 0;
 
         int running = 0;
         int stopped = 0;
@@ -310,8 +312,12 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            inputPortCount = inputPorts.size();
             for (final Port port : inputPorts.values()) {
+                if (port instanceof PublicPort) {
+                    publicInputPortCount++;
+                } else {
+                    localInputPortCount++;
+                }
                 if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
                     disabled++;
                 } else if (port.isRunning()) {
@@ -323,8 +329,12 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            outputPortCount = outputPorts.size();
             for (final Port port : outputPorts.values()) {
+                if (port instanceof PublicPort) {
+                    publicOutputPortCount++;
+                } else {
+                    localOutputPortCount++;
+                }
                 if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
                     disabled++;
                 } else if (port.isRunning()) {
@@ -405,7 +415,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
 
-        return new ProcessGroupCounts(inputPortCount, outputPortCount, running, stopped, invalid, disabled, activeRemotePorts,
+        return new ProcessGroupCounts(localInputPortCount, localOutputPortCount, publicInputPortCount, publicOutputPortCount,
+                running, stopped, invalid, disabled, activeRemotePorts,
                 inactiveRemotePorts, upToDate, locallyModified, stale, locallyModifiedAndStale, syncFailure);
     }
 
@@ -491,22 +502,31 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private void verifyPortUniqueness(final Port port,
+                                      final Map<String, Port> portIdMap,
+                                      final Function<String, Port> getPortByName) {
+
+        if (portIdMap.containsKey(requireNonNull(port).getIdentifier())) {
+            throw new IllegalStateException("A port with the same id already exists.");
+        }
+
+        if (getPortByName.apply(port.getName()) != null) {
+            throw new IllegalStateException("A port with the same name already exists.");
+        }
+    }
+
     @Override
     public void addInputPort(final Port port) {
         if (isRootGroup()) {
-            if (!(port instanceof RootGroupPort)) {
+            if (!(port instanceof PublicPort)) {
                 throw new IllegalArgumentException("Cannot add Input Port of type " + port.getClass().getName() + " to the Root Group");
             }
-        } else if (!(port instanceof LocalPort)) {
-            throw new IllegalArgumentException("Cannot add Input Port of type " + port.getClass().getName() + " to a non-root group");
         }
 
         writeLock.lock();
         try {
-            if (inputPorts.containsKey(requireNonNull(port).getIdentifier())
-                    || getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("The input port name or identifier is not available to be added.");
-            }
+            // Unique port check within the same group.
+            verifyPortUniqueness(port, inputPorts, name -> getInputPortByName(name));
 
             port.setProcessGroup(this);
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
@@ -579,19 +599,15 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void addOutputPort(final Port port) {
         if (isRootGroup()) {
-            if (!(port instanceof RootGroupPort)) {
+            if (!(port instanceof PublicPort)) {
                 throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to the Root Group");
             }
-        } else if (!(port instanceof LocalPort)) {
-            throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to a non-root group");
         }
 
         writeLock.lock();
         try {
-            if (outputPorts.containsKey(requireNonNull(port).getIdentifier())
-                    || getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("Output Port with given identifier or name is not available");
-            }
+            // Unique port check within the same group.
+            verifyPortUniqueness(port, outputPorts, name -> getOutputPortByName(name));
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);
@@ -2349,12 +2365,10 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
             }
 
-            if (isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports out of the root group");
-            }
-
-            if (destination.isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports into the root group");
+            if (destination.isRootGroup() && (
+                snippet.getInputPorts().keySet().stream().map(this::getInputPort).anyMatch(port -> port instanceof LocalPort)
+                    || snippet.getOutputPorts().keySet().stream().map(this::getOutputPort).anyMatch(port -> port instanceof LocalPort))) {
+                throw new IllegalStateException("Cannot move local Ports into the root group");
             }
 
             onComponentModified();
@@ -2761,10 +2775,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (!isDisconnected(snippet)) {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
-            }
-
-            if (isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports from the Root Group to a Non-Root Group");
             }
 
             for (final String id : snippet.getInputPorts().keySet()) {

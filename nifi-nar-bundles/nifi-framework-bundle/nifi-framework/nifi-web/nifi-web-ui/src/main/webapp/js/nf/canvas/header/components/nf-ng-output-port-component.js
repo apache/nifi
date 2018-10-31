@@ -25,8 +25,9 @@
                 'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
-                'nf.ErrorHandler'],
-            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+                'nf.ErrorHandler',
+                'nf.Common'],
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
                 return (nf.ng.OutputPortComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -37,7 +38,8 @@
                 require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Dialog')));
     } else {
         nf.ng.OutputPortComponent = factory(root.$,
             root.nf.Client,
@@ -45,9 +47,10 @@
             root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -57,9 +60,10 @@
          * Create the input port and add to the graph.
          *
          * @argument {string} portName          The output port name.
+         * @argument {boolean} allowRemoteAccess Whether the output port can be accessed via S2S.
          * @argument {object} pt                The point that the output port was dropped.
          */
-        var createOutputPort = function (portName, pt) {
+        var createOutputPort = function (portName, allowRemoteAccess, pt) {
             var outputPortEntity = {
                 'revision': nfClient.getRevision({
                     'revision': {
@@ -69,6 +73,7 @@
                 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': portName,
+                    'allowRemoteAccess': allowRemoteAccess,
                     'position': {
                         'x': pt.x,
                         'y': pt.y
@@ -143,6 +148,32 @@
                  * Show the modal.
                  */
                 show: function () {
+                    $('#new-port-dialog > .dialog-header > .dialog-header-text').text('Add Output Port')
+
+                    var optionLocal = {
+                                text: 'Local connections',
+                                value: 'false',
+                                description: 'Send FlowFiles to components in parent process groups.'
+                            };
+
+                    var optionRemote = {
+                                text: 'Remote connections (site-to-site)',
+                                value: 'true',
+                                description: 'Send FlowFiles to remote process group (site-to-site).'
+                            };
+
+                    // initialize the remote access combo
+                    $('#port-allow-remote-access-label').text('Send to');
+                    $('#port-allow-remote-access-info').attr('title', 'Specify where FlowFiles are sent.');
+                    if (nfCanvasUtils.getParentGroupId() === null) {
+                        $('#port-allow-remote-access-setting').hide();
+                    } else {
+                        $('#port-allow-remote-access-setting').show();
+                    }
+                    $('#port-allow-remote-access').combo({
+                        options: [optionLocal, optionRemote]
+                    });
+
                     this.getElement().modal('show');
                 },
 
@@ -210,9 +241,10 @@
                 var addOutputPort = function () {
                     // get the name of the output port and clear the textfield
                     var portName = $('#new-port-name').val();
+                    var allowRemoteAccess = $('#port-allow-remote-access').combo('getSelectedOption').value;
 
                     // create the output port
-                    createOutputPort(portName, pt);
+                    createOutputPort(portName, allowRemoteAccess, pt);
                 };
 
                 this.modal.update('setButtonModel', [{

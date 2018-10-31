@@ -78,8 +78,8 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.services.FlowService;
@@ -256,35 +256,19 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Gets the input ports on the root group.
-     *
+     * Gets the remotely accessible InputPorts in any ProcessGroup.
      * @return input ports
      */
-    public Set<RootGroupPort> getInputPorts() {
-        final Set<RootGroupPort> inputPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
-        for (final Port port : rootGroup.getInputPorts()) {
-            if (port instanceof RootGroupPort) {
-                inputPorts.add((RootGroupPort) port);
-            }
-        }
-        return inputPorts;
+    public Set<Port> getPublicInputPorts() {
+        return flowController.getFlowManager().getPublicInputPorts();
     }
 
     /**
-     * Gets the output ports on the root group.
-     *
+     * Gets the remotely accessible OutputPorts in any ProcessGroup.
      * @return output ports
      */
-    public Set<RootGroupPort> getOutputPorts() {
-        final Set<RootGroupPort> outputPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
-        for (final Port port : rootGroup.getOutputPorts()) {
-            if (port instanceof RootGroupPort) {
-                outputPorts.add((RootGroupPort) port);
-            }
-        }
-        return outputPorts;
+    public Set<Port> getPublicOutputPorts() {
+        return flowController.getFlowManager().getPublicOutputPorts();
     }
 
     /**
@@ -907,7 +891,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getProvenanceDataResource(inputPortResource));
             resources.add(ResourceFactory.getPolicyResource(inputPortResource));
             resources.add(ResourceFactory.getOperationResource(inputPortResource));
-            if (inputPort instanceof RootGroupPort) {
+            if (inputPort instanceof PublicPort) {
                 resources.add(ResourceFactory.getDataTransferResource(inputPortResource));
             }
         }
@@ -920,7 +904,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getProvenanceDataResource(outputPortResource));
             resources.add(ResourceFactory.getPolicyResource(outputPortResource));
             resources.add(ResourceFactory.getOperationResource(outputPortResource));
-            if (outputPort instanceof RootGroupPort) {
+            if (outputPort instanceof PublicPort) {
                 resources.add(ResourceFactory.getDataTransferResource(outputPortResource));
             }
         }

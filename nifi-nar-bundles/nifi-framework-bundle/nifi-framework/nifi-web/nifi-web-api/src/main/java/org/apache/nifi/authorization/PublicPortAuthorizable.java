@@ -14,43 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-    Local port configuration
-*/
+package org.apache.nifi.authorization;
 
-#port-configuration {
-    z-index: 1301;
-    display: none;
-    width: 400px;
-    height: 470px;
-}
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 
-#port-name {
-    width: 70%;
-    float: left;
-}
+/**
+ * Authorizable for a PublicPort.
+ */
+public interface PublicPortAuthorizable {
+    /**
+     * Returns the authorizable for this PublicGroupPort. Non null
+     *
+     * @return authorizable
+     */
+    Authorizable getAuthorizable();
 
-#port-name-container {
-    height: 32px;
-}
-
-textarea.port-field {
-    height: 100px;
-}
-
-div.port-setting {
-    margin-bottom: 15px;
-}
-
-div.port-enabled {
-    width: 20%;
-    height: 12px;
-    float: left;
-    margin-right: 4px;
-}
-
-div.port-enabled-container {
-    float: left;
-    margin-top: 5px;
-    margin-left: 10px;
+    /**
+     * Checks the authorization for the specified user.
+     *
+     * @param user user
+     * @return authorization result
+     */
+    AuthorizationResult checkAuthorization(NiFiUser user);
 }

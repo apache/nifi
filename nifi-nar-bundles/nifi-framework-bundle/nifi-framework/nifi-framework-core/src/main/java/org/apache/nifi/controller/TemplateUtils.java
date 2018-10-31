@@ -122,9 +122,11 @@ public class TemplateUtils {
             processGroupDTO.setActiveRemotePortCount(null);
             processGroupDTO.setDisabledCount(null);
             processGroupDTO.setInactiveRemotePortCount(null);
-            processGroupDTO.setInputPortCount(null);
+            processGroupDTO.setLocalInputPortCount(null);
+            processGroupDTO.setPublicInputPortCount(null);
             processGroupDTO.setInvalidCount(null);
-            processGroupDTO.setOutputPortCount(null);
+            processGroupDTO.setLocalOutputPortCount(null);
+            processGroupDTO.setPublicOutputPortCount(null);
             processGroupDTO.setRunningCount(null);
             processGroupDTO.setStoppedCount(null);
             processGroupDTO.setUpToDateCount(null);

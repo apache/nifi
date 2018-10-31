@@ -324,7 +324,12 @@
 
                 // show the output port options
                 var options = [];
+                var publicOutputPortCount = 0;
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
+                    if (outputPort.allowRemoteAccess) {
+                        publicOutputPortCount++;
+                        return;
+                    }
                     // require explicit access to the output port as it's the source of the connection
                     if (outputPort.permissions.canRead && outputPort.permissions.canWrite) {
                         var component = outputPort.component;
@@ -363,9 +368,10 @@
 
                     deferred.resolve();
                 } else {
-                    var message = '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any output ports.';
-                    if (nfCommon.isEmpty(processGroupContents.outputPorts) === false) {
-                        message = 'Not authorized for any output ports in \'' + nfCommon.escapeHtml(processGroupName) + '\'.';
+                    var message = '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any local output ports.';
+                    if (nfCommon.isEmpty(processGroupContents.outputPorts) === false
+                            && processGroupContents.outputPorts.length > publicOutputPortCount) {
+                        message = 'Not authorized for any local output ports in \'' + nfCommon.escapeHtml(processGroupName) + '\'.';
                     }
 
                     // there are no output ports for this process group
@@ -439,6 +445,8 @@
                     $('#connection-source-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
+                    $('#connection-source-group div.setting-name').text('Within Remote Group')
+                    $('#connection-remote-source-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-source-group-id').val(remoteProcessGroup.id);
                     $('#connection-source-group-name').text(remoteProcessGroup.name);
 
@@ -559,11 +567,13 @@
                 // show the input port options
                 var options = [];
                 $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                    options.push({
-                        text: inputPort.permissions.canRead ? inputPort.component.name : inputPort.id,
-                        value: inputPort.id,
-                        description: inputPort.permissions.canRead ? nfCommon.escapeHtml(inputPort.component.comments) : null
-                    });
+                    if (!inputPort.allowRemoteAccess) {
+                        options.push({
+                            text: inputPort.permissions.canRead ? inputPort.component.name : inputPort.id,
+                            value: inputPort.id,
+                            description: inputPort.permissions.canRead ? nfCommon.escapeHtml(inputPort.component.comments) : null
+                        });
+                    }
                 });
 
                 // only proceed if there are output ports
@@ -596,7 +606,7 @@
                     // there are no relationships for this processor
                     nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any input ports.'
+                        dialogContent: '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any local input ports.'
                     });
 
                     // reset the dialog
@@ -664,6 +674,8 @@
                     $('#connection-destination-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
+                    $('#connection-destination-group div.setting-name').text('Within Remote Group')
+                    $('#connection-remote-destination-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-destination-group-id').val(remoteProcessGroup.id);
                     $('#connection-destination-group-name').text(remoteProcessGroup.name);
 
@@ -708,6 +720,13 @@
             // populate the group details
             $('#connection-source-group-id').val(sourceData.id);
             $('#connection-source-group-name').text(sourceName);
+
+            if (nfCanvasUtils.isRemoteProcessGroup(source)) {
+                $('#connection-source-group div.setting-name').text('Within Remote Group');
+                if (sourceData.permissions.canRead) {
+                    $('#connection-remote-source-url').text(sourceData.component.targetUri).show();
+                }
+            }
 
             // resolve the deferred
             deferred.resolve();
@@ -1319,6 +1338,12 @@
                 return;
             }
 
+            // reset labels
+            $('#connection-source-group div.setting-name').text('Within Group')
+            $('#connection-destination-group div.setting-name').text('Within Group')
+            $('#connection-remote-source-url').hide();
+            $('#connection-remote-destination-url').hide();
+
             // initialize the connection dialog
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
@@ -1370,6 +1395,12 @@
                     var destinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionEntry);
                     destination = d3.select('#id-' + destinationComponentId);
                 }
+
+                // reset labels
+                $('#connection-source-group div.setting-name').text('Within Group')
+                $('#connection-destination-group div.setting-name').text('Within Group')
+                $('#connection-remote-source-url').hide();
+                $('#connection-remote-destination-url').hide();
 
                 // initialize the connection dialog
                 $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination, connection.destination)).done(function () {

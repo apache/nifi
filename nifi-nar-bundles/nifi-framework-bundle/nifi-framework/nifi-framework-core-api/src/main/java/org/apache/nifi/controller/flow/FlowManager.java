@@ -48,7 +48,7 @@ public interface FlowManager {
      * @throws NullPointerException if the ID or name is not unique
      * @throws IllegalStateException if a Port already exists with the same id.
      */
-    Port createRemoteInputPort(String id, String name);
+    Port createPublicInputPort(String id, String name);
 
     /**
      * Creates a Port to use as an Output Port for transferring data via Site-to-Site communications
@@ -59,7 +59,21 @@ public interface FlowManager {
      * @throws NullPointerException if the ID or name is not unique
      * @throws IllegalStateException if a Port already exists with the same id.
      */
-    Port createRemoteOutputPort(String id, String name);
+    Port createPublicOutputPort(String id, String name);
+
+    /**
+     * Gets the all remotely accessible InputPorts in any ProcessGroups.
+     *
+     * @return input ports
+     */
+    Set<Port> getPublicInputPorts();
+
+    /**
+     * Gets the all remotely accessible OutputPorts in any ProcessGroups.
+     *
+     * @return output ports
+     */
+    Set<Port> getPublicOutputPorts();
 
     /**
      * Creates a new Remote Process Group with the given ID that points to the given URI

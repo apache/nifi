@@ -14,27 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
+/* 
+    New port dialog at in a child process group.
+*/
 
-/**
- * Authorizable for a RootGroupPort.
- */
-public interface RootGroupPortAuthorizable {
-    /**
-     * Returns the authorizable for this RootGroupPort. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
-    /**
-     * Checks the authorization for the specified user.
-     *
-     * @param user user
-     * @return authorization result
-     */
-    AuthorizationResult checkAuthorization(NiFiUser user);
+#new-port-dialog {
+    min-height:280px;
+    height: 280px;
+    width: 320px;
+    min-width: 320px;
 }

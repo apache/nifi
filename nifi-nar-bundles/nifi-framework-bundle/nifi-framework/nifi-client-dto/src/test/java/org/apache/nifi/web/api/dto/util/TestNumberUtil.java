@@ -14,43 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-    Local port configuration
-*/
+package org.apache.nifi.web.api.dto.util;
 
-#port-configuration {
-    z-index: 1301;
-    display: none;
-    width: 400px;
-    height: 470px;
-}
+import org.junit.Test;
 
-#port-name {
-    width: 70%;
-    float: left;
-}
+import static org.apache.nifi.web.api.dto.util.NumberUtil.sumNullableIntegers;
+import static org.junit.Assert.assertEquals;
 
-#port-name-container {
-    height: 32px;
-}
+public class TestNumberUtil {
 
-textarea.port-field {
-    height: 100px;
-}
+    @Test
+    public void testSumNullableIntegers() {
+        assertEquals(Integer.valueOf(6), sumNullableIntegers(1, 2, 3));
 
-div.port-setting {
-    margin-bottom: 15px;
-}
+        assertEquals(Integer.valueOf(4), sumNullableIntegers(1, null, 3));
 
-div.port-enabled {
-    width: 20%;
-    height: 12px;
-    float: left;
-    margin-right: 4px;
-}
+        assertEquals(Integer.valueOf(0), sumNullableIntegers(-1, null, 1));
 
-div.port-enabled-container {
-    float: left;
-    margin-top: 5px;
-    margin-left: 10px;
+        assertEquals(null, sumNullableIntegers(null, null));
+    }
+
 }

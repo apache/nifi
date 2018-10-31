@@ -31,7 +31,7 @@ import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PortAuthorizationResult;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
@@ -72,6 +72,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -153,10 +154,10 @@ public class TestHttpFlowFileServerProtocol {
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
+        doReturn(port).when(processGroup).findOutputPort("port-identifier");
         doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
 
         serverProtocol.setRootProcessGroup(processGroup);
@@ -178,10 +179,10 @@ public class TestHttpFlowFileServerProtocol {
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
+        doReturn(port).when(processGroup).findInputPort(eq("port-identifier"));
         doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
         doReturn(true).when(authResult).isAuthorized();
 
@@ -204,10 +205,10 @@ public class TestHttpFlowFileServerProtocol {
                 .putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, "port-identifier");
 
         final ProcessGroup processGroup = mock(ProcessGroup.class);
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         final PortAuthorizationResult authResult = mock(PortAuthorizationResult.class);
         doReturn(true).when(processGroup).isRootGroup();
-        doReturn(port).when(processGroup).getOutputPort("port-identifier");
+        doReturn(port).when(processGroup).findOutputPort("port-identifier");
         doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
         doReturn(true).when(authResult).isAuthorized();
         doReturn(true).when(port).isValid();

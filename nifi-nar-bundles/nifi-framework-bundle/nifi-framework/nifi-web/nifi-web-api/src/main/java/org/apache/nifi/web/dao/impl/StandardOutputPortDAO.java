@@ -18,25 +18,18 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.remote.RootGroupPort;
-import org.apache.nifi.web.NiFiCoreException;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
-public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
+public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
 
-    private FlowController flowController;
-
-    private Port locatePort(final String portId) {
+    protected Port locatePort(final String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Port port = rootGroup.findOutputPort(portId);
 
@@ -69,13 +62,18 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
 
         // determine if this is the root group
         Port port;
-        if (group.getParent() == null) {
-            port = flowController.getFlowManager().createRemoteOutputPort(portDTO.getId(), portDTO.getName());
+        if (group.getParent() == null || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
+            port = flowController.getFlowManager().createPublicOutputPort(portDTO.getId(), portDTO.getName());
         } else {
             port = flowController.getFlowManager().createLocalOutputPort(portDTO.getId(), portDTO.getName());
         }
 
-        // ensure we can perform the update before we add the processor to the flow
+        // Unique public port check among all groups.
+        if (port instanceof PublicPort) {
+            verifyPublicPortUniqueness(port.getIdentifier(), port.getName());
+        }
+
+        // ensure we can perform the update before we add the port to the flow
         verifyUpdate(port, portDTO);
 
         // configure
@@ -101,146 +99,31 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Override
-    public void verifyUpdate(PortDTO portDTO) {
-        final Port outputPort = locatePort(portDTO.getId());
-        verifyUpdate(outputPort, portDTO);
+    protected Set<Port> getPublicPorts() {
+        return flowController.getFlowManager().getPublicOutputPorts();
     }
 
-    private void verifyUpdate(final Port outputPort, final PortDTO portDTO) {
-        if (isNotNull(portDTO.getState())) {
-            final ScheduledState purposedScheduledState = ScheduledState.valueOf(portDTO.getState());
-
-            // only attempt an action if it is changing
-            if (!purposedScheduledState.equals(outputPort.getScheduledState())) {
-                // perform the appropriate action
-                switch (purposedScheduledState) {
+    @Override
+    protected void handleStateTransition(final Port port, final ScheduledState proposedScheduledState) throws IllegalStateException {
+        final ProcessGroup processGroup = port.getProcessGroup();
+        switch (proposedScheduledState) {
+            case RUNNING:
+                processGroup.startOutputPort(port);
+                break;
+            case STOPPED:
+                switch (port.getScheduledState()) {
                     case RUNNING:
-                        outputPort.verifyCanStart();
-                        break;
-                    case STOPPED:
-                        switch (outputPort.getScheduledState()) {
-                            case RUNNING:
-                                outputPort.verifyCanStop();
-                                break;
-                            case DISABLED:
-                                outputPort.verifyCanEnable();
-                                break;
-                        }
+                        processGroup.stopOutputPort(port);
                         break;
                     case DISABLED:
-                        outputPort.verifyCanDisable();
+                        processGroup.enableOutputPort(port);
                         break;
                 }
-            }
+                break;
+            case DISABLED:
+                processGroup.disableOutputPort(port);
+                break;
         }
-
-        // see what's be modified
-        if (isAnyNotNull(portDTO.getUserAccessControl(),
-                portDTO.getGroupAccessControl(),
-                portDTO.getConcurrentlySchedulableTaskCount(),
-                portDTO.getName(),
-                portDTO.getComments())) {
-
-            // validate the request
-            final List<String> requestValidation = validateProposedConfiguration(portDTO);
-
-            // ensure there was no validation errors
-            if (!requestValidation.isEmpty()) {
-                throw new ValidationException(requestValidation);
-            }
-
-            // ensure the port can be updated
-            outputPort.verifyCanUpdate();
-        }
-    }
-
-    private List<String> validateProposedConfiguration(PortDTO portDTO) {
-        List<String> validationErrors = new ArrayList<>();
-
-        if (isNotNull(portDTO.getName()) && portDTO.getName().trim().isEmpty()) {
-            validationErrors.add("The name of the port must be specified.");
-        }
-        if (isNotNull(portDTO.getConcurrentlySchedulableTaskCount()) && portDTO.getConcurrentlySchedulableTaskCount() <= 0) {
-            validationErrors.add("Concurrent tasks must be a positive integer.");
-        }
-
-        return validationErrors;
-    }
-
-    @Override
-    public Port updatePort(PortDTO portDTO) {
-        Port outputPort = locatePort(portDTO.getId());
-
-        // ensure we can do this update
-        verifyUpdate(outputPort, portDTO);
-
-        // handle state transition
-        if (portDTO.getState() != null) {
-            final ScheduledState purposedScheduledState = ScheduledState.valueOf(portDTO.getState());
-
-            // only attempt an action if it is changing
-            if (!purposedScheduledState.equals(outputPort.getScheduledState())) {
-                try {
-                    // perform the appropriate action
-                    switch (purposedScheduledState) {
-                        case RUNNING:
-                            outputPort.getProcessGroup().startOutputPort(outputPort);
-                            break;
-                        case STOPPED:
-                            switch (outputPort.getScheduledState()) {
-                                case RUNNING:
-                                    outputPort.getProcessGroup().stopOutputPort(outputPort);
-                                    break;
-                                case DISABLED:
-                                    outputPort.getProcessGroup().enableOutputPort(outputPort);
-                                    break;
-                            }
-                            break;
-                        case DISABLED:
-                            outputPort.getProcessGroup().disableOutputPort(outputPort);
-                            break;
-                    }
-                } catch (IllegalStateException ise) {
-                    throw new NiFiCoreException(ise.getMessage(), ise);
-                }
-            }
-        }
-
-        if (outputPort instanceof RootGroupPort) {
-            final RootGroupPort rootPort = (RootGroupPort) outputPort;
-            if (isNotNull(portDTO.getGroupAccessControl())) {
-                rootPort.setGroupAccessControl(portDTO.getGroupAccessControl());
-            }
-            if (isNotNull(portDTO.getUserAccessControl())) {
-                rootPort.setUserAccessControl(portDTO.getUserAccessControl());
-            }
-        }
-
-        // perform the configuration
-        final String name = portDTO.getName();
-        final String comments = portDTO.getComments();
-        final Integer concurrentTasks = portDTO.getConcurrentlySchedulableTaskCount();
-        if (isNotNull(portDTO.getPosition())) {
-            outputPort.setPosition(new Position(portDTO.getPosition().getX(), portDTO.getPosition().getY()));
-        }
-        if (isNotNull(name)) {
-            outputPort.setName(name);
-        }
-        if (isNotNull(comments)) {
-            outputPort.setComments(comments);
-        }
-        if (isNotNull(concurrentTasks)) {
-            outputPort.setMaxConcurrentTasks(concurrentTasks);
-        }
-
-        outputPort.getProcessGroup().onComponentModified();
-        return outputPort;
-    }
-
-    @Override
-    public void verifyDelete(final String portId) {
-        final Port outputPort = locatePort(portId);
-        outputPort.verifyCanDelete();
     }
 
     @Override
@@ -249,8 +132,4 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
         outputPort.getProcessGroup().removeOutputPort(outputPort);
     }
 
-    /* setters */
-    public void setFlowController(FlowController flowController) {
-        this.flowController = flowController;
-    }
 }

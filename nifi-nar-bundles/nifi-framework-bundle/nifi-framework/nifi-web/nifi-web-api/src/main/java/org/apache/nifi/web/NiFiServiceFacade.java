@@ -914,6 +914,28 @@ public interface NiFiServiceFacade {
      */
     PortEntity deleteOutputPort(Revision revision, String outputPortId);
 
+    /**
+     * Verifies public input port unique constraint throughout the flow will be retained,
+     * even if a new port is added with the given port id and name.
+     *
+     * @param portId port id
+     * @param portName port name
+     *
+     * @throws IllegalStateException If there is any port with the same name or the same identifier
+     */
+    void verifyPublicInputPortUniqueness(final String portId, final String portName);
+
+    /**
+     * Verifies public output port unique constraint throughout the flow will be retained,
+     * even if a new port is added with the given port id and name.
+     *
+     * @param portId port id
+     * @param portName port name
+     *
+     * @throws IllegalStateException If there is any port with the same name or the same identifier
+     */
+    void verifyPublicOutputPortUniqueness(final String portId, final String portName);
+
     // ------------
     // Current user
     // ------------
