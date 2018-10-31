@@ -1211,7 +1211,7 @@ public class LoadBalancedQueueIT {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
 
-        when(serverQueue.isFull()).thenReturn(true);
+        when(serverQueue.isLocalPartitionFull()).thenReturn(true);
 
         // Create the server
         final int timeoutMillis = 30000;
@@ -1266,7 +1266,7 @@ public class LoadBalancedQueueIT {
                 assertEquals(2, flowFileQueue.size().getObjectCount());
 
                 // Enable data to be transferred
-                when(serverQueue.isFull()).thenReturn(false);
+                when(serverQueue.isLocalPartitionFull()).thenReturn(false);
 
                 while (clientRepoRecords.size() != 1) {
                     Thread.sleep(10L);
