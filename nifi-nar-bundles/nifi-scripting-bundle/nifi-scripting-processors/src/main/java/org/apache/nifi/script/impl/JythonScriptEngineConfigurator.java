@@ -41,6 +41,16 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
 
     @Override
     public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
+        if (engine != null) {
+            // Need to import the module path inside the engine, in order to pick up
+            // other Python/Jython modules.
+            engine.eval("import sys");
+            if (modulePaths != null) {
+                for (String modulePath : modulePaths) {
+                    engine.eval("sys.path.append('" + modulePath + "')");
+                }
+            }
+        }
         return null;
     }
 
@@ -48,14 +58,6 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
     public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         Object returnValue = null;
         if (engine != null) {
-            // Need to import the module path inside the engine, in order to pick up
-            // other Python/Jython modules
-            engine.eval("import sys");
-            if (modulePaths != null) {
-                for (String modulePath : modulePaths) {
-                    engine.eval("sys.path.append('" + modulePath + "')");
-                }
-            }
             returnValue = engine.eval(scriptBody);
         }
         return returnValue;
