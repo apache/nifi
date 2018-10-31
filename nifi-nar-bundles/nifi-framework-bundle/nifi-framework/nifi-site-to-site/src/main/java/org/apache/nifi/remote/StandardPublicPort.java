@@ -125,7 +125,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
                 final String sourceId = StandardPublicPort.this.getIdentifier();
                 final String sourceName = StandardPublicPort.this.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, componentType, sourceName, category, severity.name(), message));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, id, componentType, name, category, severity.name(), message));
             }
         };
 

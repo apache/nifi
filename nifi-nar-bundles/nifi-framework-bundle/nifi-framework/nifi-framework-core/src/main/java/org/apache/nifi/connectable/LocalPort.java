@@ -99,6 +99,16 @@ public class LocalPort extends AbstractPort {
                                 requireOutput, !getConnections(Relationship.ANONYMOUS).isEmpty()};
     }
 
+
+    private boolean[] validateConnections() {
+        // LocalPort requires both in/out.
+        final boolean requireInput = true;
+        final boolean requireOutput = true;
+
+        return new boolean[]{requireInput, hasIncomingConnection(),
+                                requireOutput, !getConnections(Relationship.ANONYMOUS).isEmpty()};
+    }
+
     @Override
     public boolean isValid() {
         final boolean[] connectionRequirements = validateConnections();
