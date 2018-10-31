@@ -285,17 +285,14 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     if (contentClaim == null) {
                         contentClaim = contentRepository.create(false);
                         contentClaimOut = contentRepository.write(contentClaim);
-                    } else {
-                        contentRepository.incrementClaimaintCount(contentClaim);
                     }
 
-                    final RemoteFlowFileRecord flowFile;
-                    try {
-                        flowFile = receiveFlowFile(dataIn, contentClaimOut, contentClaim, claimOffset, protocolVersion, peerDescription, compression);
-                    } catch (final Exception e) {
-                        contentRepository.decrementClaimantCount(contentClaim);
-                        throw e;
-                    }
+                    final RemoteFlowFileRecord flowFile = receiveFlowFile(dataIn, contentClaimOut, contentClaim, claimOffset, protocolVersion, peerDescription, compression);
+
+                    // The FlowFile's Content Claim will either be null or equal to the provided Content Claim.
+                    // Incrementing the FlowFile's content claim will increment the count for the provided Content Claim, if it was
+                    // assigned to the FlowFIle, or call incrementClaimantCount with an argument of null, which will do nothing.
+                    contentRepository.incrementClaimaintCount(flowFile.getFlowFile().getContentClaim());
 
                     flowFilesReceived.add(flowFile);
 
@@ -307,14 +304,25 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 }
             }
 
+            // When the Content Claim is created initially, it has a Claimaint Count of 1. We then increment the Claimant Count for each FlowFile that we add to the Content Claim,
+            // which means that the claimant count is currently 1 larger than it needs to be. So we will decrement the claimant count now. If that results in a count of 0, then
+            // we can go ahead and remove the Content Claim, since we know it's not being referenced.
+            final int count = contentRepository.decrementClaimantCount(contentClaim);
+
             verifyChecksum(checksum, in, out, peerDescription, flowFilesReceived.size());
             completeTransaction(in, out, peerDescription, flowFilesReceived, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
+
+            if (count == 0) {
+                contentRepository.remove(contentClaim);
+            }
         } catch (final Exception e) {
             // If any Exception occurs, we need to decrement the claimant counts for the Content Claims that we wrote to because
             // they are no longer needed.
             for (final RemoteFlowFileRecord remoteFlowFile : flowFilesReceived) {
                 contentRepository.decrementClaimantCount(remoteFlowFile.getFlowFile().getContentClaim());
             }
+
+            contentRepository.remove(contentClaim);
 
             throw e;
         }

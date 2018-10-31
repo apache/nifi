@@ -458,7 +458,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -509,7 +511,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -559,7 +563,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
