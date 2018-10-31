@@ -67,7 +67,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      */
     public static final String ADDITIONAL_DETAILS_HTML = "additionalDetails.html";
 
-    private ExtensionManager extensionManager;
+    private final ExtensionManager extensionManager;
 
     public HtmlDocumentationWriter(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;

@@ -16,25 +16,46 @@
  */
 package org.apache.nifi.nar;
 
+/**
+ * Holds a singleton instance of ExtensionManager.
+ *
+ * NOTE: This class primarily exists to create a bridge from the JettyServer to the Spring context. There
+ * should be no direct calls to this class outside of the JettyServer or the ExtensionManagerFactoryBean.
+ * The rest of the framework should obtain an instance of ExtensionManager from Spring.
+ */
 public final class ExtensionManagerHolder {
 
     private static volatile ExtensionManager INSTANCE;
 
-    /**
-     * @return the singleton instance of ExtensionManager
-     */
-    public static ExtensionManager getInstance() {
+    public static void init(final ExtensionManager extensionManager) {
         if (INSTANCE == null) {
             synchronized (ExtensionManagerHolder.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = new ExtensionManager();
+                    INSTANCE = extensionManager;
+                } else {
+                    throw new IllegalStateException("Cannot reinitialize ExtensionManagerHolder");
+                }
+            }
+        } else {
+            throw new IllegalStateException("Cannot reinitialize ExtensionManagerHolder");
+        }
+    }
+
+    public static ExtensionManager getExtensionManager() {
+        if (INSTANCE == null) {
+            synchronized (ExtensionManagerHolder.class) {
+                if (INSTANCE == null) {
+                    throw new IllegalStateException("ExtensionManagerHolder was never initialized");
                 }
             }
         }
+
         return INSTANCE;
     }
 
+    // Private access
     private ExtensionManagerHolder() {
 
     }
+
 }

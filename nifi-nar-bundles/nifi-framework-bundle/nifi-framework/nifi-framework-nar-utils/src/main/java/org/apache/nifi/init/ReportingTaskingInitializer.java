@@ -34,7 +34,7 @@ import org.apache.nifi.reporting.ReportingTask;
  */
 public class ReportingTaskingInitializer implements ConfigurableComponentInitializer {
 
-    private ExtensionManager extensionManager;
+    private final ExtensionManager extensionManager;
 
     public ReportingTaskingInitializer(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;

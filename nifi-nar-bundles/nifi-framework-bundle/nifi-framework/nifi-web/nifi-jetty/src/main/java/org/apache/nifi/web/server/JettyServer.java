@@ -28,13 +28,14 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.ExtensionUiLoader;
 import org.apache.nifi.nar.NarAutoLoader;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
@@ -916,11 +917,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public void start() {
         try {
-            // initialize the singleton instance of ExtensionManager, will be made available to the Spring context via a factory bean
-            final ExtensionManager extensionManager = ExtensionManagerHolder.getInstance();
+            // Create a standard extension manager and discover extensions
+            final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
             extensionManager.discoverExtensions(systemBundle, bundles);
             extensionManager.logClassLoaderMapping();
 
+            // Set the extension manager into the holder which makes it available to the Spring context via a factory bean
+            ExtensionManagerHolder.init(extensionManager);
+
+            // Generate docs for extensions
             DocGenerator.generate(props, extensionManager, extensionMapping);
 
             // start the server
@@ -1016,8 +1021,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     props.getExtensionsWorkingDirectory(),
                     props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
-                    ExtensionManagerHolder.getInstance(),
-                    extensionMapping, this);
+                    extensionManager,
+                    extensionMapping,
+                    this);
 
             narAutoLoader = new NarAutoLoader(props.getNarAutoLoadDirectory(), narLoader);
             narAutoLoader.start();

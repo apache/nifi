@@ -46,14 +46,14 @@ public class NarLoader {
     private File extensionsWorkingDir;
     private File docsWorkingDir;
     private NarClassLoaders narClassLoaders;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
     private ExtensionMapping extensionMapping;
     private ExtensionUiLoader extensionUiLoader;
 
     public NarLoader(final File extensionsWorkingDir,
                      final File docsWorkingDir,
                      final NarClassLoaders narClassLoaders,
-                     final ExtensionManager extensionManager,
+                     final ExtensionDiscoveringManager extensionManager,
                      final ExtensionMapping extensionMapping,
                      final ExtensionUiLoader extensionUiLoader) {
         this.extensionsWorkingDir = extensionsWorkingDir;

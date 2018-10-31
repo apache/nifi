@@ -52,7 +52,7 @@ public class TestNarLoader {
 
     private NarLoader narLoader;
     private NarClassLoaders narClassLoaders;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
 
     @Before
     public void setup() throws IOException, ClassNotFoundException {
@@ -75,7 +75,7 @@ public class TestNarLoader {
         narClassLoaders = new NarClassLoaders();
         narClassLoaders.init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, narClassLoaders.getBundles());
 
         // Should have Framework and Jetty NARs loaded here

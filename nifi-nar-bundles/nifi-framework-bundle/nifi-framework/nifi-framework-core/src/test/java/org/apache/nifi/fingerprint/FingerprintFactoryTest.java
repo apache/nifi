@@ -44,6 +44,7 @@ import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.junit.Before;
@@ -65,7 +66,7 @@ public class FingerprintFactoryTest {
     @Before
     public void setup() {
         encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
         fingerprinter = new FingerprintFactory(encryptor, extensionManager);
     }
 

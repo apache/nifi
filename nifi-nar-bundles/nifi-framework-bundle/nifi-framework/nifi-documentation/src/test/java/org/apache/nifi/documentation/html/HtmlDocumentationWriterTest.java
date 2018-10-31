@@ -29,6 +29,7 @@ import org.apache.nifi.init.ReportingTaskingInitializer;
 import org.apache.nifi.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Assert;
@@ -47,7 +48,7 @@ public class HtmlDocumentationWriterTest {
 
     @Before
     public void setup() {
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
     }
 
     @Test

@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller.reporting;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -40,7 +32,8 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -54,6 +47,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+
 public class TestStandardReportingContext {
 
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
@@ -64,7 +66,7 @@ public class TestStandardReportingContext {
     private StringEncryptor encryptor;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private FlowRegistryClient flowRegistry;
@@ -90,7 +92,7 @@ public class TestStandardReportingContext {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();

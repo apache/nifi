@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessorDAO;
@@ -37,7 +38,7 @@ public class StandardAuthorizableLookupTest {
 
     @Test
     public void testGetAuthorizableFromResource() {
-        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        final ExtensionManager extensionManager = mock(ExtensionDiscoveringManager.class);
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         when(controllerFacade.getExtensionManager()).thenReturn(extensionManager);
 

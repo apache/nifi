@@ -34,7 +34,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
  */
 public class ProcessorInitializer implements ConfigurableComponentInitializer {
 
-    private ExtensionManager extensionManager;
+    private final ExtensionManager extensionManager;
 
     public ProcessorInitializer(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;

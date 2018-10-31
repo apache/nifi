@@ -21,7 +21,8 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
@@ -42,7 +43,7 @@ public class StandardControllerServiceProviderTest {
     private ControllerService implementation;
     private static VariableRegistry variableRegistry;
     private static NiFiProperties nifiProperties;
-    private static ExtensionManager extensionManager;
+    private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
     private static FlowController flowController;
 
@@ -53,7 +54,7 @@ public class StandardControllerServiceProviderTest {
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());

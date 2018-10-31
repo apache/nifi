@@ -44,7 +44,8 @@ import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -104,7 +105,7 @@ public class TestStandardProcessScheduler {
     private ProcessGroup rootGroup;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
-    private ExtensionManager extensionManager;
+    private ExtensionDiscoveringManager extensionManager;
     private volatile String propsFile = TestStandardProcessScheduler.class.getResource("/standardprocessschedulertest.nifi.properties").getFile();
 
     @Before
@@ -116,7 +117,7 @@ public class TestStandardProcessScheduler {
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        extensionManager = new ExtensionManager();
+        extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class), null, stateMgrProvider, nifiProperties);

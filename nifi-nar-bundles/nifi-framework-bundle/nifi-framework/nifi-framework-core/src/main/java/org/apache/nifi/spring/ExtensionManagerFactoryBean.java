@@ -18,6 +18,7 @@ package org.apache.nifi.spring;
 
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
@@ -28,13 +29,13 @@ import org.springframework.beans.factory.FactoryBean;
 public class ExtensionManagerFactoryBean implements FactoryBean<ExtensionManager> {
 
     @Override
-    public ExtensionManager getObject() throws Exception {
-        return ExtensionManagerHolder.getInstance();
+    public ExtensionManager getObject() {
+        return ExtensionManagerHolder.getExtensionManager();
     }
 
     @Override
     public Class<?> getObjectType() {
-        return ExtensionManager.class;
+        return StandardExtensionDiscoveringManager.class;
     }
 
     @Override

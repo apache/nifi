@@ -33,6 +33,7 @@ import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.init.ProcessorInitializer;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -40,7 +41,7 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testFullyDocumentedProcessor() throws IOException {
-        ExtensionManager extensionManager = new ExtensionManager();
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
 
         FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
@@ -117,7 +118,7 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testNakedProcessor() throws IOException {
-        ExtensionManager extensionManager = new ExtensionManager();
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
 
         NakedProcessor processor = new NakedProcessor();
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
@@ -157,7 +158,7 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testProcessorWithLoggerInitialization() throws IOException {
-        ExtensionManager extensionManager = new ExtensionManager();
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
 
         ProcessorWithLogger processor = new ProcessorWithLogger();
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
@@ -177,7 +178,7 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testDeprecatedProcessor() throws IOException {
-        ExtensionManager extensionManager = new ExtensionManager();
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
 
         DeprecatedProcessor processor = new DeprecatedProcessor();
         ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);

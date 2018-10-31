@@ -51,6 +51,7 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
@@ -96,11 +97,11 @@ public class Node {
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
 
-    public Node(final NiFiProperties properties, final ExtensionManager extensionManager, final FlowElection flowElection) {
+    public Node(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
         this(createNodeId(), properties, extensionManager, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionManager extensionManager, final FlowElection flowElection) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override

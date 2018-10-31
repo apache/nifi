@@ -35,7 +35,7 @@ import org.apache.nifi.reporting.InitializationException;
  */
 public class ControllerServiceInitializer implements ConfigurableComponentInitializer {
 
-    private ExtensionManager extensionManager;
+    private final ExtensionManager extensionManager;
 
     public ControllerServiceInitializer(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
