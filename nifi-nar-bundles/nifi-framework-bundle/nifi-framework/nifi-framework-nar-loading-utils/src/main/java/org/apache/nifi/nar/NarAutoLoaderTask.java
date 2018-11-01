@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.bundle.BundleDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +26,8 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -51,7 +48,6 @@ public class NarAutoLoaderTask implements Runnable {
     private final NarLoader narLoader;
     private final List<File> candidateNars;
 
-    private NarLoadResult prevLoadResult;
     private volatile boolean stopped = false;
 
     private NarAutoLoaderTask(final Builder builder) {
@@ -60,87 +56,82 @@ public class NarAutoLoaderTask implements Runnable {
         this.pollIntervalMillis = builder.pollIntervalMillis;
         this.narLoader = builder.narLoader;
         this.candidateNars = new ArrayList<>();
-        this.prevLoadResult = null;
     }
 
     @Override
     public void run() {
         while (!stopped) {
-            WatchKey key;
             try {
-                LOGGER.debug("Polling for new NARs at {}", new Object[]{autoLoadPath});
-                key = watchService.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException x) {
-                LOGGER.info("WatchService interrupted, returning...");
-                return;
-            }
-
-            // Key comes back as null when there are no new create events, but we still want to continue processing
-            // so we can consider files added to the candidateNars list in previous iterations
-
-            if (key != null) {
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    final WatchEvent.Kind<?> kind = event.kind();
-                    if (kind == StandardWatchEventKinds.OVERFLOW) {
-                        continue;
-                    }
-
-                    final WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    final Path filename = ev.context();
-
-                    final Path autoLoadFile = autoLoadPath.resolve(filename);
-                    final String autoLoadFilename = autoLoadFile.toFile().getName().toLowerCase();
-
-                    if (!autoLoadFilename.endsWith(".nar")) {
-                        LOGGER.info("Skipping non-nar file {}", new Object[]{autoLoadFilename});
-                        continue;
-                    }
-
-                    if (autoLoadFilename.startsWith(".")) {
-                        LOGGER.debug("Skipping partially written file {}", new Object[]{autoLoadFilename});
-                        continue;
-                    }
-
-                    LOGGER.info("Found {} in auto-load directory", new Object[]{autoLoadFile});
-                    candidateNars.add(autoLoadFile.toFile());
-                }
-
-                final boolean valid = key.reset();
-                if (!valid) {
-                    LOGGER.error("NAR auto-load directory is no longer valid");
-                    stop();
-                }
-            }
-
-            // Make sure that the created file is done being written by checking the last modified date of the file and
-            // make sure a certain amount of time has passed indicating it is done being written to
-
-            final List<File> readyNars = new ArrayList<>();
-            final Iterator<File> candidateNarIter = candidateNars.iterator();
-            while (candidateNarIter.hasNext()) {
-                final File candidateNar = candidateNarIter.next();
-                final long fileAge = System.currentTimeMillis() - candidateNar.lastModified();
-                if (fileAge >= MIN_FILE_AGE) {
-                    readyNars.add(candidateNar);
-                    candidateNarIter.remove();
-                } else {
-                    LOGGER.debug("Candidate NAR {} not ready yet, will check again next time", new Object[]{candidateNar.getName()});
-                }
-            }
-
-            if (!readyNars.isEmpty()) {
+                WatchKey key;
                 try {
-                    final Set<BundleDetails> prevSkippedBundles = getPreviouslySkippedBundles();
-                    prevLoadResult = narLoader.load(readyNars, prevSkippedBundles);
-                } catch (Exception e) {
-                    LOGGER.error("Error loading NARs due to " + e.getMessage(), e);
+                    LOGGER.debug("Polling for new NARs at {}", new Object[]{autoLoadPath});
+                    key = watchService.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException x) {
+                    LOGGER.info("WatchService interrupted, returning...");
+                    return;
                 }
+
+                // Key comes back as null when there are no new create events, but we still want to continue processing
+                // so we can consider files added to the candidateNars list in previous iterations
+
+                if (key != null) {
+                    for (WatchEvent<?> event : key.pollEvents()) {
+                        final WatchEvent.Kind<?> kind = event.kind();
+                        if (kind == StandardWatchEventKinds.OVERFLOW) {
+                            continue;
+                        }
+
+                        final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                        final Path filename = ev.context();
+
+                        final Path autoLoadFile = autoLoadPath.resolve(filename);
+                        final String autoLoadFilename = autoLoadFile.toFile().getName().toLowerCase();
+
+                        if (!autoLoadFilename.endsWith(".nar")) {
+                            LOGGER.info("Skipping non-nar file {}", new Object[]{autoLoadFilename});
+                            continue;
+                        }
+
+                        if (autoLoadFilename.startsWith(".")) {
+                            LOGGER.debug("Skipping partially written file {}", new Object[]{autoLoadFilename});
+                            continue;
+                        }
+
+                        LOGGER.info("Found {} in auto-load directory", new Object[]{autoLoadFile});
+                        candidateNars.add(autoLoadFile.toFile());
+                    }
+
+                    final boolean valid = key.reset();
+                    if (!valid) {
+                        LOGGER.error("NAR auto-load directory is no longer valid");
+                        stop();
+                    }
+                }
+
+                // Make sure that the created file is done being written by checking the last modified date of the file and
+                // make sure a certain amount of time has passed indicating it is done being written to
+
+                final List<File> readyNars = new ArrayList<>();
+                final Iterator<File> candidateNarIter = candidateNars.iterator();
+                while (candidateNarIter.hasNext()) {
+                    final File candidateNar = candidateNarIter.next();
+                    final long fileAge = System.currentTimeMillis() - candidateNar.lastModified();
+                    if (fileAge >= MIN_FILE_AGE) {
+                        readyNars.add(candidateNar);
+                        candidateNarIter.remove();
+                    } else {
+                        LOGGER.debug("Candidate NAR {} not ready yet, will check again next time", new Object[]{candidateNar.getName()});
+                    }
+                }
+
+                if (!readyNars.isEmpty()) {
+                    narLoader.load(readyNars);
+                }
+
+            } catch (final Exception e) {
+                LOGGER.error("Error loading NARs due to: " + e.getMessage(), e);
             }
         }
-    }
-
-    private Set<BundleDetails> getPreviouslySkippedBundles() {
-        return prevLoadResult == null ? Collections.emptySet() : prevLoadResult.getSkippedBundles();
     }
 
     public void stop() {

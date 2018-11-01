@@ -44,10 +44,8 @@ public class NarAutoLoader {
     private volatile boolean started = false;
 
     public NarAutoLoader(final File autoLoadDir, final NarLoader narLoader) {
-        this.autoLoadDir = autoLoadDir;
-        this.narLoader = narLoader;
-        Objects.requireNonNull(this.autoLoadDir);
-        Objects.requireNonNull(this.narLoader);
+        this.autoLoadDir = Objects.requireNonNull(autoLoadDir);
+        this.narLoader = Objects.requireNonNull(narLoader);
     }
 
     public synchronized void start() throws IOException {
@@ -82,7 +80,7 @@ public class NarAutoLoader {
 
     public synchronized void stop() {
         started = false;
-        narAutoLoaderTask.stop();;
+        narAutoLoaderTask.stop();
         LOGGER.info("NAR Auto-Loader stopped");
     }
 

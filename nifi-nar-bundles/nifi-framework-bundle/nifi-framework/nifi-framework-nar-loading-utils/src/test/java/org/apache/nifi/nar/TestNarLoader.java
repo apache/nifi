@@ -50,7 +50,7 @@ public class TestNarLoader {
     private NiFiProperties properties;
     private ExtensionMapping extensionMapping;
 
-    private NarLoader narLoader;
+    private StandardNarLoader narLoader;
     private NarClassLoaders narClassLoaders;
     private ExtensionDiscoveringManager extensionManager;
 
@@ -87,7 +87,7 @@ public class TestNarLoader {
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
 
         // Create class we are testing
-        narLoader = new NarLoader(
+        narLoader = new StandardNarLoader(
                 properties.getExtensionsWorkingDirectory(),
                 properties.getComponentDocumentationWorkingDirectory(),
                 narClassLoaders,
@@ -108,7 +108,7 @@ public class TestNarLoader {
         final List<File> narFiles = Arrays.asList(narAutoLoadDir.toFile().listFiles());
         assertEquals(3, narFiles.size());
 
-        final NarLoadResult narLoadResult = narLoader.load(narFiles, null);
+        final NarLoadResult narLoadResult = narLoader.load(narFiles);
         assertNotNull(narLoadResult);
         assertEquals(3, narLoadResult.getLoadedBundles().size());
         assertEquals(0, narLoadResult.getSkippedBundles().size());
@@ -131,7 +131,7 @@ public class TestNarLoader {
 
         // Attempt to load while only processor NAR is available
         final List<File> narFiles1 = Arrays.asList(targetProcessorNar);
-        final NarLoadResult narLoadResult1 = narLoader.load(narFiles1, null);
+        final NarLoadResult narLoadResult1 = narLoader.load(narFiles1);
         assertNotNull(narLoadResult1);
         assertEquals(0, narLoadResult1.getLoadedBundles().size());
         assertEquals(1, narLoadResult1.getSkippedBundles().size());
@@ -143,7 +143,7 @@ public class TestNarLoader {
 
         // Attempt to load while processor and service impl NARs available
         final List<File> narFiles2 = Arrays.asList(targetServiceImplNar);
-        final NarLoadResult narLoadResult2 = narLoader.load(narFiles2, narLoadResult1.getSkippedBundles());
+        final NarLoadResult narLoadResult2 = narLoader.load(narFiles2);
         assertNotNull(narLoadResult2);
         assertEquals(0, narLoadResult2.getLoadedBundles().size());
         assertEquals(2, narLoadResult2.getSkippedBundles().size());
@@ -155,7 +155,7 @@ public class TestNarLoader {
 
         // Attempt to load while all NARs available
         final List<File> narFiles3 = Arrays.asList(targetServiceApiNar);
-        final NarLoadResult narLoadResult3 = narLoader.load(narFiles3, narLoadResult2.getSkippedBundles());
+        final NarLoadResult narLoadResult3 = narLoader.load(narFiles3);
         assertNotNull(narLoadResult3);
         assertEquals(3, narLoadResult3.getLoadedBundles().size());
         assertEquals(0, narLoadResult3.getSkippedBundles().size());
