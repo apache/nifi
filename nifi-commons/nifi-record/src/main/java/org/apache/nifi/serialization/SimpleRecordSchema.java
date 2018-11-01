@@ -231,7 +231,7 @@ public class SimpleRecordSchema implements RecordSchema {
 
     /**
      * Set schema namespace.
-     * @param schemaNamespace schema name as defined in a root record.
+     * @param schemaNamespace schema namespace as defined in a root record.
      */
     public void setSchemaNamespace(String schemaNamespace) {
         this.schemaNamespace = schemaNamespace;

@@ -136,7 +136,6 @@ public class TestXMLRecordSetWriter {
         TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "ROOT_NODE");
-        //runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "RECORD_NODE");
 
         runner.enableControllerService(writer);
         runner.enqueue("");
