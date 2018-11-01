@@ -45,7 +45,7 @@ import java.util.Set;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"attributes", "logging"})
+@Tags({"logging"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Emits a log message at the specified log level")
 public class LogMessage extends AbstractProcessor {
@@ -57,7 +57,6 @@ public class LogMessage extends AbstractProcessor {
             .description("The Log Level to use when logging the message")
             .allowableValues(MessageLogLevel.values())
             .defaultValue(MessageLogLevel.info.toString())
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
