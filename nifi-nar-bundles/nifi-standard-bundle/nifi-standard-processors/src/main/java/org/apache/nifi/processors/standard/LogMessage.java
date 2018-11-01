@@ -45,7 +45,7 @@ import java.util.Set;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"logging"})
+@Tags({"attributes", "logging"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Emits a log message at the specified log level")
 public class LogMessage extends AbstractProcessor {
