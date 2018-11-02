@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <google.cloud.sdk.version>0.71.0-alpha</google.cloud.sdk.version>
+        <google.cloud.sdk.version>0.72.0-alpha</google.cloud.sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -41,12 +41,13 @@
                 <scope>import</scope>
             </dependency>
         </dependencies>
-    </dependencyManagement>
+	</dependencyManagement>
 
     <modules>
         <module>nifi-gcp-services-api</module>
         <module>nifi-gcp-services-api-nar</module>
         <module>nifi-gcp-processors</module>
+        <module>nifi-gcp-reporting-task</module>
         <module>nifi-gcp-nar</module>
     </modules>
 
