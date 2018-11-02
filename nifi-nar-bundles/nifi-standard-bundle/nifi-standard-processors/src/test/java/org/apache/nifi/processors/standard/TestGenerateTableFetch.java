@@ -544,6 +544,37 @@ public class TestGenerateTableFetch {
     }
 
     @Test
+    public void testFlowFileGeneratedOnZeroResults() throws SQLException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
+        // Set partition size to 0 so we can see that the flow file gets all rows
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
+        runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "false");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "true");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
+    }
+
+    @Test
     public void testMultiplePartitions() throws ClassNotFoundException, SQLException, InitializationException, IOException {
 
         // load test data to database
