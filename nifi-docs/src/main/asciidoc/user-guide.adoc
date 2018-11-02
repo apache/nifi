@@ -1928,7 +1928,9 @@ The following actions are not considered local changes:
 * modifying sensitive property values
 * modifying remote process group URLs
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
-* modifying variables
+* creating, modifying or deleting variables
+
+NOTE: Creating a variable does not trigger a local change because creating a variable on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses the new variable, which will trigger a local change. Modifying a variable does not trigger a local change because variable values are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those variables specific for the given environment. Deleting a variable does not trigger a local change because the component that references that variable will need need to be modified, which will trigger a local change.
 
 WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. See <<Variables_in_Versioned_Flows>> for more information.
 
