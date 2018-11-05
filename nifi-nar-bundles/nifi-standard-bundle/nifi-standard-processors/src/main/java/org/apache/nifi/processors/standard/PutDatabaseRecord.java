@@ -275,6 +275,17 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("put-db-record-max-batch-size")
+            .displayName("Maximum Batch Size")
+            .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
+                            + " Zero means the batch size is not limited.")
+            .defaultValue("0")
+            .required(false)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     protected static List<PropertyDescriptor> propDescriptors;
 
     private Cache<SchemaKey, TableSchema> schemaCache;
@@ -303,6 +314,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
         pds.add(TABLE_SCHEMA_CACHE_SIZE);
+        pds.add(MAX_BATCH_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -641,6 +653,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             Record currentRecord;
             List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
 
+            final Integer maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+            int currentBatchSize = 0;
+            int batchIndex = 0;
+
             while ((currentRecord = recordParser.nextRecord()) != null) {
                 Object[] values = currentRecord.getValues();
                 if (values != null) {
@@ -667,11 +683,20 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                         }
                     }
                     ps.addBatch();
+                    if (++currentBatchSize == maxBatchSize) {
+                        batchIndex++;
+                        log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
+                        ps.executeBatch();
+                        currentBatchSize = 0;
+                    }
                 }
             }
 
-            log.debug("Executing query {}", new Object[]{sqlHolder});
-            ps.executeBatch();
+            if (currentBatchSize > 0) {
+                batchIndex++;
+                log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
+                ps.executeBatch();
+            }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
 
