@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<head>
+    <meta charset="utf-8" />
+    <title>DaffodilUnparse</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Description</h2>
+<p>
+    This processor uses Daffodil and a user-specified DFDL schema to "unparse", or serialize, an XML or JSON
+    representation of data, called the DFDL infoset, back to the original data format. Upon a successful
+    unparse of the incoming FlowFile, the resulting unparsed data is transferred to the <i>success</i>
+    Relationship. Upon a failed unparse, the incoming FlowFile is transferred to the <i>failure</i>
+    Relationship.
+</p>
+<h3>Daffodil and DFDL</h3>
+<p>
+    <a href="https://daffodil.apache.org">Apache Daffodil (incubating)</a> is the open source implementation of the
+    <a href="https://www.ogf.org/ogf/doku.php/standards/dfdl/dfdl">Data Format Description Language (DFDL)</a>. DFDL
+    is a language capable of describing many data formats, including textual and binary, commercial
+    record-oriented, scientific and numeric, modern and legacy, and many industry standards. It leverages XML
+    technology and concepts, using a subset of W3C XML schema type system and annotations to describe such
+    data. Daffodil uses this data description to "parse" data into an XML representation of the data. This
+    allows one to take advantage of the many XML and JSON technologies (e.g. XQuery, XPath, XSLT) to ingest, validate,
+    and manipulate complex data formats. Daffodil can also use this data description to "unparse", or
+    serialize, the XML or JSON representation back to the original data format.
+</p>
+<p>
+    Publicly available DFDL schemas are available on the <a href="https://github.com/DFDLSchemas">DFDL Schemas github</a>.
+</p>
+<h2>Compiled DFDL Schema Cache</h2>
+<p>
+    Before a FlowFile can be parsed or unparsed, Daffodil first compiles the DFDL schema to an internal data
+    structure. This compilation can be relatively slow, so once a schema is compiled, it is cached inside this
+    NiFi processor for rapid reuse. The following properties are provided to control how this cache is
+    maintained:
+    <dl>
+        <dt>Cache Size</dt>
+        <dd>
+            Defines the maximum number of DFDL schemas that can be compiled and saved for rapid reuse from the
+            cache. To avoid compilation, it is recommended that this value be larger than the expected number
+            of possible DFDL schemas. Setting this value to 0 disables the cache, though this is not
+            recommended.
+        </dd>
+        <dt>Cache TTL after last access</dt>
+        <dd>
+            Defines the cache time-to-live, or how long to keep an unused compiled DFDL schemas in the cache. To avoid
+            compilation, it is recommended that this should be larger than the amount of time it is expected
+            for a DFDL schema to be unused.
+        </dd>
+    </dl>
+</p>
+
+
+</body>
+</html>

@@ -1,0 +1,97 @@
+nifi-daffodil-nar
+Copyright 2018 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+The following NOTICE information applies to binary components distributed with this project:
+
+Apache Daffodil (daffodil-*_2.12-2.2.0.jar)
+  Apache Daffodil
+  Copyright 2018 The Apache Software Foundation
+
+  This product includes software developed at
+  The Apache Software Foundation (http://www.apache.org/).
+
+  Based on source code originally developed by
+  - The Univerisity of Illinois National Center for Supercomputing Applications (http://www.ncsa.illinois.edu/)
+  - Tresys Technology (http://www.tresys.com/)
+  - International Business Machines Corporation (http://www.ibm.com)
+
+Apache Xerces Java (xercesImpl-2.12.0.jar)
+  Apache Xerces Java
+  Copyright 1999-2010 The Apache Software Foundation
+
+  This product includes software developed at
+  The Apache Software Foundation (http://www.apache.org/).
+
+  Portions of this software were originally based on the following:
+    - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
+    - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+    - voluntary contributions made by Paul Eng on behalf of the 
+      Apache Software Foundation that were originally developed at iClick, Inc.,
+      software copyright (c) 1999.
+
+Apache XML Commons Resolver (xml-resolver-1.2.jar)
+    Apache XML Commons Resolver
+    Copyright 2006 The Apache Software Foundation.
+
+    This product includes software developed at
+    The Apache Software Foundation http://www.apache.org/
+
+    Portions of this code are derived from classes placed in the
+    public domain by Arbortext on 10 Apr 2000. See:
+    http://www.arbortext.com/customer_support/updates_and_technical_notes/catalogs/docs/README.htm
+
+Apache XML Commons XML APIs (xml-apis-1.4.01.jar)
+   Apache XML Commons XML APIs
+   Copyright 1999-2009 The Apache Software Foundation.
+
+   This product includes software developed at
+   The Apache Software Foundation (http://www.apache.org/).
+
+   Portions of this software were originally based on the following:
+     - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
+     - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+     - software copyright (c) 2000 World Wide Web Consortium, http://www.w3.org
+
+Guava (guava-18.0.jar)
+  Guava
+  Copyright 2015 The Guava Authors
+
+JDOM2 (jdom2-2.0.6.jar)
+  Copyright (C) 2000-2012 Jason Hunter & Brett McLaughlin.
+
+  All rights reserved.
+
+  This product includes software developed by the
+  JDOM Project (http://www.jdom.org/).
+
+Jackson JSON processor (jackson-core-2.9.6.jar)
+  # Jackson JSON processor
+
+  Jackson is a high-performance, Free/Open Source JSON processing library.
+  It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+  been in development since 2007.
+  It is currently developed by a community of developers, as well as supported
+  commercially by FasterXML.com.
+
+  ## Licensing
+
+  Jackson core and extension components may licensed under different licenses.
+  To find the details that apply to this artifact see the accompanying LICENSE file.
+  For more information, including possible other licensing options, contact
+  FasterXML.com (http://fasterxml.com).
+
+  ## Credits
+
+  A list of contributors may be found from CREDITS file, which is included
+  in some artifacts (usually source distributions); but is always available
+  from the source code management (SCM) system project uses.
+
+Woodstox (woodstox-core-5.1.0.jar)
+  This product currently only contains code developed by authors
+  of specific components, as identified by the source code files.
+
+  Since product implements StAX API, it has dependencies to StAX API
+  classes.
