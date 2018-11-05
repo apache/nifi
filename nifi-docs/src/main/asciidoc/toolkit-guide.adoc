@@ -62,9 +62,9 @@ To launch the interactive shell:
 
 To show help:
 
- cli.sh -h
+ ./bin/cli.sh -h
 
-The following are available options:
+The following are available commands:
 
  demo quick-import
  nifi current-user
@@ -113,6 +113,10 @@ The following are available options:
  session clear
  exit
  help
+ 
+To display extensive help for a specific command:
+
+ ./bin/cli.sh <command> -h
 
 === Property/Argument Handling
 Most commands will require specifying a baseUrl for the NiFi or NiFi Registry instance.
@@ -350,7 +354,7 @@ The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is use
 === Usage
 To show help:
 
- encrypt-config.sh -h
+ ./bin/encrypt-config.sh -h
 
 The following are available options:
 
@@ -477,7 +481,7 @@ The File Manager utility (invoked as `./bin/file-manager.sh` or `bin\file-manage
 === Usage
 To show help:
 
- file-manager.sh -h
+ ./bin/file-manager.sh -h
 
 The following are available options:
 
@@ -571,7 +575,7 @@ Node manager (invoked as `./bin/node-manager.sh` or `bin\node-manager.bat`) supp
 === Usage
 To show help:
 
-  node-manager.sh -h
+  ./bin/node-manager.sh -h
 
 The following are available options:
 
@@ -635,7 +639,7 @@ Notify (invoked as `./bin/notify.sh` or `bin\notify.bat`) allows administrators 
 === Usage
 To show help:
 
- notify.sh -h
+ ./bin/notify.sh -h
 
 The following are available options:
 
@@ -669,7 +673,7 @@ S2S is a command line tool (invoked as `./bin/s2s.sh` or `bin\s2s.bat`) that can
 === Usage
 To show help:
 
- s2s.sh -h
+ ./bin/s2s.sh -h
 
 The following are available options:
 
@@ -736,7 +740,7 @@ Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone` or `bin\
 ==== Usage
 To show help:
 
- tls-toolkit.sh standlone -h
+ ./bin/tls-toolkit.sh standlone -h
 
 The following are available options:
 
@@ -795,7 +799,7 @@ CA server mode is invoked by running `./bin/tls-toolkit.sh server` or `bin\tls-t
 ===== Usage
 To show help:
 
- tls-toolkit.sh server -h
+ ./bin/tls-toolkit.sh server -h
 
 The following are available options:
 
@@ -819,7 +823,7 @@ The client can be used to request new Certificates from the CA. The client utili
 ===== Usage
 To show help:
 
- tls-toolkit.sh client -h
+ ./bin/tls-toolkit.sh client -h
 
 The following are available options:
 
@@ -1182,7 +1186,7 @@ The `zk-migrator` tool is invoked as `./bin/zk-migrator.sh` or `bin\zk-migrator.
 
 To show help:
 
- zk-migrator.sh -h
+ ./bin/zk-migrator.sh -h
 
 The following are available options:
 
