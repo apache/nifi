@@ -63,11 +63,6 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
 
         logger.debug("Will perform authorization against Client Identities '{}'", clientIdentities);
 
-        if (clientIdentities == null) {
-            logger.debug("Client Identities is null, so assuming that Load Balancing communications are not secure. Authorizing client to participate in Load Balancing");
-            return null;
-        }
-
         final Set<String> nodeIds = clusterCoordinator.getNodeIdentifiers().stream()
                 .map(NodeIdentifier::getApiAddress)
                 .collect(Collectors.toSet());
@@ -88,7 +83,7 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
             }
         }
 
-        final String message = String.format("Authorization failed for Client ID's to Load Balance data because none of the ID's are known Cluster Node Identifiers");
+        final String message = "Authorization failed for Client ID's to Load Balance data because none of the ID's are known Cluster Node Identifiers";
 
         logger.warn(message);
         eventReporter.reportEvent(Severity.WARNING, "Load Balanced Connections", message);
