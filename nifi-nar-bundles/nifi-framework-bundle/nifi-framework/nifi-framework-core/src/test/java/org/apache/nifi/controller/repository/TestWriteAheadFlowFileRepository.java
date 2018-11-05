@@ -220,6 +220,11 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public FlowFileRecord peek() {
+                return null;
+            }
+
+            @Override
             public String getFlowFileExpiration() {
                 return null;
             }

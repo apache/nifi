@@ -106,6 +106,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
         return priorityQueue.poll(filter, expiredRecords, getExpiration());
     }
 
+    @Override
+    public FlowFileRecord peek() {
+        return priorityQueue.peek();
+    }
+
     private int getExpiration() {
         return flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS);
     }

@@ -150,6 +150,11 @@ public interface FlowFileQueue {
 
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 
+    /**
+     * @return the next flow file on the queue; null if empty
+     */
+    FlowFileRecord peek();
+
     String getFlowFileExpiration();
 
     int getFlowFileExpiration(TimeUnit timeUnit);

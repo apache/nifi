@@ -257,7 +257,7 @@ public class EventDrivenWorkerQueue implements WorkerQueue {
                 }
             }
 
-            if (connectable.hasIncomingConnection() && !Connectables.flowFilesQueued(connectable)) {
+            if (connectable.hasIncomingConnection() && !Connectables.nonPenalizedFlowFilesQueued(connectable)) {
                 return DelayProcessingReason.NO_WORK;
             }
 

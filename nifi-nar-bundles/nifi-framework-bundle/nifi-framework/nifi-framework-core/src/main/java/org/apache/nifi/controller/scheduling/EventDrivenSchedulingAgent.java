@@ -276,7 +276,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         // In this case, we could just say that the Processor shouldn't be Event-Driven, but then it becomes very complex and
                         // confusing to determine whether or not a Processor is really Event-Driven. So, the solution that we will use at this
                         // point is to register the Processor to run again.
-                        if (Connectables.flowFilesQueued(procNode)) {
+                        if (Connectables.nonPenalizedFlowFilesQueued(procNode)) {
                             onEvent(procNode);
                         }
                     } else {
@@ -286,7 +286,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         trigger(connectable, scheduleState, connectableProcessContext, activeSessionFactory);
 
                         // See explanation above for the ProcessorNode as to why we do this.
-                        if (Connectables.flowFilesQueued(connectable)) {
+                        if (Connectables.nonPenalizedFlowFilesQueued(connectable)) {
                             onEvent(connectable);
                         }
                     }

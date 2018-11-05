@@ -885,6 +885,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
+    public FlowFileRecord peek() {
+        return localPartition.peek();
+    }
+
+    @Override
     public void acknowledge(final FlowFileRecord flowFile) {
         localPartition.acknowledge(flowFile);
 

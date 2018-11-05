@@ -129,6 +129,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         return queue.poll(expiredRecords, expirationMillis);
     }
 
+    @Override
+    public FlowFileRecord peek() {
+        return queue.peek();
+    }
+
 
     @Override
     public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords) {

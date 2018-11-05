@@ -69,6 +69,11 @@ public interface LocalQueuePartition extends QueuePartition {
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 
     /**
+     * @return the next flow file on the queue; null if empty
+     */
+    FlowFileRecord peek();
+
+    /**
      * Acknowledges that the given FlowFile has been accounted for and is no longer the responsibility of this partition
      * @param flowFile the FlowFile that has been accounted for
      */

@@ -21,14 +21,18 @@ import java.util.List;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.processor.Relationship;
 
 public class Connectables {
-
-    public static boolean flowFilesQueued(final Connectable connectable) {
+    public static boolean nonPenalizedFlowFilesQueued(final Connectable connectable) {
         for (final Connection conn : connectable.getIncomingConnections()) {
             if (!conn.getFlowFileQueue().isActiveQueueEmpty()) {
-                return true;
+                final FlowFileRecord flowFileRecord = conn.getFlowFileQueue().peek();
+
+                if(flowFileRecord != null && !flowFileRecord.isPenalized()) {
+                    return true;
+                }
             }
         }
 

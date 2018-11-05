@@ -126,7 +126,7 @@ public class ConnectableTask {
             return connectable.hasIncomingConnection()
                     && hasNonLoopConnection
                     && !connectable.getConnections().isEmpty()
-                    && Connectables.flowFilesQueued(connectable);
+                    && Connectables.nonPenalizedFlowFilesQueued(connectable);
         }
 
         final boolean isSourceComponent = connectable.isTriggerWhenEmpty()
@@ -136,7 +136,7 @@ public class ConnectableTask {
                 || !hasNonLoopConnection;
 
         // If it is not a 'source' component, it requires a FlowFile to process.
-        return isSourceComponent || Connectables.flowFilesQueued(connectable);
+        return isSourceComponent || Connectables.nonPenalizedFlowFilesQueued(connectable);
     }
 
     private boolean isBackPressureEngaged() {

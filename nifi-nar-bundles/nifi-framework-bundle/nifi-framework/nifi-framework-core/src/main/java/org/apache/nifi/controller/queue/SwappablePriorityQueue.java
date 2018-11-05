@@ -481,6 +481,22 @@ public class SwappablePriorityQueue {
         }
     }
 
+    public FlowFileRecord peek() {
+        writeLock.lock();
+        try {
+            // peek at the first FlowFile in the queue
+            return doPeek();
+        } finally {
+            writeLock.unlock("peek()");
+        }
+    }
+
+    private FlowFileRecord doPeek() {
+        migrateSwapToActive();
+
+        // Peek at the top FlowFile
+        return this.activeQueue.peek();
+    }
 
     private FlowFileRecord doPoll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
         FlowFileRecord flowFile;
