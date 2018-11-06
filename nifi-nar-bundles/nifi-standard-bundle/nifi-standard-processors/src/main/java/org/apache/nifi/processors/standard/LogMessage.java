@@ -37,6 +37,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.jetty.util.StringUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -54,8 +55,8 @@ public class LogMessage extends AbstractProcessor {
             .name("log-level")
             .displayName("Log Level")
             .required(true)
-            .description("The Log Level to use when logging the message")
-            .allowableValues(MessageLogLevel.values())
+            .description("The Log Level to use when logging the message: " + Arrays.toString(MessageLogLevel.values()))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue(MessageLogLevel.info.toString())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
