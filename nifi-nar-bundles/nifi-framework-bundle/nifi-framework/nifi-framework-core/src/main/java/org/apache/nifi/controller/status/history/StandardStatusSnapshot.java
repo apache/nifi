@@ -65,7 +65,11 @@ public class StandardStatusSnapshot implements StatusSnapshot {
 
     @Override
     public Long getStatusMetric(final MetricDescriptor<?> descriptor) {
-        return values[descriptor.getMetricIdentifier()];
+        if (descriptor.isCounter()) {
+            return counterValues.get(descriptor);
+        } else {
+            return values[descriptor.getMetricIdentifier()];
+        }
     }
 
     public void setTimestamp(final Date timestamp) {

@@ -16,21 +16,25 @@
  */
 package org.apache.nifi.controller.status.history;
 
-public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
+public class CounterMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
 
-    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
-                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
-        super(indexableMetric, field, label, description, formatter, valueFunction);
+    private static final IndexableMetric ILLEGAL_INDEXABLE_METRIC = () -> {
+        throw new UnsupportedOperationException();
+    };
+
+    public CounterMetricDescriptor(final String field, final String label, final String description,
+                                   final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction) {
+        super(ILLEGAL_INDEXABLE_METRIC, field, label, description, formatter, valueFunction, null);
     }
 
-    public StandardMetricDescriptor(final IndexableMetric indexableMetric, final String field, final String label, final String description,
-                                    final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
-        super(indexableMetric, field, label, description, formatter, valueFunction, reducer);
+    public CounterMetricDescriptor(final String field, final String label, final String description,
+                                   final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
+        super(ILLEGAL_INDEXABLE_METRIC, field, label, description, formatter, valueFunction, reducer);
     }
 
     @Override
     public boolean isCounter() {
-        return false;
+        return true;
     }
 
     @Override
@@ -40,7 +44,7 @@ public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
 
     @Override
     public int hashCode() {
-        return 23987 + getFormatter().name().hashCode() + 4 * getLabel().hashCode() + 8 * getField().hashCode() + 28 * getDescription().hashCode();
+        return 239891 + getFormatter().name().hashCode() + 4 * getLabel().hashCode() + 8 * getField().hashCode() + 28 * getDescription().hashCode();
     }
 
     @Override
@@ -48,7 +52,7 @@ public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof MetricDescriptor)) {
+        if (!(obj instanceof CounterMetricDescriptor)) {
             return false;
         }
 
