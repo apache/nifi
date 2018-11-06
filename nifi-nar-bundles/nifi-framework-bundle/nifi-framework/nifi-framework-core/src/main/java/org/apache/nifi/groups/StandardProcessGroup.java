@@ -3057,6 +3057,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             private boolean isModified() {
+                if (versionControlInformation.getVersion() == 0) {
+                    return true;
+                }
+
                 Set<FlowDifference> differences = versionControlFields.getFlowDifferences();
                 if (differences == null) {
                     differences = getModifications();
@@ -3110,7 +3114,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final VersionedFlowState flowState = versionControlInformation.getStatus().getState();
         versionControlFields.setStale(flowState == VersionedFlowState.STALE || flowState == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE);
         versionControlFields.setLocallyModified(flowState == VersionedFlowState.LOCALLY_MODIFIED || flowState == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE);
-        versionControlFields.setSyncFailureExplanation(null);
+        versionControlFields.setSyncFailureExplanation(flowState == VersionedFlowState.SYNC_FAILURE ? versionControlInformation.getStatus().getStateExplanation() : null);
 
         writeLock.lock();
         try {
@@ -3268,7 +3272,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         final VersionedProcessGroup snapshot = vci.getFlowSnapshot();
-        if (snapshot == null) {
+        if (snapshot == null && vci.getVersion() > 0) {
             // We have not yet obtained the snapshot from the Flow Registry, so we need to request the snapshot of our local version of the flow from the Flow Registry.
             // This allows us to know whether or not the flow has been modified since it was last synced with the Flow Registry.
             try {
@@ -3301,8 +3305,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             vci.setRegistryName(flowRegistry.getName());
 
             if (latestVersion == vci.getVersion()) {
-                LOG.debug("{} is currently at the most recent version ({}) of the flow that is under Version Control", this, latestVersion);
                 versionControlFields.setStale(false);
+                if (latestVersion == 0) {
+                    LOG.debug("{} does not have any version in the Registry", this, latestVersion);
+                    versionControlFields.setLocallyModified(true);
+                } else {
+                    LOG.debug("{} is currently at the most recent version ({}) of the flow that is under Version Control", this, latestVersion);
+                }
             } else {
                 LOG.info("{} is not the most recent version of the flow that is under Version Control; current version is {}; most recent version is {}",
                         this, vci.getVersion(), latestVersion);
