@@ -3778,24 +3778,46 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String registryId = requestEntity.getVersionedFlow().getRegistryId();
         final VersionedFlowSnapshot registeredSnapshot;
         final VersionedFlow registeredFlow;
+        final boolean registerNewFlow = versionedFlowDto.getFlowId() == null;
 
-        String action = "create the flow";
         try {
             // first, create the flow in the registry, if necessary
-            if (versionedFlowDto.getFlowId() == null) {
+            if (registerNewFlow) {
                 registeredFlow = registerVersionedFlow(registryId, versionedFlow);
             } else {
                 registeredFlow = getVersionedFlow(registryId, versionedFlowDto.getBucketId(), versionedFlowDto.getFlowId());
             }
-
-            action = "add the local flow to the Flow Registry as the first Snapshot";
-
-            // add first snapshot to the flow in the registry
-            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), expectedVersion);
         } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException(e.getLocalizedMessage());
         } catch (final IOException ioe) {
-            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to " + action);
+            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to create the flow");
+        }
+
+        try {
+            // add a snapshot to the flow in the registry
+            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), expectedVersion);
+        } catch (final NiFiCoreException e) {
+            // If the flow has been created, but failed to add a snapshot,
+            // then we need to capture the created versioned flow information as a partial successful result.
+            if (registerNewFlow) {
+                logger.error("The flow has been created, but failed to add a snapshot. Returning the created flow information.", e);
+                final VersionControlInformationDTO vci = new VersionControlInformationDTO();
+                vci.setBucketId(registeredFlow.getBucketIdentifier());
+                vci.setBucketName(registeredFlow.getBucketName());
+                vci.setFlowId(registeredFlow.getIdentifier());
+                vci.setFlowName(registeredFlow.getName());
+                vci.setFlowDescription(registeredFlow.getDescription());
+                vci.setGroupId(groupId);
+                vci.setRegistryId(registryId);
+                vci.setRegistryName(getFlowRegistryName(registryId));
+                vci.setVersion(0);
+                vci.setState(VersionedFlowState.SYNC_FAILURE.name());
+                vci.setStateExplanation(e.getLocalizedMessage());
+
+                return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+            }
+
+            throw e;
         }
 
         final Bucket bucket = registeredSnapshot.getBucket();
@@ -3814,6 +3836,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
         vci.setState(VersionedFlowState.UP_TO_DATE.name());
 
+        return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+    }
+
+    private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(String groupId, InstantiatedVersionedProcessGroup versionedProcessGroup, VersionControlInformationDTO vci) {
         final Map<String, String> mapping = dtoFactory.createVersionControlComponentMappingDto(versionedProcessGroup);
 
         final Revision groupRevision = revisionManager.getRevision(groupId);
