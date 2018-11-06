@@ -265,14 +265,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("put-db-record-batch-size")
-            .displayName("Bulk Size")
-            .description("Specifies batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
-                    + " Non-positive value has the effect of infinite bulk size.")
-            .defaultValue("-1")
+    static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("put-db-record-max-batch-size")
+            .displayName("Maximum Batch Size")
+            .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
+                    + " Zero means the batch size is not limited.")
+            .defaultValue("0")
             .required(false)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -311,7 +311,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
-        pds.add(BATCH_SIZE);
+        pds.add(MAX_BATCH_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -655,7 +655,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             Record currentRecord;
             List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
 
-            final Integer batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+            final Integer maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
             int currentBatchSize = 0;
             int batchIndex = 0;
 
@@ -685,7 +685,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                         }
                     }
                     ps.addBatch();
-                    if (++currentBatchSize == batchSize) {
+                    if (++currentBatchSize == maxBatchSize) {
                         batchIndex++;
                         log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
                         ps.executeBatch();

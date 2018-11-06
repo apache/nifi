@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard
 
+
+import org.apache.commons.dbcp2.DelegatingConnection
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
 import org.apache.nifi.reporting.InitializationException
@@ -36,17 +38,25 @@ import org.junit.runners.JUnit4
 
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLDataException
 import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
+import java.util.function.Supplier
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
+import static org.mockito.Matchers.anyMap
+import static org.mockito.Mockito.doAnswer
+import static org.mockito.Mockito.only
 import static org.mockito.Mockito.spy
+import static org.mockito.Mockito.times
+import static org.mockito.Mockito.verify
 
 /**
  * Unit tests for the PutDatabaseRecord processor
@@ -718,6 +728,99 @@ class TestPutDatabaseRecord {
         conn.close()
     }
 
+    @Test
+    void testInsertWithMaxBatchSize() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        (1..11).each {
+            parser.addRecord(it, "rec$it".toString(), 100 + it)
+        }
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, "5")
+
+        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+
+        assertEquals(11, getTableSize())
+
+        assertNotNull(spyStmt.get())
+        verify(spyStmt.get(), times(3)).executeBatch()
+    }
+
+    @Test
+    void testInsertWithDefaultMaxBatchSize() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        (1..11).each {
+            parser.addRecord(it, "rec$it".toString(), 100 + it)
+        }
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+
+        assertEquals(11, getTableSize())
+
+        assertNotNull(spyStmt.get())
+        verify(spyStmt.get(), times(1)).executeBatch()
+    }
+
+    private Supplier<PreparedStatement> createPreparedStatementSpy() {
+        PreparedStatement spyStmt
+        doAnswer({ inv ->
+            new DelegatingConnection((Connection)inv.callRealMethod()) {
+                @Override
+                PreparedStatement prepareStatement(String sql) throws SQLException {
+                    spyStmt = spy(getDelegate().prepareStatement(sql))
+                }
+            }
+        }).when(dbcp).getConnection(anyMap())
+        return { spyStmt }
+    }
+
+    private int getTableSize() {
+        final Connection connection = dbcp.getConnection()
+        try {
+            final Statement stmt = connection.createStatement()
+            try {
+                final ResultSet rs = stmt.executeQuery('SELECT count(*) FROM PERSONS')
+                assertTrue(rs.next())
+                rs.getInt(1)
+            } finally {
+                stmt.close()
+            }
+        } finally {
+            connection.close()
+        }
+    }
 
     private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         final Connection conn = dbcp.getConnection()
