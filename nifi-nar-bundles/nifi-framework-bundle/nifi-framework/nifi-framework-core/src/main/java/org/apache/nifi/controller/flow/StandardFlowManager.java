@@ -145,6 +145,7 @@ public class StandardFlowManager implements FlowManager {
     public void setRootGroup(final ProcessGroup rootGroup) {
         this.rootGroup = rootGroup;
         allProcessGroups.put(ROOT_GROUP_ID_ALIAS, rootGroup);
+        allProcessGroups.put(rootGroup.getIdentifier(), rootGroup);
     }
 
     public ProcessGroup getRootGroup() {
