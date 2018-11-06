@@ -21,11 +21,11 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
+import org.apache.nifi.controller.status.history.CounterMetricDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.controller.status.history.ProcessorStatusDescriptor;
 import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescriptor;
-import org.apache.nifi.controller.status.history.StandardMetricDescriptor;
 import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 
@@ -84,7 +84,7 @@ public class ComponentMetrics {
                 final String counterName = entry.getKey();
 
                 final String label = entry.getKey() + " (5 mins)";
-                final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(() -> 0, entry.getKey(), label, label, MetricDescriptor.Formatter.COUNT,
+                final MetricDescriptor<ProcessorStatus> metricDescriptor = new CounterMetricDescriptor<>(entry.getKey(), label, label, MetricDescriptor.Formatter.COUNT,
                         s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
 
                 snapshot.addCounterStatusMetric(metricDescriptor, entry.getValue());
