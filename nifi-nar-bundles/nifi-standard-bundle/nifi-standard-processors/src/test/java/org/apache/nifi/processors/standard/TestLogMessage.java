@@ -57,7 +57,7 @@ public class TestLogMessage {
     public void before() throws InitializationException {
         testableLogMessage = new TestableLogMessage();
         runner = TestRunners.newTestRunner(testableLogMessage);
-        runner.setValidateExpressionUsage(false);
+
     }
 
     @After
