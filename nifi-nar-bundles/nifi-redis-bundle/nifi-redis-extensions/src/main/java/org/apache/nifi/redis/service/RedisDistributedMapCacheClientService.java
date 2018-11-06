@@ -38,6 +38,7 @@ import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.types.Expiration;
+import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -188,7 +189,7 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), null);
+            redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), SetOption.upsert());
             return null;
         });
     }
