@@ -40,6 +40,7 @@ public class SimpleRecordSchema implements RecordSchema {
     private final SchemaIdentifier schemaIdentifier;
     private String schemaName;
     private String schemaNamespace;
+    private volatile int hashCode;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
         this(fields, createText(fields), null, false, SchemaIdentifier.EMPTY);
@@ -171,7 +172,12 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public int hashCode() {
-        return 143 + 3 * fields.hashCode();
+        int computed = this.hashCode;
+        if (computed == 0) {
+            computed = this.hashCode = 143 + 3 * fields.hashCode();
+        }
+
+        return computed;
     }
 
     private static String createText(final List<RecordField> fields) {
