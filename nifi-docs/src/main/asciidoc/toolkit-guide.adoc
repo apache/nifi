@@ -36,7 +36,7 @@ The NiFi Toolkit contains several command line utilities to setup and support Ni
 
 The utilities are executed with scripts found in the `bin` folder of your NiFi Toolkit installation.
 
-NOTE: The NiFi Toolkit is downloaded separately from NiFi (see the link:https://nifi.apache.org/download.html[Apache NiFi downloads page^]).
+NOTE: The NiFi Toolkit is downloaded separately from NiFi (see the link:https://nifi.apache.org/download.html[Apache NiFi Downloads^] page).
 
 === Prerequisites for Running in a Secure Environment
 For secured nodes and clusters, two policies should be configured in advance:
@@ -46,6 +46,7 @@ For secured nodes and clusters, two policies should be configured in advance:
 
 When executing either the Notify or Node Manager tools in a secured environment the `proxyDN` flag option should be used in order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running the status operation on the Node Manager tool, the flag is ignored.
 
+[[nifi_CLI]]
 == NiFi CLI
 This tool offers a CLI focused on interacting with NiFi and NiFi Registry in order to automate tasks, such as deploying flows from a NIFi Registy to a NiFi instance or managing process groups and cluster nodes.
 
@@ -113,7 +114,7 @@ The following are available commands:
  session clear
  exit
  help
- 
+
 To display extensive help for a specific command:
 
  ./bin/cli.sh <command> -h
@@ -346,6 +347,7 @@ commands.add(new MyCommand());
 
 To add a NiFi Registry command, perform the same steps, but extend from `AbstractNiFiRegistryCommand`, and add the command to `NiFiRegistryCommandGroup`.
 
+[[encrypt_config_tool]]
 == Encrypt-Config Tool
 The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
 
@@ -715,12 +717,15 @@ Example usage to send a FlowFile with the contents of "hey nifi" to a local unse
 
  echo '[{"data":"aGV5IG5pZmk="}]' | bin/s2s.sh -n input -p http
 
+[[tls_toolkit]]
 == TLS Toolkit
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
+[[wildcard_certificates]]
+=== Wildcard Certificates
 Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.apache.org` being assigned the same certificate with a CN or SAN entry of `+*.nifi.apache.org+`) are *not officially supported* and *not recommended*. There are numerous disadvantages to using wildcard certificates, and a cluster working with wildcard certificates has occurred in previous versions out of lucky accidents, not intentional support. Wildcard SAN entries are acceptable *if* each cert maintains an additional unique SAN entry and CN entry.
 
-=== Potential issues with wildcard certificates
+==== Potential issues with wildcard certificates
 * In many places throughout the codebase, cluster communications use certificate identities many times to identify a node, and if the certificate simply presents a wildcard DN, that doesn’t resolve to a specific node
 * Admins may need to provide a custom node identity in _authorizers.xml_ for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see the  <<administration-guide.adoc#user_authentication,User Authentication>> section in the System Administrator's Guide for more information).
 * Admins have no traceability into which node performed an action because they all resolve to the same DN
@@ -729,15 +734,17 @@ Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.ap
 
 NOTE: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
 
+[[tls_operation_modes]]
+=== Operation Modes
 The `tls-toolkit` command line tool has two primary modes of operation:
 
 1. Standalone -- generates the certificate authority, keystores, truststores, and _nifi.properties_ files in one command.
-2. Client/Server mode -- uses a Certificate Authority Server that accepts Certificate Signing Requests from clients, signs them, and sends the resulting certificates back.  Both client and server validate the other’s identity through a shared secret.
+2. Client/Server -- uses a Certificate Authority Server that accepts Certificate Signing Requests from clients, signs them, and sends the resulting certificates back.  Both client and server validate the other’s identity through a shared secret.
 
-=== Standalone
+==== Standalone
 Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone` or `bin\tls-toolkit.sh standalone`.
 
-==== Usage
+===== Usage
 To show help:
 
  ./bin/tls-toolkit.sh standlone -h
@@ -790,13 +797,13 @@ Create 2 sets of keystore, truststore, _nifi.properties_ for 10 NiFi hostnames i
 bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
 ----
 
-=== Client/Server
+==== Client/Server
 Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
 
-==== Server
+===== Server
 CA server mode is invoked by running `./bin/tls-toolkit.sh server` or `bin\tls-toolkit.sh server`.
 
-===== Usage
+====== Usage
 To show help:
 
  ./bin/tls-toolkit.sh server -h
@@ -817,10 +824,10 @@ The following are available options:
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 * `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
 
-==== Client
+===== Client
 The client can be used to request new Certificates from the CA. The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority. CA client mode is invoked by running `./bin/tls-toolkit.sh client` or `bin\tls-toolkit.sh client`.
 
-===== Usage
+====== Usage
 To show help:
 
  ./bin/tls-toolkit.sh client -h
@@ -846,6 +853,7 @@ After running the client you will have the CA’s certificate, a keystore, a tru
 
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`.
 
+[[tls_intermediate_ca]]
 === Using An Existing Intermediate Certificate Authority (CA)
 In some enterprise scenarios, a security/IT team may provide a signing certificate that has already been signed by the organization's certificate authority (CA). This *intermediate CA* can be used to sign the *node* (sometimes referred to as *leaf*) certificates that will be installed on each NiFi node, or the *client certificates* used to identify users. In order to inject the existing signing certificate into the toolkit process, follow these steps:
 
@@ -1119,6 +1127,7 @@ coefficient:
   * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
   ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
 
+[[tls_external-signed_ca]]
 ==== Signing with Externally-signed CA Certificates
 To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.).
 
@@ -1168,8 +1177,9 @@ $ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
 ----
 
-== ZooKeeper migrator
-You can use the NiFi ZooKeeper Migrator to perform the following tasks:
+[[zookeeper_migrator]]
+== ZooKeeper Migrator
+You can use the `zk-migrator` tool to perform the following tasks:
 
 * Moving ZooKeeper information from one ZooKeeper cluster to another
 * Migrating ZooKeeper node ownership
