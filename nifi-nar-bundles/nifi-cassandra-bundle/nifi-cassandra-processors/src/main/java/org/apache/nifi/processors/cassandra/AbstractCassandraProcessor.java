@@ -50,7 +50,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
+import java.text.SimpleDateFormat;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -312,8 +314,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             return row.getDouble(i);
 
         } else if (dataType.equals(DataType.timestamp())) {
-            return row.getTimestamp(i);
-
+            // Timestamp type returned with ISO 8601 format
+            SimpleDateFormat formatter =
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault());
+            return formatter.format(row.getTimestamp(i));
         } else if (dataType.equals(DataType.date())) {
             return row.getDate(i);
 

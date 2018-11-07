@@ -61,14 +61,14 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Map;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.TimeZone;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -278,13 +278,11 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                             out, charset, 0, null));
                                 }
                             }
-
                         } catch (final TimeoutException | InterruptedException | ExecutionException e) {
                             throw new ProcessException(e);
                         }
                     }
                 });
-
 
                 // set attribute how many rows were selected
                 fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
@@ -320,8 +318,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
-
         } catch (final QueryExecutionException qee) {
+            //session.rollback();
             logger.error("Cannot execute the query with the requested consistency level successfully", qee);
             if (fileToProcess == null) {
                 fileToProcess = session.create();
@@ -402,19 +400,20 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         final Schema schema = createSchema(rs);
         final GenericRecord rec = new GenericData.Record(schema);
-
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(schema, outStream);
 
-            final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
+            ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
             long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
 
             if (columnDefinitions != null) {
 
                 // Grab the ones we have
-                if (rowsAvailableWithoutFetching == 0) {
+                if (rowsAvailableWithoutFetching == 0
+                        || rowsAvailableWithoutFetching < maxRowsPerFlowFile) {
                     // Get more
                     if (timeout <= 0 || timeUnit == null) {
                         rs.fetchMoreResults().get();
@@ -429,11 +428,18 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 }
 
                 Row row;
+                //Iterator<Row> it = rs.iterator();
                 while(nrOfRows < maxRowsPerFlowFile){
                     try {
                         row = rs.iterator().next();
                     }catch (NoSuchElementException nsee){
                         nrOfRows -= 1;
+                        break;
+                    }
+
+                    // iterator().next() is like iterator().one() => return null on end
+                    // https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/ResultSet.html#one--
+                    if(row == null){
                         break;
                     }
 
@@ -446,9 +452,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                             rec.put(i, getCassandraObject(row, i, dataType));
                         }
                     }
+
                     dataFileWriter.append(rec);
                     nrOfRows += 1;
-
                 }
             }
             return nrOfRows;
@@ -476,7 +482,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         try {
             // Write the initial object brace
             outStream.write("{\"results\":[".getBytes(charset));
-            final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
+            ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
             long nrOfRows = 0;
             long rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
 
@@ -496,6 +502,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 if(maxRowsPerFlowFile == 0){
                     maxRowsPerFlowFile = rowsAvailableWithoutFetching;
                 }
+
                 Row row;
                 while(nrOfRows < maxRowsPerFlowFile){
                     try {
@@ -504,9 +511,17 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                         nrOfRows -= 1;
                         break;
                     }
+
+                    // iterator().next() is like iterator().one() => return null on end
+                    // https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/ResultSet.html#one--
+                    if(row == null){
+                        break;
+                    }
+
                     if (nrOfRows != 0) {
                         outStream.write(",".getBytes(charset));
                     }
+
                     outStream.write("{".getBytes(charset));
                     for (int i = 0; i < columnDefinitions.size(); i++) {
                         final DataType dataType = columnDefinitions.getType(i);
