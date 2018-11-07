@@ -114,7 +114,9 @@ public class ExecuteSQL extends AbstractExecuteSQL {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
+        pds.add(SQL_PRE_QUERY);
         pds.add(SQL_SELECT_QUERY);
+        pds.add(SQL_POST_QUERY);
         pds.add(QUERY_TIMEOUT);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         pds.add(USE_AVRO_LOGICAL_TYPES);

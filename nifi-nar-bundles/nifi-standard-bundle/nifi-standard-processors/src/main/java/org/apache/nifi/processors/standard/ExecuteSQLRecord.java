@@ -121,7 +121,9 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
+        pds.add(SQL_PRE_QUERY);
         pds.add(SQL_SELECT_QUERY);
+        pds.add(SQL_POST_QUERY);
         pds.add(QUERY_TIMEOUT);
         pds.add(RECORD_WRITER_FACTORY);
         pds.add(NORMALIZE_NAMES);
