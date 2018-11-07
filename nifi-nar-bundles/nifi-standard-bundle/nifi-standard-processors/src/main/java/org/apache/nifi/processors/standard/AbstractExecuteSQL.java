@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
@@ -44,6 +45,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,6 +84,17 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    public static final PropertyDescriptor SQL_PRE_QUERY = new PropertyDescriptor.Builder()
+            .name("sql-pre-query")
+            .displayName("SQL Pre-Query")
+            .description("A semicolon-delimited list of queries executed before the main SQL query is executed. " +
+                    "For example, set session properties before main query. " +
+                    "Results/outputs from these queries will be suppressed if there are no errors.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final PropertyDescriptor SQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("SQL select query")
             .description("The SQL select query to execute. The query can be empty, a constant value, or built from attributes "
@@ -89,6 +102,17 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
                     + "to contain a valid SQL select query, to be issued by the processor to the database. Note that Expression "
                     + "Language is not evaluated for flow file contents.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor SQL_POST_QUERY = new PropertyDescriptor.Builder()
+            .name("sql-post-query")
+            .displayName("SQL Post-Query")
+            .description("A semicolon-delimited list of queries executed after the main SQL query is executed. " +
+                    "Example like setting session properties after main query. " +
+                    "Results/outputs from these queries will be suppressed if there are no errors.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -177,10 +201,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
+        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
 
         SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
 
-        final String selectQuery;
+        String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
             selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
@@ -195,6 +221,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
              final PreparedStatement st = con.prepareStatement(selectQuery)) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
+
+            // Execute pre-query, throw exception and cleanup Flow Files if fail
+            Pair<String,SQLException> failure = executeConfigStatements(con, preQueries);
+            if (failure != null) {
+                // In case of failure, assigning config query to "selectQuery" to follow current error handling
+                selectQuery = failure.getLeft();
+                throw failure.getRight();
+            }
 
             if (fileToProcess != null) {
                 JdbcCommon.setParameters(st, fileToProcess.getAttributes());
@@ -317,6 +351,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 }
             }
 
+            // Execute post-query, throw exception and cleanup Flow Files if fail
+            failure = executeConfigStatements(con, postQueries);
+            if (failure != null) {
+                selectQuery = failure.getLeft();
+                resultSetFlowFiles.forEach(ff -> session.remove(ff));
+                throw failure.getRight();
+            }
+
             // Transfer any remaining files to SUCCESS
             session.transfer(resultSetFlowFiles, REL_SUCCESS);
             resultSetFlowFiles.clear();
@@ -363,6 +405,41 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 session.transfer(fileToProcess, REL_FAILURE);
             }
         }
+    }
+
+    /*
+     * Executes given queries using pre-defined connection.
+     * Returns null on success, or a query string if failed.
+     */
+    protected Pair<String,SQLException> executeConfigStatements(final Connection con, final List<String> configQueries){
+        if (configQueries == null || configQueries.isEmpty()) {
+            return null;
+        }
+
+        for (String confSQL : configQueries) {
+            try(final Statement st = con.createStatement()){
+                st.execute(confSQL);
+            } catch (SQLException e) {
+                return Pair.of(confSQL, e);
+            }
+        }
+        return null;
+    }
+
+    /*
+     * Extract list of queries from config property
+     */
+    protected List<String> getQueries(final String value) {
+        if (value == null || value.length() == 0 || value.trim().length() == 0) {
+            return null;
+        }
+        final List<String> queries = new LinkedList<>();
+        for (String query : value.split(";")) {
+            if (query.trim().length() > 0) {
+                queries.add(query.trim());
+            }
+        }
+        return queries;
     }
 
     protected abstract SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess);
