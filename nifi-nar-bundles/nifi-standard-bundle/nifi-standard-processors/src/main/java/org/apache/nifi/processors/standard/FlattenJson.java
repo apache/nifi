@@ -163,6 +163,7 @@ public class FlattenJson extends AbstractProcessor {
                     .withFlattenMode(flattenMode)
                     .withSeparator(separator.charAt(0))
                     .withStringEscapePolicy(() -> StringEscapeUtils.ESCAPE_JAVA)
+                    .withStringEscapePolicy(() -> StringEscapeUtils.UNESCAPE_JAVA)
                     .flatten();
 
             flowFile = session.write(flowFile, os -> os.write(flattened.getBytes()));
