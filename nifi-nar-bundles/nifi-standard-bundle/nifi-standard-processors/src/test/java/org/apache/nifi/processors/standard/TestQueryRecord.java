@@ -131,6 +131,41 @@ public class TestQueryRecord {
     }
 
     @Test
+    public void testNullable() throws InitializationException, IOException, SQLException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("name", RecordFieldType.STRING, true);
+        parser.addSchemaField("age", RecordFieldType.INT, true);
+        parser.addRecord("Tom", 49);
+        parser.addRecord("Alice", null);
+        parser.addRecord(null, 36);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name, age from FLOWFILE");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        final int numIterations = 1;
+        for (int i = 0; i < numIterations; i++) {
+            runner.enqueue(new byte[0]);
+        }
+
+        runner.setThreadCount(4);
+        runner.run(2 * numIterations);
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        System.out.println(new String(out.toByteArray()));
+        out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n\"Alice\",\n,\"36\"\n");
+    }
+
+    @Test
     public void testParseFailure() throws InitializationException, IOException, SQLException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
@@ -172,10 +207,10 @@ public class TestQueryRecord {
         parser.addSchemaField("AMOUNT2", RecordFieldType.FLOAT);
         parser.addSchemaField("AMOUNT3", RecordFieldType.FLOAT);
 
-        parser.addRecord("008", 10.05F, 15.45F, 89.99F);
-        parser.addRecord("100", 20.25F, 25.25F, 45.25F);
-        parser.addRecord("105", 20.05F, 25.05F, 45.05F);
-        parser.addRecord("200", 34.05F, 25.05F, 75.05F);
+        parser.addRecord(8, 10.05F, 15.45F, 89.99F);
+        parser.addRecord(100, 20.25F, 25.25F, 45.25F);
+        parser.addRecord(105, 20.05F, 25.05F, 45.05F);
+        parser.addRecord(200, 34.05F, 25.05F, 75.05F);
 
         final MockRecordWriter writer = new MockRecordWriter("\"NAME\",\"POINTS\"");
 
