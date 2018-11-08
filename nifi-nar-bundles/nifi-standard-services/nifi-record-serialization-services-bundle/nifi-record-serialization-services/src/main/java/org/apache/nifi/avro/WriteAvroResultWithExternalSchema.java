@@ -17,11 +17,6 @@
 
 package org.apache.nifi.avro;
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Map;
-
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -33,6 +28,12 @@ import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+
 public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final SchemaAccessWriter schemaAccessWriter;
     private final RecordSchema recordSchema;
@@ -40,17 +41,21 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final BinaryEncoder encoder;
     private final OutputStream buffered;
     private final DatumWriter<GenericRecord> datumWriter;
+    private final BlockingQueue<BinaryEncoder> recycleQueue;
 
     public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema,
-        final SchemaAccessWriter schemaAccessWriter, final OutputStream out) throws IOException {
+        final SchemaAccessWriter schemaAccessWriter, final OutputStream out, final BlockingQueue<BinaryEncoder> recycleQueue) {
         super(out);
         this.recordSchema = recordSchema;
         this.schemaAccessWriter = schemaAccessWriter;
         this.avroSchema = avroSchema;
         this.buffered = new BufferedOutputStream(out);
+        this.recycleQueue = recycleQueue;
+
+        BinaryEncoder reusableEncoder = recycleQueue.poll();
+        encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, reusableEncoder);
 
         datumWriter = new GenericDatumWriter<>(avroSchema);
-        encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, null);
     }
 
     @Override
@@ -87,5 +92,14 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     @Override
     public String getMimeType() {
         return "application/avro-binary";
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (encoder != null) {
+            recycleQueue.offer(encoder);
+        }
+
+        super.close();
     }
 }

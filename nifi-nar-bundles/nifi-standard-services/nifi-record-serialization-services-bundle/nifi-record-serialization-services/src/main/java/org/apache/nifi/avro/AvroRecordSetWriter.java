@@ -17,6 +17,29 @@
 
 package org.apache.nifi.avro;
 
+import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaField;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -27,23 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.apache.avro.Schema;
-import org.apache.avro.file.CodecFactory;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.access.SchemaField;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
-import org.apache.nifi.serialization.record.RecordSchema;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Tags({"avro", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Binary Avro format.")
@@ -59,7 +67,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         LZO
     }
 
-    private static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
+    private static final PropertyDescriptor COMPRESSION_FORMAT = new Builder()
         .name("compression-format")
         .displayName("Compression Format")
         .description("Compression type to use when writing Avro files. Default is None.")
@@ -68,15 +76,39 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         .required(true)
         .build();
 
+    static final PropertyDescriptor ENCODER_POOL_SIZE = new Builder()
+        .name("encoder-pool-size")
+        .displayName("Encoder Pool Size")
+        .description("Avro Writers require the use of an Encoder. Creation of Encoders is expensive, but once created, they can be reused. This property controls the maximum number of Encoders that" +
+            " can be pooled and reused. Setting this value too small can result in degraded performance, but setting it higher can result in more heap being used.")
+        .required(true)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("32")
+        .build();
+
     private final Map<String, Schema> compiledAvroSchemaCache = new LinkedHashMap<String, Schema>() {
         @Override
         protected boolean removeEldestEntry(final Map.Entry<String, Schema> eldest) {
             return size() >= MAX_AVRO_SCHEMA_CACHE_SIZE;
         }
     };
+    private volatile BlockingQueue<BinaryEncoder> encoderPool;
 
     static final AllowableValue AVRO_EMBEDDED = new AllowableValue("avro-embedded", "Embed Avro Schema",
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
+
+    @OnEnabled
+    public void createEncoderPool(final ConfigurationContext context) {
+        final int capacity = context.getProperty(ENCODER_POOL_SIZE).asInteger();
+        encoderPool = new LinkedBlockingQueue<>(capacity);
+    }
+
+    @OnDisabled
+    public void cleanup() {
+        if (encoderPool != null) {
+            encoderPool.clear();
+        }
+    }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema, final OutputStream out) throws IOException {
@@ -103,7 +135,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             if (AVRO_EMBEDDED.getValue().equals(strategyValue)) {
                 return new WriteAvroResultWithSchema(avroSchema, out, getCodecFactory(compressionFormat));
             } else {
-                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out);
+                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out, encoderPool);
             }
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
@@ -155,6 +187,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(COMPRESSION_FORMAT);
+        properties.add(ENCODER_POOL_SIZE);
         return properties;
     }
 
