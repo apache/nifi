@@ -17,7 +17,6 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AttributeEvaluator;
@@ -42,11 +41,13 @@ public class Query {
     private final Tree tree;
     private final Evaluator<?> evaluator;
     private final AtomicBoolean evaluated = new AtomicBoolean(false);
+    private final boolean singleEvaluationRequired;
 
-    private Query(final String query, final Tree tree, final Evaluator<?> evaluator) {
+    private Query(final String query, final Tree tree, final Evaluator<?> evaluator, final boolean singleEvaluationRequired) {
         this.query = query;
         this.tree = tree;
         this.evaluator = evaluator;
+        this.singleEvaluationRequired = singleEvaluationRequired;
     }
 
     public static boolean isValidExpression(final String value) {
@@ -91,59 +92,58 @@ public class Query {
         boolean oddDollarCount = false;
         int backslashCount = 0;
 
-        charLoop:
-            for (int i = 0; i < value.length(); i++) {
-                final char c = value.charAt(i);
+        for (int i = 0; i < value.length(); i++) {
+            final char c = value.charAt(i);
 
-                if (expressionStart > -1 && (c == '\'' || c == '"') && (lastChar != '\\' || backslashCount % 2 == 0)) {
-                    final int endQuoteIndex = findEndQuoteChar(value, i);
-                    if (endQuoteIndex < 0) {
-                        break charLoop;
+            if (expressionStart > -1 && (c == '\'' || c == '"') && (lastChar != '\\' || backslashCount % 2 == 0)) {
+                final int endQuoteIndex = findEndQuoteChar(value, i);
+                if (endQuoteIndex < 0) {
+                    break;
+                }
+
+                i = endQuoteIndex;
+                continue;
+            }
+
+            if (c == '{') {
+                if (oddDollarCount && lastChar == '$') {
+                    if (embeddedCount == 0) {
+                        expressionStart = i - 1;
                     }
+                }
 
-                    i = endQuoteIndex;
+                // Keep track of the number of opening curly braces that we are embedded within,
+                // if we are within an Expression. If we are outside of an Expression, we can just ignore
+                // curly braces. This allows us to ignore the first character if the value is something
+                // like: { ${abc} }
+                // However, we will count the curly braces if we have something like: ${ $${abc} }
+                if (expressionStart > -1) {
+                    embeddedCount++;
+                }
+            } else if (c == '}') {
+                if (embeddedCount <= 0) {
                     continue;
                 }
 
-                if (c == '{') {
-                    if (oddDollarCount && lastChar == '$') {
-                        if (embeddedCount == 0) {
-                            expressionStart = i - 1;
-                        }
-                    }
-
-                    // Keep track of the number of opening curly braces that we are embedded within,
-                    // if we are within an Expression. If we are outside of an Expression, we can just ignore
-                    // curly braces. This allows us to ignore the first character if the value is something
-                    // like: { ${abc} }
-                    // However, we will count the curly braces if we have something like: ${ $${abc} }
+                if (--embeddedCount == 0) {
                     if (expressionStart > -1) {
-                        embeddedCount++;
-                    }
-                } else if (c == '}') {
-                    if (embeddedCount <= 0) {
-                        continue;
+                        // ended expression. Add a new range.
+                        final Range range = new Range(expressionStart, i);
+                        ranges.add(range);
                     }
 
-                    if (--embeddedCount == 0) {
-                        if (expressionStart > -1) {
-                            // ended expression. Add a new range.
-                            final Range range = new Range(expressionStart, i);
-                            ranges.add(range);
-                        }
-
-                        expressionStart = -1;
-                    }
-                } else if (c == '$') {
-                    oddDollarCount = !oddDollarCount;
-                } else if (c == '\\') {
-                    backslashCount++;
-                } else {
-                    oddDollarCount = false;
+                    expressionStart = -1;
                 }
-
-                lastChar = c;
+            } else if (c == '$') {
+                oddDollarCount = !oddDollarCount;
+            } else if (c == '\\') {
+                backslashCount++;
+            } else {
+                oddDollarCount = false;
             }
+
+            lastChar = c;
+        }
 
         return ranges;
     }
@@ -201,7 +201,8 @@ public class Query {
 
     static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
                                      final Map<String, String> stateVariables) throws ProcessException {
-        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap, stateVariables).getValue();
+
+        final Object evaluated = Query.fromTree(tree, queryText, true).evaluate(valueMap, stateVariables).getValue();
         if (evaluated == null) {
             return null;
         }
@@ -234,9 +235,10 @@ public class Query {
         return value.replaceAll("\\$\\$(?=\\$*\\{.*?\\})", "\\$");
     }
 
-    public static Query fromTree(final Tree tree, final String text) {
+    public static Query fromTree(final Tree tree, final String text, final boolean singleEvaluationRequired) {
         final ExpressionCompiler compiler = new ExpressionCompiler();
-        return new Query(text, tree, compiler.buildEvaluator(tree));
+        final Evaluator<?> evaluator = compiler.buildEvaluator(tree);
+        return new Query(text, tree, evaluator, singleEvaluationRequired);
     }
 
     private static String unescapeLeadingDollarSigns(final String value) {
@@ -294,7 +296,7 @@ public class Query {
         final ExpressionCompiler compiler = new ExpressionCompiler();
 
         try {
-            final List<Expression> expressions = new ArrayList<>();
+            final List<CompiledExpression> expressions = new ArrayList<>();
 
             int lastIndex = 0;
             for (final Range range : ranges) {
@@ -336,7 +338,9 @@ public class Query {
             final ExpressionCompiler compiler = new ExpressionCompiler();
             final CompiledExpression compiledExpression = compiler.compile(query);
 
-            return new Query(compiledExpression.getExpression(), compiledExpression.getTree(), compiledExpression.getRootEvaluator());
+            final boolean singleEvalRequired = compiledExpression.getAllEvaluators().stream().anyMatch(Evaluator::isSingleEvaluationRequired);
+
+            return new Query(compiledExpression.getExpression(), compiledExpression.getTree(), compiledExpression.getRootEvaluator(), singleEvalRequired);
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw e;
         } catch (final Exception e) {
@@ -353,9 +357,10 @@ public class Query {
     }
 
     QueryResult<?> evaluate(final Map<String, String> attributes, final Map<String, String> stateMap) {
-        if (evaluated.getAndSet(true)) {
+        if (singleEvaluationRequired && evaluated.getAndSet(true)) {
             throw new IllegalStateException("A Query cannot be evaluated more than once");
         }
+
         if (stateMap != null) {
             AttributesAndState attributesAndState = new AttributesAndState(attributes, stateMap);
             return evaluator.evaluate(attributesAndState);

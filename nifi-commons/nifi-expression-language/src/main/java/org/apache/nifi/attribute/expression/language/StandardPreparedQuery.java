@@ -37,10 +37,10 @@ import java.util.Set;
 public class StandardPreparedQuery implements PreparedQuery {
     private static final String EMPTY_STRING = "";
 
-    private final List<Expression> expressions;
+    private final List<CompiledExpression> expressions;
     private volatile VariableImpact variableImpact;
 
-    public StandardPreparedQuery(final List<Expression> expressions) {
+    public StandardPreparedQuery(final List<CompiledExpression> expressions) {
         this.expressions = expressions;
     }
 
@@ -56,7 +56,7 @@ public class StandardPreparedQuery implements PreparedQuery {
 
         final StringBuilder sb = new StringBuilder();
 
-        for (final Expression expression : expressions) {
+        for (final CompiledExpression expression : expressions) {
             final String evaluated = expression.evaluate(valMap, decorator, stateVariables);
 
             if (evaluated != null) {
@@ -87,13 +87,8 @@ public class StandardPreparedQuery implements PreparedQuery {
 
         final Set<String> variables = new HashSet<>();
 
-        for (final Expression expression : expressions) {
-            if (!(expression instanceof CompiledExpression)) {
-                continue;
-            }
-
-            final CompiledExpression compiled = (CompiledExpression) expression;
-            for (final Evaluator<?> evaluator : compiled.getAllEvaluators()) {
+        for (final CompiledExpression expression : expressions) {
+            for (final Evaluator<?> evaluator : expression.getAllEvaluators()) {
                 if (evaluator instanceof AttributeEvaluator) {
                     final AttributeEvaluator attributeEval = (AttributeEvaluator) evaluator;
                     final Evaluator<String> nameEval = attributeEval.getNameEvaluator();

@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
+import java.util.Map;
+
 public class StringLiteralEvaluator extends StringEvaluator {
 
-    private final String value;
+    private final StringQueryResult queryResult;
 
     public StringLiteralEvaluator(final String value) {
         // need to escape characters after backslashes
@@ -61,12 +61,12 @@ public class StringLiteralEvaluator extends StringEvaluator {
             }
         }
 
-        this.value = sb.toString();
+        this.queryResult = new StringQueryResult(sb.toString());
     }
 
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        return new StringQueryResult(value);
+        return queryResult;
     }
 
     @Override

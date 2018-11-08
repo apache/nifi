@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
-import java.util.Map;
-
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+
+import java.util.Map;
 
 public interface Evaluator<T> {
 
@@ -41,4 +41,8 @@ public interface Evaluator<T> {
      * @return the token that caused this Evaluator to be created
      */
     String getToken();
+
+    default boolean isSingleEvaluationRequired() {
+        return false;
+    }
 }

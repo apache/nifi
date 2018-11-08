@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.lookup;
 
-import java.util.Collections;
-import java.util.Optional;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;

@@ -14,50 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class StringLiteralExpression implements CompiledExpression {
-    private final String value;
-    private final Evaluator<String> rootEvaluator;
+public class MultiEvalExpression implements CompiledExpression {
+    private final Evaluator<?> rootEvaluator;
+    private final Tree tree;
+    private final String expression;
+    private final Set<Evaluator<?>> allEvaluators;
+    private final Query query;
 
-    public StringLiteralExpression(final String value) {
-        this.value = value;
-        rootEvaluator = new StringLiteralEvaluator(value);
+    public MultiEvalExpression(final String expression, final Evaluator<?> rootEvaluator, final Tree tree, final Set<Evaluator<?>> allEvaluators) {
+        this.rootEvaluator = rootEvaluator;
+        this.tree = tree;
+        this.expression = expression;
+        this.allEvaluators = allEvaluators;
+        this.query = Query.fromTree(getTree(), expression, false);
     }
 
-    @Override
-    public String evaluate(Map<String, String> variables, AttributeValueDecorator decorator, Map<String, String> stateVariables) {
-        return value;
-    }
-
-    @Override
     public Evaluator<?> getRootEvaluator() {
         return rootEvaluator;
     }
 
-    @Override
     public Tree getTree() {
-        // TODO: Make sure this is okay.
-        return null;
+        return tree;
     }
 
-    @Override
     public String getExpression() {
-        return value;
+        return expression;
+    }
+
+    public Set<Evaluator<?>> getAllEvaluators() {
+        return allEvaluators;
     }
 
     @Override
-    public Set<Evaluator<?>> getAllEvaluators() {
-        return Collections.singleton(rootEvaluator);
+    public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
+        final Object evaluated = query.evaluate(variables, stateVariables).getValue();
+        if (evaluated == null) {
+            return null;
+        }
+
+        final String value = evaluated.toString();
+        return decorator == null ? value : decorator.decorate(value);
+
     }
 }

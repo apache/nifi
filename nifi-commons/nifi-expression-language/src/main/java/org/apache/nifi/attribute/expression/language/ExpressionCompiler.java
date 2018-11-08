@@ -15,15 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.attribute.expression.language.compile;
+package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.CompiledExpression;
+import org.apache.nifi.attribute.expression.language.MultiEvalExpression;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.SingleEvalExpression;
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer;
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
@@ -240,7 +242,12 @@ public class ExpressionCompiler {
             final Set<Evaluator<?>> allEvaluators = new HashSet<>(evaluators);
             this.evaluators.clear();
 
-            return new CompiledExpression(expression, evaluator, tree, allEvaluators);
+            final boolean requiresSingleEval = allEvaluators.stream().anyMatch(Evaluator::isSingleEvaluationRequired);
+            if (requiresSingleEval) {
+                return new SingleEvalExpression(expression, evaluator, tree, allEvaluators);
+            } else {
+                return new MultiEvalExpression(expression, evaluator, tree, allEvaluators);
+            }
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw e;
         } catch (final Exception e) {

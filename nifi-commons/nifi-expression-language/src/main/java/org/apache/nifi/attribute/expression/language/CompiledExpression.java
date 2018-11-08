@@ -17,44 +17,41 @@
 
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 
-public class CompiledExpression implements Expression {
-    private final Evaluator<?> rootEvaluator;
-    private final Tree tree;
-    private final String expression;
-    private final Set<Evaluator<?>> allEvaluators;
+import java.util.Map;
+import java.util.Set;
 
-    public CompiledExpression(final String expression, final Evaluator<?> rootEvaluator, final Tree tree, final Set<Evaluator<?>> allEvaluators) {
-        this.rootEvaluator = rootEvaluator;
-        this.tree = tree;
-        this.expression = expression;
-        this.allEvaluators = allEvaluators;
-    }
+interface CompiledExpression {
+    /**
+     * Evaluates this Expression against the given variables, attribute decorator, and state variables
+     *
+     * @param variables variables to be evaluated
+     * @param decorator decorator to decorate variable values
+     * @param stateVariables state variables to include in evaluation
+     * @return the evaluated value
+     */
+    String evaluate(Map<String, String> variables, AttributeValueDecorator decorator, Map<String, String> stateVariables);
 
-    public Evaluator<?> getRootEvaluator() {
-        return rootEvaluator;
-    }
+    /**
+     * @return the Root Evaluator that is to be used when evaluating the Expression
+     */
+    Evaluator<?> getRootEvaluator();
 
-    public Tree getTree() {
-        return tree;
-    }
+    /**
+     * @return the Abstract Syntax Tree that was derived from parsing the expression
+     */
+    Tree getTree();
 
-    public String getExpression() {
-        return expression;
-    }
+    /**
+     * @return the textual representation of the expression
+     */
+    String getExpression();
 
-    public Set<Evaluator<?>> getAllEvaluators() {
-        return allEvaluators;
-    }
-
-    @Override
-    public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
-        return Query.evaluateExpression(getTree(), expression, variables, decorator, stateVariables);
-    }
+    /**
+     * @return the Set of all Evaluators that are used to make up the Expression
+     */
+    Set<Evaluator<?>> getAllEvaluators();
 }

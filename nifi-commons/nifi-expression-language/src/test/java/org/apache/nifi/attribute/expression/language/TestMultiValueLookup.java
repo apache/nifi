@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
 
-public class TestValueLookup {
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+public class TestMultiValueLookup {
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateCustomVariableRegistry() {
 
         final VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
-        final ValueLookup initialLookup = new ValueLookup(variableRegistry, null);
+        final ValueLookup initialLookup = new MultiValueLookup(variableRegistry, null);
         assertTrue(initialLookup.containsKey("PATH"));
         assertFalse(initialLookup.containsKey("fake.property.3"));
         assertFalse(initialLookup.containsKey("fake"));
@@ -40,7 +42,7 @@ public class TestValueLookup {
         final Map<String, String> otherAttrs = new HashMap<>();
         otherAttrs.put("fake", "test");
         otherAttrs.put("fake.property.3", "test me out 3, test me out 4");
-        final ValueLookup newLookup = new ValueLookup(variableRegistry, null, otherAttrs);
+        final ValueLookup newLookup = new MultiValueLookup(variableRegistry, null, otherAttrs);
         assertTrue(newLookup.containsKey("PATH"));
         assertTrue(newLookup.containsKey("fake.property.3"));
         assertEquals("test me out 3, test me out 4", newLookup.get("fake.property.3"));
@@ -48,7 +50,7 @@ public class TestValueLookup {
         assertFalse(newLookup.containsKey("filename"));
 
         final FlowFile fakeFile = createFlowFile();
-        final ValueLookup ffLookup = new ValueLookup(variableRegistry, fakeFile, otherAttrs);
+        final ValueLookup ffLookup = new MultiValueLookup(variableRegistry, fakeFile, otherAttrs);
         assertTrue(ffLookup.containsKey("filename"));
         assertEquals("test", ffLookup.get("fake"));
         assertEquals("1", ffLookup.get("flowFileId"));
@@ -59,7 +61,7 @@ public class TestValueLookup {
 
         final Map<String, String> overrides = new HashMap<>();
         overrides.put("fake", "the real deal");
-        final ValueLookup overriddenLookup = new ValueLookup(variableRegistry, fakeFile, overrides, otherAttrs);
+        final ValueLookup overriddenLookup = new MultiValueLookup(variableRegistry, fakeFile, overrides, otherAttrs);
         assertTrue(overriddenLookup.containsKey("filename"));
         assertEquals("the real deal", overriddenLookup.get("fake"));
         assertEquals("1", overriddenLookup.get("flowFileId"));
@@ -72,7 +74,7 @@ public class TestValueLookup {
         final Map<String, String> newOverrides = new HashMap<>();
         newOverrides.put("fake", "the real deal");
         newOverrides.put("override me", "done you are now overridden");
-        final ValueLookup newOverriddenLookup = new ValueLookup(variableRegistry, fakeFile, newOverrides, otherAttrs);
+        final ValueLookup newOverriddenLookup = new MultiValueLookup(variableRegistry, fakeFile, newOverrides, otherAttrs);
         assertTrue(newOverriddenLookup.containsKey("filename"));
         assertEquals("the real deal", newOverriddenLookup.get("fake"));
         assertEquals("1", newOverriddenLookup.get("flowFileId"));

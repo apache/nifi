@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.util.Map;
 
 public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
 
@@ -73,6 +73,11 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     @Override
     public int getEvaluationsRemaining() {
         return evaluationsLeft;
+    }
+
+    @Override
+    public boolean isSingleEvaluationRequired() {
+        return true;
     }
 
     @Override

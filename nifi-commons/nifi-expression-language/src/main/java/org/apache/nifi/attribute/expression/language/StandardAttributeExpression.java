@@ -59,7 +59,7 @@ public class StandardAttributeExpression implements AttributeExpression {
 
     @Override
     public String evaluate(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
-        final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile);
+        final ValueLookup lookup = ValueLookup.of(variableRegistry, flowFile);
         final Object evaluationResult = query.evaluate(lookup).getValue();
         if (evaluationResult == null) {
             return "";

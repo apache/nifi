@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
+import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
 
@@ -49,6 +49,11 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
     @Override
     public int getEvaluationsRemaining() {
         return attributeNames.size() - evaluationCount;
+    }
+
+    @Override
+    public boolean isSingleEvaluationRequired() {
+        return true;
     }
 
     @Override

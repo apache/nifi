@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -28,6 +25,9 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class StandardPropertyValue implements PropertyValue {
 
@@ -156,7 +156,7 @@ public class StandardPropertyValue implements PropertyValue {
             return this;
         }
 
-        final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile, additionalAttributes);
+        final ValueLookup lookup = ValueLookup.of(variableRegistry, flowFile, additionalAttributes);
         final String evaluated = preparedQuery.evaluateExpressions(lookup, decorator, stateValues);
         return new StandardPropertyValue(evaluated, serviceLookup, new EmptyPreparedQuery(evaluated), null);
     }
