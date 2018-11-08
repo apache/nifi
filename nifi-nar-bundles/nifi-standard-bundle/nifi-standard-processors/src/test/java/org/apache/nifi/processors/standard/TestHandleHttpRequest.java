@@ -391,8 +391,8 @@ public class TestHandleHttpRequest {
                         connection.setRequestProperty("header1", "value1");
                         connection.setRequestProperty("header2", "");
                         connection.setRequestProperty("header3", "apple=orange");
-                        connection.setConnectTimeout(3000);
-                        connection.setReadTimeout(3000);
+                        connection.setConnectTimeout(20000);
+                        connection.setReadTimeout(20000);
 
                         StreamUtils.copy(connection.getInputStream(), new NullOutputStream());
                     } catch (final Throwable t) {
