@@ -309,8 +309,8 @@ public class TestHandleHttpRequest {
 
               OkHttpClient client =
                   new OkHttpClient.Builder()
-                    .readTimeout(3000, TimeUnit.MILLISECONDS)
-                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                    .readTimeout(20000, TimeUnit.MILLISECONDS)
+                    .writeTimeout(20000, TimeUnit.MILLISECONDS)
                   .build();
 
               try (Response response = client.newCall(request).execute()) {
