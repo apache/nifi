@@ -22,11 +22,13 @@ package org.apache.nifi.testharness;
 import org.apache.nifi.testharness.api.FlowFileEditorCallback;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.util.LinkedList;
+import java.util.Objects;
 
 
 /**
@@ -53,10 +55,11 @@ import java.util.LinkedList;
  *
  */
 
-public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallback {
+public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallback, TestNiFiInstanceAware {
 
 
     private final LinkedList<FlowFileEditorCallback> delegateActions;
+    private TestNiFiInstance testNiFiInstance;
 
     private SimpleNiFiFlowDefinitionEditor(LinkedList<FlowFileEditorCallback> delegateActions) {
         this.delegateActions = delegateActions;
@@ -66,10 +69,20 @@ public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallb
     public Document edit(Document document) throws Exception {
 
         for (FlowFileEditorCallback change : delegateActions) {
+            if (change instanceof TestNiFiInstanceAware) {
+                ((TestNiFiInstanceAware)change).setTestNiFiInstance(testNiFiInstance);
+            }
+
             document = change.edit(document);
         }
 
         return document;
+    }
+
+    @Override
+    public void setTestNiFiInstance(TestNiFiInstance testNiFiInstance) {
+        this.testNiFiInstance = Objects.requireNonNull(
+                testNiFiInstance, "argument testNiFiInstance cannot be null");
     }
 
     public static Builder builder() {
@@ -134,10 +147,56 @@ public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallb
             });
         }
 
+        public Builder updateFlowFileBuiltInNiFiProcessorVersionsToNiFiVersion() {
+
+            return rawXmlChange(new UpdateFlowFileNiFiVersionFlowFileEditorCallback());
+        }
+
 
         public SimpleNiFiFlowDefinitionEditor build() {
             return new SimpleNiFiFlowDefinitionEditor(actions);
         }
+
+    }
+
+
+    private static final class UpdateFlowFileNiFiVersionFlowFileEditorCallback
+            implements FlowFileEditorCallback, TestNiFiInstanceAware {
+
+        private TestNiFiInstance testNiFiInstance;
+
+        @Override
+        public Document edit(Document document) throws Exception {
+            String niFiVersion = getNiFiVersion();
+
+            XPath xpath = XPathFactory.newInstance().newXPath();
+
+            NodeList processorNodeVersionList = (NodeList)
+                    xpath.evaluate("//bundle/group[text() = \"org.apache.nifi\"]/parent::bundle/version",
+                            document, XPathConstants.NODESET);
+
+            final int length = processorNodeVersionList.getLength();
+            for (int i=0; i<length; i++) {
+                Node processorNodeVersion = processorNodeVersionList.item(i);
+
+                processorNodeVersion.setTextContent(niFiVersion);
+            }
+
+            return document;
+        }
+
+        private String getNiFiVersion() {
+            return Objects.requireNonNull(
+                    testNiFiInstance, "testNiFiInstance cannot be null").getNifiVersion();
+        }
+
+        @Override
+        public void setTestNiFiInstance(TestNiFiInstance testNiFiInstance) {
+            this.testNiFiInstance = Objects.requireNonNull(
+                    testNiFiInstance, "argument testNiFiInstance cannot be null");
+
+        }
+
 
     }
 }

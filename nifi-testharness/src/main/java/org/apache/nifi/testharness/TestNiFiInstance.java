@@ -187,7 +187,8 @@ public class TestNiFiInstance {
         START_FAILED(STOPPED),
         STARTED(STOPPED, STOP_FAILED),
         INSTALLATION_FAILED(),
-        INSTALLED(STARTED, START_FAILED),
+        FLOW_INSTALLED(STARTED, START_FAILED),
+        INSTALLED(FLOW_INSTALLED, INSTALLATION_FAILED),
         CREATED(INSTALLED, INSTALLATION_FAILED);
 
 
@@ -229,6 +230,20 @@ public class TestNiFiInstance {
         placeholderNiFiHomeDir = requireCurrentWorkingDirectoryIsCorrect();
     }
 
+    String getNifiVersion() {
+        switch (currentState) {
+            case INSTALLED:
+            case STOPPED:
+
+                return Objects.requireNonNull(nifiVersion, "nifiVersion is null");
+
+            default:
+                throw new IllegalStateException(
+                        "NiFi version can only be retrieved after a successful installation, not in: "
+                                + currentState);
+        }
+    }
+
     public void install() throws IOException {
 
         currentState.checkCanTransition(State.INSTALLED);
@@ -242,7 +257,7 @@ public class TestNiFiInstance {
         try {
             tempDirectory = Files.createTempDirectory("installable-flow");
 
-            File installableFlowFile = createInstallableFlowFile(tempDirectory);
+
 
             LOGGER.info("Uncompressing NiFi archive {} to {} ...", nifiBinaryZip, placeholderNiFiHomeDir);
 
@@ -258,6 +273,10 @@ public class TestNiFiInstance {
             File actualNiFiHomeDir = getActualNiFiHomeDir(placeholderNiFiHomeDir);
 
             nifiVersion = getNiFiVersion(actualNiFiHomeDir);
+
+            currentState = State.INSTALLED;
+
+            File installableFlowFile = createInstallableFlowFile(tempDirectory);
 
             validateNiFiVersionAgainstFlowVersion(nifiVersion, installableFlowFile);
 
@@ -276,7 +295,7 @@ public class TestNiFiInstance {
             }
         }
 
-        currentState = State.INSTALLED;
+        currentState = State.FLOW_INSTALLED;
     }
 
     private File createInstallableFlowFile(Path tempDirectory) throws IOException {
@@ -286,6 +305,10 @@ public class TestNiFiInstance {
         if (editCallback == null) {
             Files.copy(flowXml.toPath(), flowXmlFile.toPath());
         } else {
+            if (editCallback instanceof TestNiFiInstanceAware) {
+                ((TestNiFiInstanceAware)editCallback).setTestNiFiInstance(this);
+            }
+
             XmlUtils.editXml(flowXml, flowXmlFile, editCallback);
         }
 

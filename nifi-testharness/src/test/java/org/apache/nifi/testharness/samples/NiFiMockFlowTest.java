@@ -57,6 +57,7 @@ public class NiFiMockFlowTest {
 
 
     private static final SimpleNiFiFlowDefinitionEditor CONFIGURE_MOCKS_IN_NIFI_FLOW = SimpleNiFiFlowDefinitionEditor.builder()
+            .updateFlowFileBuiltInNiFiProcessorVersionsToNiFiVersion()
             .setClassOfSingleProcessor("GetHTTP", MockedGetHTTP.class)
             .build();
 

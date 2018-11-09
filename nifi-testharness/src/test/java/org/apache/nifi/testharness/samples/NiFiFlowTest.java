@@ -52,6 +52,7 @@ import static org.junit.Assert.assertTrue;
 public class NiFiFlowTest {
 
     private static final SimpleNiFiFlowDefinitionEditor CONFIGURE_MOCKS_IN_NIFI_FLOW = SimpleNiFiFlowDefinitionEditor.builder()
+            .updateFlowFileBuiltInNiFiProcessorVersionsToNiFiVersion()
             .setSingleProcessorProperty("GetHTTP", "URL", "http://localhost:12345")
             .build();
 
