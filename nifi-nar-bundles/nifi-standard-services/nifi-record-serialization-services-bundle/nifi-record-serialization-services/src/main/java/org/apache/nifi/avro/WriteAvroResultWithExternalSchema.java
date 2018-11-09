@@ -23,6 +23,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.record.Record;
@@ -43,8 +44,8 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final DatumWriter<GenericRecord> datumWriter;
     private final BlockingQueue<BinaryEncoder> recycleQueue;
 
-    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema,
-        final SchemaAccessWriter schemaAccessWriter, final OutputStream out, final BlockingQueue<BinaryEncoder> recycleQueue) {
+    public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccessWriter,
+                                             final OutputStream out, final BlockingQueue<BinaryEncoder> recycleQueue, final ComponentLog logger) {
         super(out);
         this.recordSchema = recordSchema;
         this.schemaAccessWriter = schemaAccessWriter;
@@ -53,6 +54,11 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
         this.recycleQueue = recycleQueue;
 
         BinaryEncoder reusableEncoder = recycleQueue.poll();
+        if (reusableEncoder == null) {
+            logger.debug("Was not able to obtain a BinaryEncoder from reuse pool. This is normal for the first X number of iterations (where X is equal to the max size of the pool), " +
+                "but if this continues, it indicates that increasing the size of the pool will likely yield better performance for this Avro Writer.");
+        }
+
         encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, reusableEncoder);
 
         datumWriter = new GenericDatumWriter<>(avroSchema);

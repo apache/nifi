@@ -23,6 +23,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.NopSchemaAccessWriter;
 import org.apache.nifi.schema.access.WriteAvroSchemaAttributeStrategy;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -35,6 +36,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.NullOutputStream;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -56,7 +58,8 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
 
     @Override
     protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) throws IOException {
-        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new WriteAvroSchemaAttributeStrategy(), out, encoderPool);
+        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new WriteAvroSchemaAttributeStrategy(), out, encoderPool,
+            new MockComponentLog("id", new Object()));
     }
 
     @Override
@@ -89,9 +92,11 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         final Record record = new MapRecord(recordSchema, Collections.singletonMap("name", "John Doe"));
         final Schema avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
 
+        final ComponentLog logger = new MockComponentLog("id", new Object());
+
         final long start = System.nanoTime();
         for (int i=0; i < 10_000_000; i++) {
-            try (final RecordSetWriter writer = new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, new NopSchemaAccessWriter(), out, encoderPool)) {
+            try (final RecordSetWriter writer = new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, new NopSchemaAccessWriter(), out, encoderPool, logger)) {
                 writer.write(RecordSet.of(record.getSchema(), record));
             }
         }

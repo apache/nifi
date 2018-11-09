@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -80,9 +81,11 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         .name("encoder-pool-size")
         .displayName("Encoder Pool Size")
         .description("Avro Writers require the use of an Encoder. Creation of Encoders is expensive, but once created, they can be reused. This property controls the maximum number of Encoders that" +
-            " can be pooled and reused. Setting this value too small can result in degraded performance, but setting it higher can result in more heap being used.")
+            " can be pooled and reused. Setting this value too small can result in degraded performance, but setting it higher can result in more heap being used. This property is ignored if the" +
+            " Avro Writer is configured with a Schema Write Strategy of 'Embed Avro Schema'.")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("32")
         .build();
 
@@ -99,7 +102,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
 
     @OnEnabled
     public void createEncoderPool(final ConfigurationContext context) {
-        final int capacity = context.getProperty(ENCODER_POOL_SIZE).asInteger();
+        final int capacity = context.getProperty(ENCODER_POOL_SIZE).evaluateAttributeExpressions().asInteger();
         encoderPool = new LinkedBlockingQueue<>(capacity);
     }
 
@@ -135,7 +138,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             if (AVRO_EMBEDDED.getValue().equals(strategyValue)) {
                 return new WriteAvroResultWithSchema(avroSchema, out, getCodecFactory(compressionFormat));
             } else {
-                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out, encoderPool);
+                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out, encoderPool, getLogger());
             }
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
