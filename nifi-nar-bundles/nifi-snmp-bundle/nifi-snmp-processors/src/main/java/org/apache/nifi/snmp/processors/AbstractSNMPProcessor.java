@@ -252,6 +252,7 @@ abstract class AbstractSNMPProcessor<T extends SNMPWorker> extends AbstractProce
             this.getLogger().warn("Failure while closing UDP transport mapping", e);
         }
         this.snmp = null;
+        this.snmpTarget = null;
     }
 
     /**
