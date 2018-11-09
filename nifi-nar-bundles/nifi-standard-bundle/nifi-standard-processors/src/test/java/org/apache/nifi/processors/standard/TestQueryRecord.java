@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -45,6 +36,15 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TestQueryRecord {
 
@@ -289,12 +289,47 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
-        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS).get(0);
+        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         flowFileOut.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"100\"\n\"Jerry\",\"2\"\n");
     }
 
     @Test
-    public void testColumnNames() throws InitializationException, IOException {
+    public void testNullValueInSingleField() throws InitializationException, IOException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("points", RecordFieldType.INT);
+        parser.addRecord("Tom", 1);
+        parser.addRecord("Jerry", null);
+        parser.addRecord("Tom", null);
+        parser.addRecord("Jerry", 3);
+
+        final MockRecordWriter writer = new MockRecordWriter(null, false);
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select points from FLOWFILE");
+        runner.setProperty("count", "select count(*) as c from flowfile where points is null");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        runner.assertTransferCount("count", 1);
+        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertContentEquals("1\n\n\n3\n");
+
+        final MockFlowFile countFlowFile = runner.getFlowFilesForRelationship("count").get(0);
+        countFlowFile.assertContentEquals("2\n");
+    }
+
+    @Test
+    public void testColumnNames() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("points", RecordFieldType.INT);
