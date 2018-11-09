@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.stream.io.util;
 
+import org.apache.nifi.stream.io.RepeatingInputStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
@@ -93,6 +97,30 @@ public class TestLineDemarcator {
     public void testFirstCharMatchOnly() throws IOException {
         final List<String> lines = getLines("\nThe quick brown fox jumped over the lazy dog.");
         assertEquals(Arrays.asList("\n", "The quick brown fox jumped over the lazy dog."), lines);
+    }
+
+    @Test
+    @Ignore("Intended only for manual testing. While this can take a while to run, it can be very helpful for manual testing before and after a change to the class. However, we don't want this to " +
+        "run in automated tests because we have no way to compare from one run to another, so it will only slow down automated tests.")
+    public void testPerformance() throws IOException {
+        final String lines = "The\nquick\nbrown\nfox\njumped\nover\nthe\nlazy\ndog.\r\n\n";
+        final byte[] bytes = lines.getBytes(StandardCharsets.UTF_8);
+
+        for (int i=0; i < 100; i++) {
+            final long start = System.nanoTime();
+
+            long count = 0;
+            try (final InputStream in = new RepeatingInputStream(bytes, 1_000_000);
+                 final LineDemarcator demarcator = new LineDemarcator(in, StandardCharsets.UTF_8, 8192, 8192)) {
+
+                while (demarcator.nextLine() != null) {
+                    count++;
+                }
+            }
+
+            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            System.out.println("Took " + millis + " millis to demarcate " + count + " lines");
+        }
     }
 
     private List<String> getLines(final String text) throws IOException {
