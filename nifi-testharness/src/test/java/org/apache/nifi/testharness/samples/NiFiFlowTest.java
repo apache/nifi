@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * This test demonstrates how to mock the source data by starting a mock HTTP server (using Jetty)
- * and rewrite the URL in flow definition.
+ * and rewriting the URL in flow definition.
  */
 public class NiFiFlowTest {
 
@@ -59,19 +59,8 @@ public class NiFiFlowTest {
     // used by mocked GetHTTP; serves test data
     private static Server testJettyServer;
 
-    private final TestNiFiInstance testNiFiInstance;
+    private TestNiFiInstance testNiFiInstance;
 
-
-    public NiFiFlowTest() {
-
-        File nifiZipFile = TestUtils.getBinaryDistributionZipFile(Constants.NIFI_ZIP_DIR);
-
-        this.testNiFiInstance = TestNiFiInstance.builder()
-                .setNiFiBinaryDistributionZip(nifiZipFile)
-                .setFlowXmlToInstallForTesting(Constants.FLOW_XML_FILE)
-                .modifyFlowXmlBeforeInstalling(CONFIGURE_MOCKS_IN_NIFI_FLOW)
-                .build();
-    }
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -91,8 +80,19 @@ public class NiFiFlowTest {
             FileUtils.deleteDirectoryRecursive(Constants.OUTPUT_DIR.toPath());
         }
 
-        testNiFiInstance.install();
-        testNiFiInstance.start();
+        File nifiZipFile = TestUtils.getBinaryDistributionZipFile(Constants.NIFI_ZIP_DIR);
+
+        TestNiFiInstance testNiFi = TestNiFiInstance.builder()
+                .setNiFiBinaryDistributionZip(nifiZipFile)
+                .setFlowXmlToInstallForTesting(Constants.FLOW_XML_FILE)
+                .modifyFlowXmlBeforeInstalling(CONFIGURE_MOCKS_IN_NIFI_FLOW)
+                .build();
+
+        testNiFi.install();
+        testNiFi.start();
+
+        // only assign testNiFi to the field in case it was started successfully
+        testNiFiInstance = testNiFi;
     }
 
     @Test
@@ -121,7 +121,9 @@ public class NiFiFlowTest {
     @After
     public void shutdownNiFi() {
 
-        testNiFiInstance.stopAndCleanup();
+        if (testNiFiInstance != null) {
+            testNiFiInstance.stopAndCleanup();
+        }
     }
 
     @AfterClass

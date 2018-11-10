@@ -20,16 +20,6 @@
 package org.apache.nifi.testharness.samples;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 final class TestUtils {
 
@@ -39,41 +29,29 @@ final class TestUtils {
 
     static File getBinaryDistributionZipFile(File binaryDistributionZipDir) {
 
-        AtomicReference<File> binaryDistributionZipFileRef = new AtomicReference<>();
-
-        List<Path> visitedFiles = new LinkedList<>();
-
-        try {
-            Files.walkFileTree(binaryDistributionZipDir.toPath(), new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    visitedFiles.add(file);
-
-                    String name = file.toFile().getName();
-
-                    if (name.startsWith("nifi-") && name.endsWith("-bin.zip")) {
-                        binaryDistributionZipFileRef.set(file.toFile());
-                    }
-
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException ioEx) {
-            throw new RuntimeException(ioEx);
+        if (!binaryDistributionZipDir.exists()) {
+            throw new IllegalStateException("NiFi distribution ZIP file not found at the expected location: "
+                    + binaryDistributionZipDir);
         }
 
-        File binaryDistributionZipFile = binaryDistributionZipFileRef.get();
-        if (binaryDistributionZipFile == null) {
+        File[] files = binaryDistributionZipDir.listFiles((dir, name) ->
+                name.startsWith("nifi-") && name.endsWith("-bin.zip"));
 
-            String visitedFilesString =
-                    visitedFiles.stream().map(Path::toString).collect(Collectors.joining(", "));
-
+        if (files == null) {
             throw new IllegalStateException(
-                    "No NiFi distribution ZIP file is found in: "
-                            + binaryDistributionZipDir + ", while visited: "
-                            + visitedFilesString);
+                    "Not a directory or I/O error reading: " + binaryDistributionZipDir);
         }
 
-        return binaryDistributionZipFile;
+        if (files.length == 0) {
+            throw new IllegalStateException(
+                    "No NiFi distribution ZIP file is found in: " + binaryDistributionZipDir);
+        }
+
+        if (files.length > 1) {
+            throw new IllegalStateException(
+                    "Multiple NiFi distribution ZIP files are found in: " + binaryDistributionZipDir);
+        }
+
+        return files[0];
     }
 }
