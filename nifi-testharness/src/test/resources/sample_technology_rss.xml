@@ -1,0 +1,24 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet title="XSL_formatting" type="text/xsl" href="/shared/bsp/xsl/rss/nolsol.xsl"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+    <channel>
+        <title>Sample Technology feed</title>
+        <description>Sample Technology feed</description>
+        <image>
+            <url>https://nifi.apache.org/assets/images/apache-nifi-logo.svg</url>
+            <title>NiFi sample</title>
+            <link>https://nifi.apache.org/</link>
+        </image>
+        <language>en-gb</language>
+        <ttl>15</ttl>
+        <item>
+            <title>The latest NiFi version is out</title>
+            <description>The latest version of NiFi is released</description>
+            <link>https://nifi.apache.org/</link>
+            <guid isPermaLink="true">https://nifi.apache.org/</guid>
+            <pubDate>Sat, 24 Sep 2018 17:10:10 GMT</pubDate>
+            <media:thumbnail width="1024" height="576" url="https://nifi.apache.org/assets/images/apache-nifi-logo.svg"/>
+        </item>
+    </channel>
+</rss>
