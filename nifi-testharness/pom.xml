@@ -151,6 +151,7 @@
             <artifactId>nifi-assembly</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
+            <type>pom</type>
         </dependency>
 
         <dependency>
