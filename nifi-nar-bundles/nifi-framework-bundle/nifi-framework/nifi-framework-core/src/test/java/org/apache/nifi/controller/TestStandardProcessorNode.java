@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
@@ -100,7 +101,7 @@ public class TestStandardProcessorNode {
         final ProcessorThatThrowsExceptionOnScheduled processor = new ProcessorThatThrowsExceptionOnScheduled();
         final String uuid = UUID.randomUUID().toString();
 
-        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, null, null, null, null);
+        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED);
         processor.initialize(initContext);
 
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
@@ -108,7 +109,7 @@ public class TestStandardProcessorNode {
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
-            niFiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
+            new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false);
@@ -129,7 +130,7 @@ public class TestStandardProcessorNode {
         };
 
         procNode.performValidation();
-        procNode.start(taskScheduler, 20000L, processContext, schedulingAgentCallback, true);
+        procNode.start(taskScheduler, 20000L, 10000L, processContext, schedulingAgentCallback, true);
 
         Thread.sleep(1000L);
         assertEquals(1, processor.onScheduledCount);
@@ -401,13 +402,12 @@ public class TestStandardProcessorNode {
 
         extensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle, null);
 
-        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);
+        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, KerberosConfig.NOT_CONFIGURED);
         processor.initialize(initContext);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), componentLog);
         return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
-            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager,
-                new SynchronousValidationTrigger());
+            null, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager, new SynchronousValidationTrigger());
     }
 
     private static class MockReloadComponent implements ReloadComponent {

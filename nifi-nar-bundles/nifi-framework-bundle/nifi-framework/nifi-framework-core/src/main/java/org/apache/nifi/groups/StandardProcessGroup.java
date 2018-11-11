@@ -52,6 +52,7 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -64,6 +65,7 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Relationship;
@@ -160,6 +162,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final StandardProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
     private final FlowController flowController;
+    private final FlowManager flowManager;
 
     private final Map<String, Port> inputPorts = new HashMap<>();
     private final Map<String, Port> outputPorts = new HashMap<>();
@@ -192,6 +195,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.encryptor = encryptor;
         this.flowController = flowController;
         this.variableRegistry = variableRegistry;
+        this.flowManager = flowController.getFlowManager();
 
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -422,9 +426,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             });
 
-            findAllInputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> {
-                port.getProcessGroup().startInputPort(port);
-            });
+            findAllInputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> port.getProcessGroup().startInputPort(port));
 
             findAllOutputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> {
                 port.getProcessGroup().startOutputPort(port);
@@ -446,13 +448,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             });
 
-            findAllInputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> {
-                port.getProcessGroup().stopInputPort(port);
-            });
-
-            findAllOutputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> {
-                port.getProcessGroup().stopOutputPort(port);
-            });
+            findAllInputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopInputPort(port));
+            findAllOutputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopOutputPort(port));
         } finally {
             readLock.unlock();
         }
@@ -513,7 +510,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             port.setProcessGroup(this);
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
-            flowController.onInputPortAdded(port);
+            flowManager.onInputPortAdded(port);
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -552,7 +549,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             scheduler.onPortRemoved(port);
             onComponentModified();
 
-            flowController.onInputPortRemoved(port);
+            flowManager.onInputPortRemoved(port);
             LOG.info("Input Port {} removed from flow", port);
         } finally {
             writeLock.unlock();
@@ -598,7 +595,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);
-            flowController.onOutputPortAdded(port);
+            flowManager.onOutputPortAdded(port);
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -628,7 +625,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             scheduler.onPortRemoved(port);
             onComponentModified();
 
-            flowController.onOutputPortRemoved(port);
+            flowManager.onOutputPortRemoved(port);
             LOG.info("Output Port {} removed from flow", port);
         } finally {
             writeLock.unlock();
@@ -667,10 +664,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.getVariableRegistry().setParent(getVariableRegistry());
 
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
-            flowController.onProcessGroupAdded(group);
+            flowManager.onProcessGroupAdded(group);
 
-            group.findAllControllerServices().stream().forEach(this::updateControllerServiceReferences);
-            group.findAllProcessors().stream().forEach(this::updateControllerServiceReferences);
+            group.findAllControllerServices().forEach(this::updateControllerServiceReferences);
+            group.findAllProcessors().forEach(this::updateControllerServiceReferences);
 
             onComponentModified();
         } finally {
@@ -714,7 +711,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processGroups.remove(group.getIdentifier());
             onComponentModified();
 
-            flowController.onProcessGroupRemoved(group);
+            flowManager.onProcessGroupRemoved(group);
             LOG.info("{} removed from flow", group);
         } finally {
             writeLock.unlock();
@@ -752,7 +749,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         for (final ControllerServiceNode cs : group.getControllerServices(false)) {
             // Must go through Controller Service here because we need to ensure that it is removed from the cache
-            flowController.removeControllerService(cs);
+            flowController.getControllerServiceProvider().removeControllerService(cs);
         }
 
         for (final ProcessGroup childGroup : new ArrayList<>(group.getProcessGroups())) {
@@ -820,8 +817,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.warn("Failed to clean up resources for {} due to {}", remoteGroup, e);
             }
 
-            remoteGroup.getInputPorts().stream().forEach(scheduler::onPortRemoved);
-            remoteGroup.getOutputPorts().stream().forEach(scheduler::onPortRemoved);
+            remoteGroup.getInputPorts().forEach(scheduler::onPortRemoved);
+            remoteGroup.getOutputPorts().forEach(scheduler::onPortRemoved);
 
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
@@ -843,7 +840,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setProcessGroup(this);
             processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
-            flowController.onProcessorAdded(processor);
+            flowManager.onProcessorAdded(processor);
             updateControllerServiceReferences(processor);
             onComponentModified();
         } finally {
@@ -926,9 +923,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             onComponentModified();
 
             scheduler.onProcessorRemoved(processor);
-            flowController.onProcessorRemoved(processor);
+            flowManager.onProcessorRemoved(processor);
 
-            LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
+            final LogRepository logRepository = LogRepositoryFactory.getRepository(processor.getIdentifier());
+            if (logRepository != null) {
+                logRepository.removeAllObservers();
+            }
 
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
             scheduler.submitFrameworkTask(new Runnable() {
@@ -1068,7 +1068,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 destination.addConnection(connection);
             }
             connections.put(connection.getIdentifier(), connection);
-            flowController.onConnectionAdded(connection);
+            flowManager.onConnectionAdded(connection);
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -1133,7 +1133,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             LOG.info("{} removed from flow", connection);
             onComponentModified();
 
-            flowController.onConnectionRemoved(connection);
+            flowManager.onConnectionRemoved(connection);
         } finally {
             writeLock.unlock();
         }
@@ -1161,7 +1161,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Connection findConnection(final String id) {
-        final Connection connection = flowController.getConnection(id);
+        final Connection connection = flowManager.getConnection(id);
         if (connection == null) {
             return null;
         }
@@ -1601,12 +1601,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             return this;
         }
 
-        final ProcessGroup group = flowController.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id);
         if (group == null) {
             return null;
         }
 
-        // We found a Processor in the Controller, but we only want to return it if
+        // We found a Process Group in the Controller, but we only want to return it if
         // the Process Group is this or is a child of this.
         if (isOwner(group.getParent())) {
             return group;
@@ -1664,7 +1664,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessorNode findProcessor(final String id) {
-        final ProcessorNode node = flowController.getProcessorNode(id);
+        final ProcessorNode node = flowManager.getProcessorNode(id);
         if (node == null) {
             return null;
         }
@@ -1769,7 +1769,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Port findInputPort(final String id) {
-        final Port port = flowController.getInputPort(id);
+        final Port port = flowManager.getInputPort(id);
         if (port == null) {
             return null;
         }
@@ -1796,7 +1796,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Port findOutputPort(final String id) {
-        final Port port = flowController.getOutputPort(id);
+        final Port port = flowManager.getOutputPort(id);
         if (port == null) {
             return null;
         }
@@ -1904,7 +1904,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             funnel.setProcessGroup(this);
             funnels.put(funnel.getIdentifier(), funnel);
-            flowController.onFunnelAdded(funnel);
+            flowManager.onFunnelAdded(funnel);
 
             if (autoStart) {
                 startFunnel(funnel);
@@ -1928,7 +1928,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Funnel findFunnel(final String id) {
-        final Funnel funnel = flowController.getFunnel(id);
+        final Funnel funnel = flowManager.getFunnel(id);
         if (funnel == null) {
             return funnel;
         }
@@ -2026,7 +2026,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             funnels.remove(funnel.getIdentifier());
             onComponentModified();
 
-            flowController.onFunnelRemoved(funnel);
+            flowManager.onFunnelRemoved(funnel);
             LOG.info("{} removed from flow", funnel);
         } finally {
             writeLock.unlock();
@@ -2988,7 +2988,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final Map<VariableDescriptor, String> variableMap = new HashMap<>();
-            variables.entrySet().stream() // cannot use Collectors.toMap because value may be null
+            variables.entrySet() // cannot use Collectors.toMap because value may be null
                 .forEach(entry -> variableMap.put(new VariableDescriptor(entry.getKey()), entry.getValue()));
 
             variableRegistry.setVariables(variableMap);
@@ -3199,30 +3199,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void applyVersionedComponentIds(final ProcessGroup processGroup, final Function<String, String> lookup) {
         processGroup.setVersionedComponentId(lookup.apply(processGroup.getIdentifier()));
 
-        processGroup.getConnections().stream()
+        processGroup.getConnections()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getProcessors().stream()
+        processGroup.getProcessors()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getInputPorts().stream()
+        processGroup.getInputPorts()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getOutputPorts().stream()
+        processGroup.getOutputPorts()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getLabels().stream()
+        processGroup.getLabels()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getFunnels().stream()
+        processGroup.getFunnels()
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
-        processGroup.getControllerServices(false).stream()
+        processGroup.getControllerServices(false)
             .forEach(component -> component.setVersionedComponentId(lookup.apply(component.getIdentifier())));
 
-        processGroup.getRemoteProcessGroups().stream()
+        processGroup.getRemoteProcessGroups()
             .forEach(rpg -> {
                 rpg.setVersionedComponentId(lookup.apply(rpg.getIdentifier()));
 
-                rpg.getInputPorts().stream()
-                    .forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
-
-                rpg.getOutputPorts().stream()
-                    .forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
+                rpg.getInputPorts().forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
+                rpg.getOutputPorts().forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
             });
 
         for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
@@ -3552,7 +3549,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (childGroup == null) {
                 final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
-                flowController.onProcessGroupAdded(added);
+                flowManager.onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
@@ -3572,7 +3569,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(proposedFunnel.getIdentifier());
             if (funnel == null) {
                 final Funnel added = addFunnel(group, proposedFunnel, componentIdSeed);
-                flowController.onFunnelAdded(added);
+                flowManager.onFunnelAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedFunnel.getIdentifier())) {
                 updateFunnel(funnel, proposedFunnel);
@@ -3594,7 +3591,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = inputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
                 final Port added = addInputPort(group, proposedPort, componentIdSeed);
-                flowController.onInputPortAdded(added);
+                flowManager.onInputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3615,7 +3612,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = outputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
                 final Port added = addOutputPort(group, proposedPort, componentIdSeed);
-                flowController.onOutputPortAdded(added);
+                flowManager.onOutputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3659,7 +3656,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
             if (processor == null) {
                 final ProcessorNode added = addProcessor(group, proposedProcessor, componentIdSeed);
-                flowController.onProcessorAdded(added);
+                flowManager.onProcessorAdded(added);
 
                 final Set<Relationship> proposedAutoTerminated =
                     proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
@@ -3718,7 +3715,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Connection connection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
             if (connection == null) {
                 final Connection added = addConnection(group, proposedConnection, componentIdSeed);
-                flowController.onConnectionAdded(added);
+                flowManager.onConnectionAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (isUpdateable(connection)) {
                 // If the connection needs to be updated, then the source and destination will already have
@@ -3739,7 +3736,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Connection connection = connectionsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", connection, group);
             group.removeConnection(connection);
-            flowController.onConnectionRemoved(connection);
+            flowManager.onConnectionRemoved(connection);
         }
 
         // Once the appropriate connections have been removed, we may now update Processors' auto-terminated relationships.
@@ -3753,7 +3750,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ControllerServiceNode service = servicesByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", service, group);
             // Must remove Controller Service through Flow Controller in order to remove from cache
-            flowController.removeControllerService(service);
+            flowController.getControllerServiceProvider().removeControllerService(service);
         }
 
         for (final String removedVersionedId : funnelsRemoved) {
@@ -3832,7 +3829,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip)
             throws ProcessorInstantiationException {
-        final ProcessGroup group = flowController.createProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
+        final ProcessGroup group = flowManager.createProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
         updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip);
@@ -3862,7 +3859,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final List<FlowFilePrioritizer> prioritizers = proposed.getPrioritizers() == null ? Collections.emptyList() : proposed.getPrioritizers().stream()
             .map(prioritizerName -> {
                 try {
-                    return flowController.createPrioritizer(prioritizerName);
+                    return flowManager.createPrioritizer(prioritizerName);
                 } catch (final Exception e) {
                     throw new IllegalStateException("Failed to create Prioritizer of type " + prioritizerName + " for Connection with ID " + connection.getIdentifier());
                 }
@@ -3908,7 +3905,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         destinationGroup.addConnection(connection);
         updateConnection(connection, proposed);
 
-        flowController.onConnectionAdded(connection);
+        flowManager.onConnectionAdded(connection);
         return connection;
     }
 
@@ -4071,7 +4068,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
                 final List<PropertyDescriptor> descriptors = new ArrayList<>(service.getProperties().keySet());
                 final Set<URL> additionalUrls = service.getAdditionalClasspathResources(descriptors);
-                flowController.reload(service, proposed.getType(), newBundleCoordinate, additionalUrls);
+                flowController.getReloadComponent().reload(service, proposed.getType(), newBundleCoordinate, additionalUrls);
             }
         } finally {
             service.resumeValidationTrigger();
@@ -4107,7 +4104,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final boolean firstTimeAdded = true;
         final Set<URL> additionalUrls = Collections.emptySet();
 
-        final ControllerServiceNode newService = flowController.createControllerService(type, id, coordinate, additionalUrls, firstTimeAdded);
+        final ControllerServiceNode newService = flowManager.createControllerService(type, id, coordinate, additionalUrls, firstTimeAdded, true);
         newService.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addControllerService(newService);
@@ -4121,7 +4118,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Funnel addFunnel(final ProcessGroup destination, final VersionedFunnel proposed, final String componentIdSeed) {
-        final Funnel funnel = flowController.createFunnel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
+        final Funnel funnel = flowManager.createFunnel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         funnel.setVersionedComponentId(proposed.getIdentifier());
         destination.addFunnel(funnel);
         updateFunnel(funnel, proposed);
@@ -4136,7 +4133,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
-        final Port port = flowController.createLocalInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
+        final Port port = flowManager.createLocalInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addInputPort(port);
         updatePort(port, proposed);
@@ -4145,7 +4142,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Port addOutputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed) {
-        final Port port = flowController.createLocalOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
+        final Port port = flowManager.createLocalOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getName());
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addOutputPort(port);
         updatePort(port, proposed);
@@ -4154,7 +4151,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private Label addLabel(final ProcessGroup destination, final VersionedLabel proposed, final String componentIdSeed) {
-        final Label label = flowController.createLabel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getLabel());
+        final Label label = flowManager.createLabel(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getLabel());
         label.setVersionedComponentId(proposed.getIdentifier());
         destination.addLabel(label);
         updateLabel(label, proposed);
@@ -4171,7 +4168,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private ProcessorNode addProcessor(final ProcessGroup destination, final VersionedProcessor proposed, final String componentIdSeed) throws ProcessorInstantiationException {
         final BundleCoordinate coordinate = toCoordinate(proposed.getBundle());
-        final ProcessorNode procNode = flowController.createProcessor(proposed.getType(), generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), coordinate, true);
+        final ProcessorNode procNode = flowManager.createProcessor(proposed.getType(), generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), coordinate, true);
         procNode.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addProcessor(procNode);
@@ -4204,7 +4201,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
                 final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
                 final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(descriptors);
-                flowController.reload(processor, proposed.getType(), newBundleCoordinate, additionalUrls);
+                flowController.getReloadComponent().reload(processor, proposed.getType(), newBundleCoordinate, additionalUrls);
             }
         } finally {
             processor.resumeValidationTrigger();
@@ -4276,7 +4273,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private RemoteProcessGroup addRemoteProcessGroup(final ProcessGroup destination, final VersionedRemoteProcessGroup proposed, final String componentIdSeed) {
-        final RemoteProcessGroup rpg = flowController.createRemoteProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getTargetUris());
+        final RemoteProcessGroup rpg = flowManager.createRemoteProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), proposed.getTargetUris());
         rpg.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addRemoteProcessGroup(rpg);
@@ -4439,7 +4436,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(port -> removedInputPortsByVersionId.put(port.getVersionedComponentId().get(), port));
             flowContents.getInputPorts().stream()
                 .map(VersionedPort::getIdentifier)
-                .forEach(id -> removedInputPortsByVersionId.remove(id));
+                .forEach(removedInputPortsByVersionId::remove);
 
             // Ensure that there are no incoming connections for any Input Port that was removed.
             for (final Port inputPort : removedInputPortsByVersionId.values()) {
@@ -4457,7 +4454,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(port -> removedOutputPortsByVersionId.put(port.getVersionedComponentId().get(), port));
             flowContents.getOutputPorts().stream()
                 .map(VersionedPort::getIdentifier)
-                .forEach(id -> removedOutputPortsByVersionId.remove(id));
+                .forEach(removedOutputPortsByVersionId::remove);
 
             // Ensure that there are no outgoing connections for any Output Port that was removed.
             for (final Port outputPort : removedOutputPortsByVersionId.values()) {
@@ -4544,7 +4541,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (connectionToAdd.getPrioritizers() != null) {
                     for (final String prioritizerType : connectionToAdd.getPrioritizers()) {
                         try {
-                            flowController.createPrioritizer(prioritizerType);
+                            flowManager.createPrioritizer(prioritizerType);
                         } catch (Exception e) {
                             throw new IllegalArgumentException("Unable to create Prioritizer of type " + prioritizerType, e);
                         }

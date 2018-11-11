@@ -16,11 +16,24 @@
  */
 package org.apache.nifi.controller.service;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
+import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.Severity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,46 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnAdded;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.TerminationAwareLogger;
-import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.exception.ComponentLifeCycleException;
-import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.processor.StandardValidationContextFactory;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.ReflectionUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 public class StandardControllerServiceProvider implements ControllerServiceProvider {
 
@@ -86,170 +60,21 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private final StandardProcessScheduler processScheduler;
     private final BulletinRepository bulletinRepo;
-    private final StateManagerProvider stateManagerProvider;
-    private final VariableRegistry variableRegistry;
     private final FlowController flowController;
-    private final NiFiProperties nifiProperties;
+    private final FlowManager flowManager;
 
     private final ConcurrentMap<String, ControllerServiceNode> serviceCache = new ConcurrentHashMap<>();
-    private final ValidationTrigger validationTrigger;
 
-    public StandardControllerServiceProvider(final FlowController flowController, final StandardProcessScheduler scheduler, final BulletinRepository bulletinRepo,
-        final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties, final ValidationTrigger validationTrigger) {
-
+    public StandardControllerServiceProvider(final FlowController flowController, final StandardProcessScheduler scheduler, final BulletinRepository bulletinRepo) {
         this.flowController = flowController;
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
-        this.stateManagerProvider = stateManagerProvider;
-        this.variableRegistry = variableRegistry;
-        this.nifiProperties = nifiProperties;
-        this.validationTrigger = validationTrigger;
-    }
-
-    private StateManager getStateManager(final String componentId) {
-        return stateManagerProvider.getStateManager(componentId);
+        this.flowManager = flowController.getFlowManager();
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded) {
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException();
-        }
-
-        ClassLoader cl = null;
-        final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
-        final ExtensionManager extensionManager = flowController.getExtensionManager();
-        try {
-            final Class<?> rawClass;
-            try {
-                final Bundle csBundle = extensionManager.getBundle(bundleCoordinate);
-                if (csBundle == null) {
-                    throw new ControllerServiceInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
-                }
-
-                cl = extensionManager.createInstanceClassLoader(type, id, csBundle, additionalUrls);
-                Thread.currentThread().setContextClassLoader(cl);
-                rawClass = Class.forName(type, false, cl);
-            } catch (final Exception e) {
-                logger.error("Could not create Controller Service of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", e);
-                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
-                return createGhostControllerService(type, id, bundleCoordinate);
-            }
-
-            final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
-
-            final ControllerService originalService = controllerServiceClass.newInstance();
-            final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, originalService);
-
-            // extract all interfaces... controllerServiceClass is non null so getAllInterfaces is non null
-            final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(controllerServiceClass);
-            final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
-
-            final ControllerService proxiedService;
-            if (cl == null) {
-                proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(), interfaces, invocationHandler);
-            } else {
-                proxiedService = (ControllerService) Proxy.newProxyInstance(cl, interfaces, invocationHandler);
-            }
-            logger.info("Created Controller Service of type {} with identifier {}", type, id);
-
-            final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
-            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
-
-            originalService.initialize(new StandardControllerServiceInitializationContext(id, terminationAwareLogger, this, getStateManager(id), nifiProperties));
-
-
-
-            final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, terminationAwareLogger);
-            final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
-
-            final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, componentVarRegistry);
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                id, validationContextFactory, this, componentVarRegistry, flowController, flowController.getExtensionManager(), validationTrigger);
-            serviceNode.setName(rawClass.getSimpleName());
-
-            invocationHandler.setServiceNode(serviceNode);
-
-            if (firstTimeAdded) {
-                try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), originalService.getClass(), originalService.getIdentifier())) {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
-                } catch (final Exception e) {
-                    throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
-                }
-            }
-
-            serviceCache.putIfAbsent(id, serviceNode);
-
-            return serviceNode;
-        } catch (final Throwable t) {
-            throw new ControllerServiceInstantiationException(t);
-        } finally {
-            if (currentContextClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
-            }
-        }
-    }
-
-    private ControllerServiceNode createGhostControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate) {
-        final ControllerServiceInvocationHandler invocationHandler = new ControllerServiceInvocationHandler() {
-            @Override
-            public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-                final String methodName = method.getName();
-
-                if ("validate".equals(methodName)) {
-                    final ValidationResult result = new ValidationResult.Builder()
-                            .input("Any Property")
-                            .subject("Missing Controller Service")
-                            .valid(false)
-                            .explanation("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found")
-                            .build();
-                    return Collections.singleton(result);
-                } else if ("getPropertyDescriptor".equals(methodName)) {
-                    final String propertyName = (String) args[0];
-                    return new PropertyDescriptor.Builder()
-                            .name(propertyName)
-                            .description(propertyName)
-                            .sensitive(true)
-                            .required(true)
-                            .build();
-                } else if ("getPropertyDescriptors".equals(methodName)) {
-                    return Collections.emptyList();
-                } else if ("onPropertyModified".equals(methodName)) {
-                    return null;
-                } else if ("getIdentifier".equals(methodName)) {
-                    return id;
-                } else if ("toString".equals(methodName)) {
-                    return "GhostControllerService[id=" + id + ", type=" + type + "]";
-                } else if ("hashCode".equals(methodName)) {
-                    return 91 * type.hashCode() + 41 * id.hashCode();
-                } else if ("equals".equals(methodName)) {
-                    return proxy == args[0];
-                } else {
-                    throw new IllegalStateException("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found");
-                }
-            }
-            @Override
-            public void setServiceNode(ControllerServiceNode serviceNode) {
-                // nothing to do
-            }
-        };
-
-        final ControllerService proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class[]{ControllerService.class}, invocationHandler);
-
-        final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-        final String componentType = "(Missing) " + simpleClassName;
-
-        final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
-
-        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
-            new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController,
-                flowController.getExtensionManager(), validationTrigger, true);
-
-        serviceCache.putIfAbsent(id, serviceNode);
-        return serviceNode;
+    public void onControllerServiceAdded(final ControllerServiceNode serviceNode) {
+        serviceCache.putIfAbsent(serviceNode.getIdentifier(), serviceNode);
     }
 
     @Override
@@ -364,7 +189,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
         while (serviceIter.hasNext() && shouldStart) {
             ControllerServiceNode controllerServiceNode = serviceIter.next();
-            List<ControllerServiceNode> requiredServices = ((StandardControllerServiceNode) controllerServiceNode).getRequiredControllerServices();
+            List<ControllerServiceNode> requiredServices = controllerServiceNode.getRequiredControllerServices();
             for (ControllerServiceNode requiredService : requiredServices) {
                 if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
                     shouldStart = false;
@@ -411,10 +236,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes, final CompletableFuture<Void> completableFuture) {
         // validate that we are able to start all of the services.
-        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
-        while (serviceIter.hasNext()) {
-            ControllerServiceNode controllerServiceNode = serviceIter.next();
-            List<ControllerServiceNode> requiredServices = ((StandardControllerServiceNode) controllerServiceNode).getRequiredControllerServices();
+        for (final ControllerServiceNode controllerServiceNode : serviceNodes) {
+            List<ControllerServiceNode> requiredServices = controllerServiceNode.getRequiredControllerServices();
             for (ControllerServiceNode requiredService : requiredServices) {
                 if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
                     logger.error("Cannot enable {} because it has a dependency on {}, which is not enabled", controllerServiceNode, requiredService);
@@ -502,7 +325,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         for (final ControllerServiceNode node : serviceNodeMap.values()) {
             final List<ControllerServiceNode> branch = new ArrayList<>();
-            determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<ControllerServiceNode>());
+            determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<>());
             orderedNodeLists.add(branch);
         }
 
@@ -601,15 +424,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private ProcessGroup getRootGroup() {
-        return flowController.getGroup(flowController.getRootGroupId());
+        return flowManager.getRootGroup();
     }
 
     @Override
     public ControllerService getControllerServiceForComponent(final String serviceIdentifier, final String componentId) {
         // Find the Process Group that owns the component.
-        ProcessGroup groupOfInterest = null;
+        ProcessGroup groupOfInterest;
 
-        final ProcessorNode procNode = flowController.getProcessorNode(componentId);
+        final ProcessorNode procNode = flowManager.getProcessorNode(componentId);
         if (procNode == null) {
             final ControllerServiceNode serviceNode = getControllerServiceNode(componentId);
             if (serviceNode == null) {
@@ -620,7 +443,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                 // we have confirmed that the component is a reporting task. We can only reference Controller Services
                 // that are scoped at the FlowController level in this case.
-                final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+                final ControllerServiceNode rootServiceNode = flowManager.getRootControllerService(serviceIdentifier);
                 return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
             } else {
                 groupOfInterest = serviceNode.getProcessGroup();
@@ -630,7 +453,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         if (groupOfInterest == null) {
-            final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+            final ControllerServiceNode rootServiceNode = flowManager.getRootControllerService(serviceIdentifier);
             return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
         }
 
@@ -663,7 +486,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public ControllerServiceNode getControllerServiceNode(final String serviceIdentifier) {
-        final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+        final ControllerServiceNode rootServiceNode = flowManager.getRootControllerService(serviceIdentifier);
         if (rootServiceNode != null) {
             return rootServiceNode;
         }
@@ -675,10 +498,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, final String groupId) {
         final Set<ControllerServiceNode> serviceNodes;
         if (groupId == null) {
-            serviceNodes = flowController.getRootControllerServices();
+            serviceNodes = flowManager.getRootControllerServices();
         } else {
             ProcessGroup group = getRootGroup();
-            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
+            if (!FlowManager.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
                 group = group.findProcessGroup(groupId);
             }
 
@@ -706,7 +529,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         final ProcessGroup group = requireNonNull(serviceNode).getProcessGroup();
         if (group == null) {
-            flowController.removeRootControllerService(serviceNode);
+            flowManager.removeRootControllerService(serviceNode);
             return;
         }
 
@@ -718,12 +541,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Set<ControllerServiceNode> getAllControllerServices() {
-        final Set<ControllerServiceNode> allServices = new HashSet<>();
-        allServices.addAll(flowController.getRootControllerServices());
-        allServices.addAll(serviceCache.values());
-
-        return allServices;
+    public Collection<ControllerServiceNode> getNonRootControllerServices() {
+        return serviceCache.values();
     }
 
 

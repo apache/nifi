@@ -33,6 +33,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.events.VolatileBulletinRepository;
@@ -57,7 +58,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,9 +89,10 @@ public class ProcessorLifecycleIT {
     private static final long MEDIUM_DELAY_TOLERANCE = 15000L;
     private static final long LONG_DELAY_TOLERANCE = 20000L;
 
-    private FlowController fc;
+    private FlowManager flowManager;
     private Map<String, String> properties = new HashMap<>();
     private volatile String propsFile = "src/test/resources/lifecycletest.nifi.properties";
+    private ProcessScheduler processScheduler;
 
     @Before
     public void before() throws Exception {
@@ -100,7 +101,11 @@ public class ProcessorLifecycleIT {
 
     @After
     public void after() throws Exception {
-        fc.shutdown(true);
+        if (processScheduler != null) {
+            processScheduler.shutdown();
+            processScheduler = null;
+        }
+
         FileUtils.deleteDirectory(new File("./target/lifecycletest"));
     }
 
@@ -123,11 +128,10 @@ public class ProcessorLifecycleIT {
 
     @Test
     public void validateEnableOperation() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        final ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(),
                 UUID.randomUUID().toString(), fcsb.getSystemBundle().getBundleDetails().getCoordinate());
 
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
@@ -145,12 +149,11 @@ public class ProcessorLifecycleIT {
 
     @Test
     public void validateDisableOperation() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        final ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(),
                 UUID.randomUUID().toString(), fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
@@ -162,9 +165,8 @@ public class ProcessorLifecycleIT {
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getScheduledState());
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
 
-        ProcessScheduler ps = fc.getProcessScheduler();
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
     }
 
@@ -174,24 +176,22 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateIdempotencyOfProcessorStartOperation() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        final ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
         this.noop(testProcessor);
-        final ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
-        ps.startProcessor(testProcNode, true);
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
 
         Thread.sleep(500);
         assertCondition(() -> testProcessor.operationNames.size() == 1);
@@ -204,11 +204,10 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateStopCallsAreMeaninglessIfProcessorNotStarted() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        final ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -216,8 +215,8 @@ public class ProcessorLifecycleIT {
         // sets the scenario for the processor to run
         int randomDelayLimit = 3000;
         this.randomOnTriggerDelay(testProcessor, randomDelayLimit);
-        final ProcessScheduler ps = fc.getProcessScheduler();
-        ps.stopProcessor(testProcNode);
+
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState());
         assertTrue(testProcessor.operationNames.isEmpty());
     }
@@ -229,11 +228,10 @@ public class ProcessorLifecycleIT {
     @Test
     @Ignore
     public void validateSuccessfulAndOrderlyShutdown() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -248,10 +246,10 @@ public class ProcessorLifecycleIT {
 
         testGroup.addProcessor(testProcNode);
 
-        fc.startProcessGroup(testGroup.getIdentifier());
+        flowManager.getGroup(testGroup.getIdentifier()).startProcessing();
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
 
-        fc.stopAllProcessors();
+        flowManager.getRootGroup().stopProcessing();
 
         Thread.sleep(randomDelayLimit); // up to randomDelayLimit, otherwise next assertion may fail as the processor still executing
 
@@ -273,12 +271,11 @@ public class ProcessorLifecycleIT {
     @Test
     @Ignore
     public void validateLifecycleOperationOrderWithConcurrentCallsToStartStop() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        final ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -286,7 +283,6 @@ public class ProcessorLifecycleIT {
         // sets the scenario for the processor to run
         this.noop(testProcessor);
 
-        final ProcessScheduler ps = fc.getProcessScheduler();
         ExecutorService executor = Executors.newFixedThreadPool(100);
         int startCallsCount = 10000;
         final CountDownLatch countDownCounter = new CountDownLatch(startCallsCount);
@@ -297,7 +293,7 @@ public class ProcessorLifecycleIT {
                 @Override
                 public void run() {
                     LockSupport.parkNanos(random.nextInt(9000000));
-                    ps.stopProcessor(testProcNode);
+                    processScheduler.stopProcessor(testProcNode);
                     countDownCounter.countDown();
                 }
             });
@@ -307,7 +303,7 @@ public class ProcessorLifecycleIT {
                 @Override
                 public void run() {
                     LockSupport.parkNanos(random.nextInt(9000000));
-                    ps.startProcessor(testProcNode, true);
+                    processScheduler.startProcessor(testProcNode, true);
                     countDownCounter.countDown();
                 }
             });
@@ -332,12 +328,11 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessorUnscheduledAndStoppedWhenStopIsCalledBeforeProcessorFullyStarted() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -345,13 +340,12 @@ public class ProcessorLifecycleIT {
         // sets the scenario for the processor to run
         int delay = 200;
         this.longRunningOnSchedule(testProcessor, delay);
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
 
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
         assertCondition(() -> testProcessor.operationNames.size() == 3, LONG_DELAY_TOLERANCE);
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
@@ -366,12 +360,11 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessScheduledAfterAdministrativeDelayDueToTheOnScheduledException() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -380,12 +373,11 @@ public class ProcessorLifecycleIT {
         this.noop(testProcessor);
         testProcessor.generateExceptionOnScheduled = true;
         testProcessor.keepFailingOnScheduledTimes = 2;
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
     }
 
@@ -396,12 +388,11 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledConstantlyFails() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -410,12 +401,11 @@ public class ProcessorLifecycleIT {
         this.longRunningOnUnschedule(testProcessor, 100);
         testProcessor.generateExceptionOnScheduled = true;
         testProcessor.keepFailingOnScheduledTimes = Integer.MAX_VALUE;
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
     }
 
@@ -425,23 +415,21 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledBlocksIndefinitelyInterruptable() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "5 sec");
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "5 sec");
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         // sets the scenario for the processor to run
         this.blockingInterruptableOnUnschedule(testProcessor);
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
     }
 
@@ -451,23 +439,21 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledBlocksIndefinitelyUninterruptable() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "1 sec");
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "1 sec");
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         // sets the scenario for the processor to run
         this.blockingUninterruptableOnUnschedule(testProcessor);
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
     }
 
@@ -477,12 +463,11 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnTriggerThrowsException() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
@@ -490,14 +475,13 @@ public class ProcessorLifecycleIT {
         // sets the scenario for the processor to run
         this.noop(testProcessor);
         testProcessor.generateExceptionOnTrigger = true;
-        ProcessScheduler ps = fc.getProcessScheduler();
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
-        ps.disableProcessor(testProcNode);
+        processScheduler.disableProcessor(testProcNode);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
-        ps.stopProcessor(testProcNode);
+        processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
     }
 
@@ -507,15 +491,13 @@ public class ProcessorLifecycleIT {
      */
     @Test(expected = IllegalStateException.class)
     public void validateStartFailsOnInvalidProcessorWithMissingProperty() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-        ProcessScheduler ps = fc.getProcessScheduler();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         fail();
     }
 
@@ -525,15 +507,14 @@ public class ProcessorLifecycleIT {
      */
     @Test(expected = IllegalStateException.class)
     public void validateStartFailsOnInvalidProcessorWithDisabledService() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
 
-        ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "serv",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true);
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ControllerServiceNode testServiceNode = flowManager.createControllerService(TestService.class.getName(), "serv",
+                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true, true);
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
 
         properties.put("S", testServiceNode.getIdentifier());
@@ -542,8 +523,7 @@ public class ProcessorLifecycleIT {
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         testProcessor.withService = true;
 
-        ProcessScheduler ps = fc.getProcessScheduler();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
         fail();
     }
 
@@ -552,17 +532,16 @@ public class ProcessorLifecycleIT {
      */
     @Test
     public void validateStartSucceedsOnProcessorWithEnabledService() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
+        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
+        flowManager = fcsb.getFlowManager();
 
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
+        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
 
-        ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "foo",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true);
+        ControllerServiceNode testServiceNode = flowManager.createControllerService(TestService.class.getName(), "foo",
+                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true, true);
         testGroup.addControllerService(testServiceNode);
 
-        ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
+        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
                 fcsb.getSystemBundle().getBundleDetails().getCoordinate());
         testGroup.addProcessor(testProcNode);
 
@@ -573,12 +552,11 @@ public class ProcessorLifecycleIT {
         testProcessor.withService = true;
         this.noop(testProcessor);
 
-        ProcessScheduler ps = fc.getProcessScheduler();
         testServiceNode.performValidation();
-        ps.enableControllerService(testServiceNode);
+        processScheduler.enableControllerService(testServiceNode);
 
         testProcNode.performValidation();
-        ps.startProcessor(testProcNode, true);
+        processScheduler.startProcessor(testProcNode, true);
 
         Thread.sleep(500);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
@@ -641,7 +619,7 @@ public class ProcessorLifecycleIT {
         testProcessor.setScenario(emptyRunnable, emptyRunnable, emptyRunnable, emptyRunnable);
     }
 
-    private FlowControllerAndSystemBundle buildFlowControllerForTest(final String propKey, final String propValue) throws Exception {
+    private FlowManagerAndSystemBundle buildFlowControllerForTest(final String propKey, final String propValue) throws Exception {
         final Map<String, String> addProps = new HashMap<>();
         addProps.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
         addProps.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
@@ -659,43 +637,33 @@ public class ProcessorLifecycleIT {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
-                mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
             new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
             mock(FlowRegistryClient.class), extensionManager);
 
-        return new FlowControllerAndSystemBundle(flowController, systemBundle);
+        final FlowManager flowManager = flowController.getFlowManager();
+        this.processScheduler = flowController.getProcessScheduler();
+
+        return new FlowManagerAndSystemBundle(flowManager, systemBundle);
     }
 
-    private FlowControllerAndSystemBundle buildFlowControllerForTest() throws Exception {
+    private FlowManagerAndSystemBundle buildFlowControllerForTest() throws Exception {
         return buildFlowControllerForTest(null, null);
     }
 
-    /**
-     *
-     */
-    private void setControllerRootGroup(FlowController controller, ProcessGroup processGroup) {
-        try {
-            Method m = FlowController.class.getDeclaredMethod("setRootGroup", ProcessGroup.class);
-            m.setAccessible(true);
-            m.invoke(controller, processGroup);
-            controller.initializeFlow();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to set root group", e);
-        }
-    }
 
-    private static class FlowControllerAndSystemBundle {
+    private static class FlowManagerAndSystemBundle {
 
-        private final FlowController flowController;
+        private final FlowManager flowManager;
         private final Bundle systemBundle;
 
-        public FlowControllerAndSystemBundle(FlowController flowController, Bundle systemBundle) {
-            this.flowController = flowController;
+        public FlowManagerAndSystemBundle(FlowManager flowManager, Bundle systemBundle) {
+            this.flowManager = flowManager;
             this.systemBundle = systemBundle;
         }
 
-        public FlowController getFlowController() {
-            return flowController;
+        public FlowManager getFlowManager() {
+            return flowManager;
         }
 
         public Bundle getSystemBundle() {
@@ -775,8 +743,7 @@ public class ProcessorLifecycleIT {
                     .identifiesControllerService(ITestservice.class)
                     .build();
 
-            return this.withService ? Arrays.asList(new PropertyDescriptor[]{PROP, SERVICE})
-                    : Arrays.asList(new PropertyDescriptor[]{PROP});
+            return this.withService ? Arrays.asList(PROP, SERVICE) : Arrays.asList(PROP);
         }
 
         @Override
@@ -788,20 +755,15 @@ public class ProcessorLifecycleIT {
         }
     }
 
-    /**
-     */
+
     public static class TestService extends AbstractControllerService implements ITestservice {
 
     }
 
-    /**
-     */
     public static interface ITestservice extends ControllerService {
-
     }
 
-    /**
-     */
+
     private static class EmptyRunnable implements Runnable {
 
         @Override
@@ -810,8 +772,7 @@ public class ProcessorLifecycleIT {
         }
     }
 
-    /**
-     */
+
     private static class BlockingInterruptableRunnable implements Runnable {
 
         @Override
@@ -824,8 +785,7 @@ public class ProcessorLifecycleIT {
         }
     }
 
-    /**
-     */
+
     private static class BlockingUninterruptableRunnable implements Runnable {
 
         @Override
@@ -840,8 +800,7 @@ public class ProcessorLifecycleIT {
         }
     }
 
-    /**
-     */
+
     private static class RandomOrFixedDelayedRunnable implements Runnable {
 
         private final int delayLimit;

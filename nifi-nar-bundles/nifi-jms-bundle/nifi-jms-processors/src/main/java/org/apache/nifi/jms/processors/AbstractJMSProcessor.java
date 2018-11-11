@@ -59,7 +59,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .name("User Name")
             .description("User Name used for authentication and authorization.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
@@ -205,7 +206,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
         final UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
         cfCredentialsAdapter.setTargetConnectionFactory(connectionFactory);
-        cfCredentialsAdapter.setUsername(context.getProperty(USER).getValue());
+        cfCredentialsAdapter.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cfCredentialsAdapter.setPassword(context.getProperty(PASSWORD).getValue());
 
         final CachingConnectionFactory cachingFactory = new CachingConnectionFactory(cfCredentialsAdapter);

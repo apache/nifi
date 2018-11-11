@@ -43,6 +43,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -132,7 +133,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             .name("message-demarcator")
             .displayName("Message Demarcator")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .description("Since KafkaConsumer receives messages in batches, you have an option to output FlowFiles which contains "
                     + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "

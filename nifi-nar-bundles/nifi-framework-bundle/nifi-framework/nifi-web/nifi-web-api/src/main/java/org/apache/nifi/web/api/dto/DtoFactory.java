@@ -3276,7 +3276,8 @@ public final class DtoFactory {
         procDiagnostics.setProcessorStatus(createProcessorStatusDto(procStatus));
         procDiagnostics.setThreadDumps(createThreadDumpDtos(procNode));
 
-        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = createReferencedServiceDiagnostics(procNode.getProperties(), flowController, serviceEntityFactory);
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = createReferencedServiceDiagnostics(procNode.getProperties(),
+            flowController.getControllerServiceProvider(), serviceEntityFactory);
         procDiagnostics.setReferencedControllerServices(referencedServiceDiagnostics);
 
         return procDiagnostics;

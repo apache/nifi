@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import static org.apache.nifi.util.StringUtils.isEmpty;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -40,12 +38,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 
+import static org.apache.nifi.util.StringUtils.isEmpty;
+
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
     private FlowController flowController;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final RemoteProcessGroup remoteProcessGroup = rootGroup.findRemoteProcessGroup(remoteProcessGroupId);
 
         if (remoteProcessGroup == null) {
@@ -57,7 +57,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     @Override
     public boolean hasRemoteProcessGroup(String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null;
     }
 
@@ -71,7 +71,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     public RemoteProcessGroup createRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
+        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Remote Process Group is being added.");
         }
 
@@ -81,7 +81,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        RemoteProcessGroup remoteProcessGroup = flowController.getFlowManager().createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
         remoteProcessGroup.initialize();
 
         // set other properties

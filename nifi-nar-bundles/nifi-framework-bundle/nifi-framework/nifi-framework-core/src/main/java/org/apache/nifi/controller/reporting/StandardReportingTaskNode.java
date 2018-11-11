@@ -40,18 +40,17 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     public StandardReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final FlowController controller,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent,
-                                     final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
-        super(reportingTask, id, controller, processScheduler, validationContextFactory, variableRegistry, reloadComponent, extensionManager, validationTrigger);
+                                     final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                     final ValidationTrigger validationTrigger) {
+        super(reportingTask, id, controller.getControllerServiceProvider(), processScheduler, validationContextFactory, variableRegistry, reloadComponent, extensionManager, validationTrigger);
         this.flowController = controller;
     }
 
     public StandardReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final FlowController controller,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String canonicalClassName, final ComponentVariableRegistry variableRegistry,
-                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
-                                     final boolean isExtensionMissing) {
-        super(reportingTask, id, controller, processScheduler, validationContextFactory, componentType, canonicalClassName,
+                                     final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
+        super(reportingTask, id, controller.getControllerServiceProvider(), processScheduler, validationContextFactory, componentType, canonicalClassName,
             variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.flowController = controller;
     }
@@ -83,6 +82,6 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getProperties(), flowController, getReportingTask(), getVariableRegistry());
+        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getProperties(), getReportingTask(), getVariableRegistry());
     }
 }

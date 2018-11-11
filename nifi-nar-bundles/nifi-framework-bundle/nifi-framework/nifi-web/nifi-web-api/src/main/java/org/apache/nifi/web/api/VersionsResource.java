@@ -34,8 +34,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
@@ -474,7 +474,7 @@ public class VersionsResource extends ApplicationResource {
         }
 
         // ensure we're not attempting to version the root group
-        final ProcessGroupEntity root = serviceFacade.getProcessGroup(FlowController.ROOT_GROUP_ID_ALIAS);
+        final ProcessGroupEntity root = serviceFacade.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS);
         if (root.getId().equals(groupId)) {
             throw new IllegalArgumentException("The Root Process Group cannot be versioned.");
         }

@@ -77,6 +77,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final long administrativeYieldMillis;
     private final String administrativeYieldDuration;
     private final StateManagerProvider stateManagerProvider;
+    private final long processorStartTimeoutMillis;
 
     private final ConcurrentMap<Object, LifecycleState> lifecycleStates = new ConcurrentHashMap<>();
     private final ScheduledExecutorService frameworkTaskExecutor;
@@ -91,13 +92,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final StringEncryptor encryptor,
         final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
-        this.controllerServiceProvider = flowController;
+        this.controllerServiceProvider = flowController.getControllerServiceProvider();
         this.flowController = flowController;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
 
         administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
+
+        final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
+        processorStartTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
 
         frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
     }
@@ -283,10 +287,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Starts the given {@link Processor} by invoking its
-     * {@link ProcessorNode#start(ScheduledExecutorService, long, ProcessContext, SchedulingAgentCallback, boolean)}
+     * {@link ProcessorNode#start(ScheduledExecutorService, long, long, ProcessContext, SchedulingAgentCallback, boolean)}
      * method.
      *
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long, ProcessContext, SchedulingAgentCallback, boolean)
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, long, ProcessContext, SchedulingAgentCallback, boolean)
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
@@ -317,7 +321,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Starting {}", procNode);
-        procNode.start(this.componentMonitoringThreadPool, this.administrativeYieldMillis, processContext, callback, failIfStopping);
+        procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContext, callback, failIfStopping);
         return future;
     }
 
@@ -359,7 +363,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(procNode).incrementMaxThreadCount(tasksTerminated);
 
         try {
-            flowController.reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), Collections.emptySet());
+            flowController.getReloadComponent().reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), Collections.emptySet());
         } catch (final ProcessorInstantiationException e) {
             // This shouldn't happen because we already have been able to instantiate the processor before
             LOG.error("Failed to replace instance of Processor for {} when terminating Processor", procNode);

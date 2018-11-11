@@ -148,7 +148,7 @@ public class TestStandardReportingContext {
 
     @Test
     public void testGetPropertyReportingTask() throws ReportingTaskInstantiationException {
-        ReportingTaskNode reportingTask = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
+        ReportingTaskNode reportingTask = controller.getFlowManager().createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
         PropertyDescriptor TEST_WITHOUT_DEFAULT_VALUE = new PropertyDescriptor.Builder().name("Test without default value").build();
         PropertyDescriptor TEST_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder().name("Test with default value").build();
 
