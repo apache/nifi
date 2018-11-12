@@ -19,7 +19,6 @@ package org.apache.nifi.processors;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
@@ -239,11 +238,11 @@ public class TestGeoEnrichIP {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void shouldFlowToNotFoundWhenGeoIp2ExceptionThrownFromMaxMind() throws Exception {
+    public void shouldFlowToNotFoundWhenExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(GeoEnrichIP.GEO_DATABASE_FILE, "./");
         testRunner.setProperty(GeoEnrichIP.IP_ADDRESS_ATTRIBUTE, "ip");
 
-        when(databaseReader.city(InetAddress.getByName("1.2.3.4"))).thenThrow(GeoIp2Exception.class);
+        when(databaseReader.city(InetAddress.getByName("1.2.3.4"))).thenThrow(IOException.class);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ip", "1.2.3.4");
