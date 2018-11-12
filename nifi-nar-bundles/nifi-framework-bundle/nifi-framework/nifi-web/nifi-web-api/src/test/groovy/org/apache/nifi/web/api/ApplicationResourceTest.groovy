@@ -91,7 +91,7 @@ class ApplicationResourceTest extends GroovyTestCase {
             } else if ([FORWARDED_PROTO_HTTP_HEADER, PROXY_SCHEME_HTTP_HEADER].contains(k)) {
                 headerValue = "https"
             } else if ([PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER].contains(k)) {
-                headerValue = "nifi.apache.org"
+                headerValue = "nifi.apache.org:8081"
             } else {
                 headerValue = ""
             }
