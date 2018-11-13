@@ -54,6 +54,7 @@ import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.REL_SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -560,6 +561,7 @@ public class TestGenerateTableFetch {
 
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.COLUMN_NAMES, "ID,BUCKET");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         // Set partition size to 0 so we can see that the flow file gets all rows
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
@@ -572,6 +574,15 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "true");
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
+        assertEquals("ID,BUCKET", flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertEquals("1=1", flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals("ID", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
+        assertNull(flowFile.getAttribute("generatetablefetch.limit"));
+        assertNull(flowFile.getAttribute("generatetablefetch.offset"));
+        assertEquals("0", flowFile.getAttribute("fragment.index"));
+        assertEquals("0", flowFile.getAttribute("fragment.count"));
     }
 
     @Test

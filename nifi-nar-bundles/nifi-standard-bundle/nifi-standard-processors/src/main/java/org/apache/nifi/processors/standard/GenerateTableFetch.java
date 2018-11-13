@@ -450,7 +450,33 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 // If there are no SQL statements to be generated, still output an empty flow file if specified by the user
                 if (numberOfFetches == 0 && outputEmptyFlowFileOnZeroResults) {
-                    session.transfer((fileToProcess == null) ? session.create() : session.create(fileToProcess), REL_SUCCESS);
+                    FlowFile emptyFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                    Map<String, String> attributesToAdd = new HashMap<>();
+
+                    attributesToAdd.put("generatetablefetch.tableName", tableName);
+                    if (columnNames != null) {
+                        attributesToAdd.put("generatetablefetch.columnNames", columnNames);
+                    }
+                    whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
+                    if (StringUtils.isNotBlank(whereClause)) {
+                        attributesToAdd.put("generatetablefetch.whereClause", whereClause);
+                    }
+                    final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
+                    if (StringUtils.isNotBlank(maxColumnNames)) {
+                        attributesToAdd.put("generatetablefetch.maxColumnNames", maxColumnNames);
+                    }
+                    attributesToAdd.put("generatetablefetch.limit", null);
+                    if (partitionSize != 0) {
+                        attributesToAdd.put("generatetablefetch.offset", null);
+                    }
+                    // Add fragment attributes
+                    final String fragmentIdentifier = UUID.randomUUID().toString();
+                    attributesToAdd.put(FRAGMENT_ID, fragmentIdentifier);
+                    attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(0));
+                    attributesToAdd.put(FRAGMENT_COUNT, String.valueOf(numberOfFetches));
+
+                    emptyFlowFile = session.putAllAttributes(emptyFlowFile, attributesToAdd);
+                    session.transfer(emptyFlowFile, REL_SUCCESS);
                 } else {
                     // Generate SQL statements to read "pages" of data
                     Long limit = partitionSize == 0 ? null : (long) partitionSize;
