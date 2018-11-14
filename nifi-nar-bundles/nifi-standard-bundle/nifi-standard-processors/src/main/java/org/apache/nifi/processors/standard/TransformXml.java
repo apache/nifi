@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
@@ -95,7 +96,7 @@ public class TransformXml extends AbstractProcessor {
     public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder()
             .name("XSLT file name")
             .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content."
-                    + "One of the XSLT file name and XSLT controller properties must be defined.")
+                    + "One of the 'XSLT file name' and 'XSLT Lookup' properties must be defined.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
@@ -103,21 +104,22 @@ public class TransformXml extends AbstractProcessor {
 
     public static final PropertyDescriptor XSLT_CONTROLLER = new PropertyDescriptor.Builder()
             .name("xslt-controller")
-            .displayName("XSLT controller")
-            .description("Controller used to store XSLT definitions. One of the XSLT file name and "
-                    + "XSLT controller properties must be defined.")
+            .displayName("XSLT Lookup")
+            .description("Controller lookup used to store XSLT definitions. One of the 'XSLT file name' and "
+                    + "'XSLT Lookup' properties must be defined. WARNING: note that the lookup controller service "
+                    + "should not be used to store large XSLT files.")
             .required(false)
             .identifiesControllerService(StringLookupService.class)
             .build();
 
     public static final PropertyDescriptor XSLT_CONTROLLER_KEY = new PropertyDescriptor.Builder()
             .name("xslt-controller-key")
-            .displayName("XSLT controller key")
-            .description("Key used to retrieve the XSLT definition from the XSLT controller. This property must be set when using "
-                    + "the XSLT controller property.")
+            .displayName("XSLT Lookup key")
+            .description("Key used to retrieve the XSLT definition from the XSLT lookup controller. This property must be "
+                    + "set when using the XSLT controller property.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDENT_OUTPUT = new PropertyDescriptor.Builder()
@@ -171,6 +173,8 @@ public class TransformXml extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
     private LoadingCache<String, Templates> cache;
+
+    private static AtomicReference<LookupService<String>> lookupService = new AtomicReference<LookupService<String>>(null);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -267,9 +271,8 @@ public class TransformXml extends AbstractProcessor {
         if(isFilename) {
             return factory.newTemplates(new StreamSource(path));
         } else {
-            final LookupService<String> lookupService = context.getProperty(XSLT_CONTROLLER).asControllerService(StringLookupService.class);
-            final String coordinateKey = lookupService.getRequiredKeys().iterator().next();
-            final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, path));
+            final String coordinateKey = lookupService.get().getRequiredKeys().iterator().next();
+            final Optional<String> attributeValue = lookupService.get().lookup(Collections.singletonMap(coordinateKey, path));
             if (attributeValue.isPresent() && StringUtils.isNotBlank(attributeValue.get())) {
                 return factory.newTemplates(new StreamSource(new ByteArrayInputStream(attributeValue.get().getBytes(StandardCharsets.UTF_8))));
             } else {
@@ -316,6 +319,7 @@ public class TransformXml extends AbstractProcessor {
                 ? context.getProperty(XSLT_FILE_NAME).evaluateAttributeExpressions(original).getValue()
                         : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
         final Boolean indentOutput = context.getProperty(INDENT_OUTPUT).asBoolean();
+        lookupService.set(context.getProperty(XSLT_CONTROLLER).asControllerService(LookupService.class));
 
         try {
             FlowFile transformed = session.write(original, new StreamCallback() {
