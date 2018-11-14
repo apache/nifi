@@ -46,8 +46,10 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StopWatch;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -2042,6 +2044,68 @@ public class TestStandardProcessSession {
 
         flowFile = session.putAttribute(flowFile, "counter", "4");
     }
+
+    @Test
+    @Ignore
+    public void testPerformanceOfFlowFilesInEmptyQueueDetection() throws IOException {
+        // Run a non-timed startup iteration, to reduce one-time hits being counted
+        Connectables.flowFilesQueued(connectable);
+        Connectables.nonPenalizedFlowFilesQueued(connectable);
+
+        // Check if there are FlowFile's queued 1_000_000 times, when queue is empty
+        StopWatch elapsedWatch = new StopWatch(true);
+
+        for(int i=0;i<1_000_000; i++){
+            Connectables.flowFilesQueued(connectable);
+        }
+
+        elapsedWatch.stop();
+        System.out.println("1M checks for FlowFiles, empty queue: " + elapsedWatch.getDuration());
+
+        elapsedWatch.start();
+        for(int i=0;i<1_000_000; i++){
+            Connectables.nonPenalizedFlowFilesQueued(connectable);
+        }
+
+        elapsedWatch.stop();
+        System.out.println("1M checks for FlowFiles, non-penalized method, empty queue: " + elapsedWatch.getDuration());
+    }
+
+    @Test
+    @Ignore
+    public void testPerformanceOfFlowFilesInQueueDetection() throws IOException {
+        // Run a non-timed startup iteration, to reduce one-time hits being counted
+        Connectables.flowFilesQueued(connectable);
+        Connectables.nonPenalizedFlowFilesQueued(connectable);
+
+        // Check if there are FlowFile's queued 1_000_000 times, when queue is empty
+        StopWatch elapsedWatch = new StopWatch(true);
+
+        // Check if there are FlowFile's queued 1_000_000 times, when queue is not empty
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        elapsedWatch.start();
+        for(int i=0;i<1_000_000; i++){
+            Connectables.flowFilesQueued(connectable);
+        }
+
+        elapsedWatch.stop();
+        System.out.println("1M checks for FlowFiles, non-empty queue: " + elapsedWatch.getDuration());
+
+        elapsedWatch.start();
+        for(int i=0;i<1_000_000; i++){
+            Connectables.nonPenalizedFlowFilesQueued(connectable);
+        }
+
+        elapsedWatch.stop();
+        System.out.println("1M checks for FlowFiles, non-penalized method, non-empty queue: " + elapsedWatch.getDuration());
+    }
+
 
 
     private static class MockFlowFileRepository implements FlowFileRepository {

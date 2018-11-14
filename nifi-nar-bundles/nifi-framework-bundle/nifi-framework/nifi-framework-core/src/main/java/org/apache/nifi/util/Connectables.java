@@ -25,6 +25,16 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.processor.Relationship;
 
 public class Connectables {
+    public static boolean flowFilesQueued(final Connectable connectable) {
+        for (final Connection conn : connectable.getIncomingConnections()) {
+            if (!conn.getFlowFileQueue().isActiveQueueEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static boolean nonPenalizedFlowFilesQueued(final Connectable connectable) {
         for (final Connection conn : connectable.getIncomingConnections()) {
             if (!conn.getFlowFileQueue().isActiveQueueEmpty()) {
