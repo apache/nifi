@@ -472,9 +472,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     Map<String, String> attributesToAdd = new HashMap<>();
 
                     whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
-                    if (StringUtils.isNotBlank(whereClause)) {
-                        attributesToAdd.put("generatetablefetch.whereClause", whereClause);
-                    }
+                    attributesToAdd.put("generatetablefetch.whereClause", whereClause);
+
                     attributesToAdd.put("generatetablefetch.limit", null);
                     if (partitionSize != 0) {
                         attributesToAdd.put("generatetablefetch.offset", null);
@@ -498,15 +497,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
                         Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
 
-                           final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset, columnForPartitioning);
+                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset, columnForPartitioning);
                         FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                         sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
                         Map<String,String> attributesToAdd = new HashMap<>();
 
-                        if (StringUtils.isNotBlank(whereClause)) {
-                            attributesToAdd.put("generatetablefetch.whereClause", whereClause);
-                        }
-                        attributesToAdd.put("generatetablefetch.limit", String.valueOf(limit));
+                        attributesToAdd.put("generatetablefetch.whereClause", whereClause);
+                        attributesToAdd.put("generatetablefetch.limit", (limit == null) ? null : limit.toString());
                         if (partitionSize != 0) {
                             attributesToAdd.put("generatetablefetch.offset", String.valueOf(offset));
                         }

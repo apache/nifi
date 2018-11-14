@@ -540,7 +540,10 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0).assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID");
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID");
+        flowFile.assertAttributeExists("generatetablefetch.limit");
+        flowFile.assertAttributeEquals("generatetablefetch.limit", null);
         runner.clearTransferState();
     }
 
