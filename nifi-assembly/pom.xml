@@ -745,6 +745,34 @@ language governing permissions and limitations under the License. -->
             <version>1.10.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+
+        <!-- dependencies for jaxb/activation/annotation for running NiFi on Java 11 -->
+        <!-- TODO: remove these once minimum Java version is 11 -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-core</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>javax.activation-api</artifactId>
+            <version>1.2.0</version>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>
@@ -992,6 +1020,13 @@ language governing permissions and limitations under the License. -->
                                                     which are also not in bootstrap -->
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
+                                                    <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
+                                                    <!-- TODO: remove these once minimum Java version is 11 -->
+                                                    <exclude>javax.xml.bind:jaxb-api</exclude>
+                                                    <exclude>com.sun.xml.bind:jaxb-impl</exclude>
+                                                    <exclude>com.sun.xml.bind:jaxb-core</exclude>
+                                                    <exclude>javax.activation:javax.activation-api</exclude>
+                                                    <exclude>javax.annotation:javax.annotation-api</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>
@@ -1027,6 +1062,19 @@ language governing permissions and limitations under the License. -->
                                                     <include>org.apache.nifi:nifi-utils</include>
                                                     <include>com.squareup.okhttp3:okhttp</include>
                                                     <include>com.squareup.okio:okio</include>
+                                                </includes>
+                                            </dependency>
+                                        </mapping>
+                                        <mapping>
+                                            <!-- TODO: remove this mapping once minimum Java version is 11 -->
+                                            <directory>/opt/nifi/nifi-${project.version}/lib/java11</directory>
+                                            <dependency>
+                                                <includes>
+                                                    <include>javax.xml.bind:jaxb-api</include>
+                                                    <include>com.sun.xml.bind:jaxb-impl</include>
+                                                    <include>com.sun.xml.bind:jaxb-core</include>
+                                                    <include>javax.activation:javax.activation-api</include>
+                                                    <include>javax.annotation:javax.annotation-api</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
