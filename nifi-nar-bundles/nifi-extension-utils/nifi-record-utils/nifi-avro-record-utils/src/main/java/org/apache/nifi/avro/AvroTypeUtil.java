@@ -396,6 +396,8 @@ public class AvroTypeUtil {
 
         final String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
         final SimpleRecordSchema recordSchema = schemaText == null ? new SimpleRecordSchema(schemaId) : new SimpleRecordSchema(schemaText, AVRO_SCHEMA_FORMAT, schemaId);
+        recordSchema.setSchemaName(avroSchema.getName());
+        recordSchema.setSchemaNamespace(avroSchema.getNamespace());
         final DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
         final Map<String, DataType> knownRecords = new HashMap<>();
         knownRecords.put(schemaFullName, recordSchemaType);

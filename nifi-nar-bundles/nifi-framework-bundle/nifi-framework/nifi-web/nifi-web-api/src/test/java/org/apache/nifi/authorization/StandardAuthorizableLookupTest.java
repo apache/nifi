@@ -23,6 +23,9 @@ import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.junit.Test;
 
@@ -35,6 +38,10 @@ public class StandardAuthorizableLookupTest {
 
     @Test
     public void testGetAuthorizableFromResource() {
+        final ExtensionManager extensionManager = mock(ExtensionDiscoveringManager.class);
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        when(controllerFacade.getExtensionManager()).thenReturn(extensionManager);
+
         final ProcessorDAO processorDAO = mock(ProcessorDAO.class);
         final ProcessorNode processorNode = mock(ProcessorNode.class);
 
@@ -42,6 +49,7 @@ public class StandardAuthorizableLookupTest {
 
         final StandardAuthorizableLookup lookup = new StandardAuthorizableLookup();
         lookup.setProcessorDAO(processorDAO);
+        lookup.setControllerFacade(controllerFacade);
 
         Authorizable authorizable = lookup.getAuthorizableFromResource("/processors/id");
         assertTrue(authorizable instanceof ProcessorNode);

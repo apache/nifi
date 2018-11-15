@@ -49,14 +49,13 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.stream.io.util.LineDemarcator;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
@@ -342,7 +341,7 @@ public class ReplaceText extends AbstractProcessor {
                 final StringBuilder sb = new StringBuilder(value.length() + 1);
                 final int groupStart = backRefMatcher.start(1);
 
-                sb.append(value.substring(0, groupStart - 1));
+                sb.append(value, 0, groupStart - 1);
                 sb.append("\\");
                 sb.append(value.substring(groupStart - 1));
                 value = sb.toString();
@@ -370,11 +369,11 @@ public class ReplaceText extends AbstractProcessor {
                 flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
-                        try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
-                            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset));) {
+                        try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
                             String line;
-                            while ((line = br.readLine()) != null) {
+                            while ((line = demarcator.nextLine()) != null) {
                                 // We need to determine what line ending was used and use that after our replacement value.
                                 lineEndingBuilder.setLength(0);
                                 for (int i = line.length() - 1; i >= 0; i--) {
@@ -423,10 +422,11 @@ public class ReplaceText extends AbstractProcessor {
                 flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
-                        try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
-                            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset));) {
+                        try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+
                             String oneLine;
-                            while (null != (oneLine = br.readLine())) {
+                            while (null != (oneLine = demarcator.nextLine())) {
                                 final String updatedValue = replacementValue.concat(oneLine);
                                 bw.write(updatedValue);
                             }
@@ -461,10 +461,11 @@ public class ReplaceText extends AbstractProcessor {
                 flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
-                        try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
-                            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset));) {
+                        try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+
                             String oneLine;
-                            while (null != (oneLine = br.readLine())) {
+                            while (null != (oneLine = demarcator.nextLine())) {
                                 // we need to find the first carriage return or new-line so that we can append the new value
                                 // before the line separate. However, we don't want to do this using a regular expression due
                                 // to performance concerns. So we will find the first occurrence of either \r or \n and use
@@ -582,14 +583,15 @@ public class ReplaceText extends AbstractProcessor {
                 updatedFlowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
-                        try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
-                            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                        try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+
                             String oneLine;
 
                             final StringBuffer sb = new StringBuffer();
                             Matcher matcher = null;
 
-                            while (null != (oneLine = br.readLine())) {
+                            while (null != (oneLine = demarcator.nextLine())) {
                                 additionalAttrs.clear();
                                 if (matcher == null) {
                                     matcher = searchPattern.matcher(oneLine);
@@ -649,14 +651,7 @@ public class ReplaceText extends AbstractProcessor {
         public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
 
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
-
-            final AttributeValueDecorator quotedAttributeDecorator = new AttributeValueDecorator() {
-                @Override
-                public String decorate(final String attributeValue) {
-                    return Pattern.quote(attributeValue);
-                }
-            };
-
+            final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
             final String searchValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
 
             final int flowFileSize = (int) flowFile.getSize();
@@ -672,16 +667,34 @@ public class ReplaceText extends AbstractProcessor {
                     }
                 });
             } else {
+                final int initialBufferSize = (int) Math.min(flowFile.getSize(), 8192);
+                final Pattern searchPattern = Pattern.compile(searchValue, Pattern.LITERAL);
+
                 flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
-                        try (NLKBufferedReader br = new NLKBufferedReader(new InputStreamReader(in, charset), maxBufferSize);
-                            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                        try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, initialBufferSize);
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+
                             String oneLine;
-                            while (null != (oneLine = br.readLine())) {
-                                // Interpreting the search and replacement values as char sequences
-                                final String updatedValue = oneLine.replace(searchValue, replacementValue);
-                                bw.write(updatedValue);
+                            while (null != (oneLine = demarcator.nextLine())) {
+                                int matches = 0;
+                                int lastEnd = 0;
+
+                                final Matcher matcher = searchPattern.matcher(oneLine);
+                                while (matcher.find()) {
+                                    bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
+                                    bw.write(replacementValue);
+                                    matches++;
+
+                                    lastEnd = matcher.end();
+                                }
+
+                                if (matches > 0) {
+                                    bw.write(oneLine, lastEnd, oneLine.length() - lastEnd);
+                                } else {
+                                    bw.write(oneLine);
+                                }
                             }
                         }
                     }

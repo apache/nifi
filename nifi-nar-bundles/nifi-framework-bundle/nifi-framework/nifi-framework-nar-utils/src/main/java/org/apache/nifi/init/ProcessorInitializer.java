@@ -34,11 +34,17 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
  */
 public class ProcessorInitializer implements ConfigurableComponentInitializer {
 
+    private final ExtensionManager extensionManager;
+
+    public ProcessorInitializer(final ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
     @Override
     public void initialize(ConfigurableComponent component) {
         Processor processor = (Processor) component;
         ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), initializationContext.getIdentifier())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), initializationContext.getIdentifier())) {
             processor.initialize(initializationContext);
         }
     }
@@ -46,13 +52,13 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
     @Override
     public void teardown(ConfigurableComponent component) {
         Processor processor = (Processor) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
 
             final ComponentLog logger = new MockComponentLogger();
             final MockProcessContext context = new MockProcessContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, processor, logger, context);
         } finally {
-            ExtensionManager.removeInstanceClassLoader(component.getIdentifier());
+            extensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }

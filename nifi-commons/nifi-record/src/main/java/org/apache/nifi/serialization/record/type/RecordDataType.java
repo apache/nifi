@@ -42,7 +42,7 @@ public class RecordDataType extends DataType {
 
     @Override
     public int hashCode() {
-        return 31 + 41 * getFieldType().hashCode() + 41 * (childSchema == null ? 0 : childSchema.hashCode());
+        return 31 + 41 * getFieldType().hashCode();
     }
 
     @Override

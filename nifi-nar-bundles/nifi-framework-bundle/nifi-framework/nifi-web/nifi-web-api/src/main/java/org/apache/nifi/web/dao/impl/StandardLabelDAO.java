@@ -32,7 +32,7 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     private FlowController flowController;
 
     private Label locateLabel(final String labelId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Label label = rootGroup.findLabel(labelId);
 
         if (label == null) {
@@ -44,13 +44,13 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
 
     @Override
     public boolean hasLabel(String labelId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findLabel(labelId) != null;
     }
 
     @Override
     public Label createLabel(String groupId, LabelDTO labelDTO) {
-        if (labelDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, labelDTO.getParentGroupId())) {
+        if (labelDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, labelDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Label is being added.");
         }
 
@@ -58,7 +58,7 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // create the label
-        Label label = flowController.createLabel(labelDTO.getId(), labelDTO.getLabel());
+        Label label = flowController.getFlowManager().createLabel(labelDTO.getId(), labelDTO.getLabel());
         if (labelDTO.getPosition() != null) {
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
         }

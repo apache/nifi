@@ -17,42 +17,20 @@
 
 package org.apache.nifi.record.path.util;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.record.path.RecordPath;
 
 public class RecordPathCache {
-    private final Map<String, RecordPath> compiledRecordPaths;
+    private final LoadingCache<String, RecordPath> compiledRecordPaths;
 
     public RecordPathCache(final int cacheSize) {
-        compiledRecordPaths = new LinkedHashMap<String, RecordPath>() {
-            @Override
-            protected boolean removeEldestEntry(final Map.Entry<String, RecordPath> eldest) {
-                return size() >= cacheSize;
-            }
-        };
+        compiledRecordPaths = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .build(RecordPath::compile);
     }
 
     public RecordPath getCompiled(final String path) {
-        RecordPath compiled;
-        synchronized (this) {
-            compiled = compiledRecordPaths.get(path);
-        }
-
-        if (compiled != null) {
-            return compiled;
-        }
-
-        compiled = RecordPath.compile(path);
-
-        synchronized (this) {
-            final RecordPath existing = compiledRecordPaths.putIfAbsent(path, compiled);
-            if (existing != null) {
-                compiled = existing;
-            }
-        }
-
-        return compiled;
+        return compiledRecordPaths.get(path);
     }
 }

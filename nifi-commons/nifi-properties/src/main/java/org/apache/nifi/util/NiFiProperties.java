@@ -62,6 +62,7 @@ public abstract class NiFiProperties {
     public static final String FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.period";
     public static final String NAR_LIBRARY_DIRECTORY = "nifi.nar.library.directory";
     public static final String NAR_LIBRARY_DIRECTORY_PREFIX = "nifi.nar.library.directory.";
+    public static final String NAR_LIBRARY_AUTOLOAD_DIRECTORY = "nifi.nar.library.autoload.directory";
     public static final String NAR_WORKING_DIRECTORY = "nifi.nar.working.directory";
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
@@ -247,6 +248,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
+    public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
     public static final String DEFAULT_FLOWFILE_REPO_PARTITIONS = "256";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "2 min";
     public static final int DEFAULT_MAX_FLOWFILES_PER_CLAIM = 100;
@@ -650,7 +652,8 @@ public abstract class NiFiProperties {
         for (String propertyName : getPropertyKeys()) {
             // determine if the property is a nar library path
             if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX)
-                    || NAR_LIBRARY_DIRECTORY.equals(propertyName)) {
+                    || NAR_LIBRARY_DIRECTORY.equals(propertyName)
+                    || NAR_LIBRARY_AUTOLOAD_DIRECTORY.equals(propertyName)) {
                 // attempt to resolve the path specified
                 String narLib = getProperty(propertyName);
                 if (!StringUtils.isBlank(narLib)) {
@@ -664,6 +667,10 @@ public abstract class NiFiProperties {
         }
 
         return narLibraryPaths;
+    }
+
+    public File getNarAutoLoadDirectory() {
+        return new File(getProperty(NAR_LIBRARY_AUTOLOAD_DIRECTORY, DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR));
     }
 
     // getters for ui properties //

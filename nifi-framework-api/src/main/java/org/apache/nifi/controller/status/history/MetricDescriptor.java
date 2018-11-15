@@ -64,4 +64,9 @@ public interface MetricDescriptor<T> {
      * into a single Long value
      */
     ValueReducer<StatusSnapshot, Long> getValueReducer();
+
+    /**
+     * @return <code>true</code> if the metric is for a component Counter, <code>false</code> otherwise
+     */
+    boolean isCounter();
 }

@@ -266,7 +266,7 @@ public class SFTPTransfer implements FileTransfer {
                 case ChannelSftp.SSH_FX_PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not perform listing on " + pathDesc + " due to insufficient permissions");
                 default:
-                    throw new IOException("Failed to obtain file listing for " + pathDesc, e);
+                    throw new IOException(String.format("Failed to obtain file listing for %s due to unexpected SSH_FXP_STATUS (%d)", pathDesc, e.id), e);
             }
         }
 

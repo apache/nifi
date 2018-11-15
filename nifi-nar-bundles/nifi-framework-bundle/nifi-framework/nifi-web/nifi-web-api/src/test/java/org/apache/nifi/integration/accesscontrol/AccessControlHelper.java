@@ -21,13 +21,18 @@ import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManagerHolder;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 
 import javax.ws.rs.core.Response;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 import static org.junit.Assert.assertEquals;
 
@@ -65,10 +70,23 @@ public class AccessControlHelper {
         NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
         flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
-        // load extensions
+        final File libTargetDir = new File("target/test-classes/access-control/lib");
+        libTargetDir.mkdirs();
+
+        final File libSourceDir = new File("src/test/resources/lib");
+        for (final File libFile : libSourceDir.listFiles()) {
+            final File libDestFile = new File(libTargetDir, libFile.getName());
+            Files.copy(libFile.toPath(), libDestFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+
         final Bundle systemBundle = SystemBundle.create(props);
-        NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+        NarUnpacker.unpackNars(props, systemBundle);
+        NarClassLoadersHolder.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
+
+        // load extensions
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
+        ExtensionManagerHolder.init(extensionManager);
 
         // start the server
         server = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);

@@ -20,6 +20,8 @@ import com.bazaarvoice.jolt.ContextualTransform;
 import com.bazaarvoice.jolt.JoltTransform;
 import com.bazaarvoice.jolt.JsonUtils;
 import com.bazaarvoice.jolt.Transform;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -65,10 +67,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -190,18 +192,12 @@ public class JoltTransformRecord extends AbstractProcessor {
     private final static Set<Relationship> relationships;
     private final static String DEFAULT_CHARSET = "UTF-8";
 
-    // Cache is guarded by synchronizing on 'this'.
-    private volatile int maxTransformsToCache = 10;
-    private final Map<String, JoltTransform> transformCache = new LinkedHashMap<String, JoltTransform>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, JoltTransform> eldest) {
-            final boolean evict = size() > maxTransformsToCache;
-            if (evict) {
-                getLogger().debug("Removing Jolt Transform from cache because cache is full");
-            }
-            return evict;
-        }
-    };
+    /**
+     * It is a cache for transform objects. It keep values indexed by jolt specification string.
+     * For some cases the key could be empty. It means that it represents default transform (e.g. for custom transform
+     * when there is no jolt-record-spec specified).
+     */
+    private LoadingCache<Optional<String>, JoltTransform> transformCache;
 
     static {
         final List<PropertyDescriptor> _properties = new ArrayList<>();
@@ -352,25 +348,26 @@ public class JoltTransformRecord extends AbstractProcessor {
         }
     }
 
-    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
-        final String specString;
+    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
+        final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
-            specString = context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue();
+            specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
         } else {
-            specString = null;
+            specString = Optional.empty();
         }
 
-        // Get the transform from our cache, if it exists.
-        JoltTransform transform;
-        synchronized (this) {
-            transform = transformCache.get(specString);
-        }
+        return transformCache.get(specString);
+    }
 
-        if (transform != null) {
-            return transform;
-        }
+    @OnScheduled
+    public void setup(final ProcessContext context) {
+        int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
+        transformCache = Caffeine.newBuilder()
+                .maximumSize(maxTransformsToCache)
+                .build(specString -> createTransform(context, specString.orElse(null)));
+    }
 
-        // If no transform for our spec, create the transform.
+    private JoltTransform createTransform(final ProcessContext context, final String specString) throws Exception {
         final Object specJson;
         if (context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
             specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
@@ -379,30 +376,10 @@ public class JoltTransformRecord extends AbstractProcessor {
         }
 
         if (CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            transform = TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).getValue(), specJson);
+            return TransformFactory.getCustomTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(CUSTOM_CLASS).getValue(), specJson);
         } else {
-            transform = TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+            return TransformFactory.getTransform(Thread.currentThread().getContextClassLoader(), context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
         }
-
-        // Check again for the transform in our cache, since it's possible that another thread has
-        // already populated it. If absent from the cache, populate the cache. Otherwise, use the
-        // value from the cache.
-        synchronized (this) {
-            final JoltTransform existingTransform = transformCache.get(specString);
-            if (existingTransform == null) {
-                transformCache.put(specString, transform);
-            } else {
-                transform = existingTransform;
-            }
-        }
-
-        return transform;
-    }
-
-    @OnScheduled
-    public synchronized void setup(final ProcessContext context) {
-        transformCache.clear();
-        maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
     }
 
     protected FilenameFilter getJarFilenameFilter() {

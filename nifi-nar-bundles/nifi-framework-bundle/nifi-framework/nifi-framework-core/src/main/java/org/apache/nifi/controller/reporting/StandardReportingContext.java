@@ -55,13 +55,13 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     private final VariableRegistry variableRegistry;
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
-                                    final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider, final ReportingTask reportingTask,
+                                    final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
                                     final VariableRegistry variableRegistry) {
         this.flowController = flowController;
-        this.eventAccess = flowController;
+        this.eventAccess = flowController.getEventAccess();
         this.bulletinRepository = bulletinRepository;
         this.properties = Collections.unmodifiableMap(properties);
-        this.serviceProvider = serviceProvider;
+        this.serviceProvider = flowController.getControllerServiceProvider();
         this.reportingTask = reportingTask;
         this.variableRegistry = variableRegistry;
         preparedQueries = new HashMap<>();
@@ -94,7 +94,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
 
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
-        final Connectable connectable = flowController.findLocalConnectable(componentId);
+        final Connectable connectable = flowController.getFlowManager().findConnectable(componentId);
         if (connectable == null) {
             throw new IllegalStateException("Cannot create Component-Level Bulletin because no component can be found with ID " + componentId);
         }

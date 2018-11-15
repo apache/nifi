@@ -41,6 +41,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -91,6 +92,155 @@ public class DBCPServiceTest {
 
         runner.enableControllerService(service);
         runner.assertValid(service);
+    }
+
+    /**
+     * Checks validity of idle limit and time settings including a default
+     */
+    @Test
+    public void testIdleConnectionsSettings() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "2");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
+
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+    }
+
+    @Test
+    public void testMinIdleCannotBeNegative() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "-1");
+
+        runner.assertNotValid(service);
+    }
+
+    /**
+     * Checks to ensure that settings have been passed down into the DBCP
+     */
+    @Test
+    public void testIdleSettingsAreSet() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "6");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "4");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
+
+        runner.enableControllerService(service);
+
+        Assert.assertEquals(6, service.getDataSource().getMaxIdle());
+        Assert.assertEquals(4, service.getDataSource().getMinIdle());
+        Assert.assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
+        Assert.assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
+        Assert.assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
+        Assert.assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
+
+        service.getDataSource().close();
+    }
+
+    /**
+     * Creates a few connections and step closes them to see what happens
+     */
+    @Test
+    public void testIdle() throws InitializationException, SQLException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "4");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "1");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1000 millis");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "100 millis");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "100 millis");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "100 millis");
+
+        runner.enableControllerService(service);
+
+        ArrayList<Connection> connections = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connections.add(service.getConnection());
+        }
+
+        Assert.assertEquals(6, service.getDataSource().getNumActive());
+
+        connections.get(0).close();
+        Assert.assertEquals(5, service.getDataSource().getNumActive());
+        Assert.assertEquals(1, service.getDataSource().getNumIdle());
+
+        connections.get(1).close();
+        connections.get(2).close();
+        connections.get(3).close();
+        //now at max idle
+        Assert.assertEquals(2, service.getDataSource().getNumActive());
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+
+        //now a connection should get closed for real so that numIdle does not exceed maxIdle
+        connections.get(4).close();
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        Assert.assertEquals(1, service.getDataSource().getNumActive());
+
+        connections.get(5).close();
+        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        Assert.assertEquals(0, service.getDataSource().getNumActive());
+
+        Thread.sleep(500);
+        Assert.assertEquals(1, service.getDataSource().getNumIdle());
+
+        service.getDataSource().close();
     }
 
     /**

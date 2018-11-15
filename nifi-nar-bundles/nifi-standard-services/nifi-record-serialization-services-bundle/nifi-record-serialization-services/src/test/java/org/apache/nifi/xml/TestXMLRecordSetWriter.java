@@ -17,9 +17,16 @@
 
 package org.apache.nifi.xml;
 
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -29,6 +36,7 @@ import org.xmlunit.diff.ElementSelectors;
 import org.xmlunit.matchers.CompareMatcher;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -117,6 +125,33 @@ public class TestXMLRecordSetWriter {
     }
 
     @Test
+    public void testSchemaRootRecordNaming() throws IOException, InitializationException {
+        String avroSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));;
+        Schema avroSchema = new Schema.Parser().parse(avroSchemaText);
+
+        SchemaIdentifier schemaId = SchemaIdentifier.builder().name("schemaName").build();
+        RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, avroSchemaText, schemaId);
+
+        XMLRecordSetWriter writer = new _XMLRecordSetWriter(recordSchema);
+        TestRunner runner = setup(writer);
+
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "ROOT_NODE");
+
+        runner.enableControllerService(writer);
+        runner.enqueue("");
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
+
+        String expected = "<ROOT_NODE><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+                "<name1>val1</name1><name2></name2></array_record>" +
+                "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+                "<name1>val1</name1><name2></name2></array_record></ROOT_NODE>";
+        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
+        assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+   }
+
+    @Test
     public void testNullSuppression() throws IOException, InitializationException {
         XMLRecordSetWriter writer = new XMLRecordSetWriter();
         TestRunner runner = setup(writer);
@@ -194,5 +229,19 @@ public class TestXMLRecordSetWriter {
         }
     }
 
+    static class _XMLRecordSetWriter extends XMLRecordSetWriter{
+
+        RecordSchema recordSchema;
+
+        _XMLRecordSetWriter(RecordSchema recordSchema){
+            this.recordSchema = recordSchema;
+        }
+
+        @Override
+        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out)
+                throws SchemaNotFoundException, IOException {
+            return super.createWriter(logger, this.recordSchema, out);
+        }
+    }
 
 }

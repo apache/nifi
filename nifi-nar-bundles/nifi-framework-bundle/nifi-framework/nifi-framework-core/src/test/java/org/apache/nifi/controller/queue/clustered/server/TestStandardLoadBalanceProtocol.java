@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -78,7 +79,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> nodeIds == null ? null : nodeIds.iterator().next();
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;
@@ -134,7 +135,9 @@ public class TestStandardLoadBalanceProtocol {
         }).when(contentRepo).write(Mockito.any(ContentClaim.class));
 
         final Connection connection = Mockito.mock(Connection.class);
-        when(flowController.getConnection(Mockito.anyString())).thenReturn(connection);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
 
         flowFileQueue = Mockito.mock(LoadBalancedFlowFileQueue.class);
         when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
@@ -458,7 +461,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -509,7 +514,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -559,7 +566,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test

@@ -96,11 +96,9 @@ public class StandardLogRepository implements LogRepository {
         try {
             final LogObserver observer = removeObserver(observerIdentifier);
 
-            if (observer == null) {
-                throw new IllegalArgumentException("The specified observer cannot be found.");
+            if (observer != null) {
+                addObserver(observerIdentifier, level, observer);
             }
-
-            addObserver(observerIdentifier, level, observer);
         } finally {
             writeLock.unlock();
         }

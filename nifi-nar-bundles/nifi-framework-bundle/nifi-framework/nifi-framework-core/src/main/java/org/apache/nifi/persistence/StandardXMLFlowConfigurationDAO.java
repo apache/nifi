@@ -36,6 +36,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
@@ -47,10 +48,12 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     private final StringEncryptor encryptor;
     private final FlowConfigurationArchiveManager archiveManager;
     private final NiFiProperties nifiProperties;
+    private final ExtensionManager extensionManager;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
-    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties) throws IOException {
+    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties,
+                                           final ExtensionManager extensionManager) throws IOException {
         this.nifiProperties = nifiProperties;
         final File flowXmlFile = flowXml.toFile();
         if (!flowXmlFile.exists()) {
@@ -66,6 +69,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         this.flowXmlPath = flowXml;
         this.encryptor = encryptor;
+        this.extensionManager = extensionManager;
 
         this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, nifiProperties);
     }
@@ -80,7 +84,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     public synchronized void load(final FlowController controller, final DataFlow dataFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
-        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties);
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
         controller.synchronize(flowSynchronizer, dataFlow);
 
         if (StandardFlowSynchronizer.isEmpty(dataFlow)) {

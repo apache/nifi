@@ -76,14 +76,21 @@ import java.util.stream.Collectors;
 
 
 public class NiFiRegistryFlowMapper {
+
+    private final ExtensionManager extensionManager;
+
     // We need to keep a mapping of component id to versionedComponentId as we transform these objects. This way, when
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
     // identifier based on the comopnent's actual id. We do connections last, so that all components will already have been
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
+    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
     public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
-            final boolean mapDescendantVersionedFlows) {
+                                                             final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
         final InstantiatedVersionedProcessGroup mapped = mapGroup(group, serviceProvider, registryClient, true, mapDescendantVersionedFlows);
 
@@ -385,7 +392,7 @@ public class NiFiRegistryFlowMapper {
 
         final List<ControllerServiceAPI> serviceApis = new ArrayList<>();
         for (final Class<?> serviceApiClass : serviceApiClasses) {
-            final BundleCoordinate bundleCoordinate = ExtensionManager.getBundle(serviceApiClass.getClassLoader()).getBundleDetails().getCoordinate();
+            final BundleCoordinate bundleCoordinate = extensionManager.getBundle(serviceApiClass.getClassLoader()).getBundleDetails().getCoordinate();
 
             final ControllerServiceAPI serviceApi = new ControllerServiceAPI();
             serviceApi.setType(serviceApiClass.getName());

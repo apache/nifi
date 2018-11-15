@@ -74,7 +74,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
             throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask().getIdentifier() + " to run because its scheduling period is not valid");
         }
 
-        final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
+        final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState, flowController.getExtensionManager());
 
         final AtomicBoolean canceled = new AtomicBoolean(false);
         final Date initialDate = cronExpression.getTimeAfter(new Date());

@@ -106,12 +106,12 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             rootNode.appendChild(registriesElement);
 
             addFlowRegistries(registriesElement, controller.getFlowRegistryClient());
-            addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup", scheduledStateLookup);
+            addProcessGroup(rootNode, controller.getFlowManager().getRootGroup(), "rootGroup", scheduledStateLookup);
 
             // Add root-level controller services
             final Element controllerServicesNode = doc.createElement("controllerServices");
             rootNode.appendChild(controllerServicesNode);
-            for (final ControllerServiceNode serviceNode : controller.getRootControllerServices()) {
+            for (final ControllerServiceNode serviceNode : controller.getFlowManager().getRootControllerServices()) {
                 addControllerService(controllerServicesNode, serviceNode);
             }
 

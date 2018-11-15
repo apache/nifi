@@ -25,12 +25,14 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -63,7 +65,11 @@ import java.util.List;
                 + "the path is the directory that contains this ORC file on HDFS. For example, this processor can send flow files downstream to ReplaceText to set the content "
                 + "to this DDL (plus the LOCATION clause as described), then to PutHiveQL processor to create the table if it doesn't exist.")
 })
-@Restricted("Provides operator the ability to write to any file that NiFi has access to in HDFS or the local filesystem.")
+@Restricted(restrictions = {
+        @Restriction(
+                requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                explanation = "Provides operator the ability to write to any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class PutORC extends AbstractPutHDFSRecord {
 
     public static final String HIVE_DDL_ATTRIBUTE = "hive.ddl";

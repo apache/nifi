@@ -45,10 +45,10 @@ public class NarCloseable implements Closeable {
      * @return NarCloseable with the current thread context classloader jailed to the Nar
      *              or instance class loader of the component
      */
-    public static NarCloseable withComponentNarLoader(final Class componentClass, final String componentIdentifier) {
+    public static NarCloseable withComponentNarLoader(final ExtensionManager extensionManager, final Class componentClass, final String componentIdentifier) {
         final ClassLoader current = Thread.currentThread().getContextClassLoader();
 
-        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(componentIdentifier);
+        ClassLoader componentClassLoader = extensionManager.getInstanceClassLoader(componentIdentifier);
         if (componentClassLoader == null) {
             componentClassLoader = componentClass.getClassLoader();
         }
@@ -81,7 +81,7 @@ public class NarCloseable implements Closeable {
     public static NarCloseable withFrameworkNar() {
         final ClassLoader frameworkClassLoader;
         try {
-            frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
+            frameworkClassLoader = NarClassLoadersHolder.getInstance().getFrameworkBundle().getClassLoader();
         } catch (final Exception e) {
             // This should never happen in a running instance, but it will occur in unit tests
             logger.error("Unable to access Framework ClassLoader due to " + e + ". Will continue without changing ClassLoaders.");

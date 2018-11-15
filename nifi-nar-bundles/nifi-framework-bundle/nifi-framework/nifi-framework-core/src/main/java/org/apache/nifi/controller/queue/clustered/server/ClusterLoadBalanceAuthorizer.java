@@ -17,14 +17,23 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import java.io.IOException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,18 +42,26 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
 
     private final ClusterCoordinator clusterCoordinator;
     private final EventReporter eventReporter;
+    private final HostnameVerifier hostnameVerifier;
 
     public ClusterLoadBalanceAuthorizer(final ClusterCoordinator clusterCoordinator, final EventReporter eventReporter) {
         this.clusterCoordinator = clusterCoordinator;
         this.eventReporter = eventReporter;
+        this.hostnameVerifier = new DefaultHostnameVerifier();
     }
 
     @Override
-    public String authorize(final Collection<String> clientIdentities) throws NotAuthorizedException {
-        if (clientIdentities == null) {
-            logger.debug("Client Identities is null, so assuming that Load Balancing communications are not secure. Authorizing client to participate in Load Balancing");
-            return null;
+    public String authorize(SSLSocket sslSocket) throws NotAuthorizedException, IOException {
+        final SSLSession sslSession = sslSocket.getSession();
+
+        final Set<String> clientIdentities;
+        try {
+            clientIdentities = getCertificateIdentities(sslSession);
+        } catch (final CertificateException e) {
+            throw new IOException("Failed to extract Client Certificate", e);
         }
+
+        logger.debug("Will perform authorization against Client Identities '{}'", clientIdentities);
 
         final Set<String> nodeIds = clusterCoordinator.getNodeIdentifiers().stream()
                 .map(NodeIdentifier::getApiAddress)
@@ -57,11 +74,35 @@ public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
             }
         }
 
-        final String message = String.format("Authorization failed for Client ID's %s to Load Balance data because none of the ID's are known Cluster Node Identifiers",
-                clientIdentities);
+        // If there are no matches of Client IDs, try to verify it by HostnameVerifier. In this way, we can support wildcard certificates.
+        for (final String nodeId : nodeIds) {
+            if (hostnameVerifier.verify(nodeId, sslSession)) {
+                final String clientId = sslSocket.getInetAddress().getHostName();
+                logger.debug("The request was verified with node '{}'. The hostname derived from the socket is '{}'. Authorizing Client to Load Balance data", nodeId, clientId);
+                return clientId;
+            }
+        }
+
+        final String message = "Authorization failed for Client ID's to Load Balance data because none of the ID's are known Cluster Node Identifiers";
 
         logger.warn(message);
         eventReporter.reportEvent(Severity.WARNING, "Load Balanced Connections", message);
         throw new NotAuthorizedException("Client ID's " + clientIdentities + " are not authorized to Load Balance data");
+    }
+
+    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
+        final Certificate[] certs = sslSession.getPeerCertificates();
+        if (certs == null || certs.length == 0) {
+            throw new SSLPeerUnverifiedException("No certificates found");
+        }
+
+        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
+        cert.checkValidity();
+
+        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
+                .map(CertificateUtils::extractUsername)
+                .collect(Collectors.toSet());
+
+        return identities;
     }
 }
