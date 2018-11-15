@@ -28,7 +28,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <scope>provided</scope>
         </dependency>
         <!-- Forcing to 3.2.2 to avoid a CVE in 3.2.1 .. coming in transitively from tranquility core-->
         <dependency>

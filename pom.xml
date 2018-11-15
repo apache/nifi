@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
-    license agreements. See the NOTICE file distributed with this work for additional 
-    information regarding copyright ownership. The ASF licenses this file to 
-    You under the Apache License, Version 2.0 (the "License"); you may not use 
-    this file except in compliance with the License. You may obtain a copy of 
-    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
-    by applicable law or agreed to in writing, software distributed under the 
-    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
-    OF ANY KIND, either express or implied. See the License for the specific 
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
+    license agreements. See the NOTICE file distributed with this work for additional
+    information regarding copyright ownership. The ASF licenses this file to
+    You under the Apache License, Version 2.0 (the "License"); you may not use
+    this file except in compliance with the License. You may obtain a copy of
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
+    by applicable law or agreed to in writing, software distributed under the
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, either express or implied. See the License for the specific
     language governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -99,7 +99,7 @@
     <repositories>
         <repository>
             <id>central</id>
-            <!-- This should be at top, it makes maven try the central repo 
+            <!-- This should be at top, it makes maven try the central repo
                 first and then others and hence faster dep resolution -->
             <name>Maven Repository</name>
             <url>https://repo1.maven.org/maven2</url>
@@ -135,7 +135,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- The following dependency management entries exist because these are jars 
+            <!-- The following dependency management entries exist because these are jars
             that live in the top-level lib directory and will be present in the parent-first
             classloading of all child nars.  Therefore we dont want child nars using different
             versions anyway.-->
@@ -549,7 +549,7 @@
                                 </module>
                                 <module name="OuterTypeFilename" />
                                 <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter 
+                                    <!-- needs extra, because Eclipse formatter
                                         ignores the ending left brace -->
                                     <property name="max" value="200" />
                                     <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
@@ -626,9 +626,9 @@
     </build>
     <profiles>
         <profile>
-            <!-- Performs execution of Integration Tests using the Maven 
-                FailSafe Plugin. The view of integration tests in this context are those 
-                tests interfacing with external sources and services requiring additional 
+            <!-- Performs execution of Integration Tests using the Maven
+                FailSafe Plugin. The view of integration tests in this context are those
+                tests interfacing with external sources and services requiring additional
                 resources or credentials that cannot be explicitly provided. Also appropriate
                 for tests which depend on inter-thread and/or network or having timing
                 considerations which could make the tests brittle on various environments.-->
@@ -651,11 +651,11 @@
             </build>
         </profile>
         <profile>
-            <!-- Checks style and licensing requirements. This is a good 
-                idea to run for contributions and for the release process. While it would 
-                be nice to run always these plugins can considerably slow the build and have 
-                proven to create unstable builds in our multi-module project and when building 
-                using multiple threads. The stability issues seen with Checkstyle in multi-module 
+            <!-- Checks style and licensing requirements. This is a good
+                idea to run for contributions and for the release process. While it would
+                be nice to run always these plugins can considerably slow the build and have
+                proven to create unstable builds in our multi-module project and when building
+                using multiple threads. The stability issues seen with Checkstyle in multi-module
                 builds include false-positives and false negatives. -->
             <id>contrib-check</id>
             <build>
@@ -692,11 +692,11 @@
             </build>
         </profile>
         <profile>
-            <!-- This profile will disable DocLint which performs strict 
-                JavaDoc processing which was introduced in JDK 8. These are technically errors 
-                in the JavaDoc which we need to eventually address. However, if a release 
-                is performed using JDK 8, the JavaDoc generation would fail. By activating 
-                this profile when running on JDK 8 we can ensure the JavaDocs continue to 
+            <!-- This profile will disable DocLint which performs strict
+                JavaDoc processing which was introduced in JDK 8. These are technically errors
+                in the JavaDoc which we need to eventually address. However, if a release
+                is performed using JDK 8, the JavaDoc generation would fail. By activating
+                this profile when running on JDK 8 we can ensure the JavaDocs continue to
                 generate successfully -->
             <id>disable-doclint</id>
             <activation>
@@ -716,15 +716,15 @@
                 </pluginManagement>
             </build>
         </profile>
-        <!-- The following profiles are here as a convenience for folks that 
-            want to build against vendor-specific distributions of the various Hadoop 
-            ecosystem libraries. These will alter which dependencies are sourced in a 
-            manner that can adjust the correct LICENSE and NOTICE requirements for any 
-            affected jar and the resulting assembly overall. These L&N impacts are not 
-            automatically handled by the build process and are the responsibility of 
+        <!-- The following profiles are here as a convenience for folks that
+            want to build against vendor-specific distributions of the various Hadoop
+            ecosystem libraries. These will alter which dependencies are sourced in a
+            manner that can adjust the correct LICENSE and NOTICE requirements for any
+            affected jar and the resulting assembly overall. These L&N impacts are not
+            automatically handled by the build process and are the responsibility of
             those creating and using the resulting binary artifacts. -->
         <profile>
-            <!-- This profile adds the Hortonworks repository for resolving 
+            <!-- This profile adds the Hortonworks repository for resolving
                 Hortonworks Data Platform (HDP) artifacts for the Hadoop bundles -->
             <id>hortonworks</id>
             <repositories>
@@ -760,12 +760,12 @@
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, 
+                <!-- Vendor-specific version number included here as default,
                     should be overridden on the command-line <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version> -->
             </properties>
         </profile>
         <profile>
-            <!-- This profile will add the MapR repository for resolving 
+            <!-- This profile will add the MapR repository for resolving
                 MapR Hadoop artifacts for the Hadoop bundles -->
             <id>mapr</id>
             <repositories>
@@ -782,12 +782,12 @@
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, 
+                <!-- Vendor-specific version number included here as default,
                     should be overridden on the command-line <hadoop.version>2.7.0-mapr-1602</hadoop.version> -->
             </properties>
         </profile>
         <profile>
-            <!-- This profile will add the Cloudera repository for resolving 
+            <!-- This profile will add the Cloudera repository for resolving
                 Cloudera Distribution of Hadoop (CDH) artifacts for the Hadoop bundles -->
             <id>cloudera</id>
             <repositories>
@@ -804,7 +804,7 @@
                 </repository>
             </repositories>
             <properties>
-                <!-- Vendor-specific version number included here as default, 
+                <!-- Vendor-specific version number included here as default,
                     should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
             </properties>
         </profile>
