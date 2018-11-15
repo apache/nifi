@@ -34,8 +34,10 @@ import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.DummyReportingTask;
 import org.apache.nifi.controller.service.mock.ServiceA;
@@ -95,6 +97,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -125,6 +128,7 @@ public class TestFlowController {
         final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         return StringEncryptor.createEncryptor(algorithm, provider, password);
     }
+
 
     @Before
     public void setup() {
@@ -335,6 +339,23 @@ public class TestFlowController {
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
 
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+    }
+
+    /**
+     * StandardProcessScheduler is created by FlowController. The StandardProcessScheduler needs access to the Controller Service Provider,
+     * but the Controller Service Provider needs the ProcessScheduler in its constructor. So the StandardProcessScheduler obtains the Controller Service
+     * Provider by making a call back to FlowController.getControllerServiceProvider. This test exists to ensure that we always have access to the
+     * Controller Service Provider in the Process Scheduler, and that we don't inadvertently start storing away the result of calling
+     * FlowController.getControllerServiceProvider() before the service provider has been fully initialized.
+     */
+    @Test
+    public void testProcessSchedulerHasAccessToControllerServiceProvider() {
+        final StandardProcessScheduler scheduler = controller.getProcessScheduler();
+        assertNotNull(scheduler);
+
+        final ControllerServiceProvider serviceProvider = scheduler.getControllerServiceProvider();
+        assertNotNull(serviceProvider);
+        assertSame(serviceProvider, controller.getControllerServiceProvider());
     }
 
     @Test

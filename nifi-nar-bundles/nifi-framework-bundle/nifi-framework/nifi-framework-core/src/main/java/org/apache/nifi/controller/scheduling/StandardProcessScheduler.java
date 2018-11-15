@@ -35,6 +35,7 @@ import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
@@ -101,6 +102,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         processorStartTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
 
         frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
+    }
+
+    public ControllerServiceProvider getControllerServiceProvider() {
+        return flowController.getControllerServiceProvider();
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -293,7 +298,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(),
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
             this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
@@ -333,7 +338,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false);
 
-        StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(),
+        StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
             this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
 
         LOG.info("Stopping {}", procNode);
