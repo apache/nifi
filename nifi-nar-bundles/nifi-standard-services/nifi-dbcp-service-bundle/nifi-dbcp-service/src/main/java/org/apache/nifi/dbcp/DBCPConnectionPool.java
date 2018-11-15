@@ -194,7 +194,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
             .displayName("Minimum Idle Connections")
-            .name("dbcp-mim-idle-conns")
+            .name("dbcp-min-idle-conns")
             .description("The minimum number of connections that can remain idle in the pool, without extra ones being " +
                     "created, or zero to create none.")
             .defaultValue(DEFAULT_MIN_IDLE)
