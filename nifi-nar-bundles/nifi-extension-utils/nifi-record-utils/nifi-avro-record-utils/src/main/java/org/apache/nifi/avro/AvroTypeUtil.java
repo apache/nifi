@@ -631,7 +631,9 @@ public class AvroTypeUtil {
                     final int desiredScale = decimalType.getScale();
                     final BigDecimal decimal = rawDecimal.scale() == desiredScale
                             ? rawDecimal : rawDecimal.setScale(desiredScale, BigDecimal.ROUND_HALF_UP);
-                    return new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType);
+                    return fieldSchema.getType() == Type.BYTES
+                        ? new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType) //return GenericByte
+                        : new Conversions.DecimalConversion().toFixed(decimal, fieldSchema, logicalType); //return GenericFixed
                 }
                 if (rawValue instanceof byte[]) {
                     return ByteBuffer.wrap((byte[]) rawValue);
