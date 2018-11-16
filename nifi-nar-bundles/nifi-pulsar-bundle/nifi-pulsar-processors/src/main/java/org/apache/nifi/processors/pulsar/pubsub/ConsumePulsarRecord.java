@@ -17,6 +17,29 @@
 package org.apache.nifi.processors.pulsar.pubsub;
 
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -36,32 +59,7 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-
-@CapabilityDescription("Consumes messages from Apache Pulsar"
+@CapabilityDescription("Consumes messages from Apache Pulsar. "
         + "The complementary NiFi processor for sending messages is PublishPulsarRecord. Please note that, at this time, "
         + "the Processor assumes that all records that are retrieved have the same schema. If any of the Pulsar messages "
         + "that are pulled but cannot be parsed or written with the configured Record Reader or Record Writer, the contents "
@@ -78,12 +76,6 @@ import org.apache.nifi.flowfile.FlowFile;
 public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]> {
 
     public static final String MSG_COUNT = "record.count";
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("Any FlowFile that cannot read the data it receives from Pulsar will be routed to this Relationship")
-            .build();
-
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
@@ -121,7 +113,7 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
 
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse_failure")
-            .description("FlowFiles for which the content was not prasable")
+            .description("FlowFiles for which the content cannot be parsed.")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
@@ -138,7 +130,6 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
 
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         relationships.add(REL_PARSE_FAILURE);
         RELATIONSHIPS = Collections.unmodifiableSet(relationships);
     }
@@ -164,6 +155,11 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
         try {
             Consumer<byte[]> consumer = getConsumer(context, getConsumerId(context, session.get()));
 
+            if (consumer == null) { /* If we aren't connected to Pulsar, then just yield */
+                context.yield();
+                return;
+            }
+
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
                consumeAsync(consumer, context, session);
                handleAsync(context, session, consumer, readerFactory, writerFactory);
@@ -188,7 +184,6 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
     private void consumeMessage(ProcessSession session, final Consumer<byte[]> consumer, final Message<byte[]> msg, boolean async,
          final RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory) throws PulsarClientException {
 
-       final AtomicLong messagesReceived = new AtomicLong(0L);
        RecordSetWriter writer = null;
        FlowFile flowFile = session.create();
        OutputStream rawOut = null;
@@ -225,7 +220,6 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
        try {
           for (Record record = firstRecord; record != null; record = reader.nextRecord()) {
               writer.write(record);
-              messagesReceived.incrementAndGet();
           }
        } catch (MalformedRecordException | IOException mEx) {
           handleParseFailure(msg, mEx, session);
@@ -244,13 +238,16 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
 
        // Clean-up and transfer session
        try {
+
           if (rawOut != null) {
-            rawOut.close();
+             rawOut.close();
           }
 
           if (writer != null) {
-            WriteResult result = writer.finishRecordSet();
-            session.putAllAttributes(flowFile, result.getAttributes());
+             WriteResult result = writer.finishRecordSet();
+             writer.close();
+             session.putAllAttributes(flowFile, result.getAttributes());
+             session.putAttribute(flowFile, MSG_COUNT, result.getRecordCount() + "");
           }
 
        } catch (IOException e1) {
@@ -258,7 +255,6 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
        }
 
        if (flowFile != null) {
-          session.putAttribute(flowFile, MSG_COUNT, messagesReceived.toString());
           session.transfer(flowFile, REL_SUCCESS);
        }
     }

@@ -71,7 +71,7 @@ public class LRUCacheTest {
 
       // Make sure we have the last 5 items added to the cache
       for (Character i='V'; i<='Z'; i++){
-         assertNotNull( cache.get(i.toString()));
+         assertNotNull(cache.get(i.toString()));
       }
     }
 

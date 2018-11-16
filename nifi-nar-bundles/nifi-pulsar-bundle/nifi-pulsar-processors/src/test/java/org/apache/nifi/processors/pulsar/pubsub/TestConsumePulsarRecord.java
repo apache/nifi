@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
-import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessorTest;
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessorTest;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordParser;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordWriter;
 import org.apache.nifi.reporting.InitializationException;
@@ -42,7 +42,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class TestConsumePulsarRecord extends AbstractPulsarConsumerProcessorTest<byte[]> {
+public class TestConsumePulsarRecord extends AbstractPulsarProcessorTest<byte[]> {
 
     protected static String BAD_MSG = "Malformed message";
     protected static String MOCKED_MSG = "Mocked Message, 1";

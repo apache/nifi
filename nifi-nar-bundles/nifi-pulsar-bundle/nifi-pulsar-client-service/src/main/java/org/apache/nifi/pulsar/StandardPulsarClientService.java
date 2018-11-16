@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,8 +42,8 @@ import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 
 public class StandardPulsarClientService extends AbstractControllerService implements PulsarClientService {
 
-    public static final PropertyDescriptor PULSAR_SERVICE_URL = new PropertyDescriptor
-            .Builder().name("PULSAR_SERVICE_URL")
+    public static final PropertyDescriptor PULSAR_SERVICE_URL = new PropertyDescriptor.Builder()
+            .name("PULSAR_SERVICE_URL")
             .displayName("Pulsar Service URL")
             .description("URL for the Pulsar cluster, e.g localhost:6650")
             .required(true)
@@ -51,17 +52,17 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor ALLOW_TLS_INSECURE_CONNECTION = new PropertyDescriptor.Builder()
-            .name("Allow TLS insecure connection")
+            .name("ALLOW_TLS_INSECURE_CONNECTION")
             .displayName("Allow TLS insecure connection")
             .description("Whether the Pulsar client will accept untrusted TLS certificate from broker or not.")
-            .required(false)
+            .required(true)
             .allowableValues("true", "false")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("false")
             .build();
 
     public static final PropertyDescriptor CONCURRENT_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
-            .name("Maximum concurrent lookup-requests")
+            .name("CONCURRENT_LOOKUP_REQUESTS")
+            .displayName("Maximum concurrent lookup-requests")
             .description("Number of concurrent lookup-requests allowed on each broker-connection.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -70,10 +71,11 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor CONNECTIONS_PER_BROKER = new PropertyDescriptor.Builder()
-            .name("Maximum connects per Pulsar broker")
+            .name("CONNECTIONS_PER_BROKER")
+            .displayName("Maximum connects per Pulsar broker")
             .description("Sets the max number of connection that the client library will open to a single broker.\n" +
                     "By default, the connection pool will use a single connection for all the producers and consumers. " +
-                    "Increasing this parameter may improve throughput when using many producers over a high latency connection")
+                    "Increasing this parameter may improve throughput when using many producers over a high latency connection.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -81,7 +83,8 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor IO_THREADS = new PropertyDescriptor.Builder()
-            .name("I/O Threads")
+            .name("IO_THREADS")
+            .displayName("I/O Threads")
             .description("The number of threads to be used for handling connections to brokers.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -90,7 +93,7 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor KEEP_ALIVE_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Keep Alive interval")
+            .name("KEEP_ALIVE_INTERVAL")
             .displayName("Keep Alive interval")
             .description("The keep alive interval in seconds for each client-broker-connection.")
             .required(false)
@@ -100,7 +103,8 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor LISTENER_THREADS = new PropertyDescriptor.Builder()
-            .name("Listener Threads")
+            .name("LISTENER_THREADS")
+            .displayName("Listener Threads")
             .description("The number of threads to be used for message listeners")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -109,19 +113,21 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor MAXIMUM_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
-            .name("Maximum lookup requests")
-            .description("Number of max lookup-requests allowed on each broker-connection. To prevent overload on broker,"
-                    + "it should be greater than the 'Maximum concurrent lookup-requests' property value.")
+            .name("MAXIMUM_LOOKUP_REQUESTS")
+            .displayName("Maximum lookup requests")
+            .description("Number of max lookup-requests allowed on each broker-connection. To prevent overload on broker, "
+                       + "it should be greater than the 'Maximum concurrent lookup-requests' property value.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("50000")
             .build();
 
     public static final PropertyDescriptor MAXIMUM_REJECTED_REQUESTS = new PropertyDescriptor.Builder()
-            .name("Maximum rejected requests per connection")
+            .name("MAXIMUM_REJECTED_REQUESTS")
+            .displayName("Maximum rejected requests per connection")
             .description("Max number of broker-rejected requests in a certain time-frame after " +
-                "which current connection will be closed and client creates a new connection that give " +
-                "chance to connect a different broker")
+                    "which current connection will be closed and client creates a new connection that gives " +
+                    "chance to connect a different broker.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -129,9 +135,10 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor OPERATION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Operation Timeout")
+            .name("OPERATION_TIMEOUT")
+            .displayName("Operation Timeout")
             .description("Producer-create, subscribe and unsubscribe operations will be retried until this " +
-                "interval, after which the operation will be marked as failed")
+                    "interval, after which the operation will be marked as failed.")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -139,35 +146,38 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor STATS_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Stats interval")
-            .description("The interval between each stat infomation update. It should be set to at least 1 second")
+            .name("STATS_INTERVAL")
+            .displayName("Stats interval")
+            .description("The interval between each stat infomation update. It should be set to at least 1 second.")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("60 sec")
             .build();
 
     public static final PropertyDescriptor TLS_TRUST_CERTS_FILE_PATH = new PropertyDescriptor.Builder()
-            .name("TLS Trust Certs File Path")
-            .description("Set the path to the trusted TLS certificate file")
+            .name("TLS_TRUST_CERTS_FILE_PATH")
+            .displayName("TLS Trust Certs File Path")
+            .description("Set the path to the trusted TLS certificate file.")
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor USE_TCP_NO_DELAY = new PropertyDescriptor.Builder()
-            .name("Use TCP no-delay flag")
+            .name("USE_TCP_NO_DELAY")
+            .displayName("Use TCP no-delay flag")
             .description("Configure whether to use TCP no-delay flag on the connection, to disable Nagle algorithm.\n"
                     + "No-delay features make sure packets are sent out on the network as soon as possible, and it's critical "
                     + "to achieve low latency publishes. On the other hand, sending out a huge number of small packets might "
                     + "limit the overall throughput, so if latency is not a concern, it's advisable to set the useTcpNoDelay "
                     + "flag to false.")
-            .required(false)
+            .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl.context.service")
+            .name("SSL_CONTEXT_SERVICE")
             .displayName("SSL Context Service")
             .description("Specifies the SSL Context Service to use for communicating with Pulsar.")
             .required(false)
@@ -200,7 +210,7 @@ public class StandardPulsarClientService extends AbstractControllerService imple
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-       return properties;
+        return properties;
     }
 
     /**
@@ -217,68 +227,69 @@ public class StandardPulsarClientService extends AbstractControllerService imple
         }
     }
 
+    @OnDisabled
     @OnShutdown
     public void cleanup() throws PulsarClientException {
         if (client != null) {
-          client.close();
+           client.close();
         }
     }
 
     @Override
     public PulsarClient getPulsarClient() {
-      return client;
+        return client;
     }
 
     @Override
     public String getPulsarBrokerRootURL() {
-       return pulsarBrokerRootUrl;
+        return pulsarBrokerRootUrl;
     }
 
     private void setPulsarBrokerRootURL(String s) {
-       pulsarBrokerRootUrl = s;
+        pulsarBrokerRootUrl = s;
     }
 
     private static String buildPulsarBrokerRootUrl(String uri, boolean tlsEnabled) {
         StringBuilder builder = new StringBuilder().append("pulsar");
 
         if (tlsEnabled) {
-           builder.append("+ssl");
+            builder.append("+ssl");
         }
 
         return builder.append("://")
-               .append(uri)
-               .toString();
+                .append(uri)
+                .toString();
     }
 
     private ClientBuilder getClientBuilder(ConfigurationContext context) throws UnsupportedAuthenticationException, MalformedURLException {
 
         ClientBuilder builder = PulsarClient.builder()
-             .allowTlsInsecureConnection(context.getProperty(ALLOW_TLS_INSECURE_CONNECTION).evaluateAttributeExpressions().asBoolean())
-             .maxConcurrentLookupRequests(context.getProperty(CONCURRENT_LOOKUP_REQUESTS).asInteger())
-             .connectionsPerBroker(context.getProperty(CONNECTIONS_PER_BROKER).asInteger())
-             .ioThreads(context.getProperty(IO_THREADS).asInteger())
-             .keepAliveInterval(context.getProperty(KEEP_ALIVE_INTERVAL).asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
-             .listenerThreads(context.getProperty(LISTENER_THREADS).asInteger())
-             .maxLookupRequests(context.getProperty(MAXIMUM_LOOKUP_REQUESTS).asInteger())
-             .maxNumberOfRejectedRequestPerConnection(context.getProperty(MAXIMUM_REJECTED_REQUESTS).asInteger())
-             .operationTimeout(context.getProperty(OPERATION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
-             .statsInterval(context.getProperty(STATS_INTERVAL).asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
-             .enableTcpNoDelay(context.getProperty(USE_TCP_NO_DELAY).asBoolean());
+                .allowTlsInsecureConnection(context.getProperty(ALLOW_TLS_INSECURE_CONNECTION).asBoolean())
+                .maxConcurrentLookupRequests(context.getProperty(CONCURRENT_LOOKUP_REQUESTS).evaluateAttributeExpressions().asInteger())
+                .connectionsPerBroker(context.getProperty(CONNECTIONS_PER_BROKER).evaluateAttributeExpressions().asInteger())
+                .ioThreads(context.getProperty(IO_THREADS).evaluateAttributeExpressions().asInteger())
+                .keepAliveInterval(context.getProperty(KEEP_ALIVE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
+                .listenerThreads(context.getProperty(LISTENER_THREADS).evaluateAttributeExpressions().asInteger())
+                .maxLookupRequests(context.getProperty(MAXIMUM_LOOKUP_REQUESTS).evaluateAttributeExpressions().asInteger())
+                .maxNumberOfRejectedRequestPerConnection(context.getProperty(MAXIMUM_REJECTED_REQUESTS).evaluateAttributeExpressions().asInteger())
+                .operationTimeout(context.getProperty(OPERATION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
+                .statsInterval(context.getProperty(STATS_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue(), TimeUnit.SECONDS)
+                .enableTcpNoDelay(context.getProperty(USE_TCP_NO_DELAY).asBoolean());
 
         // Configure TLS
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         if (sslContextService != null && sslContextService.isTrustStoreConfigured() && sslContextService.isKeyStoreConfigured()) {
-           Map<String, String> authParams = new HashMap<>();
-           authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
-           authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
+            Map<String, String> authParams = new HashMap<>();
+            authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
+            authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
 
-           builder = builder.enableTls(true).authentication(AuthenticationTls.class.getName(), authParams)
-                            .tlsTrustCertsFilePath(context.getProperty(TLS_TRUST_CERTS_FILE_PATH).evaluateAttributeExpressions().getValue());
-           secure = true;
+            builder = builder.enableTls(true).authentication(AuthenticationTls.class.getName(), authParams)
+                             .tlsTrustCertsFilePath(context.getProperty(TLS_TRUST_CERTS_FILE_PATH).evaluateAttributeExpressions().getValue());
+            secure = true;
         }
 
-        setPulsarBrokerRootURL(buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(), secure));
+        setPulsarBrokerRootURL(buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).evaluateAttributeExpressions().getValue(), secure));
         builder = builder.serviceUrl(getPulsarBrokerRootURL());
         return builder;
     }

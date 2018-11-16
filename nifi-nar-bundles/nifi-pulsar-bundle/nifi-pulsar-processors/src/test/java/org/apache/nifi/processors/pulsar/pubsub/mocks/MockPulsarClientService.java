@@ -40,12 +40,15 @@ import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 public class MockPulsarClientService<T> extends AbstractControllerService implements PulsarClientService {
 
@@ -100,7 +103,13 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
 
         try {
             when(mockConsumerBuilder.subscribe()).thenReturn(mockConsumer);
+            when(mockConsumer.isConnected()).thenReturn(true);
             when(mockConsumer.receive()).thenReturn(mockMessage);
+            doAnswer(new Answer<Message<T>>() {
+               public Message<T> answer(InvocationOnMock invocation) {
+                       return mockMessage;
+               }
+             }).when(mockConsumer).receive(2, TimeUnit.SECONDS);
 
             when(mockProducerBuilder.create()).thenReturn(mockProducer);
             defineDefaultProducerBehavior();
@@ -155,6 +164,7 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
                 }
             }))).thenReturn(future);
 
+            when(mockProducer.isConnected()).thenReturn(true);
             when(mockProducer.newMessage()).thenReturn(mockTypedMessageBuilder);
             when(mockTypedMessageBuilder.value((T) any(byte[].class))).thenReturn(mockTypedMessageBuilder);
             when(mockTypedMessageBuilder.sendAsync()).thenReturn(future);

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsar;
 import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsar;
@@ -106,7 +107,7 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
         runner.assertQueueEmpty();
 
         // Verify that the receive method on the consumer was called 10 times
-        verify(mockClientService.getMockConsumer(), times(10)).receive();
+        verify(mockClientService.getMockConsumer(), times(10)).receive(2, TimeUnit.SECONDS);
 
         // Verify that each message was acknowledged
         verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);

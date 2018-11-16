@@ -48,16 +48,15 @@ public class TestAsyncPublishPulsarRecord extends TestPublishPulsarRecord {
        runner.enqueue(content);
        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
        runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-       runner.run();
+       runner.run(100, false, true);
 
        verify(mockClientService.getMockProducer(), times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-       runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_FAILURE);
 
        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_FAILURE);
        assertEquals(1, results.size());
 
        String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
-       assertEquals("Mary Jane, 32", flowFileContents);
+       assertEquals("\"Mary Jane\",\"32\"\n", flowFileContents);
     }
 
     // Malformed content test, using "some content"
@@ -103,7 +102,7 @@ public class TestAsyncPublishPulsarRecord extends TestPublishPulsarRecord {
         runner.enqueue(sb.toString());
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-        runner.run();
+        runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_SUCCESS);
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_SUCCESS);
@@ -131,7 +130,7 @@ public class TestAsyncPublishPulsarRecord extends TestPublishPulsarRecord {
         runner.enqueue(sb.toString());
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-        runner.run();
+        runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_SUCCESS);
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_SUCCESS);

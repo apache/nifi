@@ -18,18 +18,20 @@ package org.apache.nifi.pulsar.cache;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class LRUCache<K, V extends Closeable> {
 
-    private LinkedHashMap<K, V> lruCacheMap;
+    private Map<K, V> lruCacheMap;
     private final int capacity;
     private final boolean SORT_BY_ACCESS = true;
     private final float LOAD_FACTOR = 0.75F;
 
     public LRUCache(int capacity){
         this.capacity = capacity;
-        this.lruCacheMap = new LinkedHashMap<>(capacity, LOAD_FACTOR, SORT_BY_ACCESS);
+        this.lruCacheMap = Collections.synchronizedMap(new LinkedHashMap<>(capacity, LOAD_FACTOR, SORT_BY_ACCESS));
     }
 
     public V get(K k){

@@ -19,8 +19,9 @@ package org.apache.nifi.processors.pulsar;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockPulsarClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
+import org.junit.After;
 
-public abstract class AbstractPulsarConsumerProcessorTest<T> {
+public abstract class AbstractPulsarProcessorTest<T> {
 
     protected TestRunner runner;
 
@@ -31,5 +32,10 @@ public abstract class AbstractPulsarConsumerProcessorTest<T> {
         runner.addControllerService("Pulsar Client Service", mockClientService);
         runner.enableControllerService(mockClientService);
         runner.setProperty(AbstractPulsarConsumerProcessor.PULSAR_CLIENT_SERVICE, "Pulsar Client Service");
+    }
+
+    @After
+    public final void validate() {
+        org.mockito.Mockito.validateMockitoUsage();
     }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessorTest;
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessorTest;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -37,8 +37,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-public class TestConsumePulsar extends AbstractPulsarConsumerProcessorTest<byte[]> {
+public class TestConsumePulsar extends AbstractPulsarProcessorTest<byte[]> {
 
     @Mock
     protected Message<byte[]> mockMessage;
@@ -88,7 +89,7 @@ public class TestConsumePulsar extends AbstractPulsarConsumerProcessorTest<byte[
         runner.assertQueueEmpty();
 
         // Verify that the receive method on the consumer was called 10 times
-        verify(mockClientService.getMockConsumer(), times(10)).receive();
+        verify(mockClientService.getMockConsumer(), times(10)).receive(2, TimeUnit.SECONDS);
 
         // Verify that each message was acknowledged
         verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);
@@ -117,12 +118,12 @@ public class TestConsumePulsar extends AbstractPulsarConsumerProcessorTest<byte[
             ff.assertContentEquals(msg);
         }
 
-        verify(mockClientService.getMockConsumer(), times(itertions)).receive();
-
         // Verify that every message was acknowledged
         if (async) {
+            verify(mockClientService.getMockConsumer(), times(itertions)).receive();
             verify(mockClientService.getMockConsumer(), times(itertions)).acknowledgeAsync(mockMessage);
         } else {
+            verify(mockClientService.getMockConsumer(), times(itertions)).receive(2, TimeUnit.SECONDS);
             verify(mockClientService.getMockConsumer(), times(itertions)).acknowledge(mockMessage);
         }
     }

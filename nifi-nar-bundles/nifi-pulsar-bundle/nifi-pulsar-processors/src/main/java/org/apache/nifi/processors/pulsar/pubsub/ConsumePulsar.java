@@ -34,10 +34,9 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 
-@SeeAlso(PublishPulsar.class)
+@SeeAlso({PublishPulsar.class, ConsumePulsarRecord.class, PublishPulsarRecord.class})
 @Tags({"Pulsar", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
-@CapabilityDescription("Consumes messages from Apache Pulsar "
-        + "The complementary NiFi processor for sending messages is PublishPulsar.")
+@CapabilityDescription("Consumes messages from Apache Pulsar. The complementary NiFi processor for sending messages is PublishPulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
 
@@ -45,6 +44,11 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         try {
             Consumer<byte[]> consumer = getConsumer(context, getConsumerId(context, session.get()));
+
+            if (consumer == null) {
+                context.yield();
+                return;
+            }
 
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 consumeAsync(consumer, context, session);
@@ -75,7 +79,7 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
                           out.write(value);
                       });
 
-                     session.getProvenanceReporter().receive(flowFile, "From " + getPulsarClientService().getPulsarBrokerRootURL());
+                     session.getProvenanceReporter().receive(flowFile, getPulsarClientService().getPulsarBrokerRootURL() + "/" + consumer.getTopic());
                      session.transfer(flowFile, REL_SUCCESS);
                      session.commit();
                   }
@@ -98,7 +102,16 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
 
     private void consume(Consumer<byte[]> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
         try {
-            final Message<byte[]> msg = consumer.receive();
+            /* If we do not provide a timeout value, this call will block indefinitely, which will
+             * cause the processor to hang when we try to stop it consuming from an empty topic.
+             * Therefore, we chose a 2 second timeout to handle this situation gracefully.
+             */
+            final Message<byte[]> msg = consumer.receive(2, TimeUnit.SECONDS);
+
+            if (msg == null) {
+               return;
+            }
+
             final byte[] value = msg.getData();
 
             if (value != null && value.length > 0) {
@@ -107,17 +120,17 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
                     out.write(value);
                 });
 
-                session.getProvenanceReporter().receive(flowFile, "From " + getPulsarClientService().getPulsarBrokerRootURL());
+                session.getProvenanceReporter().receive(flowFile, getPulsarClientService().getPulsarBrokerRootURL() + "/" + consumer.getTopic());
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().debug("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
                         new Object[]{flowFile, 1});
 
                 session.commit();
-                getLogger().debug("Acknowledging message " + msg.getMessageId());
-
             } else {
                 session.commit();
             }
+
+            getLogger().debug("Acknowledging message " + msg.getMessageId());
             consumer.acknowledge(msg);
 
         } catch (PulsarClientException e) {

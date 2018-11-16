@@ -23,10 +23,11 @@ import org.apache.pulsar.client.api.PulsarClient;
 
 @Tags({"Pulsar", "client", "pool"})
 @CapabilityDescription("Provides the ability to create Pulsar Producer / Consumer instances on demand, "
-        + "based on the configuration properties defined")
+        + "based on the configuration properties defined.")
 public interface PulsarClientService extends ControllerService {
 
     public PulsarClient getPulsarClient();
 
     public String getPulsarBrokerRootURL();
+
 }

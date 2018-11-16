@@ -26,7 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessorTest;
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessorTest;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordParser;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordWriter;
@@ -38,7 +38,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPublishPulsarRecord extends AbstractPulsarConsumerProcessorTest<byte[]> {
+public class TestPublishPulsarRecord extends AbstractPulsarProcessorTest<byte[]> {
 
     protected static final String TOPIC_NAME = "unit-test";
 
@@ -95,7 +95,7 @@ public class TestPublishPulsarRecord extends AbstractPulsarConsumerProcessorTest
 
         final String content = "Mary Jane, 32";
         Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(AbstractPulsarProducerProcessor.TOPIC.getName(), TOPIC_NAME);
+        attributes.put("topic", TOPIC_NAME);
 
         runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();

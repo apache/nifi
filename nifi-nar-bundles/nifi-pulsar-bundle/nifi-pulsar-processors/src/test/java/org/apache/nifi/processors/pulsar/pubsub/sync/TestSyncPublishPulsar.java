@@ -60,7 +60,7 @@ public class TestSyncPublishPulsar extends TestPublishPulsar {
 
         final String content = "some content";
         Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(PublishPulsar.TOPIC.getName(), "");
+        attributes.put("topic", null);
 
         runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();
@@ -79,7 +79,7 @@ public class TestSyncPublishPulsar extends TestPublishPulsar {
 
         final String content = "some content";
         Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(PublishPulsar.TOPIC.getName(), "topic-b");
+        attributes.put("topic", "topic-b");
 
         runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();

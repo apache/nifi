@@ -86,8 +86,6 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
 
         String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
         assertEquals(expected.toString(), flowFileContents);
-
-        results.get(0).assertAttributeEquals(ConsumePulsarRecord.MSG_COUNT, 50 + "");
     }
 
     /*
@@ -142,7 +140,5 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
 
        String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
        assertEquals(expected.toString(), flowFileContents);
-
-       results.get(0).assertAttributeEquals(ConsumePulsarRecord.MSG_COUNT, 50 + "");
     }
 }
