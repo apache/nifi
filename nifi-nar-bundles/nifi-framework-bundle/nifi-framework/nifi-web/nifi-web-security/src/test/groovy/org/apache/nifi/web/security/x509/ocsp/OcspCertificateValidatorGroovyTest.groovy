@@ -72,8 +72,6 @@ public class OcspCertificateValidatorGroovyTest {
 
     private NiFiProperties mockProperties
 
-    // System under test
-    OcspCertificateValidator certificateValidator
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -302,77 +300,6 @@ public class OcspCertificateValidatorGroovyTest {
             assert e instanceof SignatureException;
             assert e.getMessage().contains("certificate does not verify with supplied key");
         }
-    }
-
-    @Test
-    public void testShouldValidateCertificate() throws Exception {
-        // Arrange
-        X509Certificate[] certificateChain = generateCertificateChain();
-
-        certificateValidator = new OcspCertificateValidator(mockProperties)
-
-        // Must populate the client even though it is not used in this check
-        certificateValidator.client = ClientBuilder.newBuilder().build()
-
-        // Form a map of the request to a good status and load it into the cache
-        OcspRequest revokedRequest = new OcspRequest(certificateChain.first(), certificateChain.last())
-        OcspStatus revokedStatus = new OcspStatus()
-        revokedStatus.responseStatus = OcspStatus.ResponseStatus.Successful
-        revokedStatus.validationStatus = OcspStatus.ValidationStatus.Good
-        revokedStatus.verificationStatus = OcspStatus.VerificationStatus.Verified
-        LoadingCache<OcspRequest, OcspStatus> cacheWithRevokedCertificate = buildCacheWithContents([(revokedRequest): revokedStatus])
-        certificateValidator.ocspCache = cacheWithRevokedCertificate
-
-        // Act
-        certificateValidator.validate(certificateChain)
-
-        // Assert
-        assert true
-    }
-
-    // TODO - NIFI-1364
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testShouldNotValidateEmptyCertificate() throws Exception {
-
-    }
-
-    @Test
-    public void testShouldNotValidateRevokedCertificate() throws Exception {
-        // Arrange
-        X509Certificate[] certificateChain = generateCertificateChain();
-
-        certificateValidator = new OcspCertificateValidator(mockProperties)
-
-        // Must populate the client even though it is not used in this check
-        certificateValidator.client = ClientBuilder.newBuilder().build()
-
-        // Form a map of the request to a revoked status and load it into the cache
-        OcspRequest revokedRequest = new OcspRequest(certificateChain.first(), certificateChain.last())
-        OcspStatus revokedStatus = new OcspStatus()
-        revokedStatus.responseStatus = OcspStatus.ResponseStatus.Successful
-        revokedStatus.validationStatus = OcspStatus.ValidationStatus.Revoked
-        revokedStatus.verificationStatus = OcspStatus.VerificationStatus.Verified
-        LoadingCache<OcspRequest, OcspStatus> cacheWithRevokedCertificate = buildCacheWithContents([(revokedRequest): revokedStatus])
-        certificateValidator.ocspCache = cacheWithRevokedCertificate
-
-        // Act
-        def msg = shouldFail(CertificateStatusException) {
-            certificateValidator.validate(certificateChain)
-        }
-
-        // Assert
-        assert msg =~ "is revoked according to the certificate authority"
-    }
-
-    LoadingCache<OcspRequest, OcspStatus> buildCacheWithContents(Map map) {
-        CacheBuilder.newBuilder().build(new CacheLoader<OcspRequest, OcspStatus>() {
-            @Override
-            public OcspStatus load(OcspRequest ocspRequest) throws Exception {
-                logger.info("Mock cache implementation load(${ocspRequest}) returns ${map.get(ocspRequest)}")
-                return map.get(ocspRequest) as OcspStatus
-            }
-        });
     }
 
     // TODO - NIFI-1364

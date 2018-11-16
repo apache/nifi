@@ -20,18 +20,25 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertPathValidator;
 import java.security.cert.CertificateException;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.X509CertSelector;
 
 /**
  * A factory for creating SSL contexts using the application's security
@@ -61,7 +68,10 @@ public final class SslContextFactory {
                 trustStore = null;
             }
             final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(trustStore);
+            PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
+            pbParams.setRevocationEnabled(true);
+            Security.setProperty("ocsp.enable", "true");
+            trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
 
             // prepare the key store
             final KeyStore keyStore = KeyStoreUtils.getKeyStore(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
@@ -85,7 +95,7 @@ public final class SslContextFactory {
 
             return sslContext;
 
-        } catch (final KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException e) {
+        } catch (final KeyStoreException | IOException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | CertificateException | UnrecoverableKeyException | KeyManagementException e) {
             throw new SslContextCreationException(e);
         }
     }

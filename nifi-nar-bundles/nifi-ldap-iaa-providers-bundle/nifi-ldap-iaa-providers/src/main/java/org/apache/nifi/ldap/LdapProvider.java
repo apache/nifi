@@ -50,6 +50,7 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import javax.naming.Context;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -291,7 +292,7 @@ public class LdapProvider implements LoginIdentityProvider {
                             rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
                 }
             }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
+        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | InvalidAlgorithmParameterException | IOException e) {
             throw new ProviderCreationException(e.getMessage(), e);
         }
 

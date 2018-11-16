@@ -23,14 +23,8 @@
     <!-- principal extractor -->
     <bean id="principalExtractor" class="org.apache.nifi.web.security.x509.SubjectDnX509PrincipalExtractor"/>
 
-    <!-- ocsp validator -->
-    <bean id="ocspValidator" class="org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator">
-        <constructor-arg ref="nifiProperties"/>
-    </bean>
-
     <!-- x509 validator -->
     <bean id="certificateValidator" class="org.apache.nifi.web.security.x509.X509CertificateValidator">
-        <property name="ocspValidator" ref="ocspValidator"/>
     </bean>
 
     <!-- x509 identity provider -->

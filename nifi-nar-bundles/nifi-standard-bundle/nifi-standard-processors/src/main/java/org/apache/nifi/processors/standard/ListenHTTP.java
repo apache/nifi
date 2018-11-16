@@ -242,6 +242,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
+        final boolean ocspEnabled = true;
 
         final SslContextFactory contextFactory = new SslContextFactory();
         contextFactory.setNeedClientAuth(needClientAuth);
@@ -267,6 +268,11 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             contextFactory.setProtocol(sslContextService.getSslAlgorithm());
         }
 
+        if (ocspEnabled) {
+            contextFactory.setEnableOCSP(true);
+            contextFactory.setValidatePeerCerts(true);
+        }
+
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setName(String.format("%s (%s) Web Server", getClass().getSimpleName(), getIdentifier()));
@@ -286,10 +292,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             // configure the ssl connector
             httpConfiguration.setSecureScheme("https");
             httpConfiguration.setSecurePort(port);
+
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
-
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         }
 
@@ -333,6 +339,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             shutdownHttpServer(server);
             throw e;
         }
+
 
         this.server = server;
     }

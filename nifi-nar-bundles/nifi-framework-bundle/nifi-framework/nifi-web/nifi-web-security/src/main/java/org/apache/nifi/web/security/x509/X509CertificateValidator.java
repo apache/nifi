@@ -19,8 +19,6 @@ package org.apache.nifi.web.security.x509;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
-import org.apache.nifi.web.security.x509.ocsp.CertificateStatusException;
-import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +29,7 @@ public class X509CertificateValidator {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private OcspCertificateValidator ocspValidator;
+    //private OcspCertificateValidator ocspValidator;
 
     /**
      * Extract the client certificate from the specified HttpServletRequest or null if none is specified.
@@ -39,20 +37,19 @@ public class X509CertificateValidator {
      * @param certificates the client certificates
      * @throws java.security.cert.CertificateExpiredException cert is expired
      * @throws java.security.cert.CertificateNotYetValidException cert is not yet valid
-     * @throws org.apache.nifi.web.security.x509.ocsp.CertificateStatusException ocsp validation issue
      */
     public void validateClientCertificate(final X509Certificate[] certificates)
-            throws CertificateExpiredException, CertificateNotYetValidException, CertificateStatusException {
+            throws CertificateExpiredException, CertificateNotYetValidException {
 
         // ensure the cert is valid
         certificates[0].checkValidity();
 
         // perform ocsp validator if necessary
-        ocspValidator.validate(certificates);
+        //ocspValidator.validate(certificates);
     }
 
-    public void setOcspValidator(OcspCertificateValidator ocspValidator) {
-        this.ocspValidator = ocspValidator;
-    }
+    //public void setOcspValidator(OcspCertificateValidator ocspValidator) {
+    //    this.ocspValidator = ocspValidator;
+    //}
 
 }
