@@ -42,6 +42,7 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.generic.GenericData.Record;
@@ -394,6 +395,30 @@ public class TestAvroTypeUtil {
                     expect), expect, bigDecimal.toString());
         });
 
+    }
+
+    @Test
+    public void testBytesDecimalConversion(){
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final Schema fieldSchema = Schema.create(Type.BYTES);
+        decimalType.addToSchema(fieldSchema);
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
+        assertTrue(convertedValue instanceof ByteBuffer);
+        final ByteBuffer serializedBytes = (ByteBuffer)convertedValue;
+        final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
+        assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
+    }
+
+    @Test
+    public void testFixedDecimalConversion(){
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final Schema fieldSchema = Schema.createFixed("mydecimal", "no doc", "myspace", 18);
+        decimalType.addToSchema(fieldSchema);
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
+        assertTrue(convertedValue instanceof GenericFixed);
+        final GenericFixed genericFixed = (GenericFixed)convertedValue;
+        final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromFixed(genericFixed, fieldSchema, decimalType);
+        assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
     }
 
     @Test
