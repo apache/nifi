@@ -166,6 +166,10 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
+    public Connectable findLocalConnectable(String componentId) {
+        return flowController.findLocalConnectable(componentId);
+    }
+
     public ControllerServiceProvider getControllerServiceProvider() {
         return flowController;
     }
@@ -855,6 +859,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getDataResource(processorResource));
             resources.add(ResourceFactory.getProvenanceDataResource(processorResource));
             resources.add(ResourceFactory.getPolicyResource(processorResource));
+            resources.add(ResourceFactory.getOperationResource(processorResource));
         }
 
         // add each label
@@ -871,6 +876,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getDataResource(processGroupResource));
             resources.add(ResourceFactory.getProvenanceDataResource(processGroupResource));
             resources.add(ResourceFactory.getPolicyResource(processGroupResource));
+            resources.add(ResourceFactory.getOperationResource(processGroupResource));
         }
 
         // add each remote process group
@@ -880,6 +886,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getDataResource(remoteProcessGroupResource));
             resources.add(ResourceFactory.getProvenanceDataResource(remoteProcessGroupResource));
             resources.add(ResourceFactory.getPolicyResource(remoteProcessGroupResource));
+            resources.add(ResourceFactory.getOperationResource(remoteProcessGroupResource));
         }
 
         // add each input port
@@ -889,6 +896,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getDataResource(inputPortResource));
             resources.add(ResourceFactory.getProvenanceDataResource(inputPortResource));
             resources.add(ResourceFactory.getPolicyResource(inputPortResource));
+            resources.add(ResourceFactory.getOperationResource(inputPortResource));
             if (inputPort instanceof RootGroupPort) {
                 resources.add(ResourceFactory.getDataTransferResource(inputPortResource));
             }
@@ -901,6 +909,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getDataResource(outputPortResource));
             resources.add(ResourceFactory.getProvenanceDataResource(outputPortResource));
             resources.add(ResourceFactory.getPolicyResource(outputPortResource));
+            resources.add(ResourceFactory.getOperationResource(outputPortResource));
             if (outputPort instanceof RootGroupPort) {
                 resources.add(ResourceFactory.getDataTransferResource(outputPortResource));
             }
@@ -911,6 +920,7 @@ public class ControllerFacade implements Authorizable {
             final Resource controllerServiceResource = controllerService.getResource();
             resources.add(controllerServiceResource);
             resources.add(ResourceFactory.getPolicyResource(controllerServiceResource));
+            resources.add(ResourceFactory.getOperationResource(controllerServiceResource));
         };
 
         flowController.getAllControllerServices().forEach(csConsumer);
@@ -922,6 +932,7 @@ public class ControllerFacade implements Authorizable {
             final Resource reportingTaskResource = reportingTask.getResource();
             resources.add(reportingTaskResource);
             resources.add(ResourceFactory.getPolicyResource(reportingTaskResource));
+            resources.add(ResourceFactory.getOperationResource(reportingTaskResource));
         }
 
         // add each template
@@ -1527,7 +1538,7 @@ public class ControllerFacade implements Authorizable {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
-        final Connectable connectable = root.findLocalConnectable(dto.getComponentId());
+        final Connectable connectable = findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
             dto.setGroupId(connectable.getProcessGroup().getIdentifier());
 

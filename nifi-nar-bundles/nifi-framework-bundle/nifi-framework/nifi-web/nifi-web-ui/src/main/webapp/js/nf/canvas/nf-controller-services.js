@@ -719,16 +719,12 @@
      * @returns {String}
      */
     var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.permissions.canRead) {
-            return '';
-        }
-
-        if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+        if (nfCommon.isDefinedAndNotNull(dataContext.parentGroupId)) {
             // see if this listing is based off a selected process group
             var selection = nfCanvasUtils.getSelection();
             if (selection.empty() === false) {
                 var selectedData = selection.datum();
-                if (selectedData.id === dataContext.component.parentGroupId) {
+                if (selectedData.id === dataContext.parentGroupId) {
                     if (selectedData.permissions.canRead) {
                         return nfCommon.escapeHtml(selectedData.component.name);
                     } else {
@@ -740,9 +736,9 @@
             // there's either no selection or the service is defined in an ancestor component
             var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
 
-            var processGroupLabel = dataContext.component.parentGroupId;
+            var processGroupLabel = dataContext.parentGroupId;
             $.each(breadcrumbs, function (_, breadcrumbEntity) {
-                if (breadcrumbEntity.id === dataContext.component.parentGroupId) {
+                if (breadcrumbEntity.id === dataContext.parentGroupId) {
                     processGroupLabel = breadcrumbEntity.label;
                     return false;
                 }
@@ -786,8 +782,8 @@
             return isAuthorized;
         };
 
-        if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
-            return canWriteProcessGroupParent(dataContext.component.parentGroupId);
+        if (nfCommon.isDefinedAndNotNull(dataContext.parentGroupId)) {
+            return canWriteProcessGroupParent(dataContext.parentGroupId);
         } else {
             return nfCommon.canModifyController();
         }
@@ -819,17 +815,17 @@
                     return aType === bType ? 0 : aType > bType ? 1 : -1;
                 } else if (sortDetails.columnId === 'state') {
                     var aState;
-                    if (a.component.validationStatus === 'VALIDATING') {
+                    if (a.status.validationStatus === 'VALIDATING') {
                         aState = 'Validating';
-                    } else if (a.component.validationStatus === 'INVALID') {
+                    } else if (a.status.validationStatus === 'INVALID') {
                         aState = 'Invalid';
                     } else {
                         aState = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                     }
                     var bState;
-                    if (b.component.validationStatus === 'VALIDATING') {
+                    if (b.status.validationStatus === 'VALIDATING') {
                         bState = 'Validating';
-                    } else if (b.component.validationStatus === 'INVALID') {
+                    } else if (b.status.validationStatus === 'INVALID') {
                         bState = 'Invalid';
                     } else {
                         bState = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
@@ -891,29 +887,25 @@
         };
 
         var controllerServiceStateFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
-                return '';
-            }
-            
             // determine the appropriate label
             var icon = '', label = '';
-            if (dataContext.component.validationStatus === 'VALIDATING') {
+            if (dataContext.status.validationStatus === 'VALIDATING') {
                 icon = 'validating fa fa-spin fa-circle-notch';
                 label = 'Validating';
-            } else if (dataContext.component.validationStatus === 'INVALID') {
+            } else if (dataContext.status.validationStatus === 'INVALID') {
                 icon = 'invalid fa fa-warning';
                 label = 'Invalid';
             } else {
-                if (dataContext.component.state === 'DISABLED') {
+                if (dataContext.status.runStatus === 'DISABLED') {
                     icon = 'disabled icon icon-enable-false"';
                     label = 'Disabled';
-                } else if (dataContext.component.state === 'DISABLING') {
+                } else if (dataContext.status.runStatus === 'DISABLING') {
                     icon = 'disabled icon icon-enable-false"';
                     label = 'Disabling';
-                } else if (dataContext.component.state === 'ENABLED') {
+                } else if (dataContext.status.runStatus === 'ENABLED') {
                     icon = 'enabled fa fa-flash';
                     label = 'Enabled';
-                } else if (dataContext.component.state === 'ENABLING') {
+                } else if (dataContext.status.runStatus === 'ENABLING') {
                     icon = 'enabled fa fa-flash';
                     label = 'Enabling';
                 }
@@ -927,54 +919,57 @@
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.permissions.canRead) {
-                var definedByCurrentGroup = false;
-                if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
-                    // when opened in the process group context, the current group is store in #process-group-id
-                    if (dataContext.component.parentGroupId === $('#process-group-id').text()) {
-                        definedByCurrentGroup = true;
-                    }
-                } else {
-                    // when there is no parent group, the service is defined at the controller level and should be editable
+            var canRead = dataContext.permissions.canRead;
+            var canWrite = dataContext.permissions.canWrite;
+            var canOperate = canWrite || (dataContext.operatePermissions && dataContext.operatePermissions.canWrite);
+
+            var definedByCurrentGroup = false;
+            if (nfCommon.isDefinedAndNotNull(dataContext.parentGroupId)) {
+                // when opened in the process group context, the current group is store in #process-group-id
+                if (dataContext.parentGroupId === $('#process-group-id').text()) {
                     definedByCurrentGroup = true;
                 }
+            } else {
+                // when there is no parent group, the service is defined at the controller level and should be editable
+                definedByCurrentGroup = true;
+            }
 
-                if (definedByCurrentGroup === true) {
-                    if (dataContext.permissions.canWrite) {
-                        // write permission... allow actions based on the current state of the service
-                        if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                            markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
-                            markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable"></div>';
-                        } else if (dataContext.component.state === 'DISABLED') {
-                            markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
+            if (definedByCurrentGroup === true) {
+                // If the service is in the current process group, allow actions based on the current state of the service and permissions
+                var isDisabled = dataContext.status.runStatus === 'DISABLED';
 
-                            // if there are no validation errors allow enabling
-                            if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
-                                markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable"></div>';
-                            }
-
-                            if (dataContext.component.multipleVersionsAvailable === true) {
-                                markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange"></div>';
-                            }
-
-                            if (canWriteControllerServiceParent(dataContext)) {
-                                markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove"></div>';
-                            }
-                        }
-
-                        if (dataContext.component.persistsState === true) {
-                            markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks"></div>';
-                        }
+                if (canRead) {
+                    if (canWrite && isDisabled) {
+                        markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
                     } else {
-                        // no write permission... allow viewing configuration if in current group
-                        if (definedByCurrentGroup === true) {
-                            markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
-                        }
+                        markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
                     }
-                } else {
-                    // not defined in current group... show go to arrow
-                    markup += '<div class="pointer go-to-controller-service fa fa-long-arrow-right" title="Go To"></div>';
                 }
+
+                if (canOperate) {
+                    if (dataContext.status.runStatus === 'ENABLED' || dataContext.status.runStatus === 'ENABLING') {
+                        markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable"></div>';
+                    } else if (isDisabled && dataContext.status.validationStatus === 'VALID') {
+                        // if there are no validation errors allow enabling
+                        markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable"></div>';
+                    }
+                }
+
+                if (isDisabled && canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
+                    markup += '<div title="Change Version" class="pointer change-version-controller-service fa fa-exchange"></div>';
+                }
+
+                if (isDisabled && canRead && canWrite && canWriteControllerServiceParent(dataContext)) {
+                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove"></div>';
+                }
+
+                if (canRead && canWrite && dataContext.component.persistsState === true) {
+                    markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks"></div>';
+                }
+
+            } else {
+                // not defined in current group... show go to arrow
+                markup += '<div class="pointer go-to-controller-service fa fa-long-arrow-right" title="Go To"></div>';
             }
 
             // allow policy configuration conditionally
@@ -1101,16 +1096,16 @@
                     $('#shell-close-button').click();
                 } else if (target.hasClass('go-to-controller-service')) {
                     // load the parent group of the selected service
-                    nfProcessGroup.enterGroup(controllerServiceEntity.component.parentGroupId);
+                    nfProcessGroup.enterGroup(controllerServiceEntity.parentGroupId);
 
                     // open/select the specific service
                     $.Deferred(function (deferred) {
                         if ($('#process-group-configuration').is(':visible')) {
-                            nfProcessGroupConfiguration.loadConfiguration(controllerServiceEntity.component.parentGroupId).done(function () {
+                            nfProcessGroupConfiguration.loadConfiguration(controllerServiceEntity.parentGroupId).done(function () {
                                 deferred.resolve();
                             });
                         } else {
-                            nfProcessGroupConfiguration.showConfiguration(controllerServiceEntity.component.parentGroupId).done(function () {
+                            nfProcessGroupConfiguration.showConfiguration(controllerServiceEntity.parentGroupId).done(function () {
                                 deferred.resolve();
                             });
                         }
@@ -1130,9 +1125,9 @@
                             artifact: controllerServiceEntity.component.bundle.artifact,
                             version: controllerServiceEntity.component.bundle.version
                     })).done(function() {
-                         if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
+                         if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.parentGroupId)) {
                              var groupId;
-                             var processGroup = nfProcessGroup.get(controllerServiceEntity.component.parentGroupId);
+                             var processGroup = nfProcessGroup.get(controllerServiceEntity.parentGroupId);
                              if (nfCommon.isDefinedAndNotNull(processGroup)) {
                                  groupId = processGroup.id;
                              } else {

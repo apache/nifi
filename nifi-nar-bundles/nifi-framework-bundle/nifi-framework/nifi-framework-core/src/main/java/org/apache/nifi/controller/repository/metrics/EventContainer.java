@@ -20,9 +20,9 @@ package org.apache.nifi.controller.repository.metrics;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 
 public interface EventContainer {
-    public void addEvent(FlowFileEvent event);
+    void addEvent(FlowFileEvent event);
 
-    public void purgeEvents(long cutoffEpochMillis);
+    void purgeEvents(long cutoffEpochMillis);
 
-    public FlowFileEvent generateReport(String componentId, long sinceEpochMillis);
+    FlowFileEvent generateReport(long sinceEpochMillis);
 }

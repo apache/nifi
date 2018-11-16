@@ -40,9 +40,13 @@ public class RemoteProcessGroupEntityMergerTest {
         final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
         final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
 
-        final PermissionsDTO permissed = new PermissionsDTO();
-        permissed.setCanRead(true);
-        permissed.setCanWrite(true);
+        final PermissionsDTO permissions = new PermissionsDTO();
+        permissions.setCanRead(true);
+        permissions.setCanWrite(true);
+
+        final PermissionsDTO opsPermissions = new PermissionsDTO();
+        opsPermissions.setCanRead(false);
+        opsPermissions.setCanWrite(false);
 
         final RemoteProcessGroupStatusDTO status = new RemoteProcessGroupStatusDTO();
         status.setAggregateSnapshot(new RemoteProcessGroupStatusSnapshotDTO());
@@ -71,7 +75,8 @@ public class RemoteProcessGroupEntityMergerTest {
         rpg1.setContents(contents1);
 
         final RemoteProcessGroupEntity entity1 = new RemoteProcessGroupEntity();
-        entity1.setPermissions(permissed);
+        entity1.setPermissions(permissions);
+        entity1.setOperatePermissions(opsPermissions);
         entity1.setStatus(status);
         entity1.setComponent(rpg1);
 
@@ -99,7 +104,8 @@ public class RemoteProcessGroupEntityMergerTest {
         rpg2.setContents(contents2);
 
         final RemoteProcessGroupEntity entity2 = new RemoteProcessGroupEntity();
-        entity2.setPermissions(permissed);
+        entity2.setPermissions(permissions);
+        entity2.setOperatePermissions(opsPermissions);
         entity2.setStatus(status);
         entity2.setComponent(rpg2);
 

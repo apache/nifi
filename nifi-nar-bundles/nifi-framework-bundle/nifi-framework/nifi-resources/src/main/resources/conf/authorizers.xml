@@ -238,6 +238,9 @@
             NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the node identities,
             so the values should be the unmapped identities (i.e. full DN from a certificate). This identity must be found
             in the configured User Group Provider.
+
+        - Node Group - The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically
+            added/removed from the cluster.
     -->
     <accessPolicyProvider>
         <identifier>file-access-policy-provider</identifier>
@@ -246,8 +249,8 @@
         <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File"></property>
-
         <property name="Node Identity 1"></property>
+        <property name="Node Group"></property>
     </accessPolicyProvider>
 
     <!--

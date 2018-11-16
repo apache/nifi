@@ -72,7 +72,7 @@ public class ITAbstractListProcessor {
                     throw new RuntimeException("Failed to retrieve state", e);
                 }
             },
-            () -> proc.entities,
+            () -> proc.getEntityList(),
             () -> runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).stream().map(m -> (FlowFile) m).collect(Collectors.toList())
     );
 

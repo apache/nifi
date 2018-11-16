@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-jolt-record-bundle</artifactId>
+        <version>1.8.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nifi-jolt-record-processors</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.bazaarvoice.jolt</groupId>
+            <artifactId>jolt-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.bazaarvoice.jolt</groupId>
+            <artifactId>json-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-services</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/TestJoltTransformRecord/input.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/customChainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/chainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/cardrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/cardrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/removrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/removrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrELSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/defaultrELOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/multipleChainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/multipleChainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/cardrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/removrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierOverwriteSpec.json</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

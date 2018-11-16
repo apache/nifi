@@ -77,4 +77,12 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Avro
       Copyright 2009-2017 The Apache Software Foundation
+
+  (ASLv2) simple-syslog-5424
+      The following NOTICE information applies:
+
+          simple-syslog-5424
+          https://github.com/palindromicity/simple-syslog-5424
+
+          Copyright 2018 simple-syslog-5424 authors.
   

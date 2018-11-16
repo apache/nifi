@@ -103,6 +103,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.controller.repository.metrics.EmptyFlowFileEvent;
 import org.apache.nifi.controller.scheduling.EventDrivenSchedulingAgent;
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
@@ -630,7 +631,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                componentStatusRepository.capture(getControllerStatus(), getGarbageCollectionStatus());
+                try {
+                    componentStatusRepository.capture(getControllerStatus(), getGarbageCollectionStatus());
+                } catch (final Exception e) {
+                    LOG.error("Failed to capture component stats for Stats History", e);
+                }
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
@@ -2697,6 +2702,35 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         allProcessors.remove(identifier);
     }
 
+    public Connectable findLocalConnectable(final String id) {
+        final ProcessorNode procNode = getProcessorNode(id);
+        if (procNode != null) {
+            return procNode;
+        }
+
+        final Port inPort = getInputPort(id);
+        if (inPort != null) {
+            return inPort;
+        }
+
+        final Port outPort = getOutputPort(id);
+        if (outPort != null) {
+            return outPort;
+        }
+
+        final Funnel funnel = getFunnel(id);
+        if (funnel != null) {
+            return funnel;
+        }
+
+        final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(id);
+        if (remoteGroupPort != null) {
+            return remoteGroupPort;
+        }
+
+        return null;
+    }
+
     public ProcessorNode getProcessorNode(final String id) {
         return allProcessors.get(id);
     }
@@ -3304,18 +3338,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         status.setType(isProcessorAuthorized ? procNode.getComponentType() : "Processor");
 
         final FlowFileEvent entry = report.getReportEntries().get(procNode.getIdentifier());
-        if (entry == null) {
-            status.setInputBytes(0L);
-            status.setInputCount(0);
-            status.setOutputBytes(0L);
-            status.setOutputCount(0);
-            status.setBytesWritten(0L);
-            status.setBytesRead(0L);
-            status.setProcessingNanos(0);
-            status.setInvocations(0);
-            status.setAverageLineageDuration(0L);
-            status.setFlowFilesRemoved(0);
-        } else {
+        if (entry != null && entry != EmptyFlowFileEvent.INSTANCE) {
             final int processedCount = entry.getFlowFilesOut();
             final long numProcessedBytes = entry.getContentSizeOut();
             status.setOutputBytes(numProcessedBytes);
@@ -4088,13 +4111,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     private RepositoryStatusReport getProcessorStats() {
-        // processed in last 5 minutes
-        return getProcessorStats(System.currentTimeMillis() - 300000);
+        return flowFileEventRepository.reportTransferEvents(System.currentTimeMillis());
     }
 
-    private RepositoryStatusReport getProcessorStats(final long since) {
-        return flowFileEventRepository.reportTransferEvents(since);
-    }
 
     //
     // Clustering methods
@@ -4933,7 +4952,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
+            final Connectable connectable = findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);
@@ -4980,7 +4999,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new ProvenanceDataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
+            final Connectable connectable = findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);

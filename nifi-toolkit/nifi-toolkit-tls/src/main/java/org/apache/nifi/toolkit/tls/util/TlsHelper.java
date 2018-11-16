@@ -34,25 +34,31 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
+import org.bouncycastle.asn1.pkcs.RSAPublicKey;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMException;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
@@ -72,6 +78,7 @@ public class TlsHelper {
     public static final String JCE_URL = "http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html";
     public static final String ILLEGAL_KEY_SIZE = "illegal key size";
     private static boolean isUnlimitedStrengthCryptographyEnabled;
+    private static boolean isVerbose = true;
 
     // Evaluate an unlimited strength algorithm to determine if we support the capability we have on the system
     static {
@@ -185,15 +192,80 @@ public class TlsHelper {
         return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(parsePem(X509CertificateHolder.class, pemEncodedCertificate));
     }
 
-    public static KeyPair parseKeyPair(Reader pemEncodedKeyPair) throws IOException {
-        return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(parsePem(PEMKeyPair.class, pemEncodedKeyPair));
+    /**
+     * Returns the parsed {@link KeyPair} from the provided {@link Reader}. The incoming format can be PKCS #8 or PKCS #1.
+     *
+     * @param pemKeyPairReader a reader with access to the serialized key pair
+     * @return the key pair
+     * @throws IOException if there is an error reading the key pair
+     */
+    public static KeyPair parseKeyPairFromReader(Reader pemKeyPairReader) throws IOException {
+        // Instantiate PEMParser from Reader
+        try (PEMParser pemParser = new PEMParser(pemKeyPairReader)) {
+            // Read the object (deserialize)
+            Object parsedObject = pemParser.readObject();
+
+            // If this is an ASN.1 private key, it's in PKCS #8 format and wraps the actual RSA private key
+            if (PrivateKeyInfo.class.isInstance(parsedObject)) {
+                if (isVerbose()) {
+                    logger.info("Provided private key is in PKCS #8 format");
+                }
+                PEMKeyPair keyPair = convertPrivateKeyFromPKCS8ToPKCS1((PrivateKeyInfo) parsedObject);
+                return getKeyPair(keyPair);
+            } else if (PEMKeyPair.class.isInstance(parsedObject)) {
+                // Already in PKCS #1 format
+                return getKeyPair((PEMKeyPair)parsedObject);
+            } else {
+                logger.warn("Expected one of %s or %s but got %s", PrivateKeyInfo.class, PEMKeyPair.class, parsedObject.getClass());
+                throw new IOException("Expected private key in PKCS #1 or PKCS #8 unencrypted format");
+            }
+        }
+    }
+
+    /**
+     * Returns a {@link KeyPair} instance containing the {@link X509Certificate} public key and the {@link java.security.spec.PKCS8EncodedKeySpec} private key from the PEM-encoded {@link PEMKeyPair}.
+     *
+     * @param keyPair the key pair in PEM format
+     * @return the key pair in a format which provides for direct access to the keys
+     * @throws PEMException if there is an error converting the key pair
+     */
+    private static KeyPair getKeyPair(PEMKeyPair keyPair) throws PEMException {
+        return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(keyPair);
+    }
+
+    /**
+     * Returns a {@link PEMKeyPair} object with direct access to the public and private keys given a PKCS #8 private key.
+     *
+     * @param privateKeyInfo the PKCS #8 private key info
+     * @return the PKCS #1 public and private key pair
+     * @throws IOException if there is an error converting the key pair
+     */
+    private static PEMKeyPair convertPrivateKeyFromPKCS8ToPKCS1(PrivateKeyInfo privateKeyInfo) throws IOException {
+        // Parse the key wrapping to determine the internal key structure
+        ASN1Encodable asn1PrivateKey = privateKeyInfo.parsePrivateKey();
+
+        // Convert the parsed key to an RSA private key
+        RSAPrivateKey keyStruct = RSAPrivateKey.getInstance(asn1PrivateKey);
+
+        // Create the RSA public key from the modulus and exponent
+        RSAPublicKey pubSpec = new RSAPublicKey(
+            keyStruct.getModulus(), keyStruct.getPublicExponent());
+
+        // Create an algorithm identifier for forming the key pair
+        AlgorithmIdentifier algId = new AlgorithmIdentifier(PKCSObjectIdentifiers.rsaEncryption, DERNull.INSTANCE);
+        if (isVerbose()) {
+            logger.info("Converted private key from PKCS #8 to PKCS #1 RSA private key");
+        }
+
+        // Create the key pair container
+        return new PEMKeyPair(new SubjectPublicKeyInfo(algId, pubSpec), new PrivateKeyInfo(algId, keyStruct));
     }
 
     public static <T> T parsePem(Class<T> clazz, Reader pemReader) throws IOException {
         try (PEMParser pemParser = new PEMParser(pemReader)) {
             Object object = pemParser.readObject();
             if (!clazz.isInstance(object)) {
-                throw new IOException("Expected " + clazz);
+                throw new IOException("Expected " + clazz + " but got " + object.getClass());
             }
             return (T) object;
         }
@@ -249,6 +321,53 @@ public class TlsHelper {
      */
     public static final String escapeFilename(String filename) {
         return filename.replaceAll("[^\\w\\.\\-\\=]+", "_");
+    }
+
+    /**
+     * Returns true if the {@code certificate} is signed by one of the {@code signingCertificates}. The list should
+     * include the certificate itself to allow for self-signed certificates. If it does not, a self-signed certificate
+     * will return {@code false}.
+     *
+     * @param certificate the certificate containing the signature being verified
+     * @param signingCertificates a list of certificates which may have signed the certificate
+     * @return true if one of the signing certificates did sign the certificate
+     */
+    public static boolean verifyCertificateSignature(X509Certificate certificate, List<X509Certificate> signingCertificates) {
+        String certificateDisplayInfo = getCertificateDisplayInfo(certificate);
+        if (isVerbose()) {
+            logger.info("Verifying the certificate signature for " + certificateDisplayInfo);
+        }
+        boolean signatureMatches = false;
+        for (X509Certificate signingCert : signingCertificates) {
+            final String signingCertDisplayInfo = getCertificateDisplayInfo(signingCert);
+            try {
+                if (isVerbose()) {
+                    logger.info("Attempting to verify certificate " + certificateDisplayInfo + " signature with " + signingCertDisplayInfo);
+                }
+                PublicKey pub = signingCert.getPublicKey();
+                certificate.verify(pub);
+                if (isVerbose()) {
+                    logger.info("Certificate was signed by " + signingCertDisplayInfo);
+                }
+                signatureMatches = true;
+                break;
+            } catch (Exception e) {
+                // Expected if the signature does not match
+                if (isVerbose()) {
+                    logger.warn("Certificate " + certificateDisplayInfo + " not signed by " + signingCertDisplayInfo + " [" + e.getLocalizedMessage() + "]");
+                }
+            }
+        }
+        return signatureMatches;
+    }
+
+    private static String getCertificateDisplayInfo(X509Certificate certificate) {
+        return certificate.getSubjectX500Principal().getName();
+    }
+
+    private static boolean isVerbose() {
+        // TODO: When verbose mode is enabled via command-line flag, this will read the variable
+        return isVerbose;
     }
 
 }

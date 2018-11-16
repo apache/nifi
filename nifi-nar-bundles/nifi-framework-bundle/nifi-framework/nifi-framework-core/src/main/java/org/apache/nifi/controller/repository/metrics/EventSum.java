@@ -17,31 +17,30 @@
 
 package org.apache.nifi.controller.repository.metrics;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.controller.repository.FlowFileEvent;
 
-public class EventSum {
+import java.util.concurrent.atomic.AtomicReference;
 
+public class EventSum {
     private final AtomicReference<EventSumValue> ref = new AtomicReference<>();
 
     public EventSumValue getValue() {
         final EventSumValue value = ref.get();
-        return value == null ? new EventSumValue() : value;
+        return value == null ? new EventSumValue(System.currentTimeMillis()) : value;
     }
 
-    public void addOrReset(final FlowFileEvent event) {
-        final long expectedMinute = System.currentTimeMillis() / 60000;
+    public EventSumValue addOrReset(final FlowFileEvent event, final long timestamp) {
+        final long expectedSecond = timestamp / 1000;
 
         EventSumValue curValue;
         while (true) {
             curValue = ref.get();
-            if (curValue == null || curValue.getMinuteTimestamp() != expectedMinute) {
-                final EventSumValue newValue = new EventSumValue();
+            if (curValue == null || (curValue.getTimestamp() / 1000) != expectedSecond) {
+                final EventSumValue newValue = new EventSumValue(timestamp);
                 final boolean replaced = ref.compareAndSet(curValue, newValue);
                 if (replaced) {
-                    curValue = newValue;
-                    break;
+                    newValue.add(event);
+                    return curValue;
                 }
             } else {
                 break;
@@ -49,5 +48,24 @@ public class EventSum {
         }
 
         curValue.add(event);
+        return null;
+    }
+
+
+    public EventSumValue reset(final long ifOlderThan) {
+        while (true) {
+            final EventSumValue curValue = ref.get();
+            if (curValue == null) {
+                return null;
+            }
+
+            if (curValue.getTimestamp() < ifOlderThan) {
+                if (ref.compareAndSet(curValue, null)) {
+                    return curValue;
+                }
+            } else {
+                return null;
+            }
+        }
     }
 }

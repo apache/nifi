@@ -13,13 +13,33 @@
   limitations under the License.
 -->
 
+## Latest changes
+
+### 1.8.0
+- The NiFi Toolkit has been added to the image under the path `/opt/nifi/nifi-toolkit-current` also set as the environment variable `NIFI_TOOLKIT_HOME`
+- The installation directory and related environment variables are changed to be version-agnostic to `/opt/nifi/nifi-current`:
+```
+docker run --rm --entrypoint /bin/bash apache/nifi:1.8.0 -c 'env | grep NIFI'
+NIFI_HOME=/opt/nifi/nifi-current
+NIFI_LOG_DIR=/opt/nifi/nifi-current/logs
+NIFI_TOOLKIT_HOME=/opt/nifi/nifi-toolkit-current
+NIFI_PID_DIR=/opt/nifi/nifi-current/run
+NIFI_BASE_DIR=/opt/nifi
+```
+- A symlink refer to the new path for backward compatibility:
+```
+docker run --rm --entrypoint /bin/bash apache/nifi:1.8.0 -c 'readlink /opt/nifi/nifi-1.8.0'                                   /opt/nifi/nifi-current
+```
+
 # Docker Image Quickstart
 
 ## Capabilities
 This image currently supports running in standalone mode either unsecured or with user authentication provided through:
    * [Two-Way SSL with Client Certificates](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security-configuration)
    * [Lightweight Directory Access Protocol (LDAP)](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#ldap_login_identity_provider)
-   
+
+This image also contains the NiFi Toolkit (as of version 1.8.0) preconfigured to use either in secure and unsecure mode.
+
 ## Building
 The Docker image can be built using the following command:
 
@@ -34,7 +54,7 @@ This build will result in an image tagged apache/nifi:latest
 
 **Note**: The default version of NiFi specified by the Dockerfile is typically that of one that is unreleased if working from source.
 To build an image for a prior released version, one can override the `NIFI_VERSION` build-arg with the following command:
-    
+
     docker build --build-arg=NIFI_VERSION={Desired NiFi Version} -t apache/nifi:latest .
 
 There is, however, no guarantee that older versions will work as properties have changed and evolved with subsequent releases.
@@ -49,7 +69,7 @@ The minimum to run a NiFi instance is as follows:
       -p 8080:8080 \
       -d \
       apache/nifi:latest
-      
+
 This will provide a running instance, exposing the instance UI to the host system on at port 8080,
 viewable at `http://localhost:8080/nifi`.
 
@@ -60,9 +80,9 @@ You can also pass in environment variables to change the NiFi communication port
       -d \
       -e NIFI_WEB_HTTP_PORT='9090'
       apache/nifi:latest
-      
+
 For a list of the environment variables recognised in this build, look into the .sh/secure.sh and .sh/start.sh scripts
-        
+
 ### Standalone Instance, Two-Way SSL
 In this configuration, the user will need to provide certificates and the associated configuration information.
 Of particular note, is the `AUTH` environment variable which is set to `tls`.  Additionally, the user must provide an
@@ -88,8 +108,8 @@ Finally, this command makes use of a volume to provide certificates on the host 
 In this configuration, the user will need to provide certificates and the associated configuration information.  Optionally,
 if the LDAP provider of interest is operating in LDAPS or START_TLS modes, certificates will additionally be needed.
 Of particular note, is the `AUTH` environment variable which is set to `ldap`.  Additionally, the user must provide a
-DN as provided by the configured LDAP server in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be 
-used to seed the instance with an initial user with administrative privileges.  Finally, this command makes use of a 
+DN as provided by the configured LDAP server in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be
+used to seed the instance with an initial user with administrative privileges.  Finally, this command makes use of a
 volume to provide certificates on the host system to the container instance.
 
 #### For a minimal, connection to an LDAP server using SIMPLE authentication:
@@ -147,8 +167,20 @@ volume to provide certificates on the host system to the container instance.
 | Connect String | NIFI_ZK_CONNECT_STRING |
 | Root Node      | NIFI_ZK_ROOT_NODE      |
 
+
+### Using the Toolkit
+
+Start the container:
+
+    docker run -d --name nifi apache/nifi
+
+After NiFi has been started, it is possible to run toolkit commands against the running instance:
+
+    docker exec -ti nifi nifi-toolkit-current/bin/cli.sh nifi current-user
+    anonymous
+
 ## Configuration Information
-The following ports are specified by default in Docker for NiFi operation within the container and 
+The following ports are specified by default in Docker for NiFi operation within the container and
 can be published to the host.
 
 | Function                 | Property                      | Port  |

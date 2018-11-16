@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi;
 
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.ClusterSummary;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.CurrentUser;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetRootId;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGChangeVersion;
@@ -56,6 +57,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
     protected List<Command> createCommands() {
         final List<AbstractNiFiCommand> commands = new ArrayList<>();
         commands.add(new CurrentUser());
+        commands.add(new ClusterSummary());
         commands.add(new GetRootId());
         commands.add(new ListRegistryClients());
         commands.add(new CreateRegistryClient());

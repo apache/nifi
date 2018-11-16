@@ -17,33 +17,66 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
 
-import java.util.List;
-
 public interface MongoDBClientService extends ControllerService {
+     String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
+     String WRITE_CONCERN_UNACKNOWLEDGED = "UNACKNOWLEDGED";
+     String WRITE_CONCERN_FSYNCED = "FSYNCED";
+     String WRITE_CONCERN_JOURNALED = "JOURNALED";
+     String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
+     String WRITE_CONCERN_MAJORITY = "MAJORITY";
+
+     PropertyDescriptor URI = new PropertyDescriptor.Builder()
+            .name("mongo-uri")
+            .displayName("Mongo URI")
+            .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.URI_VALIDATOR)
+            .build();
+     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                    + "connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+     PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("ssl-client-auth")
+            .displayName("Client Auth")
+            .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
+                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
+                    + "has been defined and enabled.")
+            .required(false)
+            .allowableValues(SSLContextService.ClientAuth.values())
+            .defaultValue("REQUIRED")
+            .build();
+
+     PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
+            .name("mongo-write-concern")
+            .displayName("Write Concern")
+            .description("The write concern to use")
+            .required(true)
+            .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
+                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY)
+            .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
+            .build();
+
+
     default Document convertJson(String query) {
         return Document.parse(query);
     }
-
-    long count(Document query);
-    void delete(Document query);
-    boolean exists(Document query);
-    Document findOne(Document query);
-    Document findOne(Document query, Document projection);
-    List<Document> findMany(Document query);
-    List<Document> findMany(Document query, int limit);
-    List<Document> findMany(Document query, Document sort, int limit);
-    void insert(Document doc);
-    void insert(List<Document> docs);
-    void update(Document query, Document update);
-    void update(Document query, Document update, boolean multiple);
-    void updateOne(Document query, Document update);
-    void upsert(Document query, Document update);
-    void dropDatabase();
-    void dropCollection();
-
+    WriteConcern getWriteConcern(final ConfigurationContext context);
     MongoDatabase getDatabase(String name);
+    String getURI();
 }

@@ -117,6 +117,22 @@ public class FileAccessPolicyProviderTest {
                     "  </users>" +
                     "</tenants>";
 
+    private static final String TENANTS_FOR_ADMIN_AND_NODE_GROUP =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<tenants>" +
+                    "  <groups>" +
+                    "    <group identifier=\"cluster-nodes\" name=\"Cluster Nodes\">" +
+                    "       <user identifier=\"node1\" />" +
+                    "       <user identifier=\"node2\" />" +
+                    "    </group>" +
+                    "  </groups>" +
+                    "  <users>" +
+                    "    <user identifier=\"admin-user\" identity=\"admin-user\"/>" +
+                    "    <user identifier=\"node1\" identity=\"node1\"/>" +
+                    "    <user identifier=\"node2\" identity=\"node2\"/>" +
+                    "  </users>" +
+                    "</tenants>";
+
     // This is the root group id from the flow.xml.gz in src/test/resources
     private static final String ROOT_GROUP_ID = "e530e14c-adcf-41c2-b5d6-d9a59ba8765c";
 
@@ -732,6 +748,33 @@ public class FileAccessPolicyProviderTest {
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser2.getIdentifier()));
     }
 
+    @Test
+    public void testOnConfiguredWhenNodeGroupProvided() throws Exception {
+        final String adminIdentity = "admin-user";
+        final String nodeGroupName = "Cluster Nodes";
+        final String nodeGroupIdentifier = "cluster-nodes";
+        final String nodeIdentity1 = "node1";
+        final String nodeIdentity2 = "node2";
+
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
+                .thenReturn(new StandardPropertyValue(nodeGroupName, null));
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
+
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
+
+        User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
+        User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
+
+        AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+
+        assertNotNull(proxyWritePolicy);
+        assertTrue(proxyWritePolicy.getGroups().contains(nodeGroupIdentifier));
+    }
 
     @Test
     public void testOnConfiguredWhenTenantsAndAuthorizationsFileDoesNotExist() {

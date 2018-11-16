@@ -929,6 +929,29 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testProvenanceEventsHaveDurationFromSession() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile orig = session.get();
+        final FlowFile newFlowFile = session.create(orig);
+        session.getProvenanceReporter().fork(orig, Collections.singletonList(newFlowFile), 0L);
+        session.getProvenanceReporter().fetch(newFlowFile, "nowhere://");
+        session.getProvenanceReporter().send(newFlowFile, "nowhere://");
+        session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
+        session.commit();
+
+        List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 100000);
+        assertNotNull(events);
+        assertEquals(3, events.size()); // FETCH, SEND, and FORK
+        events.forEach((event) -> assertTrue(event.getEventDuration() > -1));
+    }
+
+    @Test
     public void testUuidAttributeCannotBeUpdated() {
         String originalUuid = "11111111-1111-1111-1111-111111111111";
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()

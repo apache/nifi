@@ -88,13 +88,13 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 @SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
-@CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket\n" +
-        "The upload uses either the PutS3Object method or PutS3MultipartUpload methods.  The PutS3Object method " +
-        "send the file in a single synchronous call, but it has a 5GB size limit.  Larger files are sent using the " +
-        "multipart upload methods that initiate, transfer the parts, and complete an upload.  This multipart process " +
+@CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket.\n" +
+        "The upload uses either the PutS3Object method or the PutS3MultipartUpload method.  The PutS3Object method " +
+        "sends the file in a single synchronous call, but it has a 5GB size limit.  Larger files are sent using the " +
+        "PutS3MultipartUpload method.  This multipart process " +
         "saves state after each step so that a large upload can be resumed with minimal loss if the processor or " +
         "cluster is stopped and restarted.\n" +
-        "A multipart upload consists of three steps\n" +
+        "A multipart upload consists of three steps:\n" +
         "  1) initiate upload,\n" +
         "  2) upload the parts, and\n" +
         "  3) complete the upload.\n" +
@@ -103,7 +103,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
         "The AWS libraries select an endpoint URL based on the AWS region, but this can be overridden with the " +
         "'Endpoint Override URL' property for use with other S3-compatible endpoints.\n" +
         "The S3 API specifies that the maximum file size for a PutS3Object upload is 5GB. It also requires that " +
-        "parts in a multipart upload must be at least 5MB in size, except for the last part.  These limits are " +
+        "parts in a multipart upload must be at least 5MB in size, except for the last part.  These limits " +
         "establish the bounds for the Multipart Upload Threshold and Part Size properties.")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
         value = "The value of a User-Defined Metadata field to add to the S3 Object",

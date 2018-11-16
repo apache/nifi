@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -58,7 +57,7 @@ import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"scan", "attributes", "search", "lookup"})
+@Tags({"scan", "attributes", "search", "lookup", "find", "text"})
 @CapabilityDescription("Scans the specified attributes of FlowFiles, checking to see if any of their values are "
         + "present within the specified dictionary of terms")
 public class ScanAttribute extends AbstractProcessor {

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.ComputeEngineCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
@@ -39,6 +42,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class CredentialsFactoryTest {
 
+    private static final HttpTransport TRANSPORT = new NetHttpTransport();
+    private static final HttpTransportFactory TRANSPORT_FACTORY = () -> TRANSPORT;
+
     @Test
     public void testCredentialPropertyDescriptorClassCannotBeInvoked() throws Exception {
         Constructor constructor = CredentialPropertyDescriptors.class.getDeclaredConstructor();
@@ -54,7 +60,7 @@ public class CredentialsFactoryTest {
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
-        final GoogleCredentials credentials = factory.getGoogleCredentials(properties);
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
     }
@@ -67,7 +73,7 @@ public class CredentialsFactoryTest {
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
-        final GoogleCredentials credentials = factory.getGoogleCredentials(properties);
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
     }
@@ -89,7 +95,7 @@ public class CredentialsFactoryTest {
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
-        final GoogleCredentials credentials = factory.getGoogleCredentials(properties);
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
         assertEquals("credentials class should be equal", ServiceAccountCredentials.class,
@@ -117,7 +123,7 @@ public class CredentialsFactoryTest {
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
-        final GoogleCredentials credentials = factory.getGoogleCredentials(properties);
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
         assertEquals("credentials class should be equal", ServiceAccountCredentials.class,
@@ -132,7 +138,7 @@ public class CredentialsFactoryTest {
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
-        final GoogleCredentials credentials = factory.getGoogleCredentials(properties);
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
         assertEquals("credentials class should be equal", ComputeEngineCredentials.class,

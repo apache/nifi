@@ -17,13 +17,14 @@
 
 package org.apache.nifi.controller.repository.metrics;
 
+import org.apache.nifi.controller.repository.FlowFileEvent;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.controller.repository.FlowFileEvent;
-
 public class EventSumValue {
+    private volatile boolean empty = true;
 
     private int flowFilesIn = 0;
     private int flowFilesOut = 0;
@@ -44,16 +45,16 @@ public class EventSumValue {
     private int invocations = 0;
     private Map<String, Long> counters;
 
-    private final long minuteTimestamp;
     private final long millisecondTimestamp;
 
 
-    public EventSumValue() {
-        this.millisecondTimestamp = System.currentTimeMillis();
-        this.minuteTimestamp = millisecondTimestamp / 60000;
+    public EventSumValue(final long timestamp) {
+        this.millisecondTimestamp = timestamp;
     }
 
     public synchronized void add(final FlowFileEvent flowFileEvent) {
+        empty = false;
+
         this.aggregateLineageMillis += flowFileEvent.getAggregateLineageMillis();
         this.bytesRead += flowFileEvent.getBytesRead();
         this.bytesReceived += flowFileEvent.getBytesReceived();
@@ -84,8 +85,12 @@ public class EventSumValue {
         }
     }
 
-    public synchronized FlowFileEvent toFlowFileEvent(final String componentId) {
-        final StandardFlowFileEvent event = new StandardFlowFileEvent(componentId);
+    public synchronized FlowFileEvent toFlowFileEvent() {
+        if (empty) {
+            return EmptyFlowFileEvent.INSTANCE;
+        }
+
+        final StandardFlowFileEvent event = new StandardFlowFileEvent();
         event.setAggregateLineageMillis(aggregateLineageMillis);
         event.setBytesRead(bytesRead);
         event.setBytesReceived(bytesReceived);
@@ -106,6 +111,10 @@ public class EventSumValue {
     }
 
     public synchronized void add(final EventSumValue other) {
+        if (other.empty) {
+            return;
+        }
+
         synchronized (other) {
             this.aggregateLineageMillis += other.aggregateLineageMillis;
             this.bytesRead += other.bytesRead;
@@ -139,8 +148,42 @@ public class EventSumValue {
         }
     }
 
-    public long getMinuteTimestamp() {
-        return minuteTimestamp;
+    public synchronized void subtract(final EventSumValue other) {
+        if (other.empty) {
+            return;
+        }
+
+        synchronized (other) {
+            this.aggregateLineageMillis -= other.aggregateLineageMillis;
+            this.bytesRead -= other.bytesRead;
+            this.bytesReceived -= other.bytesReceived;
+            this.bytesSent -= other.bytesSent;
+            this.bytesWritten -= other.bytesWritten;
+            this.contentSizeIn -= other.contentSizeIn;
+            this.contentSizeOut -= other.contentSizeOut;
+            this.contentSizeRemoved -= other.contentSizeRemoved;
+            this.flowFilesIn -= other.flowFilesIn;
+            this.flowFilesOut -= other.flowFilesOut;
+            this.flowFilesReceived -= other.flowFilesReceived;
+            this.flowFilesRemoved -= other.flowFilesRemoved;
+            this.flowFilesSent -= other.flowFilesSent;
+            this.invocations -= other.invocations;
+            this.processingNanos -= other.processingNanos;
+
+            final Map<String, Long> eventCounters = other.counters;
+            if (eventCounters != null) {
+                if (counters == null) {
+                    counters = new HashMap<>();
+                }
+
+                for (final Map.Entry<String, Long> entry : eventCounters.entrySet()) {
+                    final String counterName = entry.getKey();
+                    final Long counterValue = entry.getValue();
+
+                    counters.compute(counterName, (key, value) -> value == null ? counterValue : counterValue - value);
+                }
+            }
+        }
     }
 
     public long getTimestamp() {

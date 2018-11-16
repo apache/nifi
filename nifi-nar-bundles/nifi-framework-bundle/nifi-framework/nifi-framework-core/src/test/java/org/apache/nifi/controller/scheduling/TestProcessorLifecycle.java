@@ -16,28 +16,6 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-import java.util.function.Supplier;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -77,6 +55,28 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
 /**
  * Validate Processor's life-cycle operation within the context of
  * {@link FlowController} and {@link StandardProcessScheduler}
@@ -84,6 +84,10 @@ import org.slf4j.LoggerFactory;
 public class TestProcessorLifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
+    private static final long SHORT_DELAY_TOLERANCE = 10000L;
+    private static final long MEDIUM_DELAY_TOLERANCE = 15000L;
+    private static final long LONG_DELAY_TOLERANCE = 20000L;
+
     private FlowController fc;
     private Map<String, String> properties = new HashMap<>();
     private volatile String propsFile = "src/test/resources/lifecycletest.nifi.properties";
@@ -100,7 +104,7 @@ public class TestProcessorLifecycle {
     }
 
     private void assertCondition(final Supplier<Boolean> supplier) {
-        assertCondition(supplier, 1000L);
+        assertCondition(supplier, SHORT_DELAY_TOLERANCE);
     }
 
     private void assertCondition(final Supplier<Boolean> supplier, final long delayToleranceMillis) {
@@ -244,7 +248,7 @@ public class TestProcessorLifecycle {
         testGroup.addProcessor(testProcNode);
 
         fc.startProcessGroup(testGroup.getIdentifier());
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
 
         fc.stopAllProcessors();
 
@@ -252,9 +256,9 @@ public class TestProcessorLifecycle {
 
         // validates that regardless of how many running tasks, lifecycle
         // operation are invoked atomically (once each).
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 1000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
         // . . . hence only 3 operations must be in the list
-        assertCondition(() -> testProcessor.operationNames.size() == 3, 2000L);
+        assertCondition(() -> testProcessor.operationNames.size() == 3, SHORT_DELAY_TOLERANCE);
         // . . . and ordered as @OnScheduled, @OnUnscheduled, @OnStopped
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
         assertEquals("@OnUnscheduled", testProcessor.operationNames.get(1));
@@ -344,11 +348,11 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 5000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
 
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 5000L);
-        assertCondition(() -> testProcessor.operationNames.size() == 3, 8000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
+        assertCondition(() -> testProcessor.operationNames.size() == 3, LONG_DELAY_TOLERANCE);
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
         assertEquals("@OnUnscheduled", testProcessor.operationNames.get(1));
         assertEquals("@OnStopped", testProcessor.operationNames.get(2));
@@ -379,9 +383,9 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 10000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
     }
 
     /**
@@ -409,9 +413,9 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
     }
 
     /**
@@ -435,9 +439,9 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 5000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
     }
 
     /**
@@ -461,9 +465,9 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 3000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 4000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), MEDIUM_DELAY_TOLERANCE);
     }
 
     /**
@@ -489,11 +493,11 @@ public class TestProcessorLifecycle {
 
         testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
         ps.disableProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
         ps.stopProcessor(testProcNode);
-        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 2000L);
+        assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), SHORT_DELAY_TOLERANCE);
     }
 
     /**

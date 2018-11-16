@@ -94,7 +94,7 @@ public class ControllerServiceReferencingComponentDTO {
      * @return type for this component referencing a controller service
      */
     @ApiModelProperty(
-            value = "The type of the component referencing a controller service."
+            value = "The type of the component referencing a controller service in simple Java class name format without package name."
     )
     public String getType() {
         return type;

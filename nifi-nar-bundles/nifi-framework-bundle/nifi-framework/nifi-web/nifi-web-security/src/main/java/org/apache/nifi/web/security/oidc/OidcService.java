@@ -90,6 +90,15 @@ public class OidcService {
     }
 
     /**
+     * Returns the OpenId Connect end session endpoint.
+     *
+     * @return the end session endpoint
+     */
+    public URI getEndSessionEndpoint() {
+        return identityProvider.getEndSessionEndpoint();
+    }
+
+    /**
      * Returns the OpenId Connect scope.
      *
      * @return scope

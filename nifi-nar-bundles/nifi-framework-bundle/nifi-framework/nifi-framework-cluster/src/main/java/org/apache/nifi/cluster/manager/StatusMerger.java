@@ -304,6 +304,7 @@ public class StatusMerger {
             target.setId(toMerge.getId());
             target.setName(toMerge.getName());
             target.setTargetUri(toMerge.getTargetUri());
+            target.setValidationStatus(toMerge.getValidationStatus());
         }
 
         merge(target.getAggregateSnapshot(), targetReadablePermission, toMerge.getAggregateSnapshot(), toMergeReadablePermission);

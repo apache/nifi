@@ -37,6 +37,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
@@ -72,8 +73,8 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor KEYSPACE = new PropertyDescriptor.Builder()
             .name("Keyspace")
-            .description("The Cassandra Keyspace to connect to. If no keyspace is specified, the query will need to "
-                    + "include the keyspace name before any table reference.")
+            .description("The Cassandra Keyspace to connect to. If not set, the keyspace name has to be provided with the " +
+                    "table name in the form of <KEYSPACE>.<TABLE>")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -129,6 +130,19 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("A FlowFile is transferred to this relationship if the operation completed successfully.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("A FlowFile is transferred to this relationship if the operation failed.")
+            .build();
+    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
+            .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
+                    + "it again may succeed.")
             .build();
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();

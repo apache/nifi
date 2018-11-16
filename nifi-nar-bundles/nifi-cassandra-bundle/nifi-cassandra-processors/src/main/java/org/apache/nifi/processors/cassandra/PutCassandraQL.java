@@ -27,6 +27,8 @@ import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -37,8 +39,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -63,6 +64,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -94,6 +96,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor STATEMENT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Max Wait Time")
+            .displayName("Max Wait Time")
             .description("The maximum amount of time allowed for a running CQL select query. Must be of format "
                     + "<duration> <TimeUnit> where <duration> is a non-negative integer and TimeUnit is a supported "
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
@@ -103,21 +106,18 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    public static final PropertyDescriptor STATEMENT_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("putcql-stmt-cache-size")
+            .displayName("Statement Cache Size")
+            .description("The maximum number of CQL Prepared Statements to cache. This can improve performance if many incoming flow files have the same CQL statement "
+                    + "with different values for the parameters. If this property is set to zero, the cache is effectively disabled.")
+            .defaultValue("0")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
 
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully executed CQL statement.")
-            .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("CQL statement execution failed.")
-            .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
-            .description("A FlowFile is transferred to this relationship if the statement cannot be executed successfully but "
-                    + "attempting the operation again may succeed.")
-            .build();
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
     private final static Set<Relationship> relationships;
 
@@ -125,6 +125,12 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     // Matches on top-level type (primitive types like text,int) and also for collections (like list<boolean> and map<float,double>)
     private static final Pattern CQL_TYPE_PATTERN = Pattern.compile("([^<]+)(<([^,>]+)(,([^,>]+))*>)?");
+
+    /**
+     * LRU cache for the compiled patterns. The size of the cache is determined by the value of the Statement Cache Size property
+     */
+    @VisibleForTesting
+    private ConcurrentMap<String, PreparedStatement> statementCache;
 
     /*
      * Will ensure that the list of property descriptors is build only once.
@@ -134,6 +140,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(STATEMENT_TIMEOUT);
+        _propertyDescriptors.add(STATEMENT_CACHE_SIZE);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -157,8 +164,17 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         ComponentLog log = getLogger();
+
+        // Initialize the prepared statement cache
+        int statementCacheSize = context.getProperty(STATEMENT_CACHE_SIZE).evaluateAttributeExpressions().asInteger();
+        statementCache =  CacheBuilder.newBuilder()
+                .maximumSize(statementCacheSize)
+                .<String, PreparedStatement>build()
+                .asMap();
+
         try {
             connectToCassandra(context);
+
         } catch (final NoHostAvailableException nhae) {
             log.error("No host in the Cassandra cluster can be contacted successfully to execute this statement", nhae);
             // Log up to 10 error messages. Otherwise if a 1000-node cluster was specified but there was no connectivity,
@@ -191,7 +207,11 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
         String cql = getCQL(session, flowFile, charset);
         try {
-            PreparedStatement statement = connectionSession.prepare(cql);
+            PreparedStatement statement = statementCache.get(cql);
+            if(statement == null) {
+                statement = connectionSession.prepare(cql);
+                statementCache.put(cql, statement);
+            }
             BoundStatement boundStatement = statement.bind();
 
             Map<String, String> attributes = flowFile.getAttributes();
@@ -396,14 +416,9 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
         throw new IllegalArgumentException("Cannot create object of type " + paramType + " using input " + paramValue);
     }
 
-    @OnUnscheduled
+    @OnStopped
     public void stop() {
         super.stop();
+        statementCache.clear();
     }
-
-    @OnShutdown
-    public void shutdown() {
-        super.stop();
-    }
-
 }

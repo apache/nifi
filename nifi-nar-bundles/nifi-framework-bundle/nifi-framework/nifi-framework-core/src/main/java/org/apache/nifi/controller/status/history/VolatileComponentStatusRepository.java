@@ -16,43 +16,65 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
-import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
-import org.apache.nifi.util.ComponentStatusReport;
-import org.apache.nifi.util.ComponentStatusReport.ComponentType;
+import org.apache.nifi.util.ComponentMetrics;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
-import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public class VolatileComponentStatusRepository implements ComponentStatusRepository {
+    private static final Logger logger = LoggerFactory.getLogger(VolatileComponentStatusRepository.class);
+
+    private static final Set<MetricDescriptor<?>> DEFAULT_PROCESSOR_METRICS = Arrays.stream(ProcessorStatusDescriptor.values())
+        .map(ProcessorStatusDescriptor::getDescriptor)
+        .collect(Collectors.toSet());
+    private static final Set<MetricDescriptor<?>> DEFAULT_CONNECTION_METRICS = Arrays.stream(ConnectionStatusDescriptor.values())
+        .map(ConnectionStatusDescriptor::getDescriptor)
+        .collect(Collectors.toSet());
+    private static final Set<MetricDescriptor<?>> DEFAULT_GROUP_METRICS = Arrays.stream(ProcessGroupStatusDescriptor.values())
+        .map(ProcessGroupStatusDescriptor::getDescriptor)
+        .collect(Collectors.toSet());
+    private static final Set<MetricDescriptor<?>> DEFAULT_RPG_METRICS = Arrays.stream(RemoteProcessGroupStatusDescriptor.values())
+        .map(RemoteProcessGroupStatusDescriptor::getDescriptor)
+        .collect(Collectors.toSet());
+
 
     public static final String NUM_DATA_POINTS_PROPERTY = "nifi.components.status.repository.buffer.size";
     public static final int DEFAULT_NUM_DATA_POINTS = 288;   // 1 day worth of 5-minute snapshots
 
-    private final RingBuffer<Capture> captures;
-    private final Logger logger = LoggerFactory.getLogger(VolatileComponentStatusRepository.class);
+    private final Map<String, ComponentStatusHistory> componentStatusHistories = new HashMap<>();
 
+    private final RingBuffer<Date> timestamps;
+    private final RingBuffer<List<GarbageCollectionStatus>> gcStatuses;
+    private final int numDataPoints;
     private volatile long lastCaptureTime = 0L;
 
     /**
      * Default no args constructor for service loading only
      */
-    public VolatileComponentStatusRepository(){
-        captures = null;
+    public VolatileComponentStatusRepository() {
+        numDataPoints = DEFAULT_NUM_DATA_POINTS;
+        gcStatuses = null;
+        timestamps = null;
     }
 
     public VolatileComponentStatusRepository(final NiFiProperties nifiProperties) {
-        final int numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
-        captures = new RingBuffer<>(numDataPoints);
+        numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
+        gcStatuses = new RingBuffer<>(numDataPoints);
+        timestamps = new RingBuffer<>(numDataPoints);
     }
 
     @Override
@@ -62,13 +84,59 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     @Override
     public synchronized void capture(final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
-        final ComponentStatusReport statusReport = ComponentStatusReport.fromProcessGroupStatus(rootGroupStatus, ComponentType.PROCESSOR,
-            ComponentType.CONNECTION, ComponentType.PROCESS_GROUP, ComponentType.REMOTE_PROCESS_GROUP);
+        final Date evicted = timestamps.add(timestamp);
+        if (evicted != null) {
+            componentStatusHistories.values().forEach(history -> history.expireBefore(evicted));
+        }
 
-        captures.add(new Capture(timestamp, statusReport, gcStatus));
+        capture(rootGroupStatus, timestamp);
+        gcStatuses.add(gcStatus);
+
         logger.debug("Captured metrics for {}", this);
         lastCaptureTime = Math.max(lastCaptureTime, timestamp.getTime());
     }
+
+
+    private void capture(final ProcessGroupStatus groupStatus, final Date timestamp) {
+        // Capture status for the ProcessGroup
+        final ComponentDetails groupDetails = ComponentDetails.forProcessGroup(groupStatus);
+        final StatusSnapshot groupSnapshot = ComponentMetrics.createSnapshot(groupStatus, timestamp);
+        updateStatusHistory(groupSnapshot, groupDetails, timestamp);
+
+        // Capture statuses for the Processors
+        for (final ProcessorStatus processorStatus : groupStatus.getProcessorStatus()) {
+            final ComponentDetails componentDetails = ComponentDetails.forProcessor(processorStatus);
+            final StatusSnapshot snapshot = ComponentMetrics.createSnapshot(processorStatus, timestamp);
+            updateStatusHistory(snapshot, componentDetails, timestamp);
+        }
+
+        // Capture statuses for the Connections
+        for (final ConnectionStatus connectionStatus : groupStatus.getConnectionStatus()) {
+            final ComponentDetails componentDetails = ComponentDetails.forConnection(connectionStatus);
+            final StatusSnapshot snapshot = ComponentMetrics.createSnapshot(connectionStatus, timestamp);
+            updateStatusHistory(snapshot, componentDetails, timestamp);
+        }
+
+        // Capture statuses for the RPG's
+        for (final RemoteProcessGroupStatus rpgStatus : groupStatus.getRemoteProcessGroupStatus()) {
+            final ComponentDetails componentDetails = ComponentDetails.forRemoteProcessGroup(rpgStatus);
+            final StatusSnapshot snapshot = ComponentMetrics.createSnapshot(rpgStatus, timestamp);
+            updateStatusHistory(snapshot, componentDetails, timestamp);
+        }
+
+        // Capture statuses for the child groups
+        for (final ProcessGroupStatus childStatus : groupStatus.getProcessGroupStatus()) {
+            capture(childStatus, timestamp);
+        }
+    }
+
+
+    private void updateStatusHistory(final StatusSnapshot statusSnapshot, final ComponentDetails componentDetails, final Date timestamp) {
+        final String componentId = componentDetails.getComponentId();
+        final ComponentStatusHistory procHistory = componentStatusHistories.computeIfAbsent(componentId, id -> new ComponentStatusHistory(componentDetails, numDataPoints));
+        procHistory.update(statusSnapshot, componentDetails);
+    }
+
 
     @Override
     public Date getLastCaptureDate() {
@@ -77,199 +145,76 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
-        final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
-
-        captures.forEach(new ForEachEvaluator<Capture>() {
-            @Override
-            public boolean evaluate(final Capture capture) {
-                final ComponentStatusReport statusReport = capture.getStatusReport();
-                final ProcessorStatus status = statusReport.getProcessorStatus(processorId);
-                if (status == null) {
-                    return true;
-                }
-
-                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
-                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
-                history.setComponentDetail(COMPONENT_DETAIL_TYPE, status.getType());
-
-                final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
-                snapshot.setTimestamp(capture.getCaptureDate());
-
-                for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
-                    if (descriptor.isVisible()) {
-                        snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
-                    }
-                }
-
-                if (includeCounters) {
-                    final Map<String, Long> counters = status.getCounters();
-                    if (counters != null) {
-                        for (final Map.Entry<String, Long> entry : counters.entrySet()) {
-                            final String counterName = entry.getKey();
-
-                            final String label = entry.getKey() + " (5 mins)";
-                            final MetricDescriptor<ProcessorStatus> metricDescriptor = new StandardMetricDescriptor<>(entry.getKey(), label, label, Formatter.COUNT,
-                                s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
-
-                            snapshot.addStatusMetric(metricDescriptor, entry.getValue());
-                        }
-                    }
-                }
-
-                history.addStatusSnapshot(snapshot);
-                return true;
-            }
-        });
-
-        return history;
+        return getStatusHistory(processorId, includeCounters, DEFAULT_PROCESSOR_METRICS);
     }
 
     @Override
     public StatusHistory getConnectionStatusHistory(final String connectionId, final Date start, final Date end, final int preferredDataPoints) {
-        final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail(COMPONENT_DETAIL_ID, connectionId);
-
-        captures.forEach(new ForEachEvaluator<Capture>() {
-            @Override
-            public boolean evaluate(final Capture capture) {
-                final ComponentStatusReport statusReport = capture.getStatusReport();
-                final ConnectionStatus status = statusReport.getConnectionStatus(connectionId);
-                if (status == null) {
-                    return true;
-                }
-
-                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
-                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
-                history.setComponentDetail(COMPONENT_DETAIL_SOURCE_NAME, status.getSourceName());
-                history.setComponentDetail(COMPONENT_DETAIL_DESTINATION_NAME, status.getDestinationName());
-
-                final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
-                snapshot.setTimestamp(capture.getCaptureDate());
-
-                for (final ConnectionStatusDescriptor descriptor : ConnectionStatusDescriptor.values()) {
-                    snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
-                }
-
-                history.addStatusSnapshot(snapshot);
-                return true;
-            }
-        });
-
-        return history;
+        return getStatusHistory(connectionId, true, DEFAULT_CONNECTION_METRICS);
     }
 
     @Override
     public StatusHistory getProcessGroupStatusHistory(final String processGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail(COMPONENT_DETAIL_ID, processGroupId);
-
-        captures.forEach(new ForEachEvaluator<Capture>() {
-            @Override
-            public boolean evaluate(final Capture capture) {
-                final ComponentStatusReport statusReport = capture.getStatusReport();
-                final ProcessGroupStatus status = statusReport.getProcessGroupStatus(processGroupId);
-                if (status == null) {
-                    return true;
-                }
-
-                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
-
-                final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
-                snapshot.setTimestamp(capture.getCaptureDate());
-
-                for (final ProcessGroupStatusDescriptor descriptor : ProcessGroupStatusDescriptor.values()) {
-                    snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
-                }
-
-                history.addStatusSnapshot(snapshot);
-                return true;
-            }
-        });
-
-        return history;
+        return getStatusHistory(processGroupId, true, DEFAULT_GROUP_METRICS);
     }
 
     @Override
     public StatusHistory getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail(COMPONENT_DETAIL_ID, remoteGroupId);
-
-        captures.forEach(new ForEachEvaluator<Capture>() {
-            @Override
-            public boolean evaluate(final Capture capture) {
-                final ComponentStatusReport statusReport = capture.getStatusReport();
-                final RemoteProcessGroupStatus status = statusReport.getRemoteProcessGroupStatus(remoteGroupId);
-                if (status == null) {
-                    return true;
-                }
-
-                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
-                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
-                history.setComponentDetail(COMPONENT_DETAIL_URI, status.getTargetUri());
-
-                final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
-                snapshot.setTimestamp(capture.getCaptureDate());
-
-                for (final RemoteProcessGroupStatusDescriptor descriptor : RemoteProcessGroupStatusDescriptor.values()) {
-                    snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
-                }
-
-                history.addStatusSnapshot(snapshot);
-                return true;
-            }
-        });
-
-        return history;
+        return getStatusHistory(remoteGroupId, true, DEFAULT_RPG_METRICS);
     }
+
+
+    private synchronized StatusHistory getStatusHistory(final String componentId, final boolean includeCounters, final Set<MetricDescriptor<?>> defaultMetricDescriptors) {
+        final ComponentStatusHistory history = componentStatusHistories.get(componentId);
+        if (history == null) {
+            return createEmptyStatusHistory();
+        }
+
+        final List<Date> dates = timestamps.asList();
+        return history.toStatusHistory(dates, includeCounters, defaultMetricDescriptors);
+    }
+
+    private StatusHistory createEmptyStatusHistory() {
+        final Date dateGenerated = new Date();
+
+        return new StatusHistory() {
+            @Override
+            public Date getDateGenerated() {
+                return dateGenerated;
+            }
+
+            @Override
+            public Map<String, String> getComponentDetails() {
+                return Collections.emptyMap();
+            }
+
+            @Override
+            public List<StatusSnapshot> getStatusSnapshots() {
+                return Collections.emptyList();
+            }
+        };
+    }
+
 
     @Override
     public GarbageCollectionHistory getGarbageCollectionHistory(final Date start, final Date end) {
         final StandardGarbageCollectionHistory history = new StandardGarbageCollectionHistory();
 
-        captures.forEach(new ForEachEvaluator<Capture>() {
-            @Override
-            public boolean evaluate(final Capture capture) {
-                if (capture.getCaptureDate().before(start)) {
-                    return true;
+        gcStatuses.forEach(statusSet -> {
+            for (final GarbageCollectionStatus gcStatus : statusSet) {
+                if (gcStatus.getTimestamp().before(start)) {
+                    continue;
                 }
-                if (capture.getCaptureDate().after(end)) {
-                    return false;
-                }
-
-                final List<GarbageCollectionStatus> statuses = capture.getGarbageCollectionStatus();
-                if (statuses != null) {
-                    statuses.stream().forEach(history::addGarbageCollectionStatus);
+                if (gcStatus.getTimestamp().after(end)) {
+                    continue;
                 }
 
-                return true;
+                history.addGarbageCollectionStatus(gcStatus);
             }
+
+            return true;
         });
 
         return history;
-    }
-
-    private static class Capture {
-        private final Date captureDate;
-        private final ComponentStatusReport statusReport;
-        private final List<GarbageCollectionStatus> gcStatus;
-
-        public Capture(final Date date, final ComponentStatusReport statusReport, final List<GarbageCollectionStatus> gcStatus) {
-            this.captureDate = date;
-            this.statusReport = statusReport;
-            this.gcStatus = gcStatus;
-        }
-
-        public Date getCaptureDate() {
-            return captureDate;
-        }
-
-        public ComponentStatusReport getStatusReport() {
-            return statusReport;
-        }
-
-        public List<GarbageCollectionStatus> getGarbageCollectionStatus() {
-            return gcStatus;
-        }
     }
 }

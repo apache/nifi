@@ -16,19 +16,20 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.selection.AttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Class used for creating and evaluating NiFi Expression Language. Once a Query
@@ -206,8 +207,7 @@ public class Query {
         }
 
         final String value = evaluated.toString();
-        final String escaped = value.replace("$$", "$");
-        return decorator == null ? escaped : decorator.decorate(escaped);
+        return decorator == null ? value : decorator.decorate(value);
     }
 
     static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables)
@@ -239,6 +239,42 @@ public class Query {
         return new Query(text, tree, compiler.buildEvaluator(tree));
     }
 
+    private static String unescapeLeadingDollarSigns(final String value) {
+        final int index = value.indexOf("{");
+        if (index < 0) {
+            return value.replace("$$", "$");
+        } else {
+            final String prefix = value.substring(0, index);
+            return prefix.replace("$$", "$") + value.substring(index);
+        }
+    }
+
+    private static String unescapeTrailingDollarSigns(final String value, final boolean escapeIfAllDollars) {
+        if (!value.endsWith("$")) {
+            return value;
+        }
+
+        // count number of $$ at end of string
+        int dollars = 0;
+        for (int i=value.length()-1; i >= 0; i--) {
+            final char c = value.charAt(i);
+            if (c == '$') {
+                dollars++;
+            } else {
+                break;
+            }
+        }
+
+        // If the given argument consists solely of $ characters, then we
+        if (dollars == value.length() && !escapeIfAllDollars) {
+            return value;
+        }
+
+        final int charsToRemove = dollars / 2;
+        final int newLength = value.length() - charsToRemove;
+        return value.substring(0, newLength);
+    }
+
 
     public static PreparedQuery prepare(final String query) throws AttributeExpressionLanguageParsingException {
         if (query == null) {
@@ -248,7 +284,11 @@ public class Query {
         final List<Range> ranges = extractExpressionRanges(query);
 
         if (ranges.isEmpty()) {
-            return new EmptyPreparedQuery(query.replace("$$", "$"));
+            // While in the other cases below, we are simply replacing "$$" with "$", we have to do this
+            // a bit differently. We want to treat $$ as an escaped $ only if it immediately precedes the
+            // start of an Expression, which is the case below. Here, we did not detect the start of an Expression
+            // and as such as must use the #unescape method instead of a simple replace() function.
+            return new EmptyPreparedQuery(unescape(query));
         }
 
         final ExpressionCompiler compiler = new ExpressionCompiler();
@@ -258,14 +298,22 @@ public class Query {
 
             int lastIndex = 0;
             for (final Range range : ranges) {
+                final String treeText = unescapeLeadingDollarSigns(query.substring(range.getStart(), range.getEnd() + 1));
+                final CompiledExpression compiledExpression = compiler.compile(treeText);
+
                 if (range.getStart() > lastIndex) {
-                    final String substring = query.substring(lastIndex, range.getStart()).replace("$$", "$");
+                    String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
+
+                    // If this string literal evaluator immediately precedes an Attribute Reference, then we need to consider the String Literal to be
+                    // Escaping if it ends with $$'s, otherwise not. We also want to avoid un-escaping if the expression consists solely of $$, because
+                    // those would have been addressed by the previous #unescapeLeadingDollarSigns() call already.
+                    if (compiledExpression.getRootEvaluator() instanceof AttributeEvaluator) {
+                        substring = unescapeTrailingDollarSigns(substring, false);
+                    }
+
                     expressions.add(new StringLiteralExpression(substring));
-                    lastIndex = range.getEnd() + 1;
                 }
 
-                final String treeText = query.substring(range.getStart(), range.getEnd() + 1).replace("$$", "$");
-                final CompiledExpression compiledExpression = compiler.compile(treeText);
                 expressions.add(compiledExpression);
 
                 lastIndex = range.getEnd() + 1;
@@ -273,7 +321,7 @@ public class Query {
 
             final Range lastRange = ranges.get(ranges.size() - 1);
             if (lastRange.getEnd() + 1 < query.length()) {
-                final String treeText = query.substring(lastRange.getEnd() + 1).replace("$$", "$");
+                final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
                 expressions.add(new StringLiteralExpression(treeText));
             }
 

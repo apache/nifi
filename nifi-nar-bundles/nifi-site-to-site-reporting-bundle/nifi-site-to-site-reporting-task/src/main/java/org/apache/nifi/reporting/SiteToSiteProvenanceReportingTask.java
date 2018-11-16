@@ -78,29 +78,30 @@ import java.util.concurrent.TimeUnit;
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
 
     static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream", "Beginning of Stream",
-        "Start reading provenance Events from the beginning of the stream (the oldest event first)");
+            "Start reading provenance Events from the beginning of the stream (the oldest event first)");
     static final AllowableValue END_OF_STREAM = new AllowableValue("end-of-stream", "End of Stream",
-        "Start reading provenance Events from the end of the stream, ignoring old events");
+            "Start reading provenance Events from the end of the stream, ignoring old events");
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
-        .name("Platform")
-        .displayName("Platform")
-        .description("The value to use for the platform field in each provenance event.")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .defaultValue("nifi")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Platform")
+            .displayName("Platform")
+            .description("The value to use for the platform field in each provenance event.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("nifi")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
-        .name("s2s-prov-task-event-filter")
-        .displayName("Event Type to Include")
-        .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
-                + "Available event types are " + Arrays.deepToString(ProvenanceEventType.values()) + ". If no filter is set, all the events are sent. If "
-                        + "multiple filters are set, the filters are cumulative.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("s2s-prov-task-event-filter")
+            .displayName("Event Type to Include")
+            .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
+                    + "Available event types are " + Arrays.deepToString(ProvenanceEventType.values()) + ". If no filter is set, all the events are sent. If "
+                    + "multiple filters are set, the filters are cumulative.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_EVENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
             .name("s2s-prov-task-event-filter-exclude")
@@ -110,17 +111,19 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "multiple filters are set, the filters are cumulative. If an event type is included in Event Type to Include and excluded here, then the "
                     + "exclusion takes precedence and the event will not be sent.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_TYPE = new PropertyDescriptor.Builder()
-        .name("s2s-prov-task-type-filter")
-        .displayName("Component Type to Include")
-        .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
-                + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
-        .required(false)
-        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-        .build();
+            .name("s2s-prov-task-type-filter")
+            .displayName("Component Type to Include")
+            .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
+                    + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
             .name("s2s-prov-task-type-filter-exclude")
@@ -129,17 +132,19 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
                     + "If a component type is included in Component Type to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_ID = new PropertyDescriptor.Builder()
-        .name("s2s-prov-task-id-filter")
-        .displayName("Component ID to Include")
-        .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
-                + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("s2s-prov-task-id-filter")
+            .displayName("Component ID to Include")
+            .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
+                    + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_ID_EXCLUDE = new PropertyDescriptor.Builder()
             .name("s2s-prov-task-id-filter-exclude")
@@ -148,17 +153,39 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                     + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in "
                     + "Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor FILTER_COMPONENT_NAME = new PropertyDescriptor.Builder()
+            .name("s2s-prov-task-name-filter")
+            .displayName("Component Name to Include")
+            .description("Regular expression to filter the provenance events based on the component name. Only the events matching the regular "
+                    + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor FILTER_COMPONENT_NAME_EXCLUDE = new PropertyDescriptor.Builder()
+            .name("s2s-prov-task-name-filter-exclude")
+            .displayName("Component Name to Exclude")
+            .description("Regular expression to exclude the provenance events based on the component name. The events matching the regular "
+                    + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
+                    + "If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
-        .name("start-position")
-        .displayName("Start Position")
-        .description("If the Reporting Task has never been run, or if its state has been reset by a user, specifies where in the stream of Provenance Events the Reporting Task should start")
-        .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
-        .defaultValue(BEGINNING_OF_STREAM.getValue())
-        .required(true)
-        .build();
+            .name("start-position")
+            .displayName("Start Position")
+            .description("If the Reporting Task has never been run, or if its state has been reset by a user, specifies where in the stream of Provenance Events the Reporting Task should start")
+            .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
+            .defaultValue(BEGINNING_OF_STREAM.getValue())
+            .required(true)
+            .build();
 
     private volatile ProvenanceEventConsumer consumer;
 
@@ -175,10 +202,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         consumer.setLogger(getLogger());
 
         // initialize component type filtering
-        consumer.setComponentTypeRegex(context.getProperty(FILTER_COMPONENT_TYPE).getValue());
-        consumer.setComponentTypeRegexExclude(context.getProperty(FILTER_COMPONENT_TYPE_EXCLUDE).getValue());
+        consumer.setComponentTypeRegex(context.getProperty(FILTER_COMPONENT_TYPE).evaluateAttributeExpressions().getValue());
+        consumer.setComponentTypeRegexExclude(context.getProperty(FILTER_COMPONENT_TYPE_EXCLUDE).evaluateAttributeExpressions().getValue());
+        consumer.setComponentNameRegex(context.getProperty(FILTER_COMPONENT_NAME).evaluateAttributeExpressions().getValue());
+        consumer.setComponentNameRegexExclude(context.getProperty(FILTER_COMPONENT_NAME_EXCLUDE).evaluateAttributeExpressions().getValue());
 
-        final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).getValue(), ','));
+        final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).evaluateAttributeExpressions().getValue(), ','));
         if(targetEventTypes != null) {
             for(String type : targetEventTypes) {
                 try {
@@ -189,7 +218,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             }
         }
 
-        final String[] targetEventTypesExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE_EXCLUDE).getValue(), ','));
+        final String[] targetEventTypesExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE_EXCLUDE).evaluateAttributeExpressions().getValue(), ','));
         if(targetEventTypesExclude != null) {
             for(String type : targetEventTypesExclude) {
                 try {
@@ -201,12 +230,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         }
 
         // initialize component ID filtering
-        final String[] targetComponentIds = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).getValue(), ','));
+        final String[] targetComponentIds = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID).evaluateAttributeExpressions().getValue(), ','));
         if(targetComponentIds != null) {
             consumer.addTargetComponentId(targetComponentIds);
         }
 
-        final String[] targetComponentIdsExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID_EXCLUDE).getValue(), ','));
+        final String[] targetComponentIdsExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_COMPONENT_ID_EXCLUDE).evaluateAttributeExpressions().getValue(), ','));
         if(targetComponentIdsExclude != null) {
             consumer.addTargetComponentIdExclude(targetComponentIdsExclude);
         }
@@ -231,6 +260,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         properties.add(FILTER_COMPONENT_TYPE_EXCLUDE);
         properties.add(FILTER_COMPONENT_ID);
         properties.add(FILTER_COMPONENT_ID_EXCLUDE);
+        properties.add(FILTER_COMPONENT_NAME);
+        properties.add(FILTER_COMPONENT_NAME_EXCLUDE);
         properties.add(START_POSITION);
         return properties;
     }
