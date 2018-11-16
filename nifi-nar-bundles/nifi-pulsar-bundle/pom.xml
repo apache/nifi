@@ -20,11 +20,10 @@
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
         <version>1.8.0-SNAPSHOT</version>
+        <relativePath>../nifi-nar-bundles/pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-pulsar-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
