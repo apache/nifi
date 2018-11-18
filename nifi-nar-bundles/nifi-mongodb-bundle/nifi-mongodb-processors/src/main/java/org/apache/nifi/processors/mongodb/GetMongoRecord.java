@@ -63,13 +63,6 @@ import java.util.Set;
     @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
 })
 public class GetMongoRecord extends AbstractMongoQueryProcessor {
-    public static final PropertyDescriptor CLIENT = new PropertyDescriptor.Builder()
-        .name("client-service")
-        .displayName("Client Service")
-        .description("The MongoDB controller service to be used for configuring connections.")
-        .required(true)
-        .identifiesControllerService(MongoDBClientService.class)
-        .build();
     public static final PropertyDescriptor WRITER_FACTORY = new PropertyDescriptor.Builder()
         .name("get-mongo-record-writer-factory")
         .displayName("Record Writer")
@@ -92,7 +85,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
 
     static {
         List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(CLIENT);
+        _temp.add(CLIENT_SERVICE);
         _temp.add(URI);
         _temp.add(WRITER_FACTORY);
         _temp.add(DATABASE_NAME);
@@ -129,7 +122,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
 
     @OnScheduled
     public void onEnabled(ProcessContext context) {
-        clientService = context.getProperty(CLIENT).asControllerService(MongoDBClientService.class);
+        clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
         writerFactory = context.getProperty(WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
     }
 

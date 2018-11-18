@@ -85,7 +85,7 @@ class GetMongoRecordIT {
         runner.setProperty(GetMongoRecord.URI, URI)
         runner.setProperty(GetMongoRecord.DATABASE_NAME, DB_NAME)
         runner.setProperty(GetMongoRecord.COLLECTION_NAME, COL_NAME)
-        runner.setProperty(GetMongoRecord.CLIENT, "client")
+        runner.setProperty(GetMongoRecord.CLIENT_SERVICE, "client")
         runner.setProperty(GetMongoRecord.WRITER_FACTORY, "writer")
 
         service.getDatabase(DB_NAME).getCollection(COL_NAME).insertMany(SAMPLES)
