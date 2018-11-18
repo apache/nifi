@@ -86,7 +86,6 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
     static {
         List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.add(CLIENT_SERVICE);
-        _temp.add(URI);
         _temp.add(WRITER_FACTORY);
         _temp.add(DATABASE_NAME);
         _temp.add(COLLECTION_NAME);

@@ -82,7 +82,6 @@ class GetMongoRecordIT {
         runner.enableControllerService(registry)
         runner.enableControllerService(writer)
 
-        runner.setProperty(GetMongoRecord.URI, URI)
         runner.setProperty(GetMongoRecord.DATABASE_NAME, DB_NAME)
         runner.setProperty(GetMongoRecord.COLLECTION_NAME, COL_NAME)
         runner.setProperty(GetMongoRecord.CLIENT_SERVICE, "client")
