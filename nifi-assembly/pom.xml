@@ -727,6 +727,18 @@ language governing permissions and limitations under the License. -->
             <version>1.9.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-pulsar-client-service-nar</artifactId>
+            <version>1.9.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-pulsar-nar</artifactId>
+            <version>1.9.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>

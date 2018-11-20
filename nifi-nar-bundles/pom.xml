@@ -58,14 +58,14 @@
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
         <module>nifi-amqp-bundle</module>
-	<module>nifi-splunk-bundle</module>
+	    <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-lumberjack-bundle</module>
         <module>nifi-beats-bundle</module>
         <module>nifi-cassandra-bundle</module>
         <module>nifi-spring-bundle</module>
         <module>nifi-hive-bundle</module>
-	<module>nifi-site-to-site-reporting-bundle</module>
+	    <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
         <module>nifi-slack-bundle</module>
@@ -95,6 +95,7 @@
         <module>nifi-druid-bundle</module>
         <module>nifi-jolt-record-bundle</module>
 		<module>nifi-network-bundle</module>
+		<module>nifi-pulsar-bundle</module>
   </modules>
 
     <build>
