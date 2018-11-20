@@ -160,7 +160,9 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
                     // a ProcessException, we'll route to failure via an InvalidInput error type.
                     return ErrorTypes.InvalidInput;
                 } else {
-                    return ErrorTypes.UnknownFailure;
+                    // Default unknown errors to TemporalFailure (as they were implemented originally), so they can be routed to failure
+                    // or rolled back depending on the user's setting of Rollback On Failure.
+                    return ErrorTypes.TemporalFailure;
                 }
             } else {
                 return ErrorTypes.UnknownFailure;

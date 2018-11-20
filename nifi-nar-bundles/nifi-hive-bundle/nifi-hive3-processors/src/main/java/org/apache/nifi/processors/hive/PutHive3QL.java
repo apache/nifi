@@ -148,7 +148,23 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
             if (e instanceof SQLNonTransientException) {
                 return ErrorTypes.InvalidInput;
             } else if (e instanceof SQLException) {
-                return ErrorTypes.TemporalFailure;
+                // Use the SQLException's vendor code for guidance -- see Hive's ErrorMsg class for details on error codes
+                int errorCode = ((SQLException) e).getErrorCode();
+                if (errorCode >= 10000 && errorCode < 20000) {
+                    return ErrorTypes.InvalidInput;
+                } else if (errorCode >= 20000 && errorCode < 30000) {
+                    return ErrorTypes.TemporalFailure;
+                } else if (errorCode >= 30000 && errorCode < 40000) {
+                    return ErrorTypes.TemporalInputFailure;
+                } else if (errorCode >= 40000 && errorCode < 50000) {
+                    // These are unknown errors (to include some parse errors), but rather than generating an UnknownFailure which causes
+                    // a ProcessException, we'll route to failure via an InvalidInput error type.
+                    return ErrorTypes.InvalidInput;
+                } else {
+                    // Default unknown errors to TemporalFailure (as they were implemented originally), so they can be routed to failure
+                    // or rolled back depending on the user's setting of Rollback On Failure.
+                    return ErrorTypes.TemporalFailure;
+                }
             } else {
                 return ErrorTypes.UnknownFailure;
             }
