@@ -83,12 +83,7 @@ public class SSLContextFactory {
             FileUtils.closeQuietly(trustStoreStream);
         }
 
-        PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
-        pbParams.setRevocationEnabled(true);
-        Security.setProperty("ocsp.enable", "true");
-
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
+        final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, properties.isOCSPEnabled());
 
         keyManagers = keyManagerFactory.getKeyManagers();
         trustManagers = trustManagerFactory.getTrustManagers();
@@ -121,4 +116,25 @@ public class SSLContextFactory {
         return sslContext;
 
     }
+
+    private TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+
+        if (ocspEnabled) {
+            if ("PKIX".equalsIgnoreCase(TrustManagerFactory.getDefaultAlgorithm())) {
+                PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
+                pbParams.setRevocationEnabled(true);
+                Security.setProperty("ocsp.enable", "true");
+                trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
+            } else {
+                throw new NoSuchAlgorithmException("PKIX algorithm was not available on this system. You must disable OCSP checking by changing " + NiFiProperties.SECURITY_OCSP_ENABLED + " to false.");
+            }
+        } else {
+            trustManagerFactory.init(trustStore);
+        }
+
+        return trustManagerFactory;
+    }
+
 }

@@ -242,7 +242,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
-        final boolean ocspEnabled = true;
 
         final SslContextFactory contextFactory = new SslContextFactory();
         contextFactory.setNeedClientAuth(needClientAuth);
@@ -266,11 +265,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         if (sslContextService != null) {
             contextFactory.setProtocol(sslContextService.getSslAlgorithm());
-        }
-
-        if (ocspEnabled) {
-            contextFactory.setEnableOCSP(true);
-            contextFactory.setValidatePeerCerts(true);
         }
 
         // thread pool for the jetty instance

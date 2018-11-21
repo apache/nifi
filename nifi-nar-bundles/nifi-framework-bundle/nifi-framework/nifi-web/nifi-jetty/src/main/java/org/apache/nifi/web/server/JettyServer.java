@@ -914,8 +914,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             contextFactory.setTrustStorePassword(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));
         }
 
-        contextFactory.setValidatePeerCerts(true);
-        contextFactory.setEnableOCSP(true);
+        if(props.isOCSPEnabled()) {
+            contextFactory.setValidatePeerCerts(true);
+            contextFactory.setEnableOCSP(true);
+        }
     }
 
     @Override

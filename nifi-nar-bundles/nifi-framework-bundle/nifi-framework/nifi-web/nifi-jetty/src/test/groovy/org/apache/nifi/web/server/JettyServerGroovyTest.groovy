@@ -19,6 +19,7 @@ package org.apache.nifi.web.server
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -222,6 +223,25 @@ class JettyServerGroovyTest extends GroovyTestCase {
         ServerConnector connector = connectors.first() as ServerConnector
         assert connector.host == "secure.host.com"
         assert connector.port == 8443
+    }
+
+    @Test
+    void testShouldConfigureOCSPRevocation() {
+        // Arrange
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+            (NiFiProperties.WEB_HTTPS_PORT): "8443",
+            (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
+        ]))
+
+        Server internalServer = new Server()
+        JettyServer jetty = new JettyServer(internalServer, httpsProps)
+
+        // Act
+        SslContextFactory contextFactory = jetty.createSslContextFactory()
+
+        // Assert
+        assert contextFactory.isEnableOCSP()
+        assert contextFactory.isValidatePeerCerts()
     }
 }
 

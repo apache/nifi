@@ -67,11 +67,8 @@ public final class SslContextFactory {
             } else {
                 trustStore = null;
             }
-            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
-            pbParams.setRevocationEnabled(true);
-            Security.setProperty("ocsp.enable", "true");
-            trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
+
+            final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, props.isOCSPEnabled());
 
             // prepare the key store
             final KeyStore keyStore = KeyStoreUtils.getKeyStore(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
@@ -110,6 +107,26 @@ public final class SslContextFactory {
         return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
                 && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD))
                 && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)));
+    }
+
+    private static TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+
+        if (ocspEnabled) {
+            if ("PKIX".equalsIgnoreCase(TrustManagerFactory.getDefaultAlgorithm())) {
+                PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
+                pbParams.setRevocationEnabled(true);
+                Security.setProperty("ocsp.enable", "true");
+                trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
+            } else {
+                throw new NoSuchAlgorithmException("PKIX algorithm was not available on this system. You must disable OCSP checking by changing " + NiFiProperties.SECURITY_OCSP_ENABLED + " to false.");
+            }
+        } else {
+            trustManagerFactory.init(trustStore);
+        }
+
+        return trustManagerFactory;
     }
 
 }

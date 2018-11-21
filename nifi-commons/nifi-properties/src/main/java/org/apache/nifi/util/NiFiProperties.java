@@ -144,6 +144,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
+    public static final String SECURITY_OCSP_ENABLED = "nifi.security.ocsp.enabled";
     public static final String SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX = "nifi.security.identity.mapping.pattern.";
     public static final String SECURITY_IDENTITY_MAPPING_VALUE_PREFIX = "nifi.security.identity.mapping.value.";
     public static final String SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX = "nifi.security.identity.mapping.transform.";
@@ -882,6 +883,13 @@ public abstract class NiFiProperties {
      */
     public boolean isLoginIdentityProviderEnabled() {
         return !StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER));
+    }
+
+    public boolean isOCSPEnabled() {
+        final boolean ocspEnabled = Boolean.parseBoolean(getProperty(SECURITY_OCSP_ENABLED, "false"));
+        boolean ocspResponderURL = !StringUtils.isBlank(getProperty(SECURITY_OCSP_RESPONDER_URL));
+
+        return ocspEnabled || ocspResponderURL;
     }
 
     /**
