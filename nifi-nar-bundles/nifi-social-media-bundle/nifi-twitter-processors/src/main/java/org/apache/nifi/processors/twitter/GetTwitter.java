@@ -70,7 +70,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"twitter", "tweets", "social media", "status", "json"})
-@CapabilityDescription("Pulls status changes from Twitter's streaming API")
+@CapabilityDescription("Pulls status changes from Twitter's streaming API. In versions starting with 1.9.0, the Consumer Key and Access Token are marked as sensitive according to https://developer.twitter.com/en/docs/basics/authentication/guides/securing-keys-and-tokens")
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
 public class GetTwitter extends AbstractProcessor {
 
