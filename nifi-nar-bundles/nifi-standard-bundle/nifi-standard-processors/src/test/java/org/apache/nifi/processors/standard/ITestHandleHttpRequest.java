@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestHandleHttpRequest {
+public class ITestHandleHttpRequest {
 
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> props = new HashMap<>();
