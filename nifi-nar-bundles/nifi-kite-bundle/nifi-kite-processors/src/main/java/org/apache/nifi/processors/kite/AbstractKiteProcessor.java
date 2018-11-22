@@ -101,6 +101,11 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             return parseSchema(uriOrLiteral);
         }
 
+        if(uri.getScheme() == null) {
+            throw new SchemaNotFoundException("If the schema is not a JSON string, a scheme must be specified in the URI "
+                    + "(ex: dataset:, view:, resource:, file:, hdfs:, etc).");
+        }
+
         try {
             if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
                 return Datasets.load(uri).getDataset().getDescriptor().getSchema();
