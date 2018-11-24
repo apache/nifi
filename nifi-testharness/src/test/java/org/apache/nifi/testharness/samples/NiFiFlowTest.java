@@ -100,21 +100,21 @@ public class NiFiFlowTest {
 
         // We deleted the output directory: our NiFi flow should create it
 
-        assertTrue( "Output directory not found: " + Constants.OUTPUT_DIR, Constants.OUTPUT_DIR.exists());
+        assertTrue("Output directory not found: " + Constants.OUTPUT_DIR, Constants.OUTPUT_DIR.exists());
 
         File outputFile = new File(Constants.OUTPUT_DIR, "bbc-world.rss.xml");
 
-        assertTrue("Output file not found: " + outputFile, outputFile.exists() );
+        assertTrue("Output file not found: " + outputFile, outputFile.exists());
 
         List<String> strings = Files.readAllLines(outputFile.toPath());
 
-        boolean atLeastOneLineContainsBBC = strings.stream().anyMatch(line -> line.toLowerCase().contains("bbc"));
+        boolean atLeastOneLineContainsNiFi = strings.stream().anyMatch(line -> line.toLowerCase().contains("nifi"));
 
-        assertTrue("There was no line containing BBC", atLeastOneLineContainsBBC);
+        assertTrue("There was no line containing NiFi", atLeastOneLineContainsNiFi);
 
-        boolean atLeastOneLineContainsIPhone = strings.stream().anyMatch(line -> line.toLowerCase().contains("iphone"));
+        boolean atLeastOneLineContainsNiFiVersion = strings.stream().anyMatch(line -> line.toLowerCase().contains("latest nifi version"));
 
-        assertTrue("There was no line containing IPhone", atLeastOneLineContainsIPhone);
+        assertTrue("There was no line containing 'latest NiFi version'", atLeastOneLineContainsNiFiVersion);
 
     }
 

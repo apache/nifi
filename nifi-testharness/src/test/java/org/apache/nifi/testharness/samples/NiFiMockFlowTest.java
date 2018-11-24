@@ -99,13 +99,13 @@ public class NiFiMockFlowTest {
 
         List<String> strings = Files.readAllLines(outputFile.toPath());
 
-        boolean atLeastOneLineContainsBBC = strings.stream().anyMatch(line -> line.toLowerCase().contains("bbc"));
+        boolean atLeastOneLineContainsNiFi = strings.stream().anyMatch(line -> line.toLowerCase().contains("nifi"));
 
-        assertTrue("There was no line containing BBC", atLeastOneLineContainsBBC);
+        assertTrue("There was no line containing NiFi", atLeastOneLineContainsNiFi);
 
-        boolean atLeastOneLineContainsIPhone = strings.stream().anyMatch(line -> line.toLowerCase().contains("iphone"));
+        boolean atLeastOneLineContainsNiFiVersion = strings.stream().anyMatch(line -> line.toLowerCase().contains("latest nifi version"));
 
-        assertTrue("There was no line containing IPhone", atLeastOneLineContainsIPhone);
+        assertTrue("There was no line containing 'latest NiFi version'", atLeastOneLineContainsNiFiVersion);
 
     }
 
