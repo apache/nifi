@@ -51,19 +51,6 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor ACCEPT_UNTRUSTED_TLS_CERTIFICATE_FROM_BROKER = new PropertyDescriptor.Builder()
-            .name("ACCEPT_UNTRUSTED_TLS_CERTIFICATE_FROM_BROKER")
-            .displayName("Allow TLS insecure connection")
-            .description("If a valid trusted certificate is provided in the 'TLS Trust Certs File Path' property of this controller service,"
-                    + " then, by default, all communication between this controller service and the Apache Pulsar broker will be secured via"
-                    + " TLS and only use the trusted TLS certificate from broker. Setting this property to 'false' will allow this controller"
-                    + " service to accept an untrusted TLS certificate from broker as well. This property should only be set to false if you trust"
-                    + " the broker you are connecting to, but do not have access to the TLS certificate file.")
-            .required(false)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
-
     public static final PropertyDescriptor CONCURRENT_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
             .name("CONCURRENT_LOOKUP_REQUESTS")
             .displayName("Maximum concurrent lookup-requests")
@@ -158,18 +145,6 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             .defaultValue("60 sec")
             .build();
 
-    public static final PropertyDescriptor TLS_TRUST_CERTS_FILE_PATH = new PropertyDescriptor.Builder()
-            .name("TLS_TRUST_CERTS_FILE_PATH")
-            .displayName("TLS Trust Certs File Path")
-            .description("Set the path to the trusted TLS certificate file. Providing a valid value here enables TLS encryption on "
-                    + "the connection between this controller service and the Apache Pulsar broker. All communication will only use the"
-                    + "trusted certificate unless this behavior is explicitly overridden by setting the 'Allow TLS insecure connection'"
-                    + "property to true.")
-            .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     public static final PropertyDescriptor USE_TCP_NO_DELAY = new PropertyDescriptor.Builder()
             .name("USE_TCP_NO_DELAY")
             .displayName("Use TCP no-delay flag")
@@ -199,7 +174,6 @@ public class StandardPulsarClientService extends AbstractControllerService imple
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(PULSAR_SERVICE_URL);
-        props.add(ACCEPT_UNTRUSTED_TLS_CERTIFICATE_FROM_BROKER);
         props.add(CONCURRENT_LOOKUP_REQUESTS);
         props.add(CONNECTIONS_PER_BROKER);
         props.add(IO_THREADS);
@@ -211,7 +185,6 @@ public class StandardPulsarClientService extends AbstractControllerService imple
         props.add(STATS_INTERVAL);
         props.add(USE_TCP_NO_DELAY);
         props.add(SSL_CONTEXT_SERVICE);
-        props.add(TLS_TRUST_CERTS_FILE_PATH);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -271,7 +244,6 @@ public class StandardPulsarClientService extends AbstractControllerService imple
     private ClientBuilder getClientBuilder(ConfigurationContext context) throws UnsupportedAuthenticationException, MalformedURLException {
 
         ClientBuilder builder = PulsarClient.builder()
-                .allowTlsInsecureConnection(context.getProperty(ACCEPT_UNTRUSTED_TLS_CERTIFICATE_FROM_BROKER).asBoolean())
                 .maxConcurrentLookupRequests(context.getProperty(CONCURRENT_LOOKUP_REQUESTS).evaluateAttributeExpressions().asInteger())
                 .connectionsPerBroker(context.getProperty(CONNECTIONS_PER_BROKER).evaluateAttributeExpressions().asInteger())
                 .ioThreads(context.getProperty(IO_THREADS).evaluateAttributeExpressions().asInteger())
@@ -292,7 +264,7 @@ public class StandardPulsarClientService extends AbstractControllerService imple
             authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
 
             builder = builder.authentication(AuthenticationTls.class.getName(), authParams)
-                             .tlsTrustCertsFilePath(context.getProperty(TLS_TRUST_CERTS_FILE_PATH).evaluateAttributeExpressions().getValue());
+                             .tlsTrustCertsFilePath(sslContextService.getTrustStoreFile());
             secure = true;
         }
 

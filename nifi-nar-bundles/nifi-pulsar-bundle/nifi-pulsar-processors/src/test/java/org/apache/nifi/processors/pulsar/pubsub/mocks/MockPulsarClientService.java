@@ -109,7 +109,7 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
                public Message<T> answer(InvocationOnMock invocation) {
                        return mockMessage;
                }
-             }).when(mockConsumer).receive(2, TimeUnit.SECONDS);
+             }).when(mockConsumer).receive(0, TimeUnit.SECONDS);
 
             when(mockProducerBuilder.create()).thenReturn(mockProducer);
             defineDefaultProducerBehavior();

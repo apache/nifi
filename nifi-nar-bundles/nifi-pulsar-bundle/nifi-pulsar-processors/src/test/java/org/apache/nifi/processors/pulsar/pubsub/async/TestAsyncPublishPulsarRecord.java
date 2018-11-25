@@ -48,7 +48,17 @@ public class TestAsyncPublishPulsarRecord extends TestPublishPulsarRecord {
        runner.enqueue(content);
        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
        runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-       runner.run(100, false, true);
+       runner.addConnection(PublishPulsarRecord.REL_FAILURE);
+       /* We have to wait for the record to be processed asynchronously and eventually throw the
+        * exception. When the exception is caught the record is then added to the failure queue
+        * and another iteration of the onTrigger() method is required to 'handle' the exception properly
+        * by routing it to the FAILURE relationship.
+        *
+        * During a parallel build, this may take 100s of invocations of the onTrigger() method to complete
+        * this cycle. Therefore, we set the number of iterations below to some very large number to ensure
+        * that this cycle does complete on these builds
+        */
+       runner.run(5000, false, true);
 
        verify(mockClientService.getMockProducer(), times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
 

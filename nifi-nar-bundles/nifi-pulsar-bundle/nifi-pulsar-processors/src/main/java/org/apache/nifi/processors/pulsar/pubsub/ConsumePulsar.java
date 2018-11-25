@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,12 +40,19 @@ import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.shade.org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 
 @SeeAlso({PublishPulsar.class, ConsumePulsarRecord.class, PublishPulsarRecord.class})
 @Tags({"Pulsar", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
 @CapabilityDescription("Consumes messages from Apache Pulsar. The complementary NiFi processor for sending messages is PublishPulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@WritesAttributes({
+    @WritesAttribute(attribute = "message.count", description = "The number of messages received from Pulsar")
+})
 public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
+
+    public static final String MSG_COUNT = "message.count";
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -65,36 +79,46 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
 
     private void handleAsync(final Consumer<byte[]> consumer, ProcessContext context, ProcessSession session) {
         try {
-            Future<Message<byte[]>> done = getConsumerService().poll(50, TimeUnit.MILLISECONDS);
+            Future<List<Message<byte[]>>> done = getConsumerService().poll(5, TimeUnit.SECONDS);
 
             if (done != null) {
-               Message<byte[]> msg = done.get();
 
-               if (msg != null) {
-                  FlowFile flowFile = null;
-                  final byte[] value = msg.getData();
-                  if (value != null && value.length > 0) {
-                      flowFile = session.create();
-                      flowFile = session.write(flowFile, out -> {
-                          out.write(value);
-                      });
+                final byte[] demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).isSet() ? context.getProperty(MESSAGE_DEMARCATOR)
+                    .evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8) : null;
 
-                     session.getProvenanceReporter().receive(flowFile, getPulsarClientService().getPulsarBrokerRootURL() + "/" + consumer.getTopic());
-                     session.transfer(flowFile, REL_SUCCESS);
-                     session.commit();
-                  }
-                  // Acknowledge consuming the message
-                  getAckService().submit(new Callable<Object>() {
-                      @Override
-                      public Object call() throws Exception {
-                         return consumer.acknowledgeAsync(msg).get();
-                      }
-                   });
-              }
-            } else {
-               // Check if the processor is stopped and if so gracefully stop processing.
+                List<Message<byte[]>> messages = done.get();
+
+                if (CollectionUtils.isNotEmpty(messages)) {
+                    FlowFile flowFile = session.create();
+                    OutputStream out = session.write(flowFile);
+                    AtomicInteger msgCount = new AtomicInteger(0);
+
+                    messages.forEach(msg -> {
+                        try {
+                            out.write(msg.getValue());
+                            out.write(demarcatorBytes);
+                            msgCount.getAndIncrement();
+                        } catch (final IOException ioEx) {
+                            session.rollback();
+                            return;
+                        }
+                    });
+
+                    IOUtils.closeQuietly(out);
+
+                    session.putAttribute(flowFile, MSG_COUNT, msgCount.toString());
+                    session.getProvenanceReporter().receive(flowFile, getPulsarClientService().getPulsarBrokerRootURL() + "/" + consumer.getTopic());
+                    session.transfer(flowFile, REL_SUCCESS);
+                    session.commit();
+                }
+                // Acknowledge consuming the message
+                getAckService().submit(new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                       return consumer.acknowledgeCumulativeAsync(messages.get(messages.size()-1)).get();
+                    }
+                });
             }
-
         } catch (InterruptedException | ExecutionException e) {
             getLogger().error("Trouble consuming messages ", e);
         }
@@ -102,36 +126,55 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
 
     private void consume(Consumer<byte[]> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
         try {
-            /* If we do not provide a timeout value, this call will block indefinitely, which will
-             * cause the processor to hang when we try to stop it consuming from an empty topic.
-             * Therefore, we chose a 2 second timeout to handle this situation gracefully.
-             */
-            final Message<byte[]> msg = consumer.receive(2, TimeUnit.SECONDS);
+            final int maxMessages = context.getProperty(CONSUMER_BATCH_SIZE).isSet() ? context.getProperty(CONSUMER_BATCH_SIZE)
+                    .evaluateAttributeExpressions().asInteger() : Integer.MAX_VALUE;
 
-            if (msg == null) {
-               return;
+            final byte[] demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).isSet() ? context.getProperty(MESSAGE_DEMARCATOR)
+                    .evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8) : null;
+
+            FlowFile flowFile = session.create();
+            OutputStream out = session.write(flowFile);
+            Message<byte[]> msg = null;
+            Message<byte[]> lastMsg = null;
+            AtomicInteger msgCount = new AtomicInteger(0);
+            AtomicInteger loopCounter = new AtomicInteger(0);
+
+            while (((msg = consumer.receive(0, TimeUnit.SECONDS)) != null) && loopCounter.get() < maxMessages) {
+                try {
+
+                    lastMsg = msg;
+                    loopCounter.incrementAndGet();
+
+                    // Skip empty messages, as they cause NPE's when we write them to the OutputStream
+                    if (msg.getValue() == null || msg.getValue().length < 1) {
+                      continue;
+                    }
+                    out.write(msg.getValue());
+                    out.write(demarcatorBytes);
+                    msgCount.getAndIncrement();
+
+                } catch (final IOException ioEx) {
+                  session.rollback();
+                  return;
+                }
             }
 
-            final byte[] value = msg.getData();
+            IOUtils.closeQuietly(out);
 
-            if (value != null && value.length > 0) {
-                FlowFile flowFile = session.create();
-                flowFile = session.write(flowFile, out -> {
-                    out.write(value);
-                });
+            if (lastMsg != null)  {
+                consumer.acknowledgeCumulative(lastMsg);
+            }
 
+            if (msgCount.get() < 1) {
+                session.remove(flowFile);
+                session.commit();
+            } else {
+                session.putAttribute(flowFile, MSG_COUNT, msgCount.toString());
                 session.getProvenanceReporter().receive(flowFile, getPulsarClientService().getPulsarBrokerRootURL() + "/" + consumer.getTopic());
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().debug("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
-                        new Object[]{flowFile, 1});
-
-                session.commit();
-            } else {
-                session.commit();
+                   new Object[]{flowFile, msgCount.toString()});
             }
-
-            getLogger().debug("Acknowledging message " + msg.getMessageId());
-            consumer.acknowledge(msg);
 
         } catch (PulsarClientException e) {
             context.yield();

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.pulsar.pubsub.async;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,32 +34,32 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
 
     @Test
     public void emptyMessageTest() throws PulsarClientException {
-        when(mockMessage.getData()).thenReturn("".getBytes());
+        when(mockMessage.getValue()).thenReturn("".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
         runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-        runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+        runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
         runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(true));
         runner.run();
         runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_PARSE_FAILURE);
 
-        verify(mockClientService.getMockConsumer(), times(1)).acknowledgeAsync(mockMessage);
+        verify(mockClientService.getMockConsumer(), times(1)).acknowledgeCumulative(mockMessage);
     }
 
     @Test
     public void singleMalformedMessageTest() throws PulsarClientException {
-       when(mockMessage.getData()).thenReturn(BAD_MSG.getBytes());
+       when(mockMessage.getValue()).thenReturn(BAD_MSG.getBytes());
        mockClientService.setMockMessage(mockMessage);
 
        runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-       runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+       runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
        runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(true));
        runner.run();
        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_PARSE_FAILURE);
 
-       verify(mockClientService.getMockConsumer(), times(1)).acknowledgeAsync(mockMessage);
+       verify(mockClientService.getMockConsumer(), times(1)).acknowledgeCumulative(mockMessage);
     }
 
     /*
@@ -106,13 +107,13 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
           }
         }
 
-       when(mockMessage.getData()).thenReturn(input.toString().getBytes());
+       when(mockMessage.getValue()).thenReturn(input.toString().getBytes());
        mockClientService.setMockMessage(mockMessage);
 
        runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(false));
        runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-       runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+       runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
        runner.run(1, true);
 
        List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_SUCCESS);
@@ -135,10 +136,10 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
           expected.append("\"Justin Thyme\",\"" + idx + "\"").append("\n");
        }
 
-       List<MockFlowFile> results = this.sendMessages(input.toString(), false, 50, 1);
+       List<MockFlowFile> results = this.sendMessages(input.toString(), false, 50, 100);
        assertEquals(50, results.size());
 
        String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
-       assertEquals(expected.toString(), flowFileContents);
+       assertTrue(flowFileContents.startsWith(expected.toString(), 0));
     }
 }

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorCompletionService;
@@ -28,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -44,7 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientService;
-import org.apache.nifi.pulsar.cache.LRUCache;
+import org.apache.nifi.pulsar.cache.PulsarClientLRUCache;
 import org.apache.nifi.util.StringUtils;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -191,6 +193,31 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
             .defaultValue(SHARED.getValue())
             .build();
 
+    public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .name("MESSAGE_DEMARCATOR")
+            .displayName("Message Demarcator")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("\n")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .description("Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages consumed from Pulsar within "
+                + "a single FlowFile. If not specified, the content of the FlowFile will consist of all of the messages consumed from Pulsar "
+                + "concatenated together. If specified, the contents of the individual Pulsar messages will be separate by this delimiter. "
+                + "To enter special character such as 'new line' use CTRL+Enter or Shift+Enter, depending on your OS.")
+            .build();
+
+    public static final PropertyDescriptor CONSUMER_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("CONSUMER_BATCH_SIZE")
+            .displayName("Consumer Message Batch Size")
+            .description("Set the maximum number of messages consumed at a time, and published to a single FlowFile. "
+                    + "default: 1000. If set to a value greater than 1, messages within the FlowFile will be seperated "
+                    + "by the Message Demarcator.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1000")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     protected static final List<PropertyDescriptor> PROPERTIES;
     protected static final Set<Relationship> RELATIONSHIPS;
 
@@ -207,6 +234,8 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
         properties.add(PRIORITY_LEVEL);
         properties.add(RECEIVER_QUEUE_SIZE);
         properties.add(SUBSCRIPTION_TYPE);
+        properties.add(CONSUMER_BATCH_SIZE);
+        properties.add(MESSAGE_DEMARCATOR);
 
         PROPERTIES = Collections.unmodifiableList(properties);
 
@@ -216,9 +245,9 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
     }
 
     private PulsarClientService pulsarClientService;
-    private LRUCache<String, Consumer<T>> consumers;
+    private PulsarClientLRUCache<String, Consumer<T>> consumers;
     private ExecutorService consumerPool;
-    private ExecutorCompletionService<Message<T>> consumerService;
+    private ExecutorCompletionService<List<Message<T>>> consumerService;
     private ExecutorService ackPool;
     private ExecutorCompletionService<Object> ackService;
 
@@ -322,8 +351,19 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
 
     protected void consumeAsync(final Consumer<T> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
         try {
+            final int maxMessages = context.getProperty(CONSUMER_BATCH_SIZE).isSet() ? context.getProperty(CONSUMER_BATCH_SIZE)
+                    .evaluateAttributeExpressions().asInteger() : Integer.MAX_VALUE;
+
             getConsumerService().submit(() -> {
-                return consumer.receive();
+                List<Message<T>> messages = new LinkedList<Message<T>>();
+                Message<T> msg = null;
+                AtomicInteger msgCount = new AtomicInteger(0);
+
+                while (((msg = consumer.receive(0, TimeUnit.SECONDS)) != null) && msgCount.get() < maxMessages) {
+                    messages.add(msg);
+                    msgCount.incrementAndGet();
+                }
+                return messages;
             });
         } catch (final RejectedExecutionException ex) {
             getLogger().error("Unable to consume any more Pulsar messages", ex);
@@ -341,7 +381,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
         Consumer<T> consumer = getConsumers().get(topic);
 
         if (consumer != null && consumer.isConnected()) {
-           // We have a valid, connected consumer
            return consumer;
         }
 
@@ -351,7 +390,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
            getConsumers().put(topic, consumer);
         }
 
-        // If we have a valid consumer, return otherwise return null
         return (consumer != null && consumer.isConnected()) ? consumer : null;
     }
 
@@ -385,11 +423,11 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
         this.consumerPool = pool;
     }
 
-    protected synchronized ExecutorCompletionService<Message<T>> getConsumerService() {
+    protected synchronized ExecutorCompletionService<List<Message<T>>> getConsumerService() {
         return consumerService;
     }
 
-    protected synchronized void setConsumerService(ExecutorCompletionService<Message<T>> service) {
+    protected synchronized void setConsumerService(ExecutorCompletionService<List<Message<T>>> service) {
         this.consumerService = service;
     }
 
@@ -417,14 +455,14 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
        this.pulsarClientService = pulsarClientService;
     }
 
-    protected synchronized LRUCache<String, Consumer<T>> getConsumers() {
+    protected synchronized PulsarClientLRUCache<String, Consumer<T>> getConsumers() {
         if (consumers == null) {
-           consumers = new LRUCache<String, Consumer<T>>(20);
+           consumers = new PulsarClientLRUCache<String, Consumer<T>>(20);
         }
         return consumers;
     }
 
-    protected void setConsumers(LRUCache<String, Consumer<T>> consumers) {
+    protected void setConsumers(PulsarClientLRUCache<String, Consumer<T>> consumers) {
         this.consumers = consumers;
     }
 }

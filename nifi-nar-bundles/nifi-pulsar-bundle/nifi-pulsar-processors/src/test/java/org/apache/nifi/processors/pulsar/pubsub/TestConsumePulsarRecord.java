@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProcessorTest;
@@ -99,13 +100,13 @@ public class TestConsumePulsarRecord extends AbstractPulsarProcessorTest<byte[]>
     }
 
     protected List<MockFlowFile> sendMessages(String msg, String topic, String sub, boolean async, int iterations, int batchSize) throws PulsarClientException {
-        when(mockMessage.getData()).thenReturn(msg.getBytes());
+        when(mockMessage.getValue()).thenReturn(msg.getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(async));
         runner.setProperty(ConsumePulsarRecord.TOPICS, topic);
         runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, sub);
-        runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, batchSize + "");
+        runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, batchSize + "");
 
         if (async) {
           runner.setProperty(ConsumePulsarRecord.MAX_WAIT_TIME, "5 sec");
@@ -119,14 +120,9 @@ public class TestConsumePulsarRecord extends AbstractPulsarProcessorTest<byte[]>
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_SUCCESS);
         assertEquals(iterations, flowFiles.size());
 
-        verify(mockClientService.getMockConsumer(), times(batchSize * iterations)).receive();
+        verify(mockClientService.getMockConsumer(), times(iterations * (batchSize+1))).receive(0, TimeUnit.SECONDS);
+        verify(mockClientService.getMockConsumer(), times(iterations)).acknowledgeCumulative(mockMessage);
 
-        // Verify that every message was acknowledged
-        if (async) {
-            verify(mockClientService.getMockConsumer(), times(batchSize * iterations)).acknowledgeAsync(mockMessage);
-        } else {
-            verify(mockClientService.getMockConsumer(), times(batchSize * iterations)).acknowledge(mockMessage);
-        }
         return flowFiles;
     }
 }

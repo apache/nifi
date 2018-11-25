@@ -60,6 +60,8 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
         return new RecordSetWriter() {
 
+            private int recordCount = 0;
+
             @Override
             public void flush() throws IOException {
                 out.flush();
@@ -70,7 +72,6 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 out.write(header.getBytes());
                 out.write("\n".getBytes());
 
-                int recordCount = 0;
                 final int numCols = rs.getSchema().getFieldCount();
                 Record record = null;
                 while ((record = rs.next()) != null) {
@@ -109,6 +110,10 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             @Override
             public WriteResult write(Record record) throws IOException {
 
+                if (++recordCount > failAfterN && failAfterN > -1) {
+                    throw new IOException("Unit Test intentionally throwing IOException after " + failAfterN + " records were written");
+                }
+
                 int i = 0;
                 final int numCols = 2;
 
@@ -143,7 +148,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
 
             @Override
             public WriteResult finishRecordSet() throws IOException {
-                return WriteResult.EMPTY;
+                return (recordCount > 0) ? WriteResult.of(1, Collections.emptyMap()) : WriteResult.EMPTY;
             }
         };
     }

@@ -31,6 +31,7 @@ import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.assertEquals;
 
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,7 +61,7 @@ public class TestConsumePulsar extends AbstractPulsarProcessorTest<byte[]> {
 
     @Test
     public void multipleSyncMessagesTest() throws PulsarClientException {
-        this.sendMessages("Mocked Message", "foo", "bar", false, 40);
+        this.batchMessages("Mocked Message", "foo", "bar", false, 40);
     }
 
     @Test
@@ -78,7 +79,7 @@ public class TestConsumePulsar extends AbstractPulsarProcessorTest<byte[]> {
      */
     @Test
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
-        when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
+        when(mockMessage.getValue()).thenReturn("Mocked Message".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsar.TOPICS, "foo");
@@ -89,42 +90,80 @@ public class TestConsumePulsar extends AbstractPulsarProcessorTest<byte[]> {
         runner.assertQueueEmpty();
 
         // Verify that the receive method on the consumer was called 10 times
-        verify(mockClientService.getMockConsumer(), times(10)).receive(2, TimeUnit.SECONDS);
+        int batchSize = Integer.parseInt(ConsumePulsar.CONSUMER_BATCH_SIZE.getDefaultValue());
+        verify(mockClientService.getMockConsumer(), atLeast(10 * batchSize)).receive(0, TimeUnit.SECONDS);
 
         // Verify that each message was acknowledged
-        verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);
+        verify(mockClientService.getMockConsumer(), times(10)).acknowledgeCumulative(mockMessage);
 
         // Verify that the consumer was closed
         verify(mockClientService.getMockConsumer(), times(1)).close();
 
     }
 
-    protected void sendMessages(String msg, String topic, String sub, boolean async, int itertions) throws PulsarClientException {
-
-        when(mockMessage.getData()).thenReturn(msg.getBytes());
+    protected void batchMessages(String msg, String topic, String sub, boolean async, int batchSize) throws PulsarClientException {
+        when(mockMessage.getValue()).thenReturn(msg.getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsar.ASYNC_ENABLED, Boolean.toString(async));
         runner.setProperty(ConsumePulsar.TOPICS, topic);
         runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, sub);
-        runner.run(itertions, true);
+        runner.setProperty(ConsumePulsar.CONSUMER_BATCH_SIZE, batchSize + "");
+        runner.setProperty(ConsumePulsar.MESSAGE_DEMARCATOR, "\n");
+        runner.run(1, true);
 
         runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
-        assertEquals(itertions, flowFiles.size());
+        assertEquals(1, flowFiles.size());
 
-        for (MockFlowFile ff : flowFiles) {
-            ff.assertContentEquals(msg);
+        flowFiles.get(0).assertAttributeEquals(ConsumePulsar.MSG_COUNT, batchSize + "");
+
+        StringBuffer sb = new StringBuffer();
+        for (int idx = 0; idx < batchSize; idx++) {
+            sb.append(msg);
+            sb.append("\n");
         }
+
+        flowFiles.get(0).assertContentEquals(sb.toString());
 
         // Verify that every message was acknowledged
         if (async) {
-            verify(mockClientService.getMockConsumer(), times(itertions)).receive();
-            verify(mockClientService.getMockConsumer(), times(itertions)).acknowledgeAsync(mockMessage);
+            verify(mockClientService.getMockConsumer(), times(batchSize)).receive();
+            verify(mockClientService.getMockConsumer(), times(batchSize)).acknowledgeAsync(mockMessage);
         } else {
-            verify(mockClientService.getMockConsumer(), times(itertions)).receive(2, TimeUnit.SECONDS);
-            verify(mockClientService.getMockConsumer(), times(itertions)).acknowledge(mockMessage);
+            verify(mockClientService.getMockConsumer(), times(batchSize + 1)).receive(0, TimeUnit.SECONDS);
+            verify(mockClientService.getMockConsumer(), times(1)).acknowledgeCumulative(mockMessage);
+        }
+    }
+
+    protected void sendMessages(String msg, String topic, String sub, boolean async, int iterations) throws PulsarClientException {
+
+        when(mockMessage.getValue()).thenReturn(msg.getBytes());
+        mockClientService.setMockMessage(mockMessage);
+
+        runner.setProperty(ConsumePulsar.ASYNC_ENABLED, Boolean.toString(async));
+        runner.setProperty(ConsumePulsar.TOPICS, topic);
+        runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, sub);
+        runner.setProperty(ConsumePulsar.CONSUMER_BATCH_SIZE, 1 + "");
+        runner.run(iterations, true);
+
+        runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
+        assertEquals(iterations, flowFiles.size());
+
+        for (MockFlowFile ff : flowFiles) {
+            ff.assertContentEquals(msg + ConsumePulsar.MESSAGE_DEMARCATOR.getDefaultValue());
+        }
+
+        verify(mockClientService.getMockConsumer(), times(iterations * 2)).receive(0, TimeUnit.SECONDS);
+
+        // Verify that every message was acknowledged
+        if (async) {
+            verify(mockClientService.getMockConsumer(), times(iterations)).acknowledgeCumulativeAsync(mockMessage);
+        } else {
+            verify(mockClientService.getMockConsumer(), times(iterations)).acknowledgeCumulative(mockMessage);
         }
     }
 }

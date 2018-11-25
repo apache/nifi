@@ -29,7 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("rawtypes")
-public class LRUCacheTest {
+public class PulsarClientLRUCacheTest {
 
     @Mock
     private Producer mockedPulsarProducer;
@@ -44,13 +44,13 @@ public class LRUCacheTest {
      */
     @Test
     public void simpleTest() {
-      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(10);
+      PulsarClientLRUCache<String, Producer> cache = new PulsarClientLRUCache<String, Producer>(10);
 
       for (Character i='A'; i<='E'; i++){
          cache.put(i.toString(), mockedPulsarProducer);
       }
 
-      assertEquals(5, cache.getSize());
+      assertEquals(5, cache.size());
 
       for (Character i='A'; i<='E'; i++){
          assertNotNull( cache.get(i.toString()));
@@ -60,14 +60,14 @@ public class LRUCacheTest {
     @Test
     public void evictionTest() {
 
-      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(5);
+      PulsarClientLRUCache<String, Producer> cache = new PulsarClientLRUCache<String, Producer>(5);
 
       for (Character i='A'; i<='Z'; i++){
          cache.put(i.toString(), mockedPulsarProducer);
       }
 
       // Make sure we only have 5 items in the cache
-      assertEquals(5, cache.getSize());
+      assertEquals(5, cache.size());
 
       // Make sure we have the last 5 items added to the cache
       for (Character i='V'; i<='Z'; i++){
@@ -78,7 +78,7 @@ public class LRUCacheTest {
     @Test
     public void evictionLruTest() {
 
-      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(5);
+      PulsarClientLRUCache<String, Producer> cache = new PulsarClientLRUCache<String, Producer>(5);
 
       final Character A = 'A';
 
@@ -89,7 +89,7 @@ public class LRUCacheTest {
       }
 
       // Make sure we only have 5 items in the cache
-      assertEquals(5, cache.getSize());
+      assertEquals(5, cache.size());
 
       // Make sure that the letter 'A' is still in the cache due to frequent access
       assertNotNull( cache.get(A.toString()) );
@@ -102,19 +102,19 @@ public class LRUCacheTest {
 
     @Test
     public void clearTest() throws PulsarClientException {
-       LRUCache<String, Producer> cache = new LRUCache<String, Producer>(26);
+       PulsarClientLRUCache<String, Producer> cache = new PulsarClientLRUCache<String, Producer>(26);
 
        for (Character i='A'; i<='Z'; i++) {
           cache.put(i.toString(), mockedPulsarProducer);
        }
 
        // Make sure we only have all the items in the cache
-       assertEquals(26, cache.getSize());
+       assertEquals(26, cache.size());
        cache.clear();
 
        verify(mockedPulsarProducer, times(26)).close();
 
        // Make sure all the items were removed
-       assertEquals(0, cache.getSize());
+       assertEquals(0, cache.size());
     }
 }

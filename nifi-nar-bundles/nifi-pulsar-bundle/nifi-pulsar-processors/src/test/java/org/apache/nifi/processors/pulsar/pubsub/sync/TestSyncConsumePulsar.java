@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.pulsar.pubsub.sync;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
 
     @Test
     public void nullMessageTest() throws PulsarClientException {
+        when(mockClientService.getMockConsumer().receive(0, TimeUnit.SECONDS)).thenReturn(mockMessage).thenReturn(null);
         when(mockMessage.getData()).thenReturn(null);
         mockClientService.setMockMessage(mockMessage);
 
@@ -46,10 +48,9 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
 
-        verify(mockClientService.getMockConsumer(), times(1)).acknowledge(mockMessage);
+        verify(mockClientService.getMockConsumer(), atLeast(1)).acknowledgeCumulative(mockMessage);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void pulsarClientExceptionTest() throws PulsarClientException {
         when(mockClientService.getMockConsumer().receive()).thenThrow(PulsarClientException.class);
@@ -67,7 +68,8 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
     }
 
     @Test
-    public void emptyMessageTest() {
+    public void emptyMessageTest() throws PulsarClientException {
+        when(mockClientService.getMockConsumer().receive(0, TimeUnit.SECONDS)).thenReturn(mockMessage).thenReturn(null);
         when(mockMessage.getData()).thenReturn("".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
@@ -79,6 +81,8 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
         // Make sure no Flowfiles were generated
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
+
+        verify(mockClientService.getMockConsumer(), atLeast(1)).acknowledgeCumulative(mockMessage);
     }
 
     @Test
@@ -91,26 +95,26 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
         this.sendMessages("Mocked Message", "foo", "bar", false, 40);
     }
 
+    @Test
+    public final void batchMessageTest() throws PulsarClientException {
+        this.batchMessages("Mocked Message", "foo", "bar", false, 400);
+    }
+
     /*
      * Verify that the consumer gets closed.
      */
     @Test
-    public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
+    public void onStoppedTest() throws PulsarClientException {
         when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsar.TOPICS, "foo");
         runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, "bar");
-        runner.run(10, true);
+        runner.setProperty(ConsumePulsar.CONSUMER_BATCH_SIZE, 1 + "");
+        runner.run(1, true);
         runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
 
         runner.assertQueueEmpty();
-
-        // Verify that the receive method on the consumer was called 10 times
-        verify(mockClientService.getMockConsumer(), times(10)).receive(2, TimeUnit.SECONDS);
-
-        // Verify that each message was acknowledged
-        verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);
 
         // Verify that the consumer was closed
         verify(mockClientService.getMockConsumer(), times(1)).close();

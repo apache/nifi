@@ -34,30 +34,30 @@ public class TestSyncConsumePulsarRecord extends TestConsumePulsarRecord {
 
     @Test
     public void emptyMessageTest() throws PulsarClientException {
-        when(mockMessage.getData()).thenReturn("".getBytes());
+        when(mockMessage.getValue()).thenReturn("".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
         runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-        runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+        runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
         runner.run();
         runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_PARSE_FAILURE);
 
-        verify(mockClientService.getMockConsumer(), times(1)).acknowledge(mockMessage);
+        verify(mockClientService.getMockConsumer(), times(1)).acknowledgeCumulative(mockMessage);
     }
 
     @Test
     public void singleMalformedMessageTest() throws PulsarClientException {
-       when(mockMessage.getData()).thenReturn(BAD_MSG.getBytes());
+       when(mockMessage.getValue()).thenReturn(BAD_MSG.getBytes());
        mockClientService.setMockMessage(mockMessage);
 
        runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-       runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+       runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
        runner.run();
        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_PARSE_FAILURE);
 
-       verify(mockClientService.getMockConsumer(), times(1)).acknowledge(mockMessage);
+       verify(mockClientService.getMockConsumer(), times(1)).acknowledgeCumulative(mockMessage);
     }
 
     /*
@@ -105,13 +105,13 @@ public class TestSyncConsumePulsarRecord extends TestConsumePulsarRecord {
           }
         }
 
-       when(mockMessage.getData()).thenReturn(input.toString().getBytes());
+       when(mockMessage.getValue()).thenReturn(input.toString().getBytes());
        mockClientService.setMockMessage(mockMessage);
 
        runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(false));
        runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-       runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
+       runner.setProperty(ConsumePulsarRecord.CONSUMER_BATCH_SIZE, 1 + "");
        runner.setProperty(ConsumePulsarRecord.MAX_WAIT_TIME, "0 sec");
        runner.run(1, true);
 

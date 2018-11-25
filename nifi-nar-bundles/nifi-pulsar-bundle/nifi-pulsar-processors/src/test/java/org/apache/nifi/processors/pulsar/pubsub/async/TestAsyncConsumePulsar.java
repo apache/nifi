@@ -22,7 +22,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsar;
 import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsar;
@@ -31,24 +30,6 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 
 public class TestAsyncConsumePulsar extends TestConsumePulsar {
-
-   @Test
-    public void nullMessageTest() throws PulsarClientException {
-        when(mockMessage.getData()).thenReturn(null);
-        mockClientService.setMockMessage(mockMessage);
-
-        runner.setProperty(ConsumePulsar.TOPICS, "foo");
-        runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, "bar");
-        runner.setProperty(ConsumePulsar.ASYNC_ENABLED, Boolean.toString(true));
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
-
-        // Make sure no Flowfiles were generated
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
-        assertEquals(0, flowFiles.size());
-
-        verify(mockClientService.getMockConsumer(), times(0)).acknowledge(mockMessage);
-    }
 
     @Test
     public void pulsarClientExceptionTest() throws PulsarClientException {
@@ -69,7 +50,7 @@ public class TestAsyncConsumePulsar extends TestConsumePulsar {
 
     @Test
     public void emptyMessageTest() {
-        when(mockMessage.getData()).thenReturn("".getBytes());
+        when(mockMessage.getValue()).thenReturn("".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsar.TOPICS, "foo");
@@ -80,7 +61,7 @@ public class TestAsyncConsumePulsar extends TestConsumePulsar {
 
         // Make sure no Flowfiles were generated
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
-        assertEquals(0, flowFiles.size());
+        assertEquals(1, flowFiles.size());
     }
 
     @Test
@@ -98,7 +79,7 @@ public class TestAsyncConsumePulsar extends TestConsumePulsar {
      */
     @Test
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
-        when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
+        when(mockMessage.getValue()).thenReturn("Mocked Message".getBytes());
         mockClientService.setMockMessage(mockMessage);
 
         runner.setProperty(ConsumePulsar.TOPICS, "foo");
@@ -107,12 +88,6 @@ public class TestAsyncConsumePulsar extends TestConsumePulsar {
         runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
 
         runner.assertQueueEmpty();
-
-        // Verify that the receive method on the consumer was called 10 times
-        verify(mockClientService.getMockConsumer(), times(10)).receive(2, TimeUnit.SECONDS);
-
-        // Verify that each message was acknowledged
-        verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);
 
         // Verify that the consumer was closed
         verify(mockClientService.getMockConsumer(), times(1)).close();

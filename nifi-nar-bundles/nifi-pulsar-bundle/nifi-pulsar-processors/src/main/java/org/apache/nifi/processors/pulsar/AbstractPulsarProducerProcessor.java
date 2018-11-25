@@ -43,7 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientService;
-import org.apache.nifi.pulsar.cache.LRUCache;
+import org.apache.nifi.pulsar.cache.PulsarClientLRUCache;
 import org.apache.nifi.util.StringUtils;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.MessageRoutingMode;
@@ -134,9 +134,9 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
     public static final PropertyDescriptor BATCHING_MAX_MESSAGES = new PropertyDescriptor.Builder()
             .name("BATCHING_MAX_MESSAGES")
             .displayName("Batching Max Messages")
-            .description("Set the maximum number of messages permitted in a batch. default: "
-                    + "1000 If set to a value greater than 1, messages will be queued until this "
-                    + "threshold is reached or batch interval has elapsed")
+            .description("Set the maximum number of messages permitted in a batch within the Pulsar client. "
+                    + "default: 1000. If set to a value greater than 1, messages will be queued until this "
+                    + "threshold is reached or the batch interval has elapsed, whichever happens first.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1000")
@@ -243,11 +243,14 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
     }
 
     private PulsarClientService pulsarClientService;
-    private LRUCache<String, Producer<T>> producers;
+    private PulsarClientLRUCache<String, Producer<T>> producers;
     private ExecutorService publisherPool;
 
     // Used to sync between onTrigger method and shutdown code block.
     protected AtomicBoolean canPublish = new AtomicBoolean();
+
+    // Used to track whether we are reporting errors back to the user or not.
+    protected AtomicBoolean trackFailures = new AtomicBoolean();
 
     private int maxRequests = 1;
 
@@ -265,10 +268,16 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
             setAsyncPublishers(new LinkedList<AsyncPublisher>());
             // Limit the depth of the work queue to 500 per worker, to prevent long shutdown times.
             workQueue = new LinkedBlockingQueue<Pair<String,T>>(500 * maxRequests);
-            failureQueue = new LinkedBlockingQueue<Pair<String,T>>();
+
+            if (context.hasConnection(REL_FAILURE)) {
+                failureQueue = new LinkedBlockingQueue<Pair<String,T>>();
+                trackFailures.set(true);
+            } else {
+                trackFailures.set(false);
+            }
 
             for (int idx = 0; idx < maxRequests; idx++) {
-                AsyncPublisher worker = new AsyncPublisher(workQueue, failureQueue);
+                AsyncPublisher worker = new AsyncPublisher();
                 getAsyncPublishers().add(worker);
                 getPublisherPool().submit(worker);
             }
@@ -296,7 +305,7 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
               });
 
               // Flush all of the pending messages in the producers
-              getProducers().getValues().forEach(producer -> {
+              getProducers().values().forEach(producer -> {
                    try {
                      producer.flush();
                    } catch (PulsarClientException e) {
@@ -332,7 +341,7 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
      */
     protected void handleFailures(ProcessSession session) {
 
-        if (CollectionUtils.isEmpty(failureQueue)) {
+        if (!trackFailures.get() || CollectionUtils.isEmpty(failureQueue)) {
            return;
         }
 
@@ -404,14 +413,14 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
        this.pulsarClientService = pulsarClientService;
     }
 
-    protected synchronized LRUCache<String, Producer<T>> getProducers() {
+    protected synchronized PulsarClientLRUCache<String, Producer<T>> getProducers() {
        if (producers == null) {
-         producers = new LRUCache<String, Producer<T>>(20);
+         producers = new PulsarClientLRUCache<String, Producer<T>>(20);
        }
        return producers;
     }
 
-    protected synchronized void setProducers(LRUCache<String, Producer<T>> producers) {
+    protected synchronized void setProducers(PulsarClientLRUCache<String, Producer<T>> producers) {
        this.producers = producers;
     }
 
@@ -426,13 +435,6 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
     private final class AsyncPublisher implements Runnable {
         private boolean keepRunning = true;
         private boolean completed = false;
-        private final BlockingQueue<Pair<String,T>> workQueue;
-        private final BlockingQueue<Pair<String,T>> failures;
-
-        public AsyncPublisher(BlockingQueue<Pair<String,T>> workQueue, BlockingQueue<Pair<String,T>> failures) {
-            this.workQueue = workQueue;
-            this.failures = failures;
-        }
 
         public void halt() {
            keepRunning = false;
@@ -457,12 +459,23 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
                 Pair<String,T> item = workQueue.take();
                 Producer<T> producer = getProducers().get(item.getLeft());
 
-                try {
-                    if (producer.isConnected() && producer.sendAsync(item.getValue()).join() == null) {
-                       failures.put(item);
+                if (!trackFailures.get()) {
+                    // We don't care about failures, so just fire & forget
+                    producer.sendAsync(item.getValue());
+                } else if (producer == null || !producer.isConnected()) {
+                    // We cannot get a valid producer, so add the item to the failure queue
+                    failureQueue.put(item);
+                } else {
+                    try {
+                        // Send the item asynchronously and confirm we get a messageId back from Pulsar.
+                        if (producer.sendAsync(item.getValue()).join() == null) {
+                            // No messageId indicates failure
+                            failureQueue.put(item);
+                        }
+                    } catch (final Throwable t) {
+                        // Any exception during sendAsync() call indicates failure
+                        failureQueue.put(item);
                     }
-                } catch (final Throwable t) {
-                   failures.put(item);
                 }
             } catch (InterruptedException e) {
                 // Ignore these

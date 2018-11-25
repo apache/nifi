@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar;
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord;
 import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -85,10 +86,11 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
 
         runner.setProperty(PublishPulsar.TOPIC, "my-topic");
         runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+        runner.addConnection(PublishPulsarRecord.REL_FAILURE);
 
         final String content = "some content";
         runner.enqueue(content.getBytes("UTF-8"));
-        runner.run(100, false, true);
+        runner.run(5000, false, true);
         List<MockFlowFile> success = runner.getFlowFilesForRelationship("success");
         List<MockFlowFile> failures = runner.getFlowFilesForRelationship("failure");
 
