@@ -830,7 +830,7 @@ public class TestPutHive3QL {
         private final Hive3DBCPService service;
         private int allowedBeforeFailure = 0;
         private int successful = 0;
-        private int errorCode = 20000; // Default to a retryable exception code
+        private int errorCode = 30000; // Default to a retryable exception code
 
         SQLExceptionService(final Hive3DBCPService service) {
             this.service = service;

@@ -150,10 +150,11 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
             } else if (e instanceof SQLException) {
                 // Use the SQLException's vendor code for guidance -- see Hive's ErrorMsg class for details on error codes
                 int errorCode = ((SQLException) e).getErrorCode();
+                getLogger().debug("Error occurred during Hive operation, Hive returned error code {}", new Object[]{errorCode});
                 if (errorCode >= 10000 && errorCode < 20000) {
                     return ErrorTypes.InvalidInput;
                 } else if (errorCode >= 20000 && errorCode < 30000) {
-                    return ErrorTypes.TemporalFailure;
+                    return ErrorTypes.InvalidInput;
                 } else if (errorCode >= 30000 && errorCode < 40000) {
                     return ErrorTypes.TemporalInputFailure;
                 } else if (errorCode >= 40000 && errorCode < 50000) {
