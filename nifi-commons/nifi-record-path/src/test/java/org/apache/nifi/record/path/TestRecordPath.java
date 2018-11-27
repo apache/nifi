@@ -1010,6 +1010,7 @@ public class TestRecordPath {
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name1", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name2", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("col1", RecordFieldType.STRING.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
@@ -1018,6 +1019,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         values.put("name1", "John\\Doe");
         values.put("name2", "John[]Doe");
+        values.put("col1", "tab \t, new line \n, CR \r, backslach \\");
         final Record record = new MapRecord(schema, values);
 
         assertEquals("ohn oe", RecordPath.compile("replaceRegex(/name, '[JD]', '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
@@ -1035,6 +1037,27 @@ public class TestRecordPath {
         assertEquals("John48Doe", RecordPath.compile("replaceRegex(/name, '\\s', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John48Doe", RecordPath.compile("replaceRegex(/name, '\\\\s', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John  Doe", RecordPath.compile("replaceRegex(/name2, '[\\\\[\\\\]]', ' ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        //test replace tab and new lines, and still keeps single backslash
+        assertEquals("tab *, new line *, CR *, backslach \\", RecordPath.compile("replaceRegex(/col1, '[\\t|\\r|\\n]', '*')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        boolean exceptionThrown = false;
+        try{
+            // illegal regex pattern, because double backslash will be escaped to single one, and would expect a char according to regex rules
+            RecordPath.compile("replaceRegex(/col1, '\\\\', '*')").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        }catch(RecordPathException e) {
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
+
+        exceptionThrown = false;
+        try{
+            // illegal regex pattern, because single backslash will replaced by ANTLR with double backslash,
+            // then will be escaped back to single one, and would expect a char according to regex rules
+            RecordPath.compile("replaceRegex(/col1, '\\', '*')").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        }catch(RecordPathException e) {
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
     }
 
     @Test
