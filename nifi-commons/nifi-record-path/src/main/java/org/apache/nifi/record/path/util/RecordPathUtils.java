@@ -40,6 +40,15 @@ public class RecordPathUtils {
         return stringValue;
     }
 
+    /**
+     * This method handles backslash sequences after ANTLR parser converts all backslash into double ones
+     * with exception for \t, \r and \n. See
+     * {@link <a href="file:../../../../../../../../../src/main/antlr3/org/apache/nifi/record/path/RecordPathParser.g">
+     * org/apache/nifi/record/path/RecordPathParser.g</a>}
+     *
+     * @param value to be handled
+     * @return transformed string from given value.
+     */
     public static String unescapeBackslash(String value) {
         if (value == null || value.isEmpty()) {
             return value;
