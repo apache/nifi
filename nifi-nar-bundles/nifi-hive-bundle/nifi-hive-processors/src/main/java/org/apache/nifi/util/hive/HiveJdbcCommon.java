@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,9 +65,11 @@ import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
 import static java.sql.Types.NUMERIC;
 import static java.sql.Types.NVARCHAR;
+import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.ROWID;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.SQLXML;
 import static java.sql.Types.STRUCT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
@@ -165,6 +168,8 @@ public class HiveJdbcCommon {
 
                     } else if (value instanceof Boolean) {
                         rec.put(i - 1, value);
+                    } else if (value instanceof java.sql.SQLXML) {
+                        rec.put(i - 1, ((java.sql.SQLXML) value).getString());
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
                         // as well as boolean values and Strings. Since Avro doesn't provide
@@ -241,6 +246,8 @@ public class HiveJdbcCommon {
                 case ARRAY:
                 case STRUCT:
                 case JAVA_OBJECT:
+                case OTHER:
+                case SQLXML:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
@@ -402,6 +409,12 @@ public class HiveJdbcCommon {
                             rowValues.add("");
                         }
                         break;
+                    case SQLXML:
+                        if (value != null) {
+                            rowValues.add(StringEscapeUtils.escapeCsv(((java.sql.SQLXML) value).getString()));
+                        } else {
+                            rowValues.add("");
+                        }
                     default:
                         if (value != null) {
                             rowValues.add(value.toString());

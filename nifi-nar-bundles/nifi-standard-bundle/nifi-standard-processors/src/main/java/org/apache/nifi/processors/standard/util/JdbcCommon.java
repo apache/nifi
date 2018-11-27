@@ -36,9 +36,11 @@ import static java.sql.Types.NCHAR;
 import static java.sql.Types.NCLOB;
 import static java.sql.Types.NUMERIC;
 import static java.sql.Types.NVARCHAR;
+import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.ROWID;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.SQLXML;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TIMESTAMP_WITH_TIMEZONE;
@@ -65,6 +67,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -467,6 +470,8 @@ public class JdbcCommon {
                             rec.put(i - 1, value.toString());
                         }
 
+                    } else if (value instanceof java.sql.SQLXML) {
+                        rec.put(i - 1, ((SQLXML) value).getString());
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
                         // as well as boolean values and Strings. Since Avro doesn't provide
@@ -564,6 +569,8 @@ public class JdbcCommon {
                 case VARCHAR:
                 case CLOB:
                 case NCLOB:
+                case OTHER:
+                case SQLXML:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
