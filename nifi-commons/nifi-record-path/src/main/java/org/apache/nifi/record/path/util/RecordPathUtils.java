@@ -39,4 +39,44 @@ public class RecordPathUtils {
 
         return stringValue;
     }
+
+    public static String unescapeBackslash(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        // need to escape characters after backslashes
+        final StringBuilder sb = new StringBuilder();
+        boolean lastCharIsBackslash = false;
+        for (int i = 0; i < value.length(); i++) {
+            final char c = value.charAt(i);
+
+            if (lastCharIsBackslash) {
+                switch (c) {
+                case 'n':
+                    sb.append("\n");
+                    break;
+                case 'r':
+                    sb.append("\r");
+                    break;
+                case '\\':
+                    sb.append("\\");
+                    break;
+                case 't':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append("\\").append(c);
+                    break;
+                }
+
+                lastCharIsBackslash = false;
+            } else if (c == '\\') {
+                lastCharIsBackslash = true;
+            } else {
+                sb.append(c);
+            }
+        }
+
+        return sb.toString();
+    }
 }

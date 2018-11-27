@@ -45,7 +45,8 @@ public class ReplaceRegex extends RecordPathSegment {
         if (searchValue instanceof LiteralValuePath) {
             final FieldValue fieldValue = ((LiteralValuePath) searchValue).evaluate((RecordPathEvaluationContext) null).findFirst().get();
             final Object value = fieldValue.getValue();
-            final String regex = DataTypeUtils.toString(value, (String) null);
+            final String regex = RecordPathUtils.unescapeBackslash(DataTypeUtils.toString(value, (String) null));
+
             compiledPattern = Pattern.compile(regex);
         } else {
             compiledPattern = null;
@@ -79,7 +80,7 @@ public class ReplaceRegex extends RecordPathSegment {
                         return fv;
                     }
 
-                    final String regex = DataTypeUtils.toString(fieldValue, (String) null);
+                    final String regex = RecordPathUtils.unescapeBackslash(DataTypeUtils.toString(fieldValue, (String) null));
                     pattern = Pattern.compile(regex);
                 } else {
                     pattern = compiledPattern;

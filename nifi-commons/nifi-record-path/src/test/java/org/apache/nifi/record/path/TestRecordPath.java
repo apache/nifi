@@ -1008,12 +1008,16 @@ public class TestRecordPath {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name1", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name2", RecordFieldType.STRING.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
         values.put("name", "John Doe");
+        values.put("name1", "John\\Doe");
+        values.put("name2", "John[]Doe");
         final Record record = new MapRecord(schema, values);
 
         assertEquals("ohn oe", RecordPath.compile("replaceRegex(/name, '[JD]', '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
@@ -1026,6 +1030,11 @@ public class TestRecordPath {
         assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         assertEquals("48ohn 48oe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        assertEquals("John48Doe", RecordPath.compile("replaceRegex(/name1, '\\\\\\\\', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John48Doe", RecordPath.compile("replaceRegex(/name, '\\s', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John48Doe", RecordPath.compile("replaceRegex(/name, '\\\\s', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John  Doe", RecordPath.compile("replaceRegex(/name2, '[\\\\[\\\\]]', ' ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test

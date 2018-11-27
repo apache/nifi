@@ -24,6 +24,7 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.paths.LiteralValuePath;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.record.path.util.RecordPathUtils;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 public class ContainsRegex extends FunctionFilter {
@@ -39,7 +40,7 @@ public class ContainsRegex extends FunctionFilter {
         if (regexPath instanceof LiteralValuePath) {
             final FieldValue fieldValue = ((LiteralValuePath) regexPath).evaluate((RecordPathEvaluationContext) null).findFirst().get();
             final Object value = fieldValue.getValue();
-            final String regex = DataTypeUtils.toString(value, (String) null);
+            final String regex = RecordPathUtils.unescapeBackslash(DataTypeUtils.toString(value, (String) null));
             compiledPattern = Pattern.compile(regex);
         } else {
             compiledPattern = null;
@@ -60,7 +61,7 @@ public class ContainsRegex extends FunctionFilter {
                 return false;
             }
 
-            final String regex = DataTypeUtils.toString(value, (String) null);
+            final String regex = RecordPathUtils.unescapeBackslash(DataTypeUtils.toString(value, (String) null));
             pattern = Pattern.compile(regex);
         } else {
             pattern = compiledPattern;
