@@ -18,7 +18,8 @@ package org.apache.nifi.processors.aws.regions;
 
 public enum AWSRegions {
 
-    GovCloud("us-gov-west-1", "AWS GovCloud (US)"),
+    GovCloud("us-gov-west-1", "AWS GovCloud West (US)"),
+    GovCloud_East("us-gov-east-1", "AWS GovCloud East (US)"),
     US_EAST_1("us-east-1", "US East (N. Virginia)"),
     US_EAST_2("us-east-2", "US East (Ohio)"),
     US_WEST_1("us-west-1", "US West (N. California)"),
