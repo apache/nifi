@@ -410,7 +410,11 @@ public class HiveJdbcCommon {
                         }
                         break;
                     case SQLXML:
-                        rowValues.add(StringEscapeUtils.escapeCsv(((java.sql.SQLXML) value).getString()));
+                        if (value != null) {
+                            rowValues.add(StringEscapeUtils.escapeCsv(((java.sql.SQLXML) value).getString()));
+                        } else {
+                            rowValues.add("");
+                        }
                         break;
                     default:
                         if (value != null) {
