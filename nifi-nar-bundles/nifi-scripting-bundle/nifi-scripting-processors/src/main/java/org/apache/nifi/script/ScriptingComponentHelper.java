@@ -127,8 +127,8 @@ public class ScriptingComponentHelper {
         // Verify that exactly one of "script file" or "script body" is set
         Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
         if (StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_BODY))) {
-            results.add(new ValidationResult.Builder().valid(false).explanation(
-                    "Exactly one of Script File or Script Body must be set").build());
+            results.add(new ValidationResult.Builder().subject("Script Body or Script File").valid(false).explanation(
+                    "exactly one of Script File or Script Body must be set").build());
         }
 
         return results;
