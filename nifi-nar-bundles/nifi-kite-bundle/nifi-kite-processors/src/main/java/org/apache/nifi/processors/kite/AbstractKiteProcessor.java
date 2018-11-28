@@ -110,25 +110,21 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
                 return Datasets.load(uri).getDataset().getDescriptor().getSchema();
             } else if ("resource".equals(uri.getScheme())) {
-                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
-                        .openStream()) {
+                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart()).openStream()) {
                     return parseSchema(uri, in);
                 }
             } else {
                 // try to open the file
                 Path schemaPath = new Path(uri);
-                FileSystem fs = schemaPath.getFileSystem(conf);
-                try (InputStream in = fs.open(schemaPath)) {
+                try (FileSystem fs = schemaPath.getFileSystem(conf); InputStream in = fs.open(schemaPath)) {
                     return parseSchema(uri, in);
                 }
             }
 
         } catch (DatasetNotFoundException e) {
-            throw new SchemaNotFoundException(
-                    "Cannot read schema of missing dataset: " + uri, e);
+            throw new SchemaNotFoundException("Cannot read schema of missing dataset: " + uri, e);
         } catch (IOException e) {
-            throw new SchemaNotFoundException(
-                    "Failed while reading " + uri + ": " + e.getMessage(), e);
+            throw new SchemaNotFoundException("Failed while reading " + uri + ": " + e.getMessage(), e);
         }
     }
 
@@ -136,8 +132,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         try {
             return new Schema.Parser().parse(literal);
         } catch (RuntimeException e) {
-            throw new SchemaNotFoundException(
-                    "Failed to parse schema: " + literal, e);
+            throw new SchemaNotFoundException("Failed to parse schema: " + literal, e);
         }
     }
 
