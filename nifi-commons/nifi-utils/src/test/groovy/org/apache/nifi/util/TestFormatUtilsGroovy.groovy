@@ -53,7 +53,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
      * New feature test
      */
     @Test
-    void testShouldConvertWeeks() {
+    void testGetTimeDurationShouldConvertWeeks() {
         // Arrange
         final List WEEKS = ["1 week", "1 wk", "1 w", "1 wks", "1 weeks"]
         final long EXPECTED_DAYS = 7L
@@ -70,7 +70,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
 
 
     @Test
-    void testShouldHandleNegativeWeeks() {
+    void testGetTimeDurationShouldHandleNegativeWeeks() {
         // Arrange
         final List WEEKS = ["-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week"]
 
@@ -89,7 +89,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
      * Regression test
      */
     @Test
-    void testShouldHandleInvalidAbbreviations() {
+    void testGetTimeDurationShouldHandleInvalidAbbreviations() {
         // Arrange
         final List WEEKS = ["1 work", "1 wek", "1 k"]
 
@@ -109,7 +109,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
      * New feature test
      */
     @Test
-    void testShouldHandleNoSpaceInInput() {
+    void testGetTimeDurationShouldHandleNoSpaceInInput() {
         // Arrange
         final List WEEKS = ["1week", "1wk", "1w", "1wks", "1weeks"]
         final long EXPECTED_DAYS = 7L
@@ -128,7 +128,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
      * New feature test
      */
     @Test
-    void testShouldHandleDecimalValues() {
+    void testGetTimeDurationShouldHandleDecimalValues() {
         // Arrange
         final List WHOLE_NUMBERS = ["10 ms", "10 millis", "10 milliseconds"]
         final List DECIMAL_NUMBERS = ["0.010 s", "0.010 seconds"]
@@ -158,13 +158,13 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         // Arrange
         final String ONE_WEEK = "1 week"
         final Map ONE_WEEK_IN_OTHER_UNITS = [
-                (TimeUnit.DAYS): 7,
-                (TimeUnit.HOURS): 7 * 24,
-                (TimeUnit.MINUTES): 7 * 24 * 60,
-                (TimeUnit.SECONDS): (long) 7 * 24 * 60 * 60,
+                (TimeUnit.DAYS)        : 7,
+                (TimeUnit.HOURS)       : 7 * 24,
+                (TimeUnit.MINUTES)     : 7 * 24 * 60,
+                (TimeUnit.SECONDS)     : (long) 7 * 24 * 60 * 60,
                 (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
                 (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
-                (TimeUnit.NANOSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
         ]
 
         // Act
@@ -174,7 +174,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         logger.converted(oneWeekInOtherUnits)
 
         // Assert
-        oneWeekInOtherUnits.each {TimeUnit k, double value ->
+        oneWeekInOtherUnits.each { TimeUnit k, double value ->
             assert value == ONE_WEEK_IN_OTHER_UNITS[k]
         }
     }
@@ -187,13 +187,13 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         // Arrange
         final String ONE_AND_A_HALF_WEEKS = "1.5 week"
         final Map ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS = [
-                (TimeUnit.DAYS): 7,
-                (TimeUnit.HOURS): 7 * 24,
-                (TimeUnit.MINUTES): 7 * 24 * 60,
-                (TimeUnit.SECONDS): (long) 7 * 24 * 60 * 60,
+                (TimeUnit.DAYS)        : 7,
+                (TimeUnit.HOURS)       : 7 * 24,
+                (TimeUnit.MINUTES)     : 7 * 24 * 60,
+                (TimeUnit.SECONDS)     : (long) 7 * 24 * 60 * 60,
                 (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
                 (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
-                (TimeUnit.NANOSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
         ].collectEntries { k, v -> [k, v * 1.5] }
 
         // Act
@@ -203,7 +203,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         logger.converted(onePointFiveWeeksInOtherUnits)
 
         // Assert
-        onePointFiveWeeksInOtherUnits.each {TimeUnit k, double value ->
+        onePointFiveWeeksInOtherUnits.each { TimeUnit k, double value ->
             assert value == ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS[k]
         }
     }
@@ -232,6 +232,33 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         // Assert
         assert parsedWholeMillis.every { it == EXPECTED_MILLIS }
         assert parsedDecimalMillis.every { it == EXPECTED_MILLIS }
+    }
+
+    /**
+     * Positive flow test for decimal inputs that are extremely small
+     */
+    @Test
+    void testGetPreciseTimeDurationShouldHandleSmallDecimalValues() {
+        // Arrange
+        final Map SCENARIOS = [
+                "decimalNanos"           : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 123.4, expectedValue: 123.0],
+                "lessThanOneNano"        : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.9, expectedValue: 1],
+                "lessThanOneNanoToMillis": [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.MILLISECONDS, originalValue: 0.9, expectedValue: 0],
+                "decimalMillisToNanos"        : [originalUnits: TimeUnit.MILLISECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 123.4, expectedValue: 123_400_000],
+        ]
+
+        // Act
+        Map results = SCENARIOS.collectEntries { String k, Map values ->
+            logger.debug("Evaluating ${k}: ${values}")
+            String input = "${values.originalValue} ${values.originalUnits.name()}"
+            [k, FormatUtils.getPreciseTimeDuration(input, values.expectedUnits)]
+        }
+        logger.info(results)
+
+        // Assert
+        results.every { String key, double value ->
+            assert value == SCENARIOS[key].expectedValue
+        }
     }
 
     /**
@@ -264,11 +291,11 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     void testMakeWholeNumberTimeShouldHandleMetricConversions() {
         // Arrange
         final Map SCENARIOS = [
-                "secondsToMillis"   : [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MILLISECONDS, expectedValue: 123_400, originalValue: 123.4],
-                "secondsToMicros" : [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MICROSECONDS, originalValue: 1.000_345, expectedValue: 1_000_345],
-                "millisToNanos" : [originalUnits: TimeUnit.MILLISECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.75, expectedValue: 750_000],
-                "nanosToNanosGE1" : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 123.4, expectedValue: 123],
-                "nanosToNanosLE1" : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.123, expectedValue: 1],
+                "secondsToMillis": [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MILLISECONDS, expectedValue: 123_400, originalValue: 123.4],
+                "secondsToMicros": [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MICROSECONDS, originalValue: 1.000_345, expectedValue: 1_000_345],
+                "millisToNanos"  : [originalUnits: TimeUnit.MILLISECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.75, expectedValue: 750_000],
+                "nanosToNanosGE1": [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 123.4, expectedValue: 123],
+                "nanosToNanosLE1": [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.123, expectedValue: 1],
         ]
 
         // Act
@@ -292,9 +319,9 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     void testMakeWholeNumberTimeShouldHandleNonMetricConversions() {
         // Arrange
         final Map SCENARIOS = [
-                "daysToHours"   : [originalUnits: TimeUnit.DAYS, expectedUnits: TimeUnit.HOURS, expectedValue: 36, originalValue: 1.5],
+                "daysToHours"    : [originalUnits: TimeUnit.DAYS, expectedUnits: TimeUnit.HOURS, expectedValue: 36, originalValue: 1.5],
                 "hoursToMinutes" : [originalUnits: TimeUnit.HOURS, expectedUnits: TimeUnit.MINUTES, originalValue: 1.5, expectedValue: 90],
-                "hoursToMinutes2" : [originalUnits: TimeUnit.HOURS, expectedUnits: TimeUnit.MINUTES, originalValue: 0.75, expectedValue: 45],
+                "hoursToMinutes2": [originalUnits: TimeUnit.HOURS, expectedUnits: TimeUnit.MINUTES, originalValue: 0.75, expectedValue: 45],
         ]
 
         // Act

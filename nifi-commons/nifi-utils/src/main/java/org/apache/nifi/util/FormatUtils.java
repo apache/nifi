@@ -210,6 +210,8 @@ public class FormatUtils {
      * <p>
      * If the value is {@code x >= 1} but x is not a whole number, the units will first be converted to a smaller unit to attempt to get a whole number value (i.e. 1.5 seconds -> 1500 milliseconds).
      * <p>
+     * If the value is {@code x < 1000} and the units are {@code TimeUnit.NANOSECONDS}, the result will be a whole number of nanoseconds, rounded (i.e. 123.4 ns -> 123 ns).
+     * <p>
      * This method handles decimal values over {@code 1 ns}, but {@code < 1 ns} will return {@code 0} in any other unit.
      * <p>
      * Examples:
@@ -217,7 +219,7 @@ public class FormatUtils {
      * "10 seconds", {@code TimeUnit.MILLISECONDS} -> 10_000.0
      * "0.010 s", {@code TimeUnit.MILLISECONDS} -> 10.0
      * "0.010 s", {@code TimeUnit.SECONDS} -> 0.010
-     * "0.010 ns", {@code TimeUnit.NANOSECONDS} -> 0.010
+     * "0.010 ns", {@code TimeUnit.NANOSECONDS} -> 1
      * "0.010 ns", {@code TimeUnit.MICROSECONDS} -> 0
      *
      * @param value       the {@code String} input
