@@ -40,14 +40,13 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.security.ssl.SSLContextImpl
-import sun.security.ssl.SSLEngineImpl
 
 import javax.crypto.Cipher
 import javax.net.SocketFactory
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
@@ -67,8 +66,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final List DEFAULT_PROTOCOLS = [TLSv1, TLSv1_1, TLSv1_2]
 
     private static final String TLSv1_1_CIPHER_SUITE = "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
+    private static final SSLContext SSL_CONTEXT = SSLContext.default
+    private static final SSLEngine SSL_ENGINE = SSL_CONTEXT.createSSLEngine()
     private static
-    final List DEFAULT_CIPHER_SUITES = new SSLEngineImpl(new SSLContextImpl.TLSContext()).supportedCipherSuites as List
+    final List DEFAULT_CIPHER_SUITES = SSL_ENGINE.supportedCipherSuites as List
 
     private static final String DEFAULT_HOSTNAME = "localhost"
     private static final int DEFAULT_TLS_PORT = 8456
