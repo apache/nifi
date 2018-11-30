@@ -168,7 +168,7 @@ public class TestListenTCPRecord {
                 "passwordpassword".toCharArray(),
                 "jks",
                 org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf("NONE"),
-                "TLS");
+                "TLSv1.2");
 
         runTCP(DATA, 1, clientSslContext);
 
@@ -212,7 +212,7 @@ public class TestListenTCPRecord {
                 "src/test/resources/truststore.jks",
                 "passwordpassword".toCharArray(),
                 "jks",
-                "TLS");
+                "TLSv1.2");
 
         runTCP(DATA, 1, clientSslContext);
 

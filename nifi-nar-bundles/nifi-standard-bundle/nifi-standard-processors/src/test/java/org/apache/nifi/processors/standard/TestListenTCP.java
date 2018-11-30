@@ -130,7 +130,7 @@ public class TestListenTCP {
                 "passwordpassword".toCharArray(),
                 "jks",
                 org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf("NONE"),
-                "TLS");
+                "TLSv1.2");
 
         runTCP(messages, messages.size(), clientSslContext);
 
@@ -159,7 +159,7 @@ public class TestListenTCP {
                 "src/test/resources/truststore.jks",
                 "passwordpassword".toCharArray(),
                 "jks",
-                "TLS");
+                "TLSv1.2");
 
         try {
             runTCP(messages, messages.size(), clientSslContext);
@@ -188,7 +188,7 @@ public class TestListenTCP {
                 "src/test/resources/truststore.jks",
                 "passwordpassword".toCharArray(),
                 "jks",
-                "TLS");
+                "TLSv1.2");
 
         runTCP(messages, messages.size(), clientSslContext);
 
@@ -267,6 +267,7 @@ public class TestListenTCP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");

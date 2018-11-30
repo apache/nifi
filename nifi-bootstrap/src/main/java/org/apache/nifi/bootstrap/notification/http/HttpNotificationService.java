@@ -34,14 +34,19 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.util.Tuple;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class HttpNotificationService extends AbstractNotificationService {
 
@@ -191,8 +196,12 @@ public class HttpNotificationService extends AbstractNotificationService {
         // check if the keystore is set and add the factory if so
         if (url.toLowerCase().startsWith("https")) {
             try {
-                SSLSocketFactory sslSocketFactory = getSslSocketFactory(context);
-                okHttpClientBuilder.sslSocketFactory(sslSocketFactory);
+                Tuple<SSLSocketFactory, TrustManager[]> sslSocketFactoryWithTrustManagers = getSslSocketFactory(context);
+                // Find the first X509TrustManager
+                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslSocketFactoryWithTrustManagers.getValue())
+                        .filter(trustManager -> trustManager instanceof X509TrustManager)
+                        .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
+                okHttpClientBuilder.sslSocketFactory(sslSocketFactoryWithTrustManagers.getKey(), x509TrustManagers.get(0));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -241,20 +250,20 @@ public class HttpNotificationService extends AbstractNotificationService {
         }
     }
 
-    private static SSLSocketFactory getSslSocketFactory(NotificationInitializationContext context) throws Exception {
+    private static Tuple<SSLSocketFactory, TrustManager[]> getSslSocketFactory(NotificationInitializationContext context) {
 
         final String protocol = context.getProperty(SSL_ALGORITHM).getValue();
         try {
             final PropertyValue keyPasswdProp = context.getProperty(PROP_KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
 
-            final SSLContext sslContext;
+            final Tuple<SSLContext, TrustManager[]> sslContextWithTrustManagers;
             final String truststoreFile = context.getProperty(PROP_TRUSTSTORE).getValue();
             final String keystoreFile = context.getProperty(PROP_KEYSTORE).getValue();
 
             if (keystoreFile == null) {
                 // If keystore not specified, create SSL Context based only on trust store.
-                sslContext = SslContextFactory.createTrustSslContext(
+                sslContextWithTrustManagers = SslContextFactory.createTrustSslContextWithTrustManagers(
                         context.getProperty(PROP_TRUSTSTORE).getValue(),
                         context.getProperty(PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray(),
                         context.getProperty(PROP_TRUSTSTORE_TYPE).getValue(),
@@ -262,7 +271,7 @@ public class HttpNotificationService extends AbstractNotificationService {
 
             } else if (truststoreFile == null) {
                 // If truststore not specified, create SSL Context based only on key store.
-                sslContext = SslContextFactory.createSslContext(
+                sslContextWithTrustManagers = SslContextFactory.createSslContextWithTrustManagers(
                         context.getProperty(PROP_KEYSTORE).getValue(),
                         context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
                         keyPassword,
@@ -270,7 +279,7 @@ public class HttpNotificationService extends AbstractNotificationService {
                         protocol);
 
             } else {
-                sslContext = SslContextFactory.createSslContext(
+                sslContextWithTrustManagers = SslContextFactory.createSslContextWithTrustManagers(
                         context.getProperty(PROP_KEYSTORE).getValue(),
                         context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
                         keyPassword,
@@ -282,7 +291,7 @@ public class HttpNotificationService extends AbstractNotificationService {
                         protocol);
             }
 
-            return sslContext.getSocketFactory();
+            return new Tuple<>(sslContextWithTrustManagers.getKey().getSocketFactory(), sslContextWithTrustManagers.getValue());
         } catch (final Exception e) {
             throw new ProcessException(e);
         }

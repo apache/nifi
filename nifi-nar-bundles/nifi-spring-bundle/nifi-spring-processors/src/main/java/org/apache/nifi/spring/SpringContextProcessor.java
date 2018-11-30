@@ -23,7 +23,6 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -428,14 +427,11 @@ public class SpringContextProcessor extends AbstractProcessor {
      *
      */
     private static boolean isConfigResolvable(String configPath, File libDirPathFile) {
-        List<URL> urls = new ArrayList<>();
-        URLClassLoader parentLoader = (URLClassLoader) SpringContextProcessor.class.getClassLoader();
-        urls.addAll(Arrays.asList(parentLoader.getURLs()));
-
-        urls.addAll(SpringContextFactory.gatherAdditionalClassPathUrls(libDirPathFile.getAbsolutePath()));
+        ClassLoader parentLoader = SpringContextProcessor.class.getClassLoader();
         boolean resolvable = false;
-        try (URLClassLoader throwawayCl = new URLClassLoader(urls.toArray(new URL[] {}), null)) {
-            resolvable = throwawayCl.findResource(configPath) != null;
+        URL[] urls = SpringContextFactory.gatherAdditionalClassPathUrls(libDirPathFile.getAbsolutePath()).toArray(new URL[]{});
+        try (URLClassLoader throwawayCl = new URLClassLoader(urls, parentLoader)) {
+            resolvable = throwawayCl.getResource(configPath) != null;
         } catch (IOException e) {
             // ignore since it can only happen on CL.close()
         }
