@@ -141,65 +141,17 @@ public class FormatUtils {
         return format.format(dataSize) + " bytes";
     }
 
+    /**
+     * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String} input. If the resulting value is a decimal (i.e. {@code 25 hours -> TimeUnit.DAYS = 1.04}), the value is rounded.
+     *
+     * @param value the raw String input (i.e. "28 minutes")
+     * @param desiredUnit the requested output {@link TimeUnit}
+     * @return the whole number value of this duration in the requested units
+     * @deprecated As of Apache NiFi 1.9.0, because this method only returns whole numbers, use {@link #getPreciseTimeDuration(String, TimeUnit)} when possible.
+     */
+    @Deprecated
     public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
-        final Matcher matcher = TIME_DURATION_PATTERN.matcher(value.toLowerCase());
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Value '" + value + "' is not a valid time duration");
-        }
-
-        final String duration = matcher.group(1);
-        final String units = matcher.group(2);
-        TimeUnit specifiedTimeUnit = null;
-        switch (units.toLowerCase()) {
-            case "ns":
-            case "nano":
-            case "nanos":
-            case "nanoseconds":
-                specifiedTimeUnit = TimeUnit.NANOSECONDS;
-                break;
-            case "ms":
-            case "milli":
-            case "millis":
-            case "milliseconds":
-                specifiedTimeUnit = TimeUnit.MILLISECONDS;
-                break;
-            case "s":
-            case "sec":
-            case "secs":
-            case "second":
-            case "seconds":
-                specifiedTimeUnit = TimeUnit.SECONDS;
-                break;
-            case "m":
-            case "min":
-            case "mins":
-            case "minute":
-            case "minutes":
-                specifiedTimeUnit = TimeUnit.MINUTES;
-                break;
-            case "h":
-            case "hr":
-            case "hrs":
-            case "hour":
-            case "hours":
-                specifiedTimeUnit = TimeUnit.HOURS;
-                break;
-            case "d":
-            case "day":
-            case "days":
-                specifiedTimeUnit = TimeUnit.DAYS;
-                break;
-            case "w":
-            case "wk":
-            case "wks":
-            case "week":
-            case "weeks":
-                final long durationVal = Long.parseLong(duration);
-                return desiredUnit.convert(durationVal, TimeUnit.DAYS) * 7;
-        }
-
-        final long durationVal = Long.parseLong(duration);
-        return desiredUnit.convert(durationVal, specifiedTimeUnit);
+        return Math.round(getPreciseTimeDuration(value, desiredUnit));
     }
 
     /**
