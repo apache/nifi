@@ -142,16 +142,16 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("All input FlowFiles that are part of a successful query execution go here.")
+            .description("All input FlowFiles that are part of a successful CQL operation execution go here.")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("CQL query execution failed.")
+            .description("CQL operation execution failed.")
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
-            .description("A FlowFile is transferred to this relationship if the query cannot be completed but attempting "
+            .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
                     + "the operation again may succeed.")
             .build();
 

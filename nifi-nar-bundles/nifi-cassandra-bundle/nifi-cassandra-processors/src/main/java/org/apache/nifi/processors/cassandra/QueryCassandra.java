@@ -130,6 +130,20 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("qdbt-output-batch-size")
+            .displayName("Output Batch Size")
+            .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows "
+                    + "have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles "
+                    + "to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will "
+                    + "be committed, thus releasing the FlowFiles to the downstream relationship. NOTE: The maxvalue.* and fragment.count attributes will not be set on FlowFiles when this "
+                    + "property is set.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor OUTPUT_FORMAT = new PropertyDescriptor.Builder()
             .name("Output Format")
             .description("The format to which the result rows will be converted. If JSON is selected, the output will "
@@ -155,6 +169,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         _propertyDescriptors.add(QUERY_TIMEOUT);
         _propertyDescriptors.add(FETCH_SIZE);
         _propertyDescriptors.add(MAX_ROWS_PER_FLOW_FILE);
+        _propertyDescriptors.add(OUTPUT_BATCH_SIZE);
         _propertyDescriptors.add(OUTPUT_FORMAT);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
@@ -226,12 +241,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(inputFlowFile).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final long maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final long outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(inputFlowFile).getValue());
         final StopWatch stopWatch = new StopWatch(true);
 
-        if(inputFlowFile != null){
+        /*if(inputFlowFile != null){
             session.transfer(inputFlowFile, REL_ORIGINAL);
-        }
+        }*/
 
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
@@ -247,13 +263,21 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
+            long flowFileCount = 0;
+
             do {
-                fileToProcess = session.create();
+                //fileToProcess = session.create();
 
                 // Assuring that if we have an input FlowFile
                 // the generated output inherit the attributes
-                if(attributes != null){
-                    fileToProcess = session.putAllAttributes(fileToProcess, attributes);
+                //if(attributes != null){
+                //    fileToProcess = session.putAllAttributes(fileToProcess, attributes);
+                //}
+
+                if(inputFlowFile != null){
+                    fileToProcess = session.create(inputFlowFile);
+                }else{
+                    fileToProcess = session.create();
                 }
 
                 fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
@@ -296,7 +320,16 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
                         stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 session.transfer(fileToProcess, REL_SUCCESS);
-                session.commit();
+
+                if (outputBatchSize > 0) {
+                    flowFileCount++;
+
+                    if (flowFileCount== outputBatchSize) {
+                        session.commit();
+                        flowFileCount = 0;
+                    }
+                }
+
 
                 try {
                     resultSet.fetchMoreResults().get();
@@ -319,7 +352,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             fileToProcess = session.penalize(fileToProcess);
             session.transfer(fileToProcess, REL_RETRY);
         } catch (final QueryExecutionException qee) {
-            //session.rollback();
             logger.error("Cannot execute the query with the requested consistency level successfully", qee);
             if (fileToProcess == null) {
                 fileToProcess = session.create();
@@ -366,6 +398,11 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 context.yield();
             }
         }
+
+        if(inputFlowFile != null){
+            session.transfer(inputFlowFile, REL_ORIGINAL);
+        }
+
         session.commit();
     }
 
