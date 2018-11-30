@@ -180,7 +180,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
      * Positive flow test for decimal inputs that can be converted (all equal values)
      */
     @Test
-    void testShouldMakeWholeNumberTime() {
+    void testMakeWholeNumberTimeShouldHandleDecimals() {
         // Arrange
         final List DECIMAL_TIMES = [
                 [0.000_000_010, TimeUnit.SECONDS],
@@ -199,7 +199,59 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         assert parsedWholeNanos.every { it == [EXPECTED_NANOS, TimeUnit.NANOSECONDS] }
     }
 
-    // TODO: Non-metric units (i.e. days to hours, hours to minutes, minutes to seconds)
+    /**
+     * Positive flow test for decimal inputs that can be converted (metric values)
+     */
+    @Test
+    void testMakeWholeNumberTimeShouldHandleMetricConversions() {
+        // Arrange
+        final Map SCENARIOS = [
+                "secondsToMillis"   : [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MILLISECONDS, expectedValue: 123_400, originalValue: 123.4],
+                "secondsToMicros" : [originalUnits: TimeUnit.SECONDS, expectedUnits: TimeUnit.MICROSECONDS, originalValue: 1.000_345, expectedValue: 1_000_345],
+                "millisToNanos" : [originalUnits: TimeUnit.MILLISECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.75, expectedValue: 750_000],
+                "nanosToNanosGE1" : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 123.4, expectedValue: 123],
+                "nanosToNanosLE1" : [originalUnits: TimeUnit.NANOSECONDS, expectedUnits: TimeUnit.NANOSECONDS, originalValue: 0.123, expectedValue: 1],
+        ]
+
+        // Act
+        Map results = SCENARIOS.collectEntries { String k, Map values ->
+            logger.debug("Evaluating ${k}: ${values}")
+            [k, FormatUtils.makeWholeNumberTime(values.originalValue, values.originalUnits)]
+        }
+        logger.info(results)
+
+        // Assert
+        results.every { String key, List values ->
+            assert values.first() == SCENARIOS[key].expectedValue
+            assert values.last() == SCENARIOS[key].expectedUnits
+        }
+    }
+
+    /**
+     * Positive flow test for decimal inputs that can be converted (non-metric values)
+     */
+    @Test
+    void testMakeWholeNumberTimeShouldHandleNonMetricConversions() {
+        // Arrange
+        final Map SCENARIOS = [
+                "daysToHours"   : [originalUnits: TimeUnit.DAYS, expectedUnits: TimeUnit.HOURS, expectedValue: 36, originalValue: 1.5],
+                "hoursToMinutes" : [originalUnits: TimeUnit.HOURS, expectedUnits: TimeUnit.MINUTES, originalValue: 1.5, expectedValue: 90],
+                "hoursToMinutes2" : [originalUnits: TimeUnit.HOURS, expectedUnits: TimeUnit.MINUTES, originalValue: 0.75, expectedValue: 45],
+        ]
+
+        // Act
+        Map results = SCENARIOS.collectEntries { String k, Map values ->
+            logger.debug("Evaluating ${k}: ${values}")
+            [k, FormatUtils.makeWholeNumberTime(values.originalValue, values.originalUnits)]
+        }
+        logger.info(results)
+
+        // Assert
+        results.every { String key, List values ->
+            assert values.first() == SCENARIOS[key].expectedValue
+            assert values.last() == SCENARIOS[key].expectedUnits
+        }
+    }
 
     /**
      * Positive flow test for whole inputs
@@ -326,9 +378,9 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     void testCalculateMultiplierShouldHandleIncorrectUnits() {
         // Arrange
         final Map SCENARIOS = [
-                "allUnits"      : [original: TimeUnit.NANOSECONDS, destination: TimeUnit.DAYS],
-                "nanosToMicros" : [original: TimeUnit.NANOSECONDS, destination: TimeUnit.MICROSECONDS],
-                "hoursToDays"   : [original: TimeUnit.HOURS, destination: TimeUnit.DAYS],
+                "allUnits"     : [original: TimeUnit.NANOSECONDS, destination: TimeUnit.DAYS],
+                "nanosToMicros": [original: TimeUnit.NANOSECONDS, destination: TimeUnit.MICROSECONDS],
+                "hoursToDays"  : [original: TimeUnit.HOURS, destination: TimeUnit.DAYS],
         ]
 
         // Act

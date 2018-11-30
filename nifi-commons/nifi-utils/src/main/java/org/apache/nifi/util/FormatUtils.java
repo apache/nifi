@@ -283,20 +283,12 @@ public class FormatUtils {
             }
             return Arrays.asList(new Object[]{(long) decimal, timeUnit});
         } else {
-            // TODO: Implement
-            return Arrays.asList(new Object[]{1L, TimeUnit.NANOSECONDS});
-            // double newDecimal = 0;
-            // if (decimal < 1.0) {
-            //     newDecimal = 1;
-            // } else {
-            //     newDecimal = Math.rint(decimal);
-            // }
-            // TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);
+            // Determine the next time unit and the respective multiplier
+            TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);
+            long multiplier = calculateMultiplier(timeUnit, smallerTimeUnit);
 
-
-            // int multiplier = calculateMultiplier(timeUnit, smallerTimeUnit);
-            // smallerTimeUnit.convert(decimal, timeUnit);
-            // return makeWholeNumber(decimal, timeUnit);
+            // Recurse with the original number converted to the smaller unit
+            return makeWholeNumberTime(decimal * multiplier, smallerTimeUnit);
         }
     }
 
