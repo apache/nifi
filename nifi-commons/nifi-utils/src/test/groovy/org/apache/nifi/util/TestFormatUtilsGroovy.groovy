@@ -151,7 +151,65 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     }
 
     /**
-     * New feature test
+     * Regression test for custom week logic
+     */
+    @Test
+    void testGetPreciseTimeDurationShouldHandleWeeks() {
+        // Arrange
+        final String ONE_WEEK = "1 week"
+        final Map ONE_WEEK_IN_OTHER_UNITS = [
+                (TimeUnit.DAYS): 7,
+                (TimeUnit.HOURS): 7 * 24,
+                (TimeUnit.MINUTES): 7 * 24 * 60,
+                (TimeUnit.SECONDS): (long) 7 * 24 * 60 * 60,
+                (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
+                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
+                (TimeUnit.NANOSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+        ]
+
+        // Act
+        Map oneWeekInOtherUnits = TimeUnit.values()[0..<-1].collectEntries { TimeUnit destinationUnit ->
+            [destinationUnit, FormatUtils.getPreciseTimeDuration(ONE_WEEK, destinationUnit)]
+        }
+        logger.converted(oneWeekInOtherUnits)
+
+        // Assert
+        oneWeekInOtherUnits.each {TimeUnit k, double value ->
+            assert value == ONE_WEEK_IN_OTHER_UNITS[k]
+        }
+    }
+
+    /**
+     * Positive flow test for custom week logic with decimal value
+     */
+    @Test
+    void testGetPreciseTimeDurationShouldHandleDecimalWeeks() {
+        // Arrange
+        final String ONE_AND_A_HALF_WEEKS = "1.5 week"
+        final Map ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS = [
+                (TimeUnit.DAYS): 7,
+                (TimeUnit.HOURS): 7 * 24,
+                (TimeUnit.MINUTES): 7 * 24 * 60,
+                (TimeUnit.SECONDS): (long) 7 * 24 * 60 * 60,
+                (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
+                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
+                (TimeUnit.NANOSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+        ].collectEntries { k, v -> [k, v * 1.5] }
+
+        // Act
+        Map onePointFiveWeeksInOtherUnits = TimeUnit.values()[0..<-1].collectEntries { TimeUnit destinationUnit ->
+            [destinationUnit, FormatUtils.getPreciseTimeDuration(ONE_AND_A_HALF_WEEKS, destinationUnit)]
+        }
+        logger.converted(onePointFiveWeeksInOtherUnits)
+
+        // Assert
+        onePointFiveWeeksInOtherUnits.each {TimeUnit k, double value ->
+            assert value == ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS[k]
+        }
+    }
+
+    /**
+     * Positive flow test for decimal time inputs
      */
     @Test
     void testGetPreciseTimeDurationShouldHandleDecimalValues() {

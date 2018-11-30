@@ -233,22 +233,29 @@ public class FormatUtils {
         final String duration = matcher.group(1);
         final String units = matcher.group(2);
 
-        final double durationVal = Double.parseDouble(duration);
-        long durationLong = 0;
-        if (durationVal == Math.rint(durationVal)) {
-            durationLong = Math.round(durationVal);
-        } else {
-            // Try reducing the size of the units to make
-        }
+        double durationVal = Double.parseDouble(duration);
+        TimeUnit specifiedTimeUnit;
 
         // The TimeUnit enum doesn't have a value for WEEKS, so handle this case independently
         if (isWeek(units)) {
-            // Do custom week logic
-            return desiredUnit.convert(durationLong, TimeUnit.DAYS) * 7;
+            specifiedTimeUnit = TimeUnit.DAYS;
+            durationVal *= 7;
         } else {
-            TimeUnit specifiedTimeUnit = determineTimeUnit(units);
-            return desiredUnit.convert(durationLong, specifiedTimeUnit);
+            specifiedTimeUnit = determineTimeUnit(units);
         }
+
+        // The units are now guaranteed to be in DAYS or smaller
+        long durationLong;
+        if (durationVal == Math.rint(durationVal)) {
+            durationLong = Math.round(durationVal);
+        } else {
+            // Try reducing the size of the units to make the input a long
+            List wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
+            durationLong = (long) wholeResults.get(0);
+            specifiedTimeUnit = (TimeUnit) wholeResults.get(1);
+        }
+
+        return desiredUnit.convert(durationLong, specifiedTimeUnit);
     }
 
     /**
@@ -300,7 +307,7 @@ public class FormatUtils {
      * {@link IllegalArgumentException}.
      *
      * @param originalTimeUnit the source time unit
-     * @param newTimeUnit the destination time unit
+     * @param newTimeUnit      the destination time unit
      * @return the numerical multiplier between the units
      */
     protected static long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
