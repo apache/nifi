@@ -17,12 +17,13 @@
 package org.apache.nifi.util;
 
 import java.text.NumberFormat;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FormatUtils {
-
     private static final String UNION = "|";
 
     // for Data Sizes
@@ -41,7 +42,7 @@ public class FormatUtils {
     private static final String WEEKS = join(UNION, "w", "wk", "wks", "week", "weeks");
 
     private static final String VALID_TIME_UNITS = join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS, WEEKS);
-    public static final String TIME_DURATION_REGEX = "(\\d+)\\s*(" + VALID_TIME_UNITS + ")";
+    public static final String TIME_DURATION_REGEX = "([\\d.]+)\\s*(" + VALID_TIME_UNITS + ")";
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
 
     /**
@@ -58,7 +59,7 @@ public class FormatUtils {
      * Formats the specified duration in 'mm:ss.SSS' format.
      *
      * @param sourceDuration the duration to format
-     * @param sourceUnit the unit to interpret the duration
+     * @param sourceUnit     the unit to interpret the duration
      * @return representation of the given time data in minutes/seconds
      */
     public static String formatMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
@@ -79,7 +80,7 @@ public class FormatUtils {
      * Formats the specified duration in 'HH:mm:ss.SSS' format.
      *
      * @param sourceDuration the duration to format
-     * @param sourceUnit the unit to interpret the duration
+     * @param sourceUnit     the unit to interpret the duration
      * @return representation of the given time data in hours/minutes/seconds
      */
     public static String formatHoursMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
@@ -142,7 +143,7 @@ public class FormatUtils {
     public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
         final Matcher matcher = TIME_DURATION_PATTERN.matcher(value.toLowerCase());
         if (!matcher.matches()) {
-            throw new IllegalArgumentException("Value '" + value + "' is not a valid Time Duration");
+            throw new IllegalArgumentException("Value '" + value + "' is not a valid time duration");
         }
 
         final String duration = matcher.group(1);
@@ -193,11 +194,218 @@ public class FormatUtils {
             case "week":
             case "weeks":
                 final long durationVal = Long.parseLong(duration);
-                return desiredUnit.convert(durationVal, TimeUnit.DAYS)*7;
+                return desiredUnit.convert(durationVal, TimeUnit.DAYS) * 7;
         }
 
         final long durationVal = Long.parseLong(duration);
         return desiredUnit.convert(durationVal, specifiedTimeUnit);
+    }
+
+    /**
+     * Returns the parsed and converted input in the requested units.
+     * <p>
+     * If the value is {@code 0 <= x < 1} in the provided units, the units will first be converted to a smaller unit to get a value >= 1 (i.e. 0.5 seconds -> 500 milliseconds).
+     * This is because the underlying unit conversion cannot handle decimal values.
+     * <p>
+     * If the value is {@code x >= 1} but x is not a whole number, the units will first be converted to a smaller unit to attempt to get a whole number value (i.e. 1.5 seconds -> 1500 milliseconds).
+     * <p>
+     * This method handles decimal values over {@code 1 ns}, but {@code < 1 ns} will return {@code 0} in any other unit.
+     * <p>
+     * Examples:
+     * <p>
+     * "10 seconds", {@code TimeUnit.MILLISECONDS} -> 10_000.0
+     * "0.010 s", {@code TimeUnit.MILLISECONDS} -> 10.0
+     * "0.010 s", {@code TimeUnit.SECONDS} -> 0.010
+     * "0.010 ns", {@code TimeUnit.NANOSECONDS} -> 0.010
+     * "0.010 ns", {@code TimeUnit.MICROSECONDS} -> 0
+     *
+     * @param value       the {@code String} input
+     * @param desiredUnit the desired output {@link TimeUnit}
+     * @return the parsed and converted amount (without a unit)
+     */
+    public static double getPreciseTimeDuration(final String value, final TimeUnit desiredUnit) {
+        final Matcher matcher = TIME_DURATION_PATTERN.matcher(value.toLowerCase());
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Value '" + value + "' is not a valid time duration");
+        }
+
+        final String duration = matcher.group(1);
+        final String units = matcher.group(2);
+
+        final double durationVal = Double.parseDouble(duration);
+        long durationLong = 0;
+        if (durationVal == Math.rint(durationVal)) {
+            durationLong = Math.round(durationVal);
+        } else {
+            // Try reducing the size of the units to make
+        }
+
+        // The TimeUnit enum doesn't have a value for WEEKS, so handle this case independently
+        if (isWeek(units)) {
+            // Do custom week logic
+            return desiredUnit.convert(durationLong, TimeUnit.DAYS) * 7;
+        } else {
+            TimeUnit specifiedTimeUnit = determineTimeUnit(units);
+            return desiredUnit.convert(durationLong, specifiedTimeUnit);
+        }
+    }
+
+    /**
+     * Converts the provided time duration value to one that can be represented as a whole number.
+     * Returns a {@code List} containing the new value as a {@code long} at index 0 and the
+     * {@link TimeUnit} at index 1. If the incoming value is already whole, it is returned as is.
+     * If the incoming value cannot be made whole, a whole approximation is returned. For values
+     * {@code >= 1 TimeUnit.NANOSECONDS}, the value is rounded (i.e. 123.4 ns -> 123 ns).
+     * For values {@code < 1 TimeUnit.NANOSECONDS}, the constant [1L, {@code TimeUnit.NANOSECONDS}] is returned as the smallest measurable unit of time.
+     * <p>
+     * Examples:
+     * <p>
+     * 1, {@code TimeUnit.SECONDS} -> [1, {@code TimeUnit.SECONDS}]
+     * 1.1, {@code TimeUnit.SECONDS} -> [1100, {@code TimeUnit.MILLISECONDS}]
+     * 0.1, {@code TimeUnit.SECONDS} -> [1000, {@code TimeUnit.MILLISECONDS}]
+     * 0.1, {@code TimeUnit.NANOSECONDS} -> [1, {@code TimeUnit.NANOSECONDS}]
+     *
+     * @param decimal  the time duration as a decimal
+     * @param timeUnit the current time unit
+     * @return the time duration as a whole number ({@code long}) and the smaller time unit used
+     */
+    protected static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
+        // If the value is already a whole number, return it and the current time unit
+        if (decimal == Math.rint(decimal)) {
+            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+        } else if (TimeUnit.NANOSECONDS == timeUnit) {
+            // The time unit is as small as possible
+            if (decimal < 1.0) {
+                decimal = 1;
+            } else {
+                decimal = Math.rint(decimal);
+            }
+            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+        } else {
+            // TODO: Implement
+            return Arrays.asList(new Object[]{1L, TimeUnit.NANOSECONDS});
+            // double newDecimal = 0;
+            // if (decimal < 1.0) {
+            //     newDecimal = 1;
+            // } else {
+            //     newDecimal = Math.rint(decimal);
+            // }
+            // TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);
+
+
+            // int multiplier = calculateMultiplier(timeUnit, smallerTimeUnit);
+            // smallerTimeUnit.convert(decimal, timeUnit);
+            // return makeWholeNumber(decimal, timeUnit);
+        }
+    }
+
+    protected static long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
+        if (originalTimeUnit == newTimeUnit) {
+            return 1;
+        } else if (originalTimeUnit.ordinal() < newTimeUnit.ordinal()) {
+            throw new IllegalArgumentException("The original time unit '" + originalTimeUnit + "' must be larger than the new time unit '" + newTimeUnit + "'");
+        } else {
+            // TODO: Refactor to constant
+            final List<Long> MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
+
+            int originalOrd = originalTimeUnit.ordinal();
+            int newOrd = newTimeUnit.ordinal();
+
+            List<Long> unitMultipliers = MULTIPLIERS.subList(newOrd, originalOrd);
+            return unitMultipliers.stream().reduce(1L, (a, b) -> (long) a * b);
+
+            // // Check the unit ordinals (*seconds (0-3) are all 1000x multipliers)
+            // if (originalOrd < 4) {
+            //     if (newOrd < 4) {
+            //         // Both old and new units are some multiplier of seconds, so just subtract the difference in unit prefixes and raise 1000 to that power
+            //         return (long) Math.pow(1000, (originalOrd - newOrd));
+            //     }
+            //
+            // }
+        }
+    }
+
+    /**
+     * Returns the next smallest {@link TimeUnit} (i.e. {@code TimeUnit.DAYS -> TimeUnit.HOURS}). If the parameter is {@code null} or {@code TimeUnit.NANOSECONDS}, an {@link IllegalArgumentException} is thrown because there is no valid smaller TimeUnit.
+     *
+     * @param originalUnit the TimeUnit
+     * @return the next smaller TimeUnit
+     */
+    protected static TimeUnit getSmallerTimeUnit(TimeUnit originalUnit) {
+        if (originalUnit == null || TimeUnit.NANOSECONDS == originalUnit) {
+            throw new IllegalArgumentException("Cannot determine a smaller time unit than '" + originalUnit + "'");
+        } else {
+            return TimeUnit.values()[originalUnit.ordinal() - 1];
+        }
+    }
+
+    /**
+     * Returns {@code true} if this raw unit {@code String} is parsed as representing "weeks", which does not have a value in the {@link TimeUnit} enum.
+     *
+     * @param rawUnit the String containing the desired unit
+     * @return true if the unit is "weeks"; false otherwise
+     */
+    protected static boolean isWeek(final String rawUnit) {
+        switch (rawUnit) {
+            case "w":
+            case "wk":
+            case "wks":
+            case "week":
+            case "weeks":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Returns the {@link TimeUnit} enum that maps to the provided raw {@code String} input. The highest time unit is {@code TimeUnit.DAYS}. Any input that cannot be parsed will result in an {@link IllegalArgumentException}.
+     *
+     * @param rawUnit the String to parse
+     * @return the TimeUnit
+     */
+    protected static TimeUnit determineTimeUnit(String rawUnit) {
+        switch (rawUnit.toLowerCase()) {
+            case "ns":
+            case "nano":
+            case "nanos":
+            case "nanoseconds":
+                return TimeUnit.NANOSECONDS;
+            case "µs":
+            case "micro":
+            case "micros":
+            case "microseconds":
+                return TimeUnit.MICROSECONDS;
+            case "ms":
+            case "milli":
+            case "millis":
+            case "milliseconds":
+                return TimeUnit.MILLISECONDS;
+            case "s":
+            case "sec":
+            case "secs":
+            case "second":
+            case "seconds":
+                return TimeUnit.SECONDS;
+            case "m":
+            case "min":
+            case "mins":
+            case "minute":
+            case "minutes":
+                return TimeUnit.MINUTES;
+            case "h":
+            case "hr":
+            case "hrs":
+            case "hour":
+            case "hours":
+                return TimeUnit.HOURS;
+            case "d":
+            case "day":
+            case "days":
+                return TimeUnit.DAYS;
+            default:
+                throw new IllegalArgumentException("Could not parse '" + rawUnit + "' to TimeUnit");
+        }
     }
 
     public static String formatUtilization(final double utilization) {
@@ -225,7 +433,7 @@ public class FormatUtils {
      * 3 seconds, 8 millis, 3 nanos - if includeTotalNanos = false,
      * 3 seconds, 8 millis, 3 nanos (3008000003 nanos) - if includeTotalNanos = true
      *
-     * @param nanos the number of nanoseconds to format
+     * @param nanos             the number of nanoseconds to format
      * @param includeTotalNanos whether or not to include the total number of nanoseconds in parentheses in the returned value
      * @return a human-readable String that is a formatted representation of the given number of nanoseconds.
      */
