@@ -82,7 +82,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         }
 
         // Assert
-        assert msgs.every { it =~ /Value '.*' is not a valid Time Duration/ }
+        assert msgs.every { it =~ /Value '.*' is not a valid time duration/ }
     }
 
     /**
@@ -101,7 +101,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         }
 
         // Assert
-        assert msgs.every { it =~ /Value '.*' is not a valid Time Duration/ }
+        assert msgs.every { it =~ /Value '.*' is not a valid time duration/ }
 
     }
 

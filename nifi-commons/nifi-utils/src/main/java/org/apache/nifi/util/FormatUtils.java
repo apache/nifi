@@ -44,6 +44,7 @@ public class FormatUtils {
     private static final String VALID_TIME_UNITS = join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS, WEEKS);
     public static final String TIME_DURATION_REGEX = "([\\d.]+)\\s*(" + VALID_TIME_UNITS + ")";
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
+    private static final List<Long> TIME_UNIT_MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
 
     /**
      * Formats the specified count by adding commas.
@@ -299,29 +300,28 @@ public class FormatUtils {
         }
     }
 
+    /**
+     * Returns the numerical multiplier to convert a value from {@code originalTimeUnit} to
+     * {@code newTimeUnit} (i.e. for {@code TimeUnit.DAYS -> TimeUnit.MINUTES} would return
+     * 24 * 60 = 720). If the original and new units are the same, returns 1. If the new unit
+     * is larger than the original (i.e. the result would be less than 1), throws an
+     * {@link IllegalArgumentException}.
+     *
+     * @param originalTimeUnit the source time unit
+     * @param newTimeUnit the destination time unit
+     * @return the numerical multiplier between the units
+     */
     protected static long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
         if (originalTimeUnit == newTimeUnit) {
             return 1;
         } else if (originalTimeUnit.ordinal() < newTimeUnit.ordinal()) {
             throw new IllegalArgumentException("The original time unit '" + originalTimeUnit + "' must be larger than the new time unit '" + newTimeUnit + "'");
         } else {
-            // TODO: Refactor to constant
-            final List<Long> MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
-
             int originalOrd = originalTimeUnit.ordinal();
             int newOrd = newTimeUnit.ordinal();
 
-            List<Long> unitMultipliers = MULTIPLIERS.subList(newOrd, originalOrd);
+            List<Long> unitMultipliers = TIME_UNIT_MULTIPLIERS.subList(newOrd, originalOrd);
             return unitMultipliers.stream().reduce(1L, (a, b) -> (long) a * b);
-
-            // // Check the unit ordinals (*seconds (0-3) are all 1000x multipliers)
-            // if (originalOrd < 4) {
-            //     if (newOrd < 4) {
-            //         // Both old and new units are some multiplier of seconds, so just subtract the difference in unit prefixes and raise 1000 to that power
-            //         return (long) Math.pow(1000, (originalOrd - newOrd));
-            //     }
-            //
-            // }
         }
     }
 
