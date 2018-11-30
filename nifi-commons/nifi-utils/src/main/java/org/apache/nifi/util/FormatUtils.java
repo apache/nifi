@@ -142,7 +142,9 @@ public class FormatUtils {
     }
 
     /**
-     * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String} input. If the resulting value is a decimal (i.e. {@code 25 hours -> TimeUnit.DAYS = 1.04}), the value is rounded.
+     * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String}
+     * input. If the resulting value is a decimal (i.e.
+     * {@code 25 hours -> TimeUnit.DAYS = 1.04}), the value is rounded.
      *
      * @param value the raw String input (i.e. "28 minutes")
      * @param desiredUnit the requested output {@link TimeUnit}
@@ -279,7 +281,9 @@ public class FormatUtils {
     }
 
     /**
-     * Returns the next smallest {@link TimeUnit} (i.e. {@code TimeUnit.DAYS -> TimeUnit.HOURS}). If the parameter is {@code null} or {@code TimeUnit.NANOSECONDS}, an {@link IllegalArgumentException} is thrown because there is no valid smaller TimeUnit.
+     * Returns the next smallest {@link TimeUnit} (i.e. {@code TimeUnit.DAYS -> TimeUnit.HOURS}).
+     * If the parameter is {@code null} or {@code TimeUnit.NANOSECONDS}, an
+     * {@link IllegalArgumentException} is thrown because there is no valid smaller TimeUnit.
      *
      * @param originalUnit the TimeUnit
      * @return the next smaller TimeUnit
@@ -312,7 +316,9 @@ public class FormatUtils {
     }
 
     /**
-     * Returns the {@link TimeUnit} enum that maps to the provided raw {@code String} input. The highest time unit is {@code TimeUnit.DAYS}. Any input that cannot be parsed will result in an {@link IllegalArgumentException}.
+     * Returns the {@link TimeUnit} enum that maps to the provided raw {@code String} input. The
+     * highest time unit is {@code TimeUnit.DAYS}. Any input that cannot be parsed will result in
+     * an {@link IllegalArgumentException}.
      *
      * @param rawUnit the String to parse
      * @return the TimeUnit

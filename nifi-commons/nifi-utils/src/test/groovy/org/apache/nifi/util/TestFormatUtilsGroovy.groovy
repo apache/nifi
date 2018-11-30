@@ -163,8 +163,8 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
                 (TimeUnit.MINUTES)     : 7 * 24 * 60,
                 (TimeUnit.SECONDS)     : (long) 7 * 24 * 60 * 60,
                 (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
-                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
-                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * ((long) 1000 * 1000),
+                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * ((long) 1000 * 1000 * 1000),
         ]
 
         // Act
@@ -192,8 +192,8 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
                 (TimeUnit.MINUTES)     : 7 * 24 * 60,
                 (TimeUnit.SECONDS)     : (long) 7 * 24 * 60 * 60,
                 (TimeUnit.MILLISECONDS): (long) 7 * 24 * 60 * 60 * 1000,
-                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * 1000 * 1000,
-                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * 1000 * 1000 * 1000,
+                (TimeUnit.MICROSECONDS): (long) 7 * 24 * 60 * 60 * ((long) 1000 * 1000),
+                (TimeUnit.NANOSECONDS) : (long) 7 * 24 * 60 * 60 * ((long) 1000 * 1000 * 1000),
         ].collectEntries { k, v -> [k, v * 1.5] }
 
         // Act
@@ -435,7 +435,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     void testShouldCalculateMultiplier() {
         // Arrange
         final Map SCENARIOS = [
-                "allUnits"      : [original: TimeUnit.DAYS, destination: TimeUnit.NANOSECONDS, expectedMultiplier: (long) 24 * 60 * 60 * 1_000_000_000],
+                "allUnits"      : [original: TimeUnit.DAYS, destination: TimeUnit.NANOSECONDS, expectedMultiplier: (long) 24 * 60 * 60 * (long) 1_000_000_000],
                 "microsToNanos" : [original: TimeUnit.MICROSECONDS, destination: TimeUnit.NANOSECONDS, expectedMultiplier: 1_000],
                 "millisToNanos" : [original: TimeUnit.MILLISECONDS, destination: TimeUnit.NANOSECONDS, expectedMultiplier: 1_000_000],
                 "millisToMicros": [original: TimeUnit.MILLISECONDS, destination: TimeUnit.MICROSECONDS, expectedMultiplier: 1_000],
