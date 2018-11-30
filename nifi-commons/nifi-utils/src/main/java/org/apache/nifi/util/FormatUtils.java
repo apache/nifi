@@ -258,7 +258,7 @@ public class FormatUtils {
     /**
      * Returns the numerical multiplier to convert a value from {@code originalTimeUnit} to
      * {@code newTimeUnit} (i.e. for {@code TimeUnit.DAYS -> TimeUnit.MINUTES} would return
-     * 24 * 60 = 720). If the original and new units are the same, returns 1. If the new unit
+     * 24 * 60 = 1440). If the original and new units are the same, returns 1. If the new unit
      * is larger than the original (i.e. the result would be less than 1), throws an
      * {@link IllegalArgumentException}.
      *
