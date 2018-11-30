@@ -226,7 +226,7 @@ public class FormatUtils {
      * <p>
      * 1, {@code TimeUnit.SECONDS} -> [1, {@code TimeUnit.SECONDS}]
      * 1.1, {@code TimeUnit.SECONDS} -> [1100, {@code TimeUnit.MILLISECONDS}]
-     * 0.1, {@code TimeUnit.SECONDS} -> [1000, {@code TimeUnit.MILLISECONDS}]
+     * 0.1, {@code TimeUnit.SECONDS} -> [100, {@code TimeUnit.MILLISECONDS}]
      * 0.1, {@code TimeUnit.NANOSECONDS} -> [1, {@code TimeUnit.NANOSECONDS}]
      *
      * @param decimal  the time duration as a decimal
