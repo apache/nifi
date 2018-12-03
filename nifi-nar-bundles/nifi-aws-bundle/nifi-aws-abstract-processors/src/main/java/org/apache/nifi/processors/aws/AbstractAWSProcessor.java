@@ -53,7 +53,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.regions.AWSRegions;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
@@ -157,7 +156,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
     protected static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), AWSRegions.getRegionDisplayName(region.getName()));
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
     }
 
     protected static AllowableValue[] getAvailableRegions() {

@@ -215,6 +215,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile Long lastRunTimeNanos = 0L;
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetState = false;
+    private volatile boolean resetEntityTrackingState = false;
     private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
 
     private volatile ListedEntityTracker<T> listedEntityTracker;
@@ -245,6 +246,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
             resetTimeStates(); // clear lastListingTime so that we have to fetch new time
             resetState = true;
+            resetEntityTrackingState = true;
         }
     }
 
@@ -312,6 +314,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         if (resetState) {
             context.getStateManager().clear(getStateScope(context));
+            resetState = false;
         }
     }
 
@@ -405,8 +408,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-
-        resetState = false;
 
         final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
         if (BY_TIMESTAMPS.equals(listingStrategy)) {
@@ -712,13 +713,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     @OnScheduled
     public void initListedEntityTracker(ProcessContext context) {
         final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
-        if (listedEntityTracker != null && (resetState || !isTrackingEntityStrategy)) {
+        if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
             try {
                 listedEntityTracker.clearListedEntities();
             } catch (IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities due to " + e, e);
             }
         }
+        resetEntityTrackingState = false;
 
         if (isTrackingEntityStrategy) {
             if (listedEntityTracker == null) {

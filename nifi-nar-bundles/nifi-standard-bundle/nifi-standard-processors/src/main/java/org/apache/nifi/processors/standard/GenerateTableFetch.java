@@ -315,8 +315,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             String columnsClause = null;
             List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
 
-            // replace unnecessary row count with -1 stub value when paging is used
-            if (useColumnValsForPaging) {
+            // replace unnecessary row count with -1 stub value when column values for paging is used, or when partition size is zero.
+            if (useColumnValsForPaging || partitionSize == 0) {
                 maxValueSelectColumns.add("-1");
             } else {
                 maxValueSelectColumns.add("COUNT(*)");
@@ -496,8 +496,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         //Update WHERE list to include new right hand boundaries
                         whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
                         Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
+                        // Don't use an ORDER BY clause if there's only one partition
+                        final String orderByClause = partitionSize == 0 ? null : maxColumnNames;
 
-                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset, columnForPartitioning);
+                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, columnForPartitioning);
                         FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                         sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
                         Map<String,String> attributesToAdd = new HashMap<>();

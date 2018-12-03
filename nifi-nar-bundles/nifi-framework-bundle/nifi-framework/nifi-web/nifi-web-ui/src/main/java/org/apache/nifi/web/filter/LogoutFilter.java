@@ -50,7 +50,7 @@ public class LogoutFilter implements Filter {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/logout").forward(request, response);
         } else {
-            ((HttpServletResponse) response).sendRedirect("../login");
+            ((HttpServletResponse) response).sendRedirect("login");
         }
     }
 
