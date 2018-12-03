@@ -231,6 +231,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
             (NiFiProperties.WEB_HTTPS_PORT): "8443",
             (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
+            (NiFiProperties.SECURITY_OCSP_ENABLED): "true",
         ]))
 
         Server internalServer = new Server()

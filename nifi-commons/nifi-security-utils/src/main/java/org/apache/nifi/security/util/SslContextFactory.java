@@ -135,7 +135,7 @@ public final class SslContextFactory {
             trustStore.load(trustStoreStream, truststorePasswd);
         }
         //final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, true);
+        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, false);
         trustManagerFactory.init(trustStore);
         // initialize the ssl context
         final SSLContext sslContext = SSLContext.getInstance(protocol);
@@ -242,7 +242,7 @@ public final class SslContextFactory {
             KeyManagementException, InvalidAlgorithmParameterException {
 
         // enableOCSP should be configurable
-        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, true);
+        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, false);
 
         // initialize the ssl context
         final SSLContext ctx = SSLContext.getInstance(protocol);

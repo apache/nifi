@@ -95,7 +95,7 @@ public class OcspCertificateValidatorGroovyTest {
 
     @After
     public void tearDown() throws Exception {
-        certificateValidator?.metaClass = null
+
     }
 
     /**
