@@ -29,8 +29,6 @@ public class X509CertificateValidator {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    //private OcspCertificateValidator ocspValidator;
-
     /**
      * Extract the client certificate from the specified HttpServletRequest or null if none is specified.
      *
@@ -44,12 +42,5 @@ public class X509CertificateValidator {
         // ensure the cert is valid
         certificates[0].checkValidity();
 
-        // perform ocsp validator if necessary
-        //ocspValidator.validate(certificates);
     }
-
-    //public void setOcspValidator(OcspCertificateValidator ocspValidator) {
-    //    this.ocspValidator = ocspValidator;
-    //}
-
 }
