@@ -39,6 +39,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.HadoopValidators;
+import org.apache.nifi.util.StringUtils;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -149,6 +150,10 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
             Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue());
             String error = null;
+
+            if(StringUtils.isBlank(uri)) {
+                return new ValidationResult.Builder().subject(subject).input(uri).explanation("Schema cannot be null.").valid(false).build();
+            }
 
             final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
             if (!elPresent) {

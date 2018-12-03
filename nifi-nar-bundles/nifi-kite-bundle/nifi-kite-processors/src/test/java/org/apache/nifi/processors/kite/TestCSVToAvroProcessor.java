@@ -81,6 +81,8 @@ public class TestCSVToAvroProcessor {
         runner.assertNotValid();
         runner.setProperty(ConvertCSVToAvro.SCHEMA, "file:" + new File("src/test/resources/Shapes_header.csv.avro").getAbsolutePath());
         runner.assertValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, "");
+        runner.assertNotValid();
     }
 
     /**
