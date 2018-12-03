@@ -812,7 +812,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
                 }
             }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | InvalidAlgorithmParameterException | IOException e) {
+        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
             throw new AuthorizerCreationException(e.getMessage(), e);
         }
 

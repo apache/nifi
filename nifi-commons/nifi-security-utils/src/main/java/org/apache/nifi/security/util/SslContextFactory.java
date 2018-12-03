@@ -19,19 +19,14 @@ package org.apache.nifi.security.util;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.X509CertSelector;
 
-import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -54,7 +49,7 @@ public final class SslContextFactory {
 
     /**
      * Creates a SSLContext instance using the given information. The password for the key is assumed to be the same
-     * as the password for the keystore. If this is not the case, the {@link #createSslContext(String, char[], char[], String, String, char[], String, ClientAuth, String)}
+     * as the password for the keystore. If this is not the case, the {@link #createSslContext(String, char[], chart[], String, String, char[], String, ClientAuth, String)}
      * method should be used instead
      *
      * @param keystore the full path to the keystore
@@ -82,12 +77,7 @@ public final class SslContextFactory {
             UnrecoverableKeyException, KeyManagementException {
 
         // Pass the keystore password as both the keystore password and the key password.
-        try {
-            return createSslContext(keystore, keystorePasswd, keystorePasswd, keystoreType, truststore, truststorePasswd, truststoreType, clientAuth, protocol);
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return createSslContext(keystore, keystorePasswd, keystorePasswd, keystoreType, truststore, truststorePasswd, truststoreType, clientAuth, protocol);
     }
 
     /**
@@ -115,7 +105,7 @@ public final class SslContextFactory {
             final String truststore, final char[] truststorePasswd, final String truststoreType,
             final ClientAuth clientAuth, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
-            UnrecoverableKeyException, KeyManagementException, InvalidAlgorithmParameterException {
+            UnrecoverableKeyException, KeyManagementException {
 
         // prepare the keystore
         final KeyStore keyStore = KeyStoreUtils.getKeyStore(keystoreType);
@@ -134,9 +124,9 @@ public final class SslContextFactory {
         try (final InputStream trustStoreStream = new FileInputStream(truststore)) {
             trustStore.load(trustStoreStream, truststorePasswd);
         }
-        //final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, false);
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(trustStore);
+
         // initialize the ssl context
         final SSLContext sslContext = SSLContext.getInstance(protocol);
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
@@ -171,9 +161,9 @@ public final class SslContextFactory {
      * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createSslContext(
-        final String keystore, final char[] keystorePasswd, final String keystoreType, final String protocol)
-        throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
-        UnrecoverableKeyException, KeyManagementException {
+            final String keystore, final char[] keystorePasswd, final String keystoreType, final String protocol)
+            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
+            UnrecoverableKeyException, KeyManagementException {
 
         // create SSL Context passing keystore password as the key password
         return createSslContext(keystore, keystorePasswd, keystorePasswd, keystoreType, protocol);
@@ -196,7 +186,7 @@ public final class SslContextFactory {
      * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createSslContext(
-        final String keystore, final char[] keystorePasswd, final char[] keyPasswd, final String keystoreType, final String protocol)
+            final String keystore, final char[] keystorePasswd, final char[] keyPasswd, final String keystoreType, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {
 
@@ -239,10 +229,15 @@ public final class SslContextFactory {
     public static SSLContext createTrustSslContext(
             final String truststore, final char[] truststorePasswd, final String truststoreType, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
-            KeyManagementException, InvalidAlgorithmParameterException {
+            UnrecoverableKeyException, KeyManagementException {
 
-        // enableOCSP should be configurable
-        final TrustManagerFactory trustManagerFactory = createTrustManagerFactory(truststore, truststorePasswd, truststoreType, protocol, false);
+        // prepare the truststore
+        final KeyStore trustStore = KeyStoreUtils.getTrustStore(truststoreType);
+        try (final InputStream trustStoreStream = new FileInputStream(truststore)) {
+            trustStore.load(trustStoreStream, truststorePasswd);
+        }
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
 
         // initialize the ssl context
         final SSLContext ctx = SSLContext.getInstance(protocol);
@@ -251,29 +246,5 @@ public final class SslContextFactory {
         return ctx;
 
     }
-
-    private static final TrustManagerFactory createTrustManagerFactory(final String truststore, final char[] truststorePasswd, final String truststoreType, final String protocol, boolean enableOCSP) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
-            InvalidAlgorithmParameterException {
-
-        // prepare the truststore
-        final KeyStore trustStore = KeyStoreUtils.getTrustStore(truststoreType);
-        try (final InputStream trustStoreStream = new FileInputStream(truststore)) {
-            trustStore.load(trustStoreStream, truststorePasswd);
-        }
-        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-
-        if (enableOCSP) {
-            PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
-            pbParams.setRevocationEnabled(true);
-            Security.setProperty("ocsp.enable", "true");
-            trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
-        } else {
-            trustManagerFactory.init(trustStore);
-        }
-
-        return trustManagerFactory;
-    }
-
-
 
 }

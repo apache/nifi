@@ -292,7 +292,7 @@ public class LdapProvider implements LoginIdentityProvider {
                             rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
                 }
             }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | InvalidAlgorithmParameterException | IOException e) {
+        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
             throw new ProviderCreationException(e.getMessage(), e);
         }
 
