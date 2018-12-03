@@ -34,10 +34,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertPathValidator;
 import java.security.cert.CertificateException;
 import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.PKIXRevocationChecker;
 import java.security.cert.X509CertSelector;
 
 /**
