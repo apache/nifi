@@ -20,8 +20,14 @@ package org.apache.nifi.processors.standard;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -38,6 +44,7 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 
 @PrimaryNodeOnly
 @TriggerSerially
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"list", "ftp", "remote", "ingest", "source", "input", "files"})
 @CapabilityDescription("Performs a listing of the files residing on an FTP server. For each file that is found on the remote server, a new FlowFile will be created with the filename attribute "
     + "set to the name of the file on the remote server. This can then be used in conjunction with FetchFTP in order to fetch those files.")
