@@ -68,6 +68,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -554,7 +555,9 @@ public final class ConfigTransformer {
             addTextElement(element, "name", remoteProcessGroupProperties.getName());
             addPosition(element);
             addTextElement(element, "comment", remoteProcessGroupProperties.getComment());
-            addTextElement(element, "url", remoteProcessGroupProperties.getUrl());
+            // In the case we have multiple urls, select the first
+            addTextElement(element, "url", Arrays.asList(remoteProcessGroupProperties.getUrls().split(",")).get(0));
+            addTextElement(element, "urls", remoteProcessGroupProperties.getUrls());
             addTextElement(element, "timeout", remoteProcessGroupProperties.getTimeout());
             addTextElement(element, "yieldPeriod", remoteProcessGroupProperties.getYieldPeriod());
             addTextElement(element, "transmitting", "true");

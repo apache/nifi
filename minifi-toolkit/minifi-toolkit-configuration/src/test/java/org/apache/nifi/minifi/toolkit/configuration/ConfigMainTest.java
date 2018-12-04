@@ -222,6 +222,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTripMultipleUriRPG() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("MultipleUriRPG");
+    }
+
+    @Test
     public void testSuccessTransformProcessGroup() throws IOException, JAXBException, SchemaLoaderException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithProcessGroup.xml")).toMap();
     }

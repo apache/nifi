@@ -63,7 +63,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_PROXY_PASSWORD = "";
     public static final String DEFAULT_NETWORK_INTERFACE = "";
 
-    private String url;
+    private final String urls;
     private List<RemotePortSchema> inputPorts;
     private List<RemotePortSchema> outputPorts;
 
@@ -80,7 +80,9 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public RemoteProcessGroupSchema(Map map) {
         super(map, "RemoteProcessGroup(id: {id}, name: {name})");
         String wrapperName = getWrapperName();
-        url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
+        // This is either a singular URL or a comma separated list
+        urls = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
+
 
         inputPorts = convertListToType(getOptionalKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName, new ArrayList<>()), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         addIssuesIfNotNull(inputPorts);
@@ -132,7 +134,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = super.toMap();
-        result.put(URL_KEY, url);
+        result.put(URL_KEY, urls);
         result.put(COMMENT_KEY, comment);
         result.put(TIMEOUT_KEY, timeout);
         result.put(YIELD_PERIOD_KEY, yieldPeriod);
@@ -151,8 +153,8 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         return comment;
     }
 
-    public String getUrl() {
-        return url;
+    public String getUrls() {
+        return urls;
     }
 
     public String getTimeout() {

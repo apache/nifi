@@ -17,6 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
@@ -42,7 +43,12 @@ public class RemoteProcessGroupSchemaFunction implements Function<RemoteProcessG
         Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.ID_KEY, remoteProcessGroupDTO.getId());
         map.put(CommonPropertyKeys.NAME_KEY, remoteProcessGroupDTO.getName());
-        map.put(RemoteProcessGroupSchema.URL_KEY, remoteProcessGroupDTO.getTargetUri());
+
+
+        // Prefer the targetUris if populated, otherwise, default to using the singular targetUri
+        final String targetUris = remoteProcessGroupDTO.getTargetUris();
+        map.put(RemoteProcessGroupSchema.URL_KEY,
+                StringUtils.isNotBlank(targetUris) ? targetUris : remoteProcessGroupDTO.getTargetUri());
 
         RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
         if (contents != null) {

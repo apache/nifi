@@ -538,7 +538,7 @@ public class ConfigTransformerTest {
         assertEquals(remoteProcessingGroupSchema.getId(), getText(element, "id"));
         assertEquals(remoteProcessingGroupSchema.getName(), getText(element, "name"));
         assertEquals(remoteProcessingGroupSchema.getComment(), getText(element, "comment"));
-        assertEquals(remoteProcessingGroupSchema.getUrl(), getText(element, "url"));
+        assertEquals(remoteProcessingGroupSchema.getUrls(), getText(element, "url"));
         assertEquals(remoteProcessingGroupSchema.getTimeout(), getText(element, "timeout"));
         assertEquals(remoteProcessingGroupSchema.getYieldPeriod(), getText(element, "yieldPeriod"));
         assertEquals(remoteProcessingGroupSchema.getTransportProtocol(), getText(element, "transportProtocol"));

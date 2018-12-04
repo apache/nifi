@@ -155,7 +155,7 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
     @Override
     public void assertSchemaEquals(RemoteProcessGroupSchema one, RemoteProcessGroupSchema two) {
         assertEquals(one.getName(), two.getName());
-        assertEquals(one.getUrl(), two.getUrl());
+        assertEquals(one.getUrls(), two.getUrls());
 
         List<RemotePortSchema> oneInputPorts = one.getInputPorts();
         List<RemotePortSchema> twoInputPorts = two.getInputPorts();
