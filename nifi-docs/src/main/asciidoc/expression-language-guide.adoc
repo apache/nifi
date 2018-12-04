@@ -2062,6 +2062,24 @@ names begin with the letter `a`.
 
 *Examples*: UpdateAttribute processor has stored the key "count" with value "20" in state. '${getStateValue("count")}` returns `20`.
 
+
+
+[.function]
+=== thread
+
+*Description*: [.description]#Returns the name of the thread used by the processor when evaluating the Expression. This can be useful
+ when using a processor with multiple concurrent tasks and where some data uniqueness is required.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: `${thread()}` could return something like `Timer-Driven Process Thread-4`.
+
+
+
 [[multi]]
 == Evaluating Multiple Attributes
 
