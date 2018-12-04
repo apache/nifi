@@ -91,6 +91,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Substr
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeLastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ThreadEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowerEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
@@ -199,6 +200,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER_LAST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.THREAD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DECIMAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LITERAL;
@@ -1009,6 +1011,8 @@ public class ExpressionCompiler {
                     throw new AttributeExpressionLanguageException(e);
                 }
             }
+            case THREAD:
+                return addToken(new ThreadEvaluator(), "thread");
             case HOSTNAME: {
                 if (tree.getChildCount() == 0) {
                     try {
