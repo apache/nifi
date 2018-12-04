@@ -50,7 +50,6 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import javax.naming.Context;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;

@@ -63,7 +63,6 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.SearchControls;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
