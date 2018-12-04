@@ -17,7 +17,7 @@
 
 # MiNiFi Java Agent Quick Start Guide
 
-[Apache NiFi Team](dev@nifi.apache.org>)
+[Apache NiFi Team](dev@nifi.apache.org)
 
 [NiFi Homepage](http://nifi.apache.org)
 
@@ -35,6 +35,8 @@ MiNiFi Java Agent is supported on the following operating systems:
 * Red Hat Enterprise Linux / CentOS 7 (64-bit)
 * Ubuntu Precise (12.04) (64-bit)
 * Ubuntu Trusty (14.04) (64-bit)
+* Ubuntu Xenial (16.04) (64-bit)
+* Ubuntu Bionic (18.04) (64-bit)
 * Debian 7
 * SUSE Linux Enterprise Server (SLES) 11 SP3 (64-bit)
 
