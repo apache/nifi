@@ -496,7 +496,10 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile newFlowFile = new MockFlowFile(mock.getId(), flowFile);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
-        newFlowFile.putAttributes(attrs);
+        Map<String, String> attrCopy = new HashMap<>();
+        attrCopy.putAll(attrs);
+        attrCopy.remove(CoreAttributes.UUID.key());
+        newFlowFile.putAttributes(attrCopy);
         return newFlowFile;
     }
 
