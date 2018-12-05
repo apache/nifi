@@ -66,7 +66,7 @@ public final class SslContextFactory {
                 trustStore = null;
             }
 
-            final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, props.isOCSPEnabled());
+            final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, props.isOCSPEnabled(), props.getProperty(NiFiProperties.SECURITY_OCSP_RESPONDER_URL));
 
             // prepare the key store
             final KeyStore keyStore = KeyStoreUtils.getKeyStore(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
@@ -107,7 +107,7 @@ public final class SslContextFactory {
                 && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)));
     }
 
-    private static TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+    private static TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled, String responderURL) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
 
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 
@@ -116,6 +116,9 @@ public final class SslContextFactory {
                 PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
                 pbParams.setRevocationEnabled(true);
                 Security.setProperty("ocsp.enable", "true");
+                if(!org.apache.nifi.util.StringUtils.isBlank(responderURL)) {
+                    Security.setProperty("ocsp.responderURL", responderURL);
+                }
                 trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
             } else {
                 throw new NoSuchAlgorithmException("PKIX algorithm was not available on this system. You must disable OCSP checking by changing " + NiFiProperties.SECURITY_OCSP_ENABLED + " to false.");

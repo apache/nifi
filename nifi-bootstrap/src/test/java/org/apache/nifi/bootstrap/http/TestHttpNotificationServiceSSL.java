@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -55,7 +54,7 @@ public class TestHttpNotificationServiceSSL extends  TestHttpNotificationService
 
 
     @BeforeClass
-    public static void startServer() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, InvalidAlgorithmParameterException {
+    public static void startServer() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         tempConfigFilePath = "./target/TestHttpNotificationService-config.xml";
 
         Files.deleteIfExists(Paths.get(tempConfigFilePath));

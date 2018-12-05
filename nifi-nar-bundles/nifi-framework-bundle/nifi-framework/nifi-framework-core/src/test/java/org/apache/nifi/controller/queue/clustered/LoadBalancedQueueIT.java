@@ -69,7 +69,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -138,7 +137,7 @@ public class LoadBalancedQueueIT {
     private final AtomicReference<LoadBalanceCompression> compressionReference = new AtomicReference<>();
 
     @Before
-    public void setup() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, InvalidAlgorithmParameterException {
+    public void setup() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         compressionReference.set(LoadBalanceCompression.DO_NOT_COMPRESS);
 
         nodeIdentifiers = new HashSet<>();

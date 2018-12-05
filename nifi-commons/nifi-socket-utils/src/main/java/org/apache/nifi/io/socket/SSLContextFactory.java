@@ -40,6 +40,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.FileUtils;
 
 public class SSLContextFactory {
@@ -83,7 +84,7 @@ public class SSLContextFactory {
             FileUtils.closeQuietly(trustStoreStream);
         }
 
-        final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, properties.isOCSPEnabled());
+        final TrustManagerFactory trustManagerFactory = getTrustManagerFactory(trustStore, properties.isOCSPEnabled(), properties.getProperty(NiFiProperties.SECURITY_OCSP_RESPONDER_URL));
 
         keyManagers = keyManagerFactory.getKeyManagers();
         trustManagers = trustManagerFactory.getTrustManagers();
@@ -117,7 +118,7 @@ public class SSLContextFactory {
 
     }
 
-    private TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+    private TrustManagerFactory getTrustManagerFactory(KeyStore trustStore, boolean ocspEnabled, String responderURL) throws KeyStoreException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
 
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 
@@ -126,6 +127,9 @@ public class SSLContextFactory {
                 PKIXBuilderParameters pbParams = new PKIXBuilderParameters(trustStore, new X509CertSelector());
                 pbParams.setRevocationEnabled(true);
                 Security.setProperty("ocsp.enable", "true");
+                if(!StringUtils.isBlank(responderURL)) {
+                    Security.setProperty("ocsp.responderURL", responderURL);
+                }
                 trustManagerFactory.init(new CertPathTrustManagerParameters(pbParams));
             } else {
                 throw new NoSuchAlgorithmException("PKIX algorithm was not available on this system. You must disable OCSP checking by changing " + NiFiProperties.SECURITY_OCSP_ENABLED + " to false.");
