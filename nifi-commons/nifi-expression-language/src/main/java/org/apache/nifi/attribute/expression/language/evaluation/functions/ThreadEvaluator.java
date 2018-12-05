@@ -25,16 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class ThreadEvaluator extends StringEvaluator {
 
-    private final StringQueryResult thread;
-
-    public ThreadEvaluator() {
-        // See org.apache.nifi.engine.FlowEngine
-        thread = new StringQueryResult(Thread.currentThread().getName());
-    }
-
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        return thread;
+        // See org.apache.nifi.engine.FlowEngine
+        return new StringQueryResult(Thread.currentThread().getName());
     }
 
     @Override
