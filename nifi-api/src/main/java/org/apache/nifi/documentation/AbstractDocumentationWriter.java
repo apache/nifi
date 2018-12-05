@@ -42,13 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,7 +64,7 @@ import java.util.Set;
  * <b>NOTE WELL:</b> At this time, while this class is part of nifi-api, it is still evolving and may change in a non-backward-compatible manner or even be
  * removed from one incremental release to the next. Use at your own risk!
  */
-public abstract class AbstractDocumentationWriter implements DocumentationWriter {
+public abstract class AbstractDocumentationWriter implements ExtensionDocumentationWriter {
 
     @Override
     public final void write(final ConfigurableComponent component) throws IOException {
@@ -118,9 +112,8 @@ public abstract class AbstractDocumentationWriter implements DocumentationWriter
     }
 
     protected void writeBody(final ConfigurableComponent component) throws IOException {
-        final String additionalDetails = getAdditionalDetailsHtml(component);
-
         writeExtensionName(component.getClass().getName());
+        writeExtensionType(getExtensionType(component));
         writeDeprecationNotice(component.getClass().getAnnotation(DeprecationNotice.class));
         writeDescription(getDescription(component));
         writeTags(getTags(component));
@@ -141,29 +134,8 @@ public abstract class AbstractDocumentationWriter implements DocumentationWriter
         writeInputRequirementInfo(getInputRequirement(component));
         writeSystemResourceConsiderationInfo(getSystemResourceConsiderations(component));
         writeSeeAlso(component.getClass().getAnnotation(SeeAlso.class));
-        writeAdditionalDetails(additionalDetails);
     }
 
-    protected String getAdditionalDetailsHtml(final ConfigurableComponent component) throws IOException {
-        final InputStream docsInputStream = component.getClass().getClassLoader().getResourceAsStream("/docs/" + component.getClass().getName() + "/additionalDetails.html");
-        if (docsInputStream == null) {
-            return null;
-        }
-
-        try (final Reader reader = new InputStreamReader(docsInputStream);
-             final BufferedReader bufferedReader = new BufferedReader(reader);
-             final Writer writer = new StringWriter()) {
-
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                writer.write(line);
-            }
-
-            return writer.toString();
-        } finally {
-            docsInputStream.close();
-        }
-    }
 
     protected String getDescription(final ConfigurableComponent component) {
         final CapabilityDescription capabilityDescription = component.getClass().getAnnotation(CapabilityDescription.class);
@@ -252,11 +224,25 @@ public abstract class AbstractDocumentationWriter implements DocumentationWriter
         return Arrays.asList(systemResourceConsiderations);
     }
 
+    protected ExtensionType getExtensionType(final ConfigurableComponent component) {
+        if (component instanceof Processor) {
+            return ExtensionType.PROCESSOR;
+        }
+        if (component instanceof ControllerService) {
+            return ExtensionType.CONTROLLER_SERVICE;
+        }
+        if (component instanceof ReportingTask) {
+            return ExtensionType.REPORTING_TASK;
+        }
+        throw new AssertionError("Encountered unknown Configurable Component Type for " + component);
+    }
 
 
     protected abstract void writeHeader(ConfigurableComponent component) throws IOException;
 
     protected abstract void writeExtensionName(String extensionName) throws IOException;
+
+    protected abstract void writeExtensionType(ExtensionType extensionType) throws IOException;
 
     protected abstract void writeDeprecationNotice(final DeprecationNotice deprecationNotice) throws IOException;
 
@@ -278,8 +264,6 @@ public abstract class AbstractDocumentationWriter implements DocumentationWriter
     protected abstract void writeSystemResourceConsiderationInfo(List<SystemResourceConsideration> considerations) throws IOException;
 
     protected abstract void writeSeeAlso(SeeAlso seeAlso) throws IOException;
-
-    protected abstract void writeAdditionalDetails(String additionalDetails) throws IOException;
 
 
 

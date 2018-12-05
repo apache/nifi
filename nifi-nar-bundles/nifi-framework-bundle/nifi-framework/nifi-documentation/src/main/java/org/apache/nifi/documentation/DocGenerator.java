@@ -142,7 +142,7 @@ public class DocGenerator {
      * that specific type of class
      */
     private static DocumentationWriter getDocumentWriter(final ExtensionManager extensionManager,
-                                                         final Class<? extends ConfigurableComponent> componentClass) {
+                                                                  final Class<? extends ConfigurableComponent> componentClass) {
         if (Processor.class.isAssignableFrom(componentClass)) {
             return new HtmlProcessorDocumentationWriter(extensionManager);
         } else if (ControllerService.class.isAssignableFrom(componentClass)) {

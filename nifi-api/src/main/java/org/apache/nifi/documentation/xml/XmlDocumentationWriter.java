@@ -32,6 +32,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
+import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ProvidedServiceAPI;
 import org.apache.nifi.processor.Relationship;
 
@@ -64,7 +65,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     private final XMLStreamWriter writer;
 
     public XmlDocumentationWriter(final OutputStream out) throws XMLStreamException {
-        writer = XMLOutputFactory.newInstance().createXMLStreamWriter(out, "UTF-8");
+        this.writer = XMLOutputFactory.newInstance().createXMLStreamWriter(out, "UTF-8");
     }
 
     public XmlDocumentationWriter(final XMLStreamWriter writer) {
@@ -79,6 +80,11 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     @Override
     protected void writeExtensionName(final String extensionName) throws IOException {
         writeTextElement("name", extensionName);
+    }
+
+    @Override
+    protected void writeExtensionType(final ExtensionType extensionType) throws IOException {
+        writeTextElement("type", extensionType.name());
     }
 
     @Override
@@ -160,7 +166,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("name", property.name());
         writeTextElement("value", property.value());
         writeTextElement("description", property.description());
-        writeBooleanElement("expressionLanguageSupported",property.supportsExpressionLanguage());
+        writeBooleanElement("expressionLanguageSupported", property.supportsExpressionLanguage());
         writeTextElement("expressionLanguageScope", property.expressionLanguageScope() == null ? null : property.expressionLanguageScope().name());
 
         writeEndElement();
@@ -172,9 +178,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
         if (stateful != null) {
             writeTextElement("description", stateful.description());
-            writeArray("scopes", Arrays.asList(stateful.scopes()), scope -> {
-                writeTextElement("scope", scope.name());
-            });
+            writeArray("scopes", Arrays.asList(stateful.scopes()), scope -> writeTextElement("scope", scope.name()));
         }
 
         writeEndElement();
@@ -248,11 +252,6 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         }
 
         writeTextArray("seeAlso", "see", toSee);
-    }
-
-    @Override
-    protected void writeAdditionalDetails(final String additionalDetails) throws IOException {
-        writeTextElement("additionalDetails", additionalDetails);
     }
 
     @Override

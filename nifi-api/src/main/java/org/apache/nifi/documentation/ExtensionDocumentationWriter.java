@@ -33,7 +33,7 @@ import java.util.Collection;
  * <b>NOTE WELL:</b> At this time, while this class is part of nifi-api, it is still evolving and may change in a non-backward-compatible manner or even be
  * removed from one incremental release to the next. Use at your own risk!
  */
-public interface DocumentationWriter {
+public interface ExtensionDocumentationWriter {
 
     void write(ConfigurableComponent component) throws IOException;
 
