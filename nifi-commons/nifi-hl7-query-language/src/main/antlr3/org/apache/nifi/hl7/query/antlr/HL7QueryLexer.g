@@ -162,7 +162,7 @@ ESC
 			|	'\\'	{ setText("\\\\"); }
 			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')		
 				{
-					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\\\").appendCodePoint(nextChar); setText(lBuf.toString());
+					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\").appendCodePoint(nextChar); setText(lBuf.toString());
 				}
 		)
 	;
