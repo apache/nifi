@@ -286,7 +286,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             // configure the ssl connector
             httpConfiguration.setSecureScheme("https");
             httpConfiguration.setSecurePort(port);
-
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
@@ -333,7 +332,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             shutdownHttpServer(server);
             throw e;
         }
-
 
         this.server = server;
     }

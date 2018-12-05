@@ -35,7 +35,6 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -143,7 +142,7 @@ public class TestListenTCP {
 
     @Test
     public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
-            UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, InvalidAlgorithmParameterException {
+            UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, SSLContextService.ClientAuth.REQUIRED.name());
         configureProcessorSslContextService();
@@ -172,7 +171,7 @@ public class TestListenTCP {
 
     @Test
     public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
-            UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, InvalidAlgorithmParameterException {
+            UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
         configureProcessorSslContextService();
