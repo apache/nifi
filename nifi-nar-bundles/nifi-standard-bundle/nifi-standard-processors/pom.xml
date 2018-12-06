@@ -519,6 +519,8 @@
                         <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
                         <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
                         <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

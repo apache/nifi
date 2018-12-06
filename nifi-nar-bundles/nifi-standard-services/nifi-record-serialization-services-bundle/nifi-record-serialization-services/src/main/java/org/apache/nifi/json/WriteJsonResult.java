@@ -60,9 +60,16 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private String mimeType = "application/json";
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
-        final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+            final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json");
+    }
+
+    public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+        final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
+        final String mimeType) throws IOException {
 
         super(out);
         this.logger = logger;
@@ -70,6 +77,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.schemaAccess = schemaAccess;
         this.nullSuppression = nullSuppression;
         this.outputGrouping = outputGrouping;
+        this.mimeType = mimeType;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
@@ -399,7 +407,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
     @Override
     public String getMimeType() {
-        return "application/json";
+        return this.mimeType;
     }
 
     private static interface GeneratorTask {
