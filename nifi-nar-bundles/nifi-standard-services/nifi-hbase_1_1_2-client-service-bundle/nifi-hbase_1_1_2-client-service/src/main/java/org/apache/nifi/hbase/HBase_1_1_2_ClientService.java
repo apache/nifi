@@ -20,7 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -65,7 +67,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -262,7 +263,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Admin admin = this.connection.getAdmin();
             if (admin != null) {
                 admin.listTableNames();
-                masterAddress = admin.getClusterStatus().getMaster().getHostAndPort();
+
+                final ClusterStatus clusterStatus = admin.getClusterStatus();
+                if (clusterStatus != null) {
+                    final ServerName master = clusterStatus.getMaster();
+                    if (master != null) {
+                        masterAddress = master.getHostAndPort();
+                    } else {
+                        masterAddress = null;
+                    }
+                }
             }
         }
     }
@@ -323,8 +333,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     }
 
-    private String principal = null;
-
     protected Configuration getConfigurationFromFiles(final String configFiles) {
         final Configuration hbaseConfig = HBaseConfiguration.create();
         if (StringUtils.isNotBlank(configFiles)) {
@@ -343,16 +351,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to close connection to HBase due to {}", new Object[]{ioe});
             }
-        }
-    }
-
-    private static final byte[] EMPTY_VIS_STRING;
-
-    static {
-        try {
-            EMPTY_VIS_STRING = "".getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
         }
     }
 
