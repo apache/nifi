@@ -342,15 +342,11 @@ Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/m
 
 # Config File
 
-The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML
-and follows the YAML format laid out [here](http://www.yaml.org/).
+The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML file and follows the YAML format laid out [here](http://www.yaml.org/).
 
-Alternatively, the MiNiFi Toolkit Converter can aid in creating a *config.yml* from a generated template exported from a NiFi instance.  This
-tool can be downloaded from https://nifi.apache.org/minifi/download.html under the "MiNiFi Toolkit Binaries" section.  Information on the toolkit's usage is
-available at https://nifi.apache.org/minifi/minifi-toolkit.html.
+Alternatively, the MiNiFi Toolkit Converter can aid in creating a *config.yml* from a generated template exported from a NiFi instance.  This tool can be downloaded from https://nifi.apache.org/minifi/download.html under the "MiNiFi Toolkit Binaries" section.  Information on the toolkit's usage is available at https://nifi.apache.org/minifi/minifi-toolkit.html.
 
-**Note:** Values for periods of time and data sizes must include the unit of measure,
-for example "10 sec" or "10 MB", not simply "10".
+**Note:** Values for periods of time and data sizes must include the unit of measure, for example "10 sec" or "10 MB", not simply "10".
 
 ## Versioning
 
@@ -396,9 +392,7 @@ The "Core Properties" section applies to the core framework as a whole.
 
 ## FlowFile Repository
 
-The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
-this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
-to configure it on a separate drive if available.
+The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default, this repository is installed in the same root installation directory as all the other repositories; however, it is advisable to configure it on a separate drive if available.
 
 *Property*             | *Description*
 ---------------------  | ------------
@@ -410,10 +404,7 @@ to configure it on a separate drive if available.
 
 A part of the "FlowFile Repository" section there is a "Swap" subsection.
 
-NiFi keeps FlowFile information in memory (the JVM)
-but during surges of incoming data, the FlowFile information can start to take up so much of the JVM that system performance
-suffers. To counteract this effect, NiFi "swaps" the FlowFile information to disk temporarily until more JVM space becomes
-available again. The "Swap" subsection of properties govern how that process occurs.
+NiFi keeps FlowFile information in memory (the JVM) but during surges of incoming data, the FlowFile information can start to take up so much of the JVM that system performance suffers. To counteract this effect, NiFi "swaps" the FlowFile information to disk temporarily until more JVM space becomes available again. The "Swap" subsection of properties govern how that process occurs.
 
 *Property*    | *Description*
 -----------   | ------------
@@ -425,11 +416,7 @@ available again. The "Swap" subsection of properties govern how that process occ
 
 ## Content Repository
 
-The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root
-installation directory as all the other repositories; however, administrators will likely want to configure it on a separate
-drive if available. If nothing else, it is best if the Content Repository is not on the same drive as the FlowFile Repository.
-In dataflows that handle a large amount of data, the Content Repository could fill up a disk and the
-FlowFile Repository, if also on that disk, could become corrupt. To avoid this situation, configure these repositories on different drives.
+The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root installation directory as all the other repositories; however, administrators will likely want to configure it on a separate drive if available. If nothing else, it is best if the Content Repository is not on the same drive as the FlowFile Repository. In dataflows that handle a large amount of data, the Content Repository could fill up a disk and the FlowFile Repository, if also on that disk, could become corrupt. To avoid this situation, configure these repositories on different drives.
 
 *Property*                          | *Description*
 ----------------------------------- | -------------
@@ -446,14 +433,9 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 
 ## Component Status Repository
 
-The Component Status Repository contains the information for the Component Status History tool in the User Interface. These
-properties govern how that tool works.
+The Component Status Repository contains the information for the Component Status History tool in the User Interface. These properties govern how that tool works.
 
-The `buffer size` and `snapshot frequency` work together to determine the amount of historical data to retain. As an example to
-configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure
-`snapshot frequency` to be "5 mins" and the `buffer size` to be "576". To further explain this example, for every 60 minutes there
-are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size
-of 576.
+The `buffer size` and `snapshot frequency` work together to determine the amount of historical data to retain. As an example to configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure `snapshot frequency` to be "5 mins" and the `buffer size` to be "576". To further explain this example, for every 60 minutes there are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size of 576.
 
 *Property*           | *Description*
 -------------------- | -------------
@@ -462,8 +444,7 @@ of 576.
 
 ## Security Properties
 
-These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the
-"Security Configuration" section of this Administrator's Guide.
+These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the "Security Configuration" section of this Administrator's Guide.
 
 *Property*            | *Description*
 --------------------- | -------------
