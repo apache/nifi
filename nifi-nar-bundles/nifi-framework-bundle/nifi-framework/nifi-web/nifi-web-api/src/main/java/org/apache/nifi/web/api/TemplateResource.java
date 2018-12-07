@@ -43,9 +43,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Set;
 
 /**
@@ -142,14 +146,22 @@ public class TemplateResource extends ApplicationResource {
             attachmentName = attachmentName.replaceAll("\\s", "_");
         }
 
+        final Charset utf8 = StandardCharsets.UTF_8;
+        try {
+            attachmentName = URLEncoder.encode(attachmentName, utf8.name());
+        } catch (UnsupportedEncodingException e) {
+            //
+        }
+
         // generate the response
         /*
          * Here instead of relying on default JAXB marshalling we are simply
          * serializing template to String (formatted, indented etc) and sending
          * it as part of the response.
          */
-        String serializedTemplate = new String(TemplateSerializer.serialize(template), StandardCharsets.UTF_8);
-        return generateOkResponse(serializedTemplate).header("Content-Disposition", String.format("attachment; filename=\"%s.xml\"", attachmentName)).build();
+        String serializedTemplate = new String(TemplateSerializer.serialize(template), utf8);
+        String filename = attachmentName + ".xml";
+        return generateOkResponse(serializedTemplate).encoding(utf8.name()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename* = " + utf8.name() + "''" + filename).build();
     }
 
     /**
