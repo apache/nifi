@@ -79,8 +79,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @RequiresInstanceClassLoading
 @Tags({ "hbase", "client"})
-@CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
-        "a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
+@CapabilityDescription("Implementation of HBaseClientService using the HBase 1.1.x client. Although this service was originally built with the 1.1.2 " +
+        "client and has 1_1_2 in it's name, the client library has since been upgraded to 1.1.13 to leverage bug fixes. This service can be configured " +
+        "by providing a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
         "are provided, they will be loaded first, and the values of the additional properties will override the values from " +
         "the configuration files. In addition, any user defined properties on the processor will also be passed to the HBase " +
         "configuration.")
