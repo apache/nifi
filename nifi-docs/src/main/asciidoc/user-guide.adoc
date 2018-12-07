@@ -1095,7 +1095,7 @@ The following prioritizers are available:
 
 NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
 
-NOTE: With the PriorityAttributePrioritizer it will attempt to parse the "priority" attribute as a long. If this doesn't work it will use unicode string ordering. For example: "99" and "100" will be ordered so the flowfile with "1" comes first, but "A-99" and "A-100" will sort so the flowfile with "A-100" comes first.
+NOTE: With the PriorityAttributePrioritizer it will attempt to parse the "priority" attribute as a long. If this doesn't work it will use unicode string ordering. For example: "99" and "100" will be ordered so the flowfile with "99" comes first, but "A-99" and "A-100" will sort so the flowfile with "A-100" comes first.
 
 ==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
