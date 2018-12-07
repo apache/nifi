@@ -1091,7 +1091,7 @@ The following prioritizers are available:
 - *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
 - *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected'.
-- *PriorityAttributePrioritizer*: Given two FlowFiles, an attribute called “priority” will be extracted. If only one has that attribute it will go first. Then they will be ordered smallest first. For example "1" will come before "9", "99" will be selected before "100" and "a" before "b".
+- *PriorityAttributePrioritizer*: Given two FlowFiles, an attribute called “priority” will be extracted. If only one has that attribute it will go first. Then they will be ordered smallest first. For example "1" will come before "9", "99" will be selected before "100" and "a" before "b". Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set.
 
 NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
 
