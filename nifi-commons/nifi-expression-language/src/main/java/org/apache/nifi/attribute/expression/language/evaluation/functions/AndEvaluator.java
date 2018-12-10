@@ -27,6 +27,7 @@ public class AndEvaluator extends BooleanEvaluator {
 
     private final Evaluator<Boolean> subjectEvaluator;
     private final Evaluator<Boolean> rhsEvaluator;
+    private BooleanQueryResult rhsResult;
 
     public AndEvaluator(final Evaluator<Boolean> subjectEvaluator, final Evaluator<Boolean> rhsEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
@@ -44,9 +45,18 @@ public class AndEvaluator extends BooleanEvaluator {
             return new BooleanQueryResult(false);
         }
 
+        // Returning previously evaluated result.
+        // The same AndEvaluator can be evaluated multiple times if subjectEvaluator is IteratingEvaluator.
+        // In that case, it's enough to evaluate the right hand side.
+        if (rhsResult != null) {
+            return rhsResult;
+        }
+
         final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes);
         if (rhsValue == null) {
-            return new BooleanQueryResult(false);
+            rhsResult = new BooleanQueryResult(false);
+        } else {
+            rhsResult = new BooleanQueryResult(rhsValue.getValue());
         }
 
         return new BooleanQueryResult(rhsValue.getValue());
