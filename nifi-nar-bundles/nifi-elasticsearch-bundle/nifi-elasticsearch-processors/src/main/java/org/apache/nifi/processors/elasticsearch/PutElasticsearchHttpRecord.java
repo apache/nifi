@@ -404,7 +404,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                                             reason = itemNode.findPath("reason").asText();
                                         }
                                         errorReason = reason;
-                                        logger.error("Failed to process {} due to {}, transferring to failure",
+ta                                        logger.error("Failed to process {} due to {}, transferring to failure",
                                                 new Object[]{flowFile, errorReason});
                                     }
                                     failureCount++;
