@@ -54,6 +54,21 @@ public class TestDataTypeUtils {
         assertEquals("Times didn't match", ts.getTime(), sDate.getTime());
     }
 
+    /*
+     * This was a bug in NiFi 1.8 where converting from a Timestamp to a Date with the record path API
+     * would throw an exception.
+     */
+    @Test
+    public void testTimestampToDate() {
+        java.util.Date date = new java.util.Date();
+        Timestamp ts = DataTypeUtils.toTimestamp(date, null, null);
+        assertNotNull(ts);
+
+        java.sql.Date output = DataTypeUtils.toDate(ts, null, null);
+        assertNotNull(output);
+        assertEquals("Timestamps didn't match", output.getTime(), ts.getTime());
+    }
+
     @Test
     public void testConvertRecordMapToJavaMap() {
         assertNull(DataTypeUtils.convertRecordMapToJavaMap(null, null));
