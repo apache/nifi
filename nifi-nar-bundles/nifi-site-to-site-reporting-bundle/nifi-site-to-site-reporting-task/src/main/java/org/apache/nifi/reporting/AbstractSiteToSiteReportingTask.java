@@ -95,8 +95,9 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
             .displayName("Destination URL")
-            .description("The URL of the destination NiFi instance to send data to, " +
-                    "should be a comma-separated list of address in the format of http(s)://host:port/nifi.")
+            .description("The URL of the destination NiFi instance or, if clustered, a comma-separated list of address in the format "
+                    + "of http(s)://host:port/nifi. This destination URL will only be used to initiate the Site-to-Site connection. The "
+                    + "data sent by this reporting task will be load-balanced on all the nodes of the destination (if clustered).")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new NiFiUrlValidator())
