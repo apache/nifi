@@ -21,54 +21,60 @@ import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
 import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Result for ControllerServicesEntity.
+ * Result for ReportingTasksEntity.
  */
-public class ControllerServicesResult extends AbstractWritableResult<ControllerServicesEntity> {
+public class ReportingTasksResult extends AbstractWritableResult<ReportingTasksEntity> {
 
-    private final ControllerServicesEntity controllerServicesEntity;
+    private final ReportingTasksEntity reportingTasksEntity;
 
-    public ControllerServicesResult(final ResultType resultType, final ControllerServicesEntity controllerServicesEntity) {
+    public ReportingTasksResult(final ResultType resultType, final ReportingTasksEntity reportingTasksEntity) {
         super(resultType);
-        this.controllerServicesEntity = controllerServicesEntity;
-        Validate.notNull(this.controllerServicesEntity);
+        this.reportingTasksEntity = reportingTasksEntity;
+        Validate.notNull(this.reportingTasksEntity);
     }
 
     @Override
     protected void writeSimpleResult(final PrintStream output) throws IOException {
-        final Set<ControllerServiceEntity> serviceEntities = controllerServicesEntity.getControllerServices();
-        if (serviceEntities == null) {
+        final Set<ReportingTaskEntity> tasksEntities = reportingTasksEntity.getReportingTasks();
+        if (tasksEntities == null) {
             return;
         }
 
-        final List<ControllerServiceDTO> serviceDTOS = serviceEntities.stream()
-                .map(s -> s.getComponent())
+        final List<ReportingTaskDTO> taskDTOS = tasksEntities.stream()
+                .map(ReportingTaskEntity::getComponent)
+                .sorted(Comparator.comparing(ReportingTaskDTO::getName))
                 .collect(Collectors.toList());
-
-        Collections.sort(serviceDTOS, Comparator.comparing(ControllerServiceDTO::getName));
 
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)
-                .column("Name", 5, 40, false)
+                .column("Name", 5, 40, true)
                 .column("ID", 36, 36, false)
-                .column("State", 5, 40, false)
+                .column("Type", 5, 40, true)
+                .column("Run Status", 10, 20, false)
                 .build();
 
-        for (int i=0; i < serviceDTOS.size(); i++) {
-            final ControllerServiceDTO serviceDTO = serviceDTOS.get(i);
-            table.addRow(String.valueOf(i+1), serviceDTO.getName(), serviceDTO.getId(), serviceDTO.getState());
+        for (int i = 0; i < taskDTOS.size(); i++) {
+            final ReportingTaskDTO taskDTO = taskDTOS.get(i);
+            final String[] typeSplit = taskDTO.getType().split("\\.", -1);
+            table.addRow(
+                    String.valueOf(i + 1),
+                    taskDTO.getName(),
+                    taskDTO.getId(),
+                    typeSplit[typeSplit.length - 1],
+                    taskDTO.getState()
+            );
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();
@@ -76,7 +82,7 @@ public class ControllerServicesResult extends AbstractWritableResult<ControllerS
     }
 
     @Override
-    public ControllerServicesEntity getResult() {
-        return controllerServicesEntity;
+    public ReportingTasksEntity getResult() {
+        return reportingTasksEntity;
     }
 }
