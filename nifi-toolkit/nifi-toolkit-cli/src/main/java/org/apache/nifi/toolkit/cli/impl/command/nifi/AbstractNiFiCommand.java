@@ -25,9 +25,13 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractPropertyCommand;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.TenantEntity;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Base class for all NiFi commands.
@@ -71,6 +75,15 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         revisionDTO.setVersion(new Long(0));
         revisionDTO.setClientId(clientId);
         return revisionDTO;
+    }
+
+    protected static Set<TenantEntity> generateTenantEntities(final String ids) {
+        return Arrays.stream(ids.split(",", -1))
+                .map(id -> {
+                    TenantEntity entity = new TenantEntity();
+                    entity.setId(id);
+                    return entity;
+                }).collect(Collectors.toSet());
     }
 
 }

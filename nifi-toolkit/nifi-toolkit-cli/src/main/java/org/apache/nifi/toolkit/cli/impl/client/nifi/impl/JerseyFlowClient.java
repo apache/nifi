@@ -29,6 +29,7 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
@@ -226,4 +227,21 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
             return getRequestBuilder(target).get(ClusteSummaryEntity.class);
         });
     }
+
+    @Override
+    public ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task controller services", () -> {
+            final WebTarget target = flowTarget.path("controller/controller-services");
+            return getRequestBuilder(target).get(ControllerServicesEntity.class);
+        });
+    }
+
+    @Override
+    public ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting tasks", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks");
+            return getRequestBuilder(target).get(ReportingTasksEntity.class);
+        });
+    }
+
 }

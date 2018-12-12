@@ -64,6 +64,24 @@ public enum CommandOption {
     PG_VAR_NAME("var", "varName", "The name of a variable", true),
     PG_VAR_VALUE("val", "varValue", "The value of a variable", true),
 
+    // NiFi - Controller Services
+    CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
+
+    // NiFi - User/Group
+    USER_NAME("un", "userName", "The name of a user", true),
+    UG_ID("ugid", "userGroupId", "The id of a user group", true),
+    UG_NAME("ugn", "userGroupName", "The name of a user group", true),
+    USER_LIST("ul", "userList", "The comma-separated user id list", true),
+    GROUP_LIST("gl", "groupList", "The comma-separated user group id list", true),
+
+    // NiFi - Access Policies
+    POLICY_RESOURCE("por", "accessPolicyResource", "The resource of an access policy", true),
+    POLICY_ACTION("poa", "accessPolicyAction", "The action of an access policy (read or write)", true),
+    OVERWRITE_POLICY("owp", "overwritePolicy", "Overwrite the user list and group list for the access policy", false),
+
+    // NiFi - Templates
+    TEMPLATE_ID("tid", "templateId", "The id of a template", true),
+
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
     KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used (JKS or PKCS12)", true),
