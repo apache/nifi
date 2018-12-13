@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -55,7 +56,7 @@ public class TestSplitRecord {
         readerService.addRecord("Jane Doe", 47);
         readerService.addRecord("Jimmy Doe", 14);
 
-        runner.enqueue("");
+        final MockFlowFile inputFlowFile = runner.enqueue("");
         runner.run();
 
         runner.assertTransferCount(SplitRecord.REL_SPLITS, 3);
@@ -63,10 +64,22 @@ public class TestSplitRecord {
         runner.assertTransferCount(SplitRecord.REL_FAILURE, 0);
         final List<MockFlowFile> out = runner.getFlowFilesForRelationship(SplitRecord.REL_SPLITS);
 
+        int fragmentIndex = 0;
+        String fragmentUUID = null;
         for (final MockFlowFile mff : out) {
+            if (fragmentUUID == null) {
+                fragmentUUID = mff.getAttribute(SplitRecord.FRAGMENT_ID);
+            } else {
+                mff.assertAttributeEquals(SplitRecord.FRAGMENT_ID, fragmentUUID);
+            }
+            mff.assertAttributeEquals(SplitRecord.FRAGMENT_COUNT, "3");
+            mff.assertAttributeEquals(SplitRecord.FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+            mff.assertAttributeEquals(SplitRecord.SEGMENT_ORIGINAL_FILENAME, inputFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
             mff.assertAttributeEquals("record.count", "1");
             mff.assertAttributeEquals("mime.type", "text/plain");
+            fragmentIndex++;
         }
+
 
         assertEquals(1, out.stream().filter(mff -> mff.isContentEqual("header\nJohn Doe,48\n")).count());
         assertEquals(1, out.stream().filter(mff -> mff.isContentEqual("header\nJane Doe,47\n")).count());
