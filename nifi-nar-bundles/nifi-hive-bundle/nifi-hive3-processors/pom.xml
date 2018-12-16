@@ -111,7 +111,16 @@
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
                 </exclusion>
+            	<exclusion>
+            		<groupId>net.minidev</groupId>
+            		<artifactId>json-smart</artifactId>
+            	</exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+        	<groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>2.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
