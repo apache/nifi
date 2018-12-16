@@ -59,7 +59,7 @@ public class CredentialPropertyDescriptors {
 
     public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
             .name("Access Key")
-            .displayName("Access Key")
+            .displayName("Access Key ID")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -68,7 +68,7 @@ public class CredentialPropertyDescriptors {
 
     public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
             .name("Secret Key")
-            .displayName("Secret Key")
+            .displayName("Secret Access Key")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
