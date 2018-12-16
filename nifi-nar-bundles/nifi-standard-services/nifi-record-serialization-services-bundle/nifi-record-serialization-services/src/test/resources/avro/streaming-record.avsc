@@ -1,0 +1,31 @@
+{
+	"type": "record",
+	"name": "StreamingRecord",
+	"fields": [{
+			"name": "message",
+			"type": "string"
+		},
+		{
+			"name": "from",
+			"type": "string"
+		},
+		{
+			"name": "to",
+			"type": "string"
+		},
+		{
+			"name": "nested_info",
+			"type": {
+				"type": "record",
+				"name": "NestedRecord",
+				"fields": [{
+					"name": "string_val",
+					"type": "string"
+				}, {
+					"name": "int_val",
+					"type": "int"
+				}]
+			}
+		}
+	]
+}

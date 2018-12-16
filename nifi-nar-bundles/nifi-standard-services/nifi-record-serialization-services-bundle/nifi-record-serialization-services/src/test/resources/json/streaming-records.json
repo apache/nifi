@@ -1,0 +1,40 @@
+{
+  "messages": [
+    {
+      "message": "Hi!",
+      "from": "john.smith",
+      "to": "jane.doe",
+      "nested": {
+        "int_val": 1,
+        "string_val": "Test!"
+      }
+    },
+    {
+      "message": "How are you?",
+      "from": "john.smith",
+      "to": "jane.doe",
+      "nested": {
+        "int_val": 1,
+        "string_val": "Test!"
+      }
+    },
+    {
+      "message": "Awesome",
+      "from": "jane.doe",
+      "to": "john.smith",
+      "nested": {
+        "int_val": 1,
+        "string_val": "Test!"
+      }
+    },
+    {
+      "message": "Ok, bye!",
+      "from": "john.smith",
+      "to": "jane.doe",
+      "nested": {
+        "int_val": 1,
+        "string_val": "Test!"
+      }
+    }
+  ]
+}

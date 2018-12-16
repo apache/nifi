@@ -19,6 +19,7 @@ org.apache.nifi.avro.AvroRecordSetWriter
 org.apache.nifi.json.JsonTreeReader
 org.apache.nifi.json.JsonPathReader
 org.apache.nifi.json.JsonRecordSetWriter
+org.apache.nifi.json.StreamingJsonReader
 
 org.apache.nifi.csv.CSVReader
 org.apache.nifi.csv.CSVRecordSetWriter
