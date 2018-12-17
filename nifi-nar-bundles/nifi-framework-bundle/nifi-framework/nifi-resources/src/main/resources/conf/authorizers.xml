@@ -165,6 +165,29 @@
         <property name="Group Member Attribute - Referenced User Attribute"></property>
     </userGroupProvider>
     To enable the ldap-user-group-provider remove 2 lines. This is 2 of 2. -->
+    
+    <!--
+        The GCPUserGroupProvider will retrieve users and groups from the Google Suite organization
+        using the Admin SDK and the Directory API. Please refer to the below for more details:
+        https://developers.google.com/admin-sdk/directory/v1/guides/delegation
+
+        'Domain' - Google Suite domain
+        'PEM Key Path' - Path to the PEM file containing the private key of the service account
+        'Service Account Email' - Email address of the service account to use for API access
+        'Admin Email' - Email address of the user impersonated by the service account
+        'Sync Interval' - Duration of time between syncing users and groups (i.e. 30 mins). Minimum allowable value is 1min.
+    -->
+    <!-- To enable the gcp-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>gcp-user-group-provider</identifier>
+        <class>org.apache.nifi.gcp.iaa.GCPUserGroupProvider</class>
+        <property name="Domain"></property>
+        <property name="PEM Key Path"></property>
+        <property name="Service Account Email"></property>
+        <property name="Admin Email"></property>
+        <property name="Sync Interval">30 mins</property>
+    </userGroupProvider>
+    To enable the gcp-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
         The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources.

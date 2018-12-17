@@ -22,30 +22,55 @@
         <version>1.9.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-gcp-nar</artifactId>
-    <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+    <artifactId>nifi-gcp-iaa-providers</artifactId>
+    <packaging>jar</packaging>
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.google.oauth-client</groupId>
+            <artifactId>google-oauth-client-jetty</artifactId>
+            <version>1.27.0</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.google.apis</groupId>
+            <artifactId>google-api-services-admin-directory</artifactId>
+            <version>directory_v1-rev105-1.25.0</version>
+        </dependency>
+        
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-gcp-services-api-nar</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
-            <type>nar</type>
+            <artifactId>nifi-api</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-gcp-processors</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
+            <artifactId>nifi-framework-api</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-gcp-iaa-providers</artifactId>
+            <artifactId>nifi-utils</artifactId>
             <version>1.9.0-SNAPSHOT</version>
         </dependency>
+        
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
+            <version>1.9.0-SNAPSHOT</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties</artifactId>
+        </dependency>
+        
     </dependencies>
 
 </project>
