@@ -81,7 +81,7 @@ public class SubmitOozieWorkflow extends AbstractProcessor {
 
     public static final PropertyDescriptor APP_PATH = new PropertyDescriptor.Builder()
             .name("oozie-app-path")
-            .displayName("HDFS Application Path")
+            .displayName("Workflow Path")
             .description("HDFS Path to the directory containing the workflow.xml file")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
