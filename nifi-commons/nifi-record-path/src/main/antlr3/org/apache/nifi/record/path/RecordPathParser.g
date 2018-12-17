@@ -172,8 +172,8 @@ notFunctionArgList : simpleFilterFunctionOrOperation ->
 
 notFilterFunction : NOT LPAREN notFunctionArgList RPAREN ->
 	^(FUNCTION NOT notFunctionArgList);
-	
-filterFunction : simpleFilterFunction | notFilterFunction; 
+
+filterFunction : simpleFilterFunction | notFilterFunction;
 
 
 
@@ -200,11 +200,11 @@ selfReference : CHILD_SEPARATOR! CURRENT_FIELD;
 parentReference : CHILD_SEPARATOR RANGE ->
 	^(PARENT_REFERENCE);
 
-nonSelfFieldRef : childReference | descendantReference | selfReference | parentReference;
+nonSelfFieldRef : childReference | descendantReference | selfReference | parentReference | index;
 
 fieldRef : nonSelfFieldRef | CURRENT_FIELD;
 
-subPath : fieldRef | index | predicate;
+subPath : fieldRef | predicate;
 
 
 

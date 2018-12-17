@@ -23,6 +23,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -52,12 +53,22 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.RecordPathResult;
+import org.apache.nifi.record.path.StandardFieldValue;
+import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
@@ -74,17 +85,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @EventDriven
 @SideEffectFree
@@ -405,7 +421,7 @@ public class QueryRecord extends AbstractProcessor {
                                                  final RecordReaderFactory recordReaderFactory) {
 
         final CalciteConnection connection = createConnection();
-        final SchemaPlus rootSchema = connection.getRootSchema();
+        final SchemaPlus rootSchema = createRootSchema(connection);
 
         final FlowFileTable flowFileTable = new FlowFileTable(session, flowFile, schema, recordReaderFactory, getLogger());
         rootSchema.add("FLOWFILE", flowFileTable);
@@ -480,6 +496,18 @@ public class QueryRecord extends AbstractProcessor {
         };
     }
 
+    private SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
+        final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+        rootSchema.add("RPATH", ScalarFunctionImpl.create(ObjectRecordPath.class, "eval"));
+        rootSchema.add("RPATH_STRING", ScalarFunctionImpl.create(StringRecordPath.class, "eval"));
+        rootSchema.add("RPATH_INT", ScalarFunctionImpl.create(IntegerRecordPath.class, "eval"));
+        rootSchema.add("RPATH_LONG", ScalarFunctionImpl.create(LongRecordPath.class, "eval"));
+        rootSchema.add("RPATH_DATE", ScalarFunctionImpl.create(DateRecordPath.class, "eval"));
+        rootSchema.add("RPATH_DOUBLE", ScalarFunctionImpl.create(DoubleRecordPath.class, "eval"));
+        rootSchema.add("RPATH_FLOAT", ScalarFunctionImpl.create(FloatRecordPath.class, "eval"));
+
+        return rootSchema;
+    }
 
     private void closeQuietly(final AutoCloseable... closeables) {
         if (closeables == null) {
@@ -565,4 +593,262 @@ public class QueryRecord extends AbstractProcessor {
             return connection;
         }
     }
+
+
+    // ------------------------------------------------------------
+    // User-Defined Functions for Calcite
+    // ------------------------------------------------------------
+
+
+    public static class ObjectRecordPath extends RecordPathFunction {
+        private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(Collections.singletonList(ROOT_RECORD_FIELD));
+        private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
+
+
+        public Object eval(Object record, String recordPath) {
+            if (record == null) {
+                return null;
+            }
+
+            if (record instanceof Record) {
+                return eval((Record) record, recordPath);
+            }
+            if (record instanceof Record[]) {
+                return eval((Record[]) record, recordPath);
+            }
+
+            if (record instanceof Map) {
+                return eval((Map<?, ?>) record, recordPath);
+            }
+
+            throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
+        }
+
+        private Object eval(final Map<?, ?> map, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final Record record = new MapRecord(ROOT_RECORD_SCHEMA, Collections.singletonMap("root", map));
+            final FieldValue parentFieldValue = new StandardFieldValue(record, PARENT_RECORD_FIELD, null);
+            final FieldValue fieldValue = new StandardFieldValue(map, ROOT_RECORD_FIELD, parentFieldValue);
+            final RecordPathResult result = compiled.evaluate(record, fieldValue);
+
+            final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            return evalResults(selectedFields);
+        }
+
+        private Object eval(final Record record, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+            final RecordPathResult result = compiled.evaluate(record);
+
+            final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            return evalResults(selectedFields);
+        }
+
+        private Object eval(final Record[] records, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
+            return evalResults(selectedFields);
+        }
+
+        private Object evalResults(final List<FieldValue> selectedFields) {
+            if (selectedFields.isEmpty()) {
+                return null;
+            }
+
+            if (selectedFields.size() == 1) {
+                return selectedFields.get(0).getValue();
+            }
+
+            return selectedFields.stream()
+                .map(FieldValue::getValue)
+                .toArray();
+        }
+
+    }
+
+    public static class StringRecordPath extends RecordPathFunction {
+        public String eval(Object record, String recordPath) {
+            return eval(record, recordPath, Object::toString);
+        }
+    }
+
+    public static class IntegerRecordPath extends RecordPathFunction {
+        public Integer eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).intValue();
+                }
+                if (val instanceof String) {
+                    return Integer.parseInt((String) val);
+                }
+                if (val instanceof Date) {
+                    return (int) ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Integer against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class LongRecordPath extends RecordPathFunction {
+        public Long eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).longValue();
+                }
+                if (val instanceof String) {
+                    return Long.parseLong((String) val);
+                }
+                if (val instanceof Date) {
+                    return ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Long against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class FloatRecordPath extends RecordPathFunction {
+        public Float eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).floatValue();
+                }
+                if (val instanceof String) {
+                    return Float.parseFloat((String) val);
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Float against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class DoubleRecordPath extends RecordPathFunction {
+        public Double eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).doubleValue();
+                }
+                if (val instanceof String) {
+                    return Double.parseDouble((String) val);
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Double against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class DateRecordPath extends RecordPathFunction {
+        // Interestingly, Calcite throws an Exception if the schema indicates a DATE type and we return a java.util.Date. Calcite requires that a Long be returned instead.
+        public Long eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).longValue();
+                }
+                if (val instanceof String) {
+                    throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record
+                        + " because the value returned is of type String. To parse a String value as a Date, please use the toDate function. For example, " +
+                        "SELECT RPATH_DATE( record, 'toDate( /event/timestamp, \"yyyy-MM-dd\" )' ) AS eventDate FROM FLOWFILE");
+                }
+                if (val instanceof Date) {
+                    return ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class RecordRecordPath extends RecordPathFunction {
+        public Record eval(Object record, String recordPath) {
+            return eval(record, recordPath, Record.class::cast);
+        }
+    }
+
+
+    public static class RecordPathFunction {
+        private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(Collections.singletonList(ROOT_RECORD_FIELD));
+        private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
+
+        protected static final RecordPathCache RECORD_PATH_CACHE = new RecordPathCache(100);
+
+        protected <T> T eval(final Object record, final String recordPath, final Function<Object, T> transform) {
+            if (record == null) {
+                return null;
+            }
+
+            if (record instanceof Record) {
+                return eval((Record) record, recordPath, transform);
+            } else if (record instanceof Record[]) {
+                return eval((Record[]) record, recordPath, transform);
+            } else if (record instanceof Map) {
+                return eval((Map<?, ?>) record, recordPath, transform);
+            }
+
+            throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
+        }
+
+        private <T> T eval(final Map<?, ?> map, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final Record record = new MapRecord(ROOT_RECORD_SCHEMA, Collections.singletonMap("root", map));
+            final FieldValue parentFieldValue = new StandardFieldValue(record, PARENT_RECORD_FIELD, null);
+            final FieldValue fieldValue = new StandardFieldValue(map, ROOT_RECORD_FIELD, parentFieldValue);
+            final RecordPathResult result = compiled.evaluate(record, fieldValue);
+
+            return evalResults(result.getSelectedFields(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+
+        private <T> T eval(final Record record, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+            final RecordPathResult result = compiled.evaluate((Record) record);
+
+            return evalResults(result.getSelectedFields(), transform,
+                () -> "RecordPath " + recordPath + " evaluated against " + record + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+        private <T> T eval(final Record[] records, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
+            if (selectedFields.isEmpty()) {
+                return null;
+            }
+
+            return evalResults(selectedFields.stream(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+        private <T> T evalResults(final Stream<FieldValue> fields, final Function<Object, T> transform, final Supplier<String> multipleReturnValueErrorSupplier) {
+            return fields.map(FieldValue::getValue)
+                .filter(Objects::nonNull)
+                .map(transform)
+                .reduce((a, b) -> {
+                    // Only allow a single value
+                    throw new RuntimeException(multipleReturnValueErrorSupplier.get());
+                })
+                .orElse(null);
+
+        }
+    }
+
+
 }

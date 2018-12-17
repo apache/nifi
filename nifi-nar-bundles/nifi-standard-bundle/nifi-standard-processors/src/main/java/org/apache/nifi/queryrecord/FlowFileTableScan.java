@@ -68,7 +68,7 @@ public class FlowFileTableScan extends TableScan implements EnumerableRel {
     @Override
     public RelDataType deriveRowType() {
         final List<RelDataTypeField> fieldList = table.getRowType().getFieldList();
-        final RelDataTypeFactory.FieldInfoBuilder builder = getCluster().getTypeFactory().builder();
+        final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
         for (int field : fields) {
             builder.add(fieldList.get(field));
         }
