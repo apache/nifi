@@ -435,7 +435,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                     throw new ShouldRetryException(te.getLocalizedMessage(), te);
                 }
             } catch (RecordReaderFactoryException rrfe) {
-                throw new ProcessException(rrfe);
+                if (rollbackOnFailure) {
+                    throw new ProcessException(rrfe);
+                } else {
+                    session.transfer(flowFile, REL_FAILURE);
+                }
             }
         } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
             if (rollbackOnFailure) {
