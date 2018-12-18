@@ -57,6 +57,7 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
 
     private final Reader reader;
     private final ObjectMapper om;
+    private List<String> locales;
 
     private DatabaseReader(final Builder builder) throws IOException {
         if (builder.stream != null) {
@@ -74,6 +75,8 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
         this.om.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
         InjectableValues inject = new InjectableValues.Std().addValue("locales", builder.locales);
         this.om.setInjectableValues(inject);
+
+        this.locales = builder.locales;
     }
 
     /**
@@ -259,6 +262,8 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
                 return ip;
             } else if ("traits".equals(valueId)) {
                 return new Traits(ip);
+            } else if ("locales".equals(valueId)) {
+                return locales;
             }
 
             return null;
