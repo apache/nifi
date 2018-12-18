@@ -27,8 +27,6 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
@@ -440,9 +438,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.encryptor = encryptor;
         this.nifiProperties = nifiProperties;
         this.heartbeatMonitor = heartbeatMonitor;
+        this.leaderElectionManager = leaderElectionManager;
         this.sslContext = SslContextFactory.createSslContext(nifiProperties);
         this.extensionManager = extensionManager;
         this.clusterCoordinator = clusterCoordinator;
+        this.authorizer = authorizer;
+        this.auditService = auditService;
+        this.configuredForClustering = configuredForClustering;
+        this.flowRegistryClient = flowRegistryClient;
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
@@ -500,9 +503,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
-        this.authorizer = authorizer;
-        this.auditService = auditService;
-        this.flowRegistryClient = flowRegistryClient;
 
         final String gracefulShutdownSecondsVal = nifiProperties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
         long shutdownSecs;
@@ -524,7 +524,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new IllegalStateException("NiFi Configured to allow Secure Site-to-Site communications but the Keystore/Truststore properties are not configured");
         }
 
-        this.configuredForClustering = configuredForClustering;
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
@@ -598,7 +597,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
-        this.leaderElectionManager = leaderElectionManager;
 
         if (configuredForClustering) {
             heartbeater = new ClusterProtocolHeartbeater(protocolSender, clusterCoordinator, leaderElectionManager);
@@ -634,7 +632,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final InetSocketAddress loadBalanceAddress = nifiProperties.getClusterLoadBalanceAddress();
             // Setup Load Balancing Server
             final EventReporter eventReporter = createEventReporter();
-            final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
+
             final LoadBalanceAuthorizer authorizeConnection = new ClusterLoadBalanceAuthorizer(clusterCoordinator, eventReporter);
             final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepository, provenanceRepository, this, authorizeConnection);
 
