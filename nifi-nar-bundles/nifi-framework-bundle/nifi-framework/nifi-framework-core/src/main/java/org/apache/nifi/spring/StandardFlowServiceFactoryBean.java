@@ -30,6 +30,8 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.io.File;
+
 /**
  * Factory bean for creating a singleton FlowController instance. If the application is configured to act as the cluster manager, then null is always returned as the created instance.
  */
@@ -60,12 +62,20 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
                     revisionManager,
                     authorizer);
             } else {
-                flowService = StandardFlowService.createStandaloneInstance(
-                    flowController,
-                    properties,
-                    encryptor,
-                    revisionManager,
-                    authorizer);
+                final File minifiConfigFile = properties.getMinifiConfigFile();
+                if (minifiConfigFile != null) {
+                    flowService = StandardFlowService.createMiNiFiInstance(
+                            flowController,
+                            properties,
+                            encryptor);
+                } else {
+                    flowService = StandardFlowService.createStandaloneInstance(
+                            flowController,
+                            properties,
+                            encryptor,
+                            revisionManager,
+                            authorizer);
+                }
             }
         }
 

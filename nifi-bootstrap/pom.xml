@@ -78,5 +78,13 @@ language governing permissions and limitations under the License. -->
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- MiNiFi Dependencies -->
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-commons-schema</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+
     </dependencies>
 </project>

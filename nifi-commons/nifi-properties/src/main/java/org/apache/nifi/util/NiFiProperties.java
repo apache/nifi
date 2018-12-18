@@ -263,6 +263,9 @@ public abstract class NiFiProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME = "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
 
+    // minifi properties
+    public static final String MINIFI_CONFIG_FILE = "nifi.minifi.config";
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -1664,6 +1667,21 @@ public abstract class NiFiProperties {
 
     public String getDefaultBackPressureDataSizeThreshold() {
         return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
+    }
+
+
+    /* MiNiFi methods */
+    public File getMinifiConfigFile() {
+        final String configFileString = getProperty(MINIFI_CONFIG_FILE);
+
+        File minifiConfigFile = null;
+        if (!StringUtils.isBlank(configFileString)) {
+            minifiConfigFile = new File(configFileString);
+            if (!minifiConfigFile.exists()) {
+                throw new IllegalArgumentException("Specified MiNiFi config file " + configFileString + " does not exist.");
+            }
+        }
+        return minifiConfigFile;
     }
 
     /**
