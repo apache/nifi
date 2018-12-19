@@ -17,7 +17,18 @@
 
 package org.apache.nifi.csv;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,18 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.QuoteMode;
-import org.apache.nifi.schema.access.SchemaNameAsAttribute;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 
 public class TestWriteCSVResult {
@@ -111,18 +111,14 @@ public class TestWriteCSVResult {
         assertEquals(2, splits.length);
         assertEquals(headerLine, splits[0]);
 
-        final String values = splits[1];
-        final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"a孟bc李12儒3\",\"true\",\"1\",\"c\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",");
-
         final String dateValue = getDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
         final String timeValue = getDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
         final String timestampValue = getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
 
-        expectedBuilder.append('"').append(dateValue).append('"').append(',');
-        expectedBuilder.append('"').append(timeValue).append('"').append(',');
-        expectedBuilder.append('"').append(timestampValue).append('"').append(',');
-        expectedBuilder.append(",\"48\",,");
+        final String values = splits[1];
+        final StringBuilder expectedBuilder = new StringBuilder();
+        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"" + dateValue + "\",\"" + timeValue + "\",\"" + timestampValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
+
         final String expectedValues = expectedBuilder.toString();
 
         assertEquals(expectedValues, values);

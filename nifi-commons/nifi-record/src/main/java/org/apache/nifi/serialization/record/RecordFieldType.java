@@ -23,17 +23,15 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public enum RecordFieldType {
-    /**
-     * A String field type. Fields of this type use a {@code java.lang.String} value.
-     */
-    STRING("string"),
-
     /**
      * A boolean field type. Fields of this type use a {@code boolean} value.
      */
@@ -45,29 +43,24 @@ public enum RecordFieldType {
     BYTE("byte"),
 
     /**
-     * A char field type. Fields of this type use a {@code char} value.
-     */
-    CHAR("char"),
-
-    /**
      * A short field type. Fields of this type use a {@code short} value.
      */
-    SHORT("short"),
+    SHORT("short", BYTE),
 
     /**
      * An int field type. Fields of this type use an {@code int} value.
      */
-    INT("int"),
-
-    /**
-     * A bigint field type. Fields of this type use a {@code java.math.BigInteger} value.
-     */
-    BIGINT("bigint"),
+    INT("int", SHORT, BYTE),
 
     /**
      * A long field type. Fields of this type use a {@code long} value.
      */
-    LONG("long"),
+    LONG("long", SHORT, BYTE, INT),
+
+    /**
+     * A bigint field type. Fields of this type use a {@code java.math.BigInteger} value.
+     */
+    BIGINT("bigint", SHORT, BYTE, INT, LONG),
 
     /**
      * A float field type. Fields of this type use a {@code float} value.
@@ -77,7 +70,7 @@ public enum RecordFieldType {
     /**
      * A double field type. Fields of this type use a {@code double} value.
      */
-    DOUBLE("double"),
+    DOUBLE("double", FLOAT),
 
     /**
      * A date field type. Fields of this type use a {@code java.sql.Date} value.
@@ -93,6 +86,16 @@ public enum RecordFieldType {
      * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
      */
     TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
+
+    /**
+     * A char field type. Fields of this type use a {@code char} value.
+     */
+    CHAR("char"),
+
+    /**
+     * A String field type. Fields of this type use a {@code java.lang.String} value.
+     */
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP),
 
     /**
      * <p>
@@ -215,22 +218,37 @@ public enum RecordFieldType {
     private final String simpleName;
     private final String defaultFormat;
     private final DataType defaultDataType;
+    private final Set<RecordFieldType> narrowDataTypes;
 
     private RecordFieldType(final String simpleName) {
-        this(simpleName, null);
+        this.simpleName = simpleName;
+        this.defaultFormat = null;
+        this.defaultDataType = new DataType(this, defaultFormat);
+        this.narrowDataTypes = Collections.emptySet();
+    }
+
+    private RecordFieldType(final String simpleName, final RecordFieldType... narrowDataTypes) {
+        this.simpleName = simpleName;
+        this.defaultFormat = null;
+        this.defaultDataType = new DataType(this, defaultFormat);
+
+        this.narrowDataTypes = new HashSet<>(Arrays.asList(narrowDataTypes));
     }
 
     private RecordFieldType(final String simpleName, final String defaultFormat) {
         this.simpleName = simpleName;
         this.defaultFormat = defaultFormat;
         this.defaultDataType = new DataType(this, defaultFormat);
+        this.narrowDataTypes = Collections.emptySet();
     }
 
     private RecordFieldType(final String simpleName, final String defaultFormat, final DataType defaultDataType) {
         this.simpleName = simpleName;
         this.defaultFormat = defaultFormat;
         this.defaultDataType = defaultDataType;
+        this.narrowDataTypes = Collections.emptySet();
     }
+
 
     public String getDefaultFormat() {
         return defaultFormat;
@@ -330,6 +348,18 @@ public enum RecordFieldType {
         return new MapDataType(valueDataType);
     }
 
+    /**
+     * Determines whether or this this RecordFieldType is "wider" than the provided type. A type "A" is said to be wider
+     * than another type "B" iff A encompasses all values of B and more. For example, the LONG type is wider than INT, and INT
+     * is wider than SHORT. "Complex" types (MAP, RECORD, ARRAY, CHOICE) are not wider than any other type, and no other type is
+     * wider than a complex type. The STRING type is wider than all types with the exception of complex types.
+     *
+     * @param fieldType the type to compare against
+     * @return <code>true</code> if <code>this</code> is wider than the provided type, <code>false</code> otherwise.
+     */
+    public boolean isWiderThan(final RecordFieldType fieldType) {
+        return narrowDataTypes.contains(fieldType);
+    }
 
     public static RecordFieldType of(final String typeString) {
       return SIMPLE_NAME_MAP.get(typeString);

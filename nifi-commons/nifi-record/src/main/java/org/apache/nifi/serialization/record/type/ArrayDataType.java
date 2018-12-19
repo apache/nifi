@@ -57,7 +57,7 @@ public class ArrayDataType extends DataType {
         }
 
         final ArrayDataType other = (ArrayDataType) obj;
-        return getFieldType().equals(other.getFieldType()) && Objects.equals(elementType, other.elementType);
+        return Objects.equals(elementType, other.elementType);
     }
 
     @Override

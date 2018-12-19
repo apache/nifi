@@ -437,7 +437,7 @@ public class TestCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final CSVRecordReader reader = createReader(bais, schema, format)) {
 
-            final Record record = reader.nextRecord();
+            final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
 
             assertEquals("1", record.getValue("id"));

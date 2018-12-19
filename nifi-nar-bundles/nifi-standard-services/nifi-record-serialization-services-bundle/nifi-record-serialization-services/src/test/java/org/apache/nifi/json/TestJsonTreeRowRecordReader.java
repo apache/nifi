@@ -17,10 +17,21 @@
 
 package org.apache.nifi.json;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -37,21 +48,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.avro.Schema;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestJsonTreeRowRecordReader {
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -79,6 +79,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
         return accountSchema;
     }
+
 
     @Test
     @Ignore("Intended only for manual testing to determine performance before/after modifications")
@@ -347,7 +348,7 @@ public class TestJsonTreeRowRecordReader {
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
-            final Record schemaValidatedRecord = reader.nextRecord();
+            final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals(1, schemaValidatedRecord.getValue("id"));
             assertEquals("John Doe", schemaValidatedRecord.getValue("name"));
             assertNull(schemaValidatedRecord.getValue("balance"));
@@ -379,7 +380,7 @@ public class TestJsonTreeRowRecordReader {
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
-            final Record schemaValidatedRecord = reader.nextRecord();
+            final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals("1", schemaValidatedRecord.getValue("id")); // will be coerced into a STRING as per the schema
             assertEquals("John Doe", schemaValidatedRecord.getValue("name"));
             assertNull(schemaValidatedRecord.getValue("balance"));

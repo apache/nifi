@@ -17,22 +17,10 @@
 
 package org.apache.nifi.serialization;
 
-import static org.apache.nifi.schema.access.SchemaAccessUtils.INHERIT_RECORD_SCHEMA;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -46,6 +34,19 @@ import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.WriteAvroSchemaAttributeStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.nifi.schema.access.SchemaAccessUtils.INHERIT_RECORD_SCHEMA;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 
 public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryService {
 
@@ -71,12 +72,20 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
             + "an Exception will be thrown when attempting to write the data. This is based on the encoding used by version 3.2.x of the Confluent Schema Registry.");
     static final AllowableValue NO_SCHEMA = new AllowableValue("no-schema", "Do Not Write Schema", "Do not add any schema-related information to the FlowFile.");
 
+    static final PropertyDescriptor SCHEMA_CACHE = new Builder()
+        .name("schema-cache")
+        .displayName("Schema Cache")
+        .description("Specifies a Schema Cache to add the Record Schema to so that Record Readers can quickly lookup the schema.")
+        .required(false)
+        .identifiesControllerService(RecordSchemaCacheService.class)
+        .build();
+
     /**
      * This constant is just a base spec for the actual PropertyDescriptor.
      * As it can be overridden by subclasses with different AllowableValues and default value,
      * {@link #getSchemaWriteStrategyDescriptor()} should be used to get the actual descriptor, instead of using this constant directly.
      */
-    private static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new PropertyDescriptor.Builder()
+    private static final PropertyDescriptor SCHEMA_WRITE_STRATEGY = new Builder()
         .name("Schema Write Strategy")
         .description("Specifies how the schema for a Record should be added to the data.")
         .required(true)
@@ -97,18 +106,19 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         final List<PropertyDescriptor> properties = new ArrayList<>();
 
         final AllowableValue[] strategies = getSchemaWriteStrategyValues().toArray(new AllowableValue[0]);
-        properties.add(new PropertyDescriptor.Builder()
+        properties.add(new Builder()
             .fromPropertyDescriptor(SCHEMA_WRITE_STRATEGY)
             .defaultValue(getDefaultSchemaWriteStrategy().getValue())
             .allowableValues(strategies)
             .build());
+        properties.add(SCHEMA_CACHE);
         properties.addAll(super.getSupportedPropertyDescriptors());
 
         return properties;
     }
 
     protected AllowableValue getDefaultSchemaWriteStrategy() {
-        return SCHEMA_NAME_ATTRIBUTE;
+        return NO_SCHEMA;
     }
 
     @Override
@@ -124,8 +134,9 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     public void storeSchemaWriteStrategy(final ConfigurationContext context) {
         this.configurationContext = context;
 
-        final String writerValue = context.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
-        this.schemaAccessWriter = getSchemaWriteStrategy(writerValue);
+        final String strategy = context.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
+        final RecordSchemaCacheService recordSchemaCacheService = context.getProperty(SCHEMA_CACHE).asControllerService(RecordSchemaCacheService.class);
+        this.schemaAccessWriter = createSchemaWriteStrategy(strategy, recordSchemaCacheService);
     }
 
     @Override
@@ -147,11 +158,20 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return schemaAccessStrategyList;
     }
 
-    protected SchemaAccessWriter getSchemaWriteStrategy(final String strategy) {
-        if (strategy == null) {
-            return null;
-        }
+    protected SchemaAccessWriter getSchemaWriteStrategy() {
+        return schemaAccessWriter;
+    }
 
+    private SchemaAccessWriter createSchemaWriteStrategy(final String strategy, final RecordSchemaCacheService recordSchemaCacheService) {
+        final SchemaAccessWriter writer = createRawSchemaWriteStrategy(strategy);
+        if (recordSchemaCacheService == null) {
+            return writer;
+        } else {
+            return new CacheIdSchemaAccessWriter(recordSchemaCacheService, writer);
+        }
+    }
+
+    private SchemaAccessWriter createRawSchemaWriteStrategy(final String strategy) {
         if (strategy.equalsIgnoreCase(SCHEMA_NAME_ATTRIBUTE.getValue())) {
             return new SchemaNameAsAttribute();
         } else if (strategy.equalsIgnoreCase(AVRO_SCHEMA_ATTRIBUTE.getValue())) {
@@ -170,8 +190,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     }
 
     protected Set<SchemaField> getRequiredSchemaFields(final ValidationContext validationContext) {
-        final String writeStrategyValue = validationContext.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
-        final SchemaAccessWriter writer = getSchemaWriteStrategy(writeStrategyValue);
+        final SchemaAccessWriter writer = getSchemaWriteStrategy();
         if (writer == null) {
             return EnumSet.noneOf(SchemaField.class);
         }

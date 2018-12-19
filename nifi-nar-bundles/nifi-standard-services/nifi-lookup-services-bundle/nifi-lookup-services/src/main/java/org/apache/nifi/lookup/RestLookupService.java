@@ -59,6 +59,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -298,8 +299,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 return Optional.empty();
             }
 
-            InputStream is = responseBody.byteStream();
-            Record record = handleResponse(is, context);
+            final Record record;
+            try (final InputStream is = responseBody.byteStream();
+                final InputStream bufferedIn = new BufferedInputStream(is)) {
+                record = handleResponse(bufferedIn, context);
+            }
 
             return Optional.ofNullable(record);
         } catch (Exception e) {

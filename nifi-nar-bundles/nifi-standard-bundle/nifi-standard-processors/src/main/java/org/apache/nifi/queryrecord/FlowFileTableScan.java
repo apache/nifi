@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.queryrecord;
 
-import java.util.List;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -37,6 +35,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import java.util.List;
+
 /**
  * Relational expression representing a scan of a FlowFile.
  *
@@ -45,10 +45,10 @@ import org.apache.calcite.rel.type.RelDataTypeField;
  * </p>
  */
 public class FlowFileTableScan extends TableScan implements EnumerableRel {
-    final FlowFileTable<?, ?> flowFileTable;
+    final FlowFileTable flowFileTable;
     final int[] fields;
 
-    protected FlowFileTableScan(final RelOptCluster cluster, final RelOptTable table, final FlowFileTable<?, ?> flowFileTable, final int[] fields) {
+    protected FlowFileTableScan(final RelOptCluster cluster, final RelOptTable table, final FlowFileTable flowFileTable, final int[] fields) {
         super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
 
         this.flowFileTable = flowFileTable;

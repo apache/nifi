@@ -17,16 +17,6 @@
 
 package org.apache.nifi.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -44,6 +34,15 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final RecordSchema schema;
@@ -55,7 +54,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
-        super(in, logger);
+        super(in, logger, dateFormat, timeFormat, timestampFormat);
         this.schema = schema;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
@@ -66,6 +65,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
     }
+
 
 
     @Override
@@ -143,7 +143,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             }
         }
 
-        final Supplier<String> supplier = () -> jsonNode.toString();
+        final Supplier<String> supplier = jsonNode::toString;
         return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"), false, dropUnknown);
     }
 
