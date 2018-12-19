@@ -620,7 +620,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 return false;
             }
             final long fileAge = System.currentTimeMillis() - attributes.lastModifiedTime().toMillis();
-            if (minAge > fileAge) {
+            if (minAge > 0 && minAge > fileAge) {
                 return false;
             }
             if (maxAge != null && maxAge < fileAge) {

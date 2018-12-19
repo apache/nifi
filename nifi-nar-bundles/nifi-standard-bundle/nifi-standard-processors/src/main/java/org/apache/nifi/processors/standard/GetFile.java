@@ -277,7 +277,7 @@ public class GetFile extends AbstractProcessor {
                     return false;
                 }
                 final long fileAge = System.currentTimeMillis() - file.lastModified();
-                if (minAge > fileAge) {
+                if (minAge > 0 && minAge > fileAge) {
                     return false;
                 }
                 if (maxAge != null && maxAge < fileAge) {

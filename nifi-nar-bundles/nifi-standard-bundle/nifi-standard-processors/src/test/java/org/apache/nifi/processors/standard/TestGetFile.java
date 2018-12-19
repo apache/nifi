@@ -25,11 +25,13 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -185,6 +187,104 @@ public class TestGetFile {
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
         successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testMinAgeFilesPickedUp() throws IOException {
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
+        final String dirStruc = sdf.format(new Date());
+
+        final File directory = new File("target/test/data/in/" + dirStruc);
+        deleteDirectory(directory);
+        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+
+        final File inFile = new File("src/test/resources/hello.txt");
+        final Path inPath = inFile.toPath();
+        final File destFile = new File(directory, inFile.getName());
+        final Path targetPath = destFile.toPath();
+        Files.copy(inPath, targetPath);
+
+        // Because it's a file copy, initial modified date is set to the original files. Update to today
+        Calendar c = Calendar.getInstance();
+        Files.setAttribute(targetPath, "lastModifiedTime", FileTime.fromMillis(c.getTimeInMillis()));
+
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        // Keep source file to simplify age testing
+        runner.setProperty(GetFile.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetFile.DIRECTORY, "target/test/data/in/${now():format('yyyy/MM/dd')}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+
+        runner.clearTransferState();
+
+        // Set Minimum age to 20 hours, verify no file picked up
+        runner.setProperty(GetFile.MIN_AGE, "20 hr");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 0);
+
+        runner.clearTransferState();
+
+        //Change File create/modified time, check again
+        c.add(Calendar.DAY_OF_YEAR, -1);
+        final FileTime oneDayAgo = FileTime.fromMillis(c.getTimeInMillis());
+        Files.setAttribute(targetPath, "lastModifiedTime", oneDayAgo);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMinAgeWithFutureDateFiles() throws IOException {
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
+        final String dirStruc = sdf.format(new Date());
+
+        final File directory = new File("target/test/data/in/" + dirStruc);
+        deleteDirectory(directory);
+        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+
+        final File inFile = new File("src/test/resources/hello.txt");
+        final Path inPath = inFile.toPath();
+        final File destFile = new File(directory, inFile.getName());
+        final Path targetPath = destFile.toPath();
+        Files.copy(inPath, targetPath);
+
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        // Keep source file to simplify age testing
+        runner.setProperty(GetFile.KEEP_SOURCE_FILE, "true");
+        // Set min age to 1 second
+        runner.setProperty(GetFile.MIN_AGE, "1 sec");
+        runner.setProperty(GetFile.DIRECTORY, "target/test/data/in/${now():format('yyyy/MM/dd')}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+
+        runner.clearTransferState();
+
+        //Change File create/modified time, check again. Should be excluded because it's in the future
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.DAY_OF_YEAR, 1);
+        final FileTime oneDayAgo = FileTime.fromMillis(c.getTimeInMillis());
+        Files.setAttribute(targetPath, "lastModifiedTime", oneDayAgo);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 0);
+
+        runner.clearTransferState();
+
+        // Clear Min Age, should find the file now
+        runner.setProperty(GetFile.MIN_AGE, "0 sec");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
+
+        runner.clearTransferState();
     }
 
     @Test
