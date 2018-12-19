@@ -17,14 +17,6 @@
 
 package org.apache.nifi.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -46,11 +38,16 @@ import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final ComponentLog logger;
     private final JsonParser jsonParser;
-    private final boolean array;
     private final JsonNode firstJsonNode;
 
     private boolean firstObjectConsumed = false;
@@ -58,7 +55,10 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private static final JsonFactory jsonFactory = new JsonFactory();
     private static final ObjectMapper codec = new ObjectMapper();
 
-    public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
+
+    public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat)
+            throws IOException, MalformedRecordException {
+
         this.logger = logger;
 
         try {
@@ -67,10 +67,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
             JsonToken token = jsonParser.nextToken();
             if (token == JsonToken.START_ARRAY) {
-                array = true;
                 token = jsonParser.nextToken(); // advance to START_OBJECT token
-            } else {
-                array = false;
             }
 
             if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
@@ -87,13 +84,15 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final JsonNode nextNode = getNextJsonNode();
+        if (nextNode == null) {
+            return null;
+        }
+
         final RecordSchema schema = getSchema();
         try {
             return convertJsonNodeToRecord(nextNode, schema, coerceTypes, dropUnknownFields);
         } catch (final MalformedRecordException mre) {
             throw mre;
-        } catch (final IOException ioe) {
-            throw ioe;
         } catch (final Exception e) {
             logger.debug("Failed to convert JSON Element {} into a Record object using schema {} due to {}", new Object[] {nextNode, schema, e.toString(), e});
             throw new MalformedRecordException("Successfully parsed a JSON object from input but failed to convert into a Record object with the given schema", e);
@@ -200,7 +199,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
 
-    private JsonNode getNextJsonNode() throws JsonParseException, IOException, MalformedRecordException {
+    protected JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
         if (!firstObjectConsumed) {
             firstObjectConsumed = true;
             return firstJsonNode;
@@ -227,22 +226,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
     }
 
-
     @Override
     public void close() throws IOException {
         jsonParser.close();
-    }
-
-    protected JsonParser getJsonParser() {
-        return jsonParser;
-    }
-
-    protected JsonFactory getJsonFactory() {
-        return jsonFactory;
-    }
-
-    protected Optional<JsonNode> getFirstJsonNode() {
-        return Optional.ofNullable(firstJsonNode);
     }
 
     protected abstract Record convertJsonNodeToRecord(JsonNode nextNode, RecordSchema schema, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException;

@@ -21,6 +21,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.streaming.ConnectionError;
+import org.apache.hive.streaming.HiveRecordWriter;
 import org.apache.hive.streaming.HiveStreamingConnection;
 import org.apache.hive.streaming.InvalidTable;
 import org.apache.hive.streaming.SerializationError;
@@ -59,11 +60,9 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
-import org.apache.hive.streaming.HiveRecordWriter;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.ValidationResources;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -396,11 +395,10 @@ public class PutHive3Streaming extends AbstractProcessor {
 
         StreamingConnection hiveStreamingConnection = null;
 
-        try (final InputStream rawIn = session.read(flowFile)) {
+        try (final InputStream in = session.read(flowFile)) {
             final RecordReader reader;
 
-            try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-
+            try {
                 // if we fail to create the RecordReader then we want to route to failure, so we need to
                 // handle this separately from the other IOExceptions which normally route to retry
                 try {
@@ -415,7 +413,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                 hiveStreamingConnection.beginTransaction();
                 hiveStreamingConnection.write(in);
                 hiveStreamingConnection.commitTransaction();
-                rawIn.close();
+                in.close();
 
                 Map<String, String> updateAttributes = new HashMap<>();
                 updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));

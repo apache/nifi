@@ -84,6 +84,10 @@ public class XMLRecordReader implements RecordReader {
         try {
             final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 
+            // Avoid XXE Vulnerabilities
+            xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            xmlInputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
+
             xmlEventReader = xmlInputFactory.createXMLEventReader(in);
 
             if (isArray) {

@@ -17,10 +17,11 @@
 
 package org.apache.nifi.record.path;
 
-import java.util.Optional;
-
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+
+import java.util.Optional;
 
 public interface FieldValue {
     /**
@@ -51,4 +52,14 @@ public interface FieldValue {
      * @param newValue the new value to set on the record field
      */
     void updateValue(Object newValue);
+
+    /**
+     * Updates the record to which the field belongs, so that it now has the given value. If the FieldValue
+     * points to a Field that does not currently exist in the Record, the field will be created in the Record Schema
+     * as an 'inactive field', which can then be incoporated into the Record's schema by calling {@link Record#incorporateInactiveFields()}.
+     *
+     * @param newValue the value to set for the field
+     * @param dataType the data type to use if the Record's schema does not already include this field
+     */
+    void updateValue(Object newValue, DataType dataType);
 }

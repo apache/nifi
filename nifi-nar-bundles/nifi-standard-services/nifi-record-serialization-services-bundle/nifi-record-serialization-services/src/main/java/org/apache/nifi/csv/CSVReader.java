@@ -17,26 +17,25 @@
 
 package org.apache.nifi.csv;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
+import org.apache.nifi.schema.inference.SchemaInferenceEngine;
+import org.apache.nifi.schema.inference.RecordSourceFactory;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.RecordReader;
@@ -44,6 +43,12 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.stream.io.NonCloseableInputStream;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"csv", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses CSV-formatted data, returning each row in the CSV file as a separate record. "
@@ -117,7 +122,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         // Ensure that if we are deriving schema from header that we always treat the first line as a header,
         // regardless of the 'First Line is Header' property
         final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
-        if (headerDerivedAllowableValue.getValue().equals(accessStrategy)) {
+        if (headerDerivedAllowableValue.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
             this.csvFormat = this.csvFormat.withFirstRecordAsHeader();
             this.firstLineIsHeader = true;
         }
@@ -126,33 +131,27 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
-        final BufferedInputStream bufferedIn = new BufferedInputStream(in);
-        bufferedIn.mark(1024 * 1024);
-        final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(bufferedIn), null);
-        bufferedIn.reset();
+        in.mark(1024 * 1024);
+        final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
+        in.reset();
 
         if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new CSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
         } else if(JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(bufferedIn, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new JacksonCSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
         } else {
             throw new IOException("Parser not supported");
         }
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
-        if (strategy.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
-            return new CSVHeaderSchemaStrategy(context);
-        }
-
-        return super.getSchemaAccessStrategy(strategy, schemaRegistry, context);
-    }
-
-    @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final ValidationContext context) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
         if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
+        } else if (allowableValue.equalsIgnoreCase(SchemaInferenceUtil.INFER_SCHEMA.getValue())) {
+            final RecordSourceFactory<CSVRecord> sourceFactory = (var, in) -> new CSVRecordSource(in, context);
+            final SchemaInferenceEngine<CSVRecord> inference = new CSVSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
+            return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());
         }
 
         return super.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
@@ -162,11 +161,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
         allowableValues.add(headerDerivedAllowableValue);
+        allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
 
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return headerDerivedAllowableValue;
+        return SchemaInferenceUtil.INFER_SCHEMA;
     }
 }

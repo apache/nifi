@@ -43,11 +43,11 @@ public class SimpleRecordSchema implements RecordSchema {
     private volatile int hashCode;
 
     public SimpleRecordSchema(final List<RecordField> fields) {
-        this(fields, createText(fields), null, false, SchemaIdentifier.EMPTY);
+        this(fields, null, null, false, SchemaIdentifier.EMPTY);
     }
 
     public SimpleRecordSchema(final List<RecordField> fields, final SchemaIdentifier id) {
-        this(fields, createText(fields), null, false, id);
+        this(fields, null, null, false, id);
     }
 
     public SimpleRecordSchema(final String text, final String schemaFormat, final SchemaIdentifier id) {

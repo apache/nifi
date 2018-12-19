@@ -36,7 +36,6 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
@@ -53,7 +52,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final ComponentLog logger;
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
-    private final JsonFactory factory = new JsonFactory();
     private final JsonGenerator generator;
     private final NullSuppression nullSuppression;
     private final OutputGrouping outputGrouping;
@@ -87,6 +85,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
+        final JsonFactory factory = new JsonFactory();
         this.generator = factory.createJsonGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
@@ -141,7 +140,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject(), true);
+        writeRecord(record, recordSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
         return schemaAccess.getAttributes(recordSchema);
     }
 
@@ -154,13 +153,13 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject(), false);
+        writeRecord(record, recordSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
         final Map<String, String> attributes = schemaAccess.getAttributes(recordSchema);
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator,
-        final GeneratorTask startTask, final GeneratorTask endTask, final boolean schemaAware) throws JsonGenerationException, IOException {
+        final GeneratorTask startTask, final GeneratorTask endTask, final boolean schemaAware) throws IOException {
 
         final Optional<SerializedForm> serializedForm = record.getSerializedForm();
         if (serializedForm.isPresent()) {
@@ -233,8 +232,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @SuppressWarnings("unchecked")
-    private void writeRawValue(final JsonGenerator generator, final Object value, final String fieldName)
-        throws JsonGenerationException, IOException {
+    private void writeRawValue(final JsonGenerator generator, final Object value, final String fieldName) throws IOException {
 
         if (value == null) {
             generator.writeNull();
@@ -243,7 +241,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         if (value instanceof Record) {
             final Record record = (Record) value;
-            writeRecord(record, record.getSchema(), generator, gen -> gen.writeStartObject(), gen -> gen.writeEndObject(), false);
+            writeRecord(record, record.getSchema(), generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
             return;
         }
 
@@ -276,7 +274,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @SuppressWarnings("unchecked")
-    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws JsonGenerationException, IOException {
+    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws IOException {
         if (value == null) {
             generator.writeNull();
             return;
@@ -362,7 +360,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 final Record record = (Record) coercedValue;
                 final RecordDataType recordDataType = (RecordDataType) chosenDataType;
                 final RecordSchema childSchema = recordDataType.getChildSchema();
-                writeRecord(record, childSchema, generator, gen -> gen.writeStartObject(), gen -> gen.writeEndObject(), true);
+                writeRecord(record, childSchema, generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, true);
                 break;
             }
             case MAP: {
@@ -394,11 +392,9 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
     }
 
-    private void writeArray(final Object[] values, final String fieldName, final JsonGenerator generator, final DataType elementType)
-        throws JsonGenerationException, IOException {
+    private void writeArray(final Object[] values, final String fieldName, final JsonGenerator generator, final DataType elementType) throws IOException {
         generator.writeStartArray();
-        for (int i = 0; i < values.length; i++) {
-            final Object element = values[i];
+        for (final Object element : values) {
             writeValue(generator, element, fieldName, elementType);
         }
         generator.writeEndArray();
@@ -410,7 +406,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         return this.mimeType;
     }
 
-    private static interface GeneratorTask {
-        void apply(JsonGenerator generator) throws JsonGenerationException, IOException;
+    private interface GeneratorTask {
+        void apply(JsonGenerator generator) throws IOException;
     }
 }

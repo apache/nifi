@@ -25,6 +25,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.io.ContentClaimInputStream;
 import org.apache.nifi.controller.repository.io.DisableOnCloseInputStream;
 import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
@@ -144,7 +145,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private long contentSizeIn = 0L, contentSizeOut = 0L;
 
     private ContentClaim currentReadClaim = null;
-    private ByteCountingInputStream currentReadClaimStream = null;
+    private ContentClaimInputStream currentReadClaimStream = null;
     private long processingStartTime;
 
     // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
@@ -2183,36 +2184,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
 
                 claimCache.flush(claim);
-                final InputStream rawInStream = context.getContentRepository().read(claim);
 
                 if (currentReadClaimStream != null) {
                     currentReadClaimStream.close();
                 }
 
                 currentReadClaim = claim;
-
-                currentReadClaimStream = new ByteCountingInputStream(rawInStream);
-                StreamUtils.skip(currentReadClaimStream, offset);
+                currentReadClaimStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
 
                 // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
                 // reuse the same InputStream for the next FlowFile
                 final InputStream disableOnClose = new DisableOnCloseInputStream(currentReadClaimStream);
-
                 return disableOnClose;
             } else {
                 claimCache.flush(claim);
-                final InputStream rawInStream = context.getContentRepository().read(claim);
-                try {
-                    StreamUtils.skip(rawInStream, offset);
-                } catch(IOException ioe) {
-                    try {
-                        rawInStream.close();
-                    } catch (final Exception e) {
-                        ioe.addSuppressed(ioe);
-                    }
 
-                    throw ioe;
-                }
+                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {

@@ -49,7 +49,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -404,8 +403,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 try {
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
-                        public void process(final InputStream rawIn) throws IOException {
-                            try (final InputStream in = new BufferedInputStream(rawIn)) {
+                        public void process(final InputStream in) throws IOException {
+                            try {
                                 final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
                                 final RecordSet recordSet = reader.createRecordSet();
 

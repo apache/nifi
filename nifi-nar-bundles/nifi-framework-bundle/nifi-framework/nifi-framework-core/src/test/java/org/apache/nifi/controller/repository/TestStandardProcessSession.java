@@ -1223,6 +1223,7 @@ public class TestStandardProcessSession {
             session.read(ff1, new InputStreamCallback() {
                 @Override
                 public void process(InputStream in) throws IOException {
+                    in.read();
                 }
             });
             Assert.fail("Expected MissingFlowFileException");
@@ -1401,6 +1402,7 @@ public class TestStandardProcessSession {
             session.write(ff1, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
+                    in.read();
                 }
             });
             Assert.fail("Expected MissingFlowFileException");
@@ -1444,6 +1446,7 @@ public class TestStandardProcessSession {
             session.write(ff2, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
+                    in.read();
                 }
             });
             Assert.fail("Expected ContentNotFoundException");
@@ -1486,6 +1489,7 @@ public class TestStandardProcessSession {
             session.read(ff2, new InputStreamCallback() {
                 @Override
                 public void process(InputStream in) throws IOException {
+                    in.read();
                 }
             });
             Assert.fail("Expected MissingFlowFileException");
