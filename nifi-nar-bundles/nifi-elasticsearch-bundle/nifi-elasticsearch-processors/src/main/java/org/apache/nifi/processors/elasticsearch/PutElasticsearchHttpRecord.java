@@ -55,6 +55,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SimpleDateFormatValidator;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -178,6 +179,38 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .required(true)
             .build();
 
+    static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
+            .name("Date Format")
+            .description("Specifies the format to use when reading/writing Date fields. "
+                    + "If not specified, the default format '" + RecordFieldType.DATE.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
+                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
+            .required(false)
+            .build();
+    static final PropertyDescriptor TIME_FORMAT = new PropertyDescriptor.Builder()
+            .name("Time Format")
+            .description("Specifies the format to use when reading/writing Time fields. "
+                    + "If not specified, the default format '" + RecordFieldType.TIME.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
+                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
+            .required(false)
+            .build();
+    static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
+            .name("Timestamp Format")
+            .description("Specifies the format to use when reading/writing Timestamp fields. "
+                    + "If not specified, the default format '" + RecordFieldType.TIMESTAMP.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
+                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
+                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
+            .required(false)
+            .build();
+
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
@@ -186,6 +219,9 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     private final JsonFactory factory = new JsonFactory();
 
     private volatile String nullSuppression;
+    private volatile String dateFormat;
+    private volatile String timeFormat;
+    private volatile String timestampFormat;
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -202,6 +238,9 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(CHARSET);
         descriptors.add(INDEX_OP);
         descriptors.add(SUPPRESS_NULLS);
+        descriptors.add(DATE_FORMAT);
+        descriptors.add(TIME_FORMAT);
+        descriptors.add(TIMESTAMP_FORMAT);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -248,6 +287,18 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     public void setup(ProcessContext context) {
         super.setup(context);
         recordPathCache = new RecordPathCache(10);
+        this.dateFormat = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.dateFormat == null) {
+            this.dateFormat = RecordFieldType.DATE.getDefaultFormat();
+        }
+        this.timeFormat = context.getProperty(TIME_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.timeFormat == null) {
+            this.timeFormat = RecordFieldType.TIME.getDefaultFormat();
+        }
+        this.timestampFormat = context.getProperty(TIMESTAMP_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.timestampFormat == null) {
+            this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
+        }
     }
 
     @Override
@@ -486,7 +537,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()));
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(this.dateFormat));
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -495,7 +546,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 break;
             }
             case TIME: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(RecordFieldType.TIME.getDefaultFormat()));
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(this.timeFormat));
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -504,7 +555,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()));
+                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(this.timestampFormat));
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
