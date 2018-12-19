@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.remote.io.socket.ssl;
 
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+import org.apache.nifi.remote.io.socket.BufferStateManager;
+import org.apache.nifi.remote.io.socket.BufferStateManager.Direction;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.Status;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,18 +43,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
-import org.apache.nifi.remote.io.socket.BufferStateManager;
-import org.apache.nifi.remote.io.socket.BufferStateManager.Direction;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SSLSocketChannel implements Closeable {
 
@@ -582,7 +583,12 @@ public class SSLSocketChannel implements Closeable {
                     continue;
                 }
                 case CLOSED:
-                    throw new IOException("Channel is closed");
+                    copied = copyFromAppDataBuffer(buffer, offset, len);
+                    if (copied == 0) {
+                        return -1;
+                    }
+                    streamInManager.compact();
+                    return copied;
                 case OK: {
                     copied = copyFromAppDataBuffer(buffer, offset, len);
                     if (copied == 0) {

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.xml;
 
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -29,7 +28,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 import org.xmlunit.matchers.CompareMatcher;
@@ -50,12 +48,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static org.apache.nifi.xml.ArrayWrapping.NO_WRAPPING;
-import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_AS_WRAPPER;
-import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_FOR_ELEMENTS;
 import static org.apache.nifi.record.NullSuppression.ALWAYS_SUPPRESS;
 import static org.apache.nifi.record.NullSuppression.NEVER_SUPPRESS;
 import static org.apache.nifi.record.NullSuppression.SUPPRESS_MISSING;
+import static org.apache.nifi.xml.ArrayWrapping.NO_WRAPPING;
+import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_AS_WRAPPER;
+import static org.apache.nifi.xml.ArrayWrapping.USE_PROPERTY_FOR_ELEMENTS;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.DATE_FORMAT;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.SCHEMA_IDENTIFIER_RECORD;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.TIMESTAMP_FORMAT;
@@ -64,8 +62,8 @@ import static org.apache.nifi.xml.TestWriteXMLResultUtils.getEmptyNestedRecordDe
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getEmptyNestedRecordEmptyNestedSchema;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getEmptyRecordsWithEmptySchema;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getNestedRecords;
-import static org.apache.nifi.xml.TestWriteXMLResultUtils.getNestedRecordsWithOnlyNullValues;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getNestedRecordsWithNullValues;
+import static org.apache.nifi.xml.TestWriteXMLResultUtils.getNestedRecordsWithOnlyNullValues;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getRecordWithSimpleArray;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getRecordWithSimpleMap;
 import static org.apache.nifi.xml.TestWriteXMLResultUtils.getSimpleRecords;
@@ -78,7 +76,7 @@ import static org.junit.Assert.assertThat;
 public class TestWriteXMLResult {
 
     @Test
-    public void testRecordNameIsNullSchemaIdentifierMissing() throws IOException {
+    public void testRecordNameIsNullSchemaIdentifierMissing() {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithoutIdentifierInSchema();
 
@@ -86,7 +84,7 @@ public class TestWriteXMLResult {
         final StringBuilder actualMessage = new StringBuilder();
 
         try {
-            new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+            new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                     out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "root", null, "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         } catch (IOException e) {
@@ -100,7 +98,7 @@ public class TestWriteXMLResult {
     public void testRecordNameIsNullSchemaIdentifierExists() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", null, "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -117,7 +115,7 @@ public class TestWriteXMLResult {
     public void testRootNameIsNull() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         final String expectedMessage = "The writer attempts to write multiple record although property \'Name of Root Tag\' " +
@@ -137,7 +135,7 @@ public class TestWriteXMLResult {
     public void testSingleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSingleRecord();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -202,7 +200,7 @@ public class TestWriteXMLResult {
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), rs.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( rs.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "RECORD", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(rs);
@@ -220,7 +218,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -236,7 +234,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -252,7 +250,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -268,7 +266,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -284,7 +282,7 @@ public class TestWriteXMLResult {
     public void testEmptyRecordWithEmptySchema() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getEmptyRecordsWithEmptySchema();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -299,7 +297,7 @@ public class TestWriteXMLResult {
     public void testNestedRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -317,7 +315,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -333,7 +331,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -351,7 +349,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -371,7 +369,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -389,7 +387,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -409,7 +407,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -427,7 +425,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -445,7 +443,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordDefinedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -463,7 +461,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -483,7 +481,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -503,7 +501,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -523,7 +521,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -541,7 +539,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -559,7 +557,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -577,7 +575,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -595,7 +593,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -615,7 +613,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -635,7 +633,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -655,7 +653,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -675,7 +673,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -693,7 +691,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -713,7 +711,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -733,7 +731,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -749,7 +747,7 @@ public class TestWriteXMLResult {
     public void testChoice() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithChoice();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -775,7 +773,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -799,7 +797,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -823,7 +821,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -847,7 +845,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -871,7 +869,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -897,7 +895,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -923,7 +921,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -951,7 +949,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -977,7 +975,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1005,7 +1003,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1033,7 +1031,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1061,7 +1059,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1089,7 +1087,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1115,7 +1113,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1141,7 +1139,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1167,7 +1165,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1193,7 +1191,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1221,7 +1219,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1249,7 +1247,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1277,7 +1275,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -1297,7 +1295,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1323,7 +1321,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1349,7 +1347,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1377,7 +1375,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(Mockito.mock(ComponentLog.class), recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();

@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -47,6 +36,17 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -112,18 +112,29 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-
         final AtomicInteger numRecords = new AtomicInteger(0);
         final Map<Relationship, Tuple<FlowFile, RecordSetWriter>> writers = new HashMap<>();
         final FlowFile original = flowFile;
         final Map<String, String> originalAttributes = original.getAttributes();
+
         try {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
                     try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                        final Record firstRecord = reader.nextRecord();
+                        if (firstRecord == null) {
+                            getLogger().info("{} has no Records, so routing just the original FlowFile to 'original'", new Object[] {original});
+                            return;
+                        }
+
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
+
+                        final Set<Relationship> firstRecordRelationships = route(firstRecord, writeSchema, original, context, flowFileContext);
+                        for (final Relationship relationship : firstRecordRelationships) {
+                            writeRecord(firstRecord, relationship, writers, session, original, originalAttributes, writerFactory);
+                        }
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
@@ -131,21 +142,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
                             numRecords.incrementAndGet();
 
                             for (final Relationship relationship : relationships) {
-                                final RecordSetWriter recordSetWriter;
-                                Tuple<FlowFile, RecordSetWriter> tuple = writers.get(relationship);
-                                if (tuple == null) {
-                                    FlowFile outFlowFile = session.create(original);
-                                    final OutputStream out = session.write(outFlowFile);
-                                    recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, out);
-                                    recordSetWriter.beginRecordSet();
-
-                                    tuple = new Tuple<>(outFlowFile, recordSetWriter);
-                                    writers.put(relationship, tuple);
-                                } else {
-                                    recordSetWriter = tuple.getValue();
-                                }
-
-                                recordSetWriter.write(record);
+                                writeRecord(record, relationship, writers, session, original, originalAttributes, writerFactory);
                             }
                         }
                     } catch (final SchemaNotFoundException | MalformedRecordException e) {
@@ -214,6 +211,28 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
         }
 
         getLogger().info("Successfully processed {}, creating {} derivative FlowFiles and processing {} records", new Object[] {flowFile, writers.size(), numRecords});
+    }
+
+    private void writeRecord(final Record record, final Relationship relationship, final Map<Relationship, Tuple<FlowFile, RecordSetWriter>> writers, final ProcessSession session,
+                             final FlowFile original, final Map<String, String> originalAttributes, final RecordSetWriterFactory writerFactory) throws IOException, SchemaNotFoundException {
+        final RecordSetWriter recordSetWriter;
+        Tuple<FlowFile, RecordSetWriter> tuple = writers.get(relationship);
+
+        if (tuple == null) {
+            FlowFile outFlowFile = session.create(original);
+            final OutputStream out = session.write(outFlowFile);
+
+            final RecordSchema recordWriteSchema = writerFactory.getSchema(originalAttributes, record.getSchema());
+            recordSetWriter = writerFactory.createWriter(getLogger(), recordWriteSchema, out);
+            recordSetWriter.beginRecordSet();
+
+            tuple = new Tuple<>(outFlowFile, recordSetWriter);
+            writers.put(relationship, tuple);
+        } else {
+            recordSetWriter = tuple.getValue();
+        }
+
+        recordSetWriter.write(record);
     }
 
     protected abstract Set<Relationship> route(Record record, RecordSchema writeSchema, FlowFile flowFile, ProcessContext context, T flowFileContext);

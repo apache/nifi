@@ -166,7 +166,6 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
-
         final String nullSuppression = getConfigurationContext().getProperty(SUPPRESS_NULLS).getValue();
         final NullSuppression nullSuppressionEnum;
         if (nullSuppression.equals(ALWAYS_SUPPRESS.getValue())) {
@@ -203,7 +202,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
         final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).getValue();
 
-        return new WriteXMLResult(logger, schema, getSchemaAccessWriter(schema),
+        return new WriteXMLResult(schema, getSchemaAccessWriter(schema),
                 out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
                 getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
     }

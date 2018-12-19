@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -62,6 +47,20 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for processors that write Records to HDFS.
@@ -302,12 +301,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final StopWatch stopWatch = new StopWatch(true);
 
                 // Read records from the incoming FlowFile and write them the tempFile
-                session.read(putFlowFile, (final InputStream rawIn) -> {
+                session.read(putFlowFile, (final InputStream in) -> {
                     RecordReader recordReader = null;
                     HDFSRecordWriter recordWriter = null;
 
-                    try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-
+                    try {
                         // if we fail to create the RecordReader then we want to route to failure, so we need to
                         // handle this separately from the other IOExceptions which normally route to retry
                         try {

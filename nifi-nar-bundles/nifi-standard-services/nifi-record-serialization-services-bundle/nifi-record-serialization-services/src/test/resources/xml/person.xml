@@ -2,4 +2,7 @@
     <NAME>Cleve Butler</NAME>
     <AGE>42</AGE>
     <COUNTRY>USA</COUNTRY>
+    <DOB>01/01/1983</DOB>
+    <TOB>12:01:00</TOB>
+    <TSOB>01/01/1983 12:01:00.000</TSOB>
 </PERSON>

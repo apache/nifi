@@ -31,7 +31,7 @@
 
 
 		<h2>Schemas and Type Coercion</h2>
-		
+
 		<p>
 			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
 			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
@@ -40,11 +40,11 @@
 			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
 			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
 		</p>
-		
+
 		<p>
 			The following rules apply when attempting to coerce a field value from one data type to another:
 		</p>
-			
+
 		<ul>
 			<li>Any data type can be coerced into a String type.</li>
 			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
@@ -63,18 +63,106 @@
 			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
 				property (Date Format, Time Format, Timestamp Format property).</li>
 		</ul>
-		
+
 		<p>
 			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
 			will be thrown.
 		</p>
-			
-			
+
+
+        <h2>Schema Inference</h2>
+
+        <p>
+            While NiFi's Record API does require that each Record have a schema, it is often convenient to infer the schema based on the values in the data,
+            rather than having to manually create a schema. This is accomplished by selecting a value of "Infer Schema" for the "Schema Access Strategy" property.
+            When using this strategy, the Reader will determine the schema by first parsing all data in the FlowFile, keeping track of all fields that it has encountered
+            and the type of each field. Once all data has been parsed, a schema is formed that encompasses all fields that have been encountered.
+        </p>
+
+        <p>
+            A common concern when inferring schemas is how to handle the condition of two values that have different types. For example, consider a FlowFile with the following two records:
+        </p>
+<code><pre>
+name, age
+John, 8
+Jane, Ten
+</pre></code>
+
+        <p>
+            It is clear that the "name" field will be inferred as a STRING type. However, how should we handle the "age" field? Should the field be an CHOICE between INT and STRING? Should we
+            prefer LONG over INT? Should we just use a STRING? Should the field be considered nullable?
+        </p>
+
+        <p>
+            To help understand how this Record Reader infers schemas, we have the following list of rules that are followed in the inference logic:
+        </p>
+
+        <ul>
+            <li>All fields are inferred to be nullable.</li>
+            <li>
+                When two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), the inference engine prefers
+                to use a "wider" data type over using a CHOICE data type. A data type "A" is said to be wider than data type "B" if and only if data type "A" encompasses all
+                values of "B" in addition to other values. For example, the LONG type is wider than the INT type but not wider than the BOOLEAN type (and BOOLEAN is also not wider
+                than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types with the Exception of MAP, RECORD, ARRAY, and CHOICE.
+            </li>
+            <li>
+                Before inferring the type of a value, leading and trailing whitespace are removed. Additionally, if the value is surrounded by double-quotes ("), the double-quotes
+                are removed. Therefore, the value <code>16</code> is interpreted the same as <code>         "16"</code>. Both will be interpreted as an INT. However, the value
+                <code>"         16"</code> will be inferred as a STRING type because the white space is enclosed within double-quotes, which means that the white space is considered
+                part of the value.
+            </li>
+            <li>
+                If the "Time Format," "Timestamp Format," or "Date Format" properties are configured, any value that would otherwise be considered a STRING type is first checked against
+                the configured formats to see if it matches any of them. If the value matches the Timestamp Format, the value is considered a Timestamp field. If it matches the Date Format,
+                it is considered a Date field. If it matches the Time Format, it is considered a Time field. In the unlikely event that the value matches more than one of the configured
+                formats, they will be matched in the order: Timestamp, Date, Time. I.e., if a value matched both the Timestamp Format and the Date Format, the type that is inferred will be
+                Timestamp. Because parsing dates and times can be expensive, it is advisable not to configure these formats if dates, times, and timestamps are not expected, or if processing
+                the data as a STRING is acceptable. For use cases when this is important, though, the inference engine is intelligent enough to optimize the parsing by first checking several
+                very cheap conditions. For example, the string's length is examined to see if it is too long or too short to match the pattern. This results in far more efficient processing
+                than would result if attempting to parse each string value as a timestamp.
+            </li>
+            <li>The MAP type is never inferred.</li>
+            <li>The ARRAY type is never inferred.</li>
+            <li>The RECORD type is never inferred.</li>
+            <li>If a field exists but all values are null, then the field is inferred to be of type STRING.</li>
+        </ul>
+
+
+
+        <h2>Caching of Inferred Schemas</h2>
+
+        <p>
+            This Record Reader requires that if a schema is to be inferred, that all records be read in order to ensure that the schema that gets inferred is applicable for all
+            records in the FlowFile. However, this can become expensive, especially if the data undergoes many different transformations. To alleviate the cost of inferring schemas,
+            the Record Reader can be configured with a "Schema Inference Cache" by populating the property with that name. This is a Controller Service that can be shared by Record
+            Readers and Record Writers.
+        </p>
+
+        <p>
+            Whenever a Record Writer is used to write data, if it is configured with a "Schema Cache," it will also add the schema to the Schema Cache. This will result in an
+            identifier for that schema being added as an attribute to the FlowFile.
+        </p>
+
+        <p>
+            Whenever a Record Reader is used to read data, if it is configured with a "Schema Inference Cache", it will first look for a "schema.cache.identifier" attribute on the FlowFile.
+            If the attribute exists, it will use the value of that attribute to lookup the schema in the schema cache. If it is able to find a schema in the cache with that identifier,
+            then it will use that schema instead of reading, parsing, and analyzing the data to infer the schema. If the attribute is not available on the FlowFile, or if the attribute is
+            available but the cache does not have a schema with that identifier, then the Record Reader will proceed to infer the schema as described above.
+        </p>
+
+        <p>
+            The end result is that users are able to chain together many different Processors to operate on Record-oriented data. Typically, only the first such Processor in the chain will
+            incur the "penalty" of inferring the schema. For all other Processors in the chain, the Record Reader is able to simply lookup the schema in the Schema Cache by identifier.
+            This allows the Record Reader to infer a schema accurately, since it is inferred based on all data in the FlowFile, and still allows this to happen efficiently since the schema
+            will typically only be inferred once, regardless of how many Processors handle the data.
+        </p>
+
+
 
 		<h2>Examples</h2>
-		
+
 		<h3>Example 1</h3>
-		
+
         <p>
         	As an example, consider a FlowFile whose contents consists of the following:
         </p>
@@ -86,12 +174,12 @@ first customer!"<br />
 2, Jane, 1245.89, 08/22/2009,<br />
 3, Frank Franklin, "48481.29", 04/04/2016,<br />
 </code>
-        
+
         <p>
         	Additionally, let's consider that this Controller Service is configured with the Schema Registry pointing to an AvroSchemaRegistry and the schema is
         	configured as the following:
         </p>
-        
+
 <code>
 <pre>
 {
@@ -147,11 +235,11 @@ first customer!"<br />
     			</tr>
     		</body>
     	</table>
-    	
+
     	<p>
     		The second record will contain the following values:
     	</p>
-    	
+
 		<table>
     		<head>
     			<th>Field Name</th>
@@ -180,11 +268,11 @@ first customer!"<br />
     			</tr>
     		</body>
     	</table>
-    	
+
 		<p>
 			The third record will contain the following values:
-		</p>    	
-    	
+		</p>
+
 		<table>
     		<head>
     			<th>Field Name</th>
@@ -227,7 +315,7 @@ first customer!"<br />
     		a schema will be referenced elsewhere. But what happens if a schema is obtained from a Schema Registry, for instance,
     		and the CSV Header indicates a different set of column names?
     	</p>
-    	
+
     	<p>
     		For example, let's say that the following schema is obtained from the Schema Registry:
     	</p>
@@ -247,22 +335,22 @@ first customer!"<br />
 }
 </pre>
 </code>
-		
+
 		<p>
 			And the CSV contains the following data:
 		</p>
-		
+
 <code>
 <pre>
 id, name, balance, notes
 1, John Doe, 123.45, First Customer
 </pre>
 </code>
-		
+
 		<p>
 		Note here that our schema indicates that the final column is named "memo" whereas the CSV Header indicates that it is named "notes."
 		</p>
-    	
+
     	<p>
     	In this case, the reader will look at the "Ignore CSV Header Column Names" property. If this property is set to "true" then the column names
     	provided in the CSV will simply be ignored and the last column will be called "memo." However, if the "Ignore CSV Header Column Names" property
@@ -296,8 +384,8 @@ id, name, balance, notes
     		</body>
     	</table>
 		</p>
-		
-		
+
+
 		<p>
 		With "Ignore CSV Header Column Names" property set to "true":<br />
 				<table>
@@ -329,6 +417,6 @@ id, name, balance, notes
     		</body>
     	</table>
 		</p>
-		
+
     </body>
 </html>

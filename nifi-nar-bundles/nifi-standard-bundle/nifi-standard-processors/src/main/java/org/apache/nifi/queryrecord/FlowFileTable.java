@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.queryrecord;
 
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -46,18 +37,24 @@ import org.apache.calcite.util.Pair;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.lang.reflect.Type;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable, TranslatableTable {
 
-    private final RecordReaderFactory recordParserFactory;
+public class FlowFileTable extends AbstractTable implements QueryableTable, TranslatableTable {
+
+    private final RecordReaderFactory recordReaderFactory;
     private final ComponentLog logger;
 
     private RecordSchema recordSchema;
@@ -67,15 +64,16 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
     private volatile FlowFile flowFile;
     private volatile int maxRecordsRead;
 
-    private final Set<FlowFileEnumerator<?>> enumerators = new HashSet<>();
+    private final Set<FlowFileEnumerator> enumerators = new HashSet<>();
 
     /**
      * Creates a FlowFile table.
      */
-    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RecordReaderFactory recordParserFactory, final ComponentLog logger) {
+    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final RecordReaderFactory recordReaderFactory, final ComponentLog logger) {
         this.session = session;
         this.flowFile = flowFile;
-        this.recordParserFactory = recordParserFactory;
+        this.recordSchema = schema;
+        this.recordReaderFactory = recordReaderFactory;
         this.logger = logger;
     }
 
@@ -93,7 +91,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
 
     public void close() {
         synchronized (enumerators) {
-            for (final FlowFileEnumerator<?> enumerator : enumerators) {
+            for (final FlowFileEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -110,7 +108,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final FlowFileEnumerator flowFileEnumerator = new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields) {
+                final FlowFileEnumerator flowFileEnumerator = new FlowFileEnumerator(session, flowFile, logger, recordReaderFactory, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -175,28 +173,14 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             return relDataType;
         }
 
-        RecordSchema schema;
-        try (final InputStream in = session.read(flowFile)) {
-            final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, logger);
-            schema = recordParser.getSchema();
-        } catch (final Exception e) {
-            throw new ProcessException("Failed to determine schema of data records for " + flowFile, e);
-        }
-
         final List<String> names = new ArrayList<>();
         final List<RelDataType> types = new ArrayList<>();
 
         final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
-        for (final RecordField field : schema.getFields()) {
+        for (final RecordField field : recordSchema.getFields()) {
             names.add(field.getFieldName());
             final RelDataType relDataType = getRelDataType(field.getDataType(), javaTypeFactory);
             types.add(javaTypeFactory.createTypeWithNullability(relDataType, field.isNullable()));
-        }
-
-        logger.debug("Found Schema: {}", new Object[] {schema});
-
-        if (recordSchema == null) {
-            recordSchema = schema;
         }
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

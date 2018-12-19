@@ -44,7 +44,10 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.Tuple;
@@ -157,7 +160,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     private static final Set<Relationship> UNMATCHED_COLLECTION = Collections.singleton(REL_UNMATCHED);
     private static final Set<Relationship> SUCCESS_COLLECTION = Collections.singleton(REL_SUCCESS);
 
-    private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(new Relationship[] {REL_SUCCESS, REL_FAILURE}));
+    private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE));
     private volatile boolean routeToMatchedUnmatched = false;
 
     @OnScheduled
@@ -197,8 +200,8 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     @SuppressWarnings("unchecked")
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Set<String> dynamicPropNames = validationContext.getProperties().keySet().stream()
-            .filter(prop -> prop.isDynamic())
-            .map(prop -> prop.getName())
+            .filter(PropertyDescriptor::isDynamic)
+            .map(PropertyDescriptor::getName)
             .collect(Collectors.toSet());
 
         if (dynamicPropNames.isEmpty()) {
@@ -305,8 +308,6 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         // Ensure that the Record has the appropriate schema to account for the newly added values
         final RecordPath resultPath = flowFileContext.getValue();
         if (resultPath != null) {
-            record.incorporateSchema(writeSchema);
-
             final Object lookupValue = lookupValueOption.get();
             final RecordPathResult resultPathResult = flowFileContext.getValue().evaluate(record);
 
@@ -327,19 +328,25 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
                         for (final String fieldName : lookupRecord.getRawFieldNames()) {
                             final Object value = lookupRecord.getValue(fieldName);
-                            destinationRecord.setValue(fieldName, value);
+
+                            final Optional<RecordField> recordFieldOption = lookupRecord.getSchema().getField(fieldName);
+                            if (recordFieldOption.isPresent()) {
+                                destinationRecord.setValue(recordFieldOption.get(), value);
+                            } else {
+                                destinationRecord.setValue(fieldName, value);
+                            }
                         }
                     } else {
                         final Optional<Record> parentOption = fieldVal.getParentRecord();
-
-                        if (parentOption.isPresent()) {
-                            parentOption.get().setValue(fieldVal.getField().getFieldName(), lookupRecord);
-                        }
+                        parentOption.ifPresent(parent -> parent.setValue(fieldVal.getField(), lookupRecord));
                     }
                 });
             } else {
-                resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue));
+                final DataType inferredDataType = DataTypeUtils.inferDataType(lookupValue, RecordFieldType.STRING.getDataType());
+                resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue, inferredDataType));
             }
+
+            record.incorporateInactiveFields();
         }
 
         final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
