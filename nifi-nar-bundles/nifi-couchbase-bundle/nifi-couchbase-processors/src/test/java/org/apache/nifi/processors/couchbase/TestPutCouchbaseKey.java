@@ -268,7 +268,6 @@ public class TestPutCouchbaseKey {
 
         ArgumentCaptor<RawJsonDocument> capture = ArgumentCaptor.forClass(RawJsonDocument.class);
         verify(bucket, times(1)).upsert(capture.capture(), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
-        assertEquals(uuid, capture.getValue().id());
         assertEquals(inFileData, capture.getValue().content());
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
