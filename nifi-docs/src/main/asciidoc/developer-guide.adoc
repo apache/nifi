@@ -132,7 +132,7 @@ attribute within the `CoreAttributes` enum.
 
 - Filename ("filename"): The filename of the FlowFile. The filename should not contain any directory structure.
 
-- UUID ("uuid"): A unique universally unique identifier (UUID) assigned to this FlowFile.
+- UUID ("uuid"): A Universally Unique Identifier assigned to this FlowFile that distinguishes the FlowFile from other FlowFiles in the system.
 
 - Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename.
 
