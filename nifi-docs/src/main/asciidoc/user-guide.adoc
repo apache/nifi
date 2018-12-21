@@ -71,7 +71,7 @@ UI may become unavailable.
 	context about the data; they are made up of key-value pairs.
 	All FlowFiles have the following Standard Attributes:
 
-- *uuid*: A unique identifier for the FlowFile
+- *uuid*: A Universally Unique Identifier that distinguishes the FlowFile from other FlowFiles in the system.
 - *filename*: A human-readable filename that may be used when storing the data to disk or in an external service
 - *path*: A hierarchically structured value that can be used when storing data to disk or an external service so that the data is not stored in a single directory
 
