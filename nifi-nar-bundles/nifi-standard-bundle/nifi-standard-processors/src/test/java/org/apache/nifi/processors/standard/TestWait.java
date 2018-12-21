@@ -73,6 +73,61 @@ public class TestWait {
     }
 
     @Test
+    public void testSuccessClearsWaitTimestamp() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("both", "notifyValue");
+        cachedAttributes.put("uuid", "notifyUuid");
+        cachedAttributes.put("notify.only", "notifyValue");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        protocol.notify("key", "default", 1, cachedAttributes);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.ATTRIBUTE_COPY_MODE, Wait.ATTRIBUTE_COPY_KEEP_ORIGINAL.getValue());
+
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("wait.only", "waitValue");
+        waitAttributes.put("both", "waitValue");
+        waitAttributes.put("uuid", UUID.randomUUID().toString());
+        String flowFileContent = "content";
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
+        runner.assertTransferCount(Wait.REL_SUCCESS, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testWaitKeepsTimeout() throws InitializationException {
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("releaseSignalAttribute", "1");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+
+        // no cache key attribute
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+
+        outputFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
+
+        runner.clearTransferState();
+    }
+
+
+    @Test
     public void testWaitKeepInUpstreamConnection() throws InitializationException {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.WAIT_MODE, Wait.WAIT_MODE_KEEP_IN_UPSTREAM);
