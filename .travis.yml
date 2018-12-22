@@ -25,6 +25,7 @@ os:
 
 jdk:
   - oraclejdk8
+  - openjdk8
 
 # Caches mvn repository in order to speed upbuilds
 cache:
