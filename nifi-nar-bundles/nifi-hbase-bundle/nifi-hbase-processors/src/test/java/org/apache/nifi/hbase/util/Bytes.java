@@ -16,13 +16,7 @@
  */
 package org.apache.nifi.hbase.util;
 
-import sun.misc.Unsafe;
-
-import java.lang.reflect.Field;
-import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 public class Bytes {
 
@@ -48,33 +42,16 @@ public class Bytes {
 
     private static long toLong(byte[] bytes, int offset, int length) {
         if (length == 8 && offset + length <= bytes.length) {
-            if (theUnsafe != null) {
-                return toLongUnsafe(bytes, offset);
-            } else {
-                long l = 0L;
+            long l = 0L;
 
-                for(int i = offset; i < offset + length; ++i) {
-                    l <<= 8;
-                    l ^= (long)(bytes[i] & 255);
-                }
-
-                return l;
+            for(int i = offset; i < offset + length; ++i) {
+                l <<= 8;
+                l ^= (long)(bytes[i] & 255);
             }
+
+            return l;
         } else {
             throw explainWrongLengthOrOffset(bytes, offset, length, 8);
-        }
-    }
-
-    private static long toLongUnsafe(byte[] bytes, int offset) {
-        final boolean littleEndian = ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN);
-        final int BYTE_ARRAY_BASE_OFFSET = theUnsafe.arrayBaseOffset(byte[].class);
-
-        if (littleEndian) {
-            return Long.reverseBytes(theUnsafe.getLong(bytes,
-                    (long) offset + BYTE_ARRAY_BASE_OFFSET));
-        } else {
-            return theUnsafe.getLong(bytes,
-                    (long) offset + BYTE_ARRAY_BASE_OFFSET);
         }
     }
 
@@ -88,17 +65,4 @@ public class Bytes {
 
         return new IllegalArgumentException(reason);
     }
-
-    private static final Unsafe theUnsafe = (Unsafe) AccessController.doPrivileged(new PrivilegedAction<Object>() {
-        public Object run() {
-            try {
-                Field f = Unsafe.class.getDeclaredField("theUnsafe");
-                f.setAccessible(true);
-                return f.get((Object)null);
-            } catch (NoSuchFieldException | IllegalAccessException var2) {
-                throw new Error();
-            }
-        }
-    });
-
 }
