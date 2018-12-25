@@ -31,7 +31,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -44,7 +44,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,6 +60,7 @@ import org.apache.nifi.util.NiFiProperties;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -154,28 +154,27 @@ public class TestStandardRemoteGroupPort {
 
         final String peerUrl = "nifi://node1.example.com:9090";
         final PeerDescription peerDescription = new PeerDescription("node1.example.com", 9090, true);
-        try (final SocketChannel socketChannel = SocketChannel.open()) {
-            final CommunicationsSession commsSession = new SocketChannelCommunicationsSession(socketChannel);
-            commsSession.setUserDn("nifi.node1.example.com");
-            final Peer peer = new Peer(peerDescription, commsSession, peerUrl, REMOTE_CLUSTER_URL);
+        final CommunicationsSession commsSession =  mock(SocketCommunicationsSession.class);
+        when(commsSession.createTransitUri(anyString(), anyString())).thenReturn("nifi://node1.example.com:9090/flowfile-uuid");
+        when(commsSession.getUserDn()).thenReturn("nifi.node1.example.com");
+        final Peer peer = new Peer(peerDescription, commsSession, peerUrl, REMOTE_CLUSTER_URL);
 
-            doReturn(peer).when(transaction).getCommunicant();
+        doReturn(peer).when(transaction).getCommunicant();
 
-            final MockFlowFile flowFile = processSession.createFlowFile("0123456789".getBytes());
-            sessionState.getFlowFileQueue().offer(flowFile);
+        final MockFlowFile flowFile = processSession.createFlowFile("0123456789".getBytes());
+        sessionState.getFlowFileQueue().offer(flowFile);
 
-            port.onTrigger(processContext, processSession);
+        port.onTrigger(processContext, processSession);
 
-            // Assert provenance.
-            final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-            assertEquals(1, provenanceEvents.size());
-            final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
-            assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
-            assertEquals(peerUrl + "/" + flowFile.getAttribute(CoreAttributes.UUID.key()), provenanceEvent.getTransitUri());
-            assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
-            assertEquals("remote-group-port-id", provenanceEvent.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key()));
+        // Assert provenance.
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
+        assertEquals("nifi://node1.example.com:9090/flowfile-uuid", provenanceEvent.getTransitUri());
+        assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
+        assertEquals("remote-group-port-id", provenanceEvent.getAttribute(SiteToSiteAttributes.S2S_PORT_ID.key()));
 
-        }
     }
 
     @Test
@@ -186,43 +185,42 @@ public class TestStandardRemoteGroupPort {
 
         final String peerUrl = "nifi://node1.example.com:9090";
         final PeerDescription peerDescription = new PeerDescription("node1.example.com", 9090, true);
-        try (final SocketChannel socketChannel = SocketChannel.open()) {
-            final CommunicationsSession commsSession = new SocketChannelCommunicationsSession(socketChannel);
-            commsSession.setUserDn("nifi.node1.example.com");
-            final Peer peer = new Peer(peerDescription, commsSession, peerUrl, REMOTE_CLUSTER_URL);
+        final CommunicationsSession commsSession =  mock(SocketCommunicationsSession.class);
+        when(commsSession.createTransitUri(anyString(), anyString())).thenReturn("nifi://node1.example.com:9090/flowfile-uuid");
+        when(commsSession.getUserDn()).thenReturn("nifi.node1.example.com");
+        final Peer peer = new Peer(peerDescription, commsSession, peerUrl, REMOTE_CLUSTER_URL);
 
-            doReturn(peer).when(transaction).getCommunicant();
+        doReturn(peer).when(transaction).getCommunicant();
 
-            final String sourceFlowFileUuid = "flowfile-uuid";
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put(CoreAttributes.UUID.key(), sourceFlowFileUuid);
-            final byte[] dataPacketContents = "DataPacket Contents".getBytes();
-            final ByteArrayInputStream dataPacketInputStream = new ByteArrayInputStream(dataPacketContents);
-            final DataPacket dataPacket = new StandardDataPacket(attributes,
-                    dataPacketInputStream, dataPacketContents.length);
+        final String sourceFlowFileUuid = "flowfile-uuid";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.UUID.key(), sourceFlowFileUuid);
+        final byte[] dataPacketContents = "DataPacket Contents".getBytes();
+        final ByteArrayInputStream dataPacketInputStream = new ByteArrayInputStream(dataPacketContents);
+        final DataPacket dataPacket = new StandardDataPacket(attributes,
+                dataPacketInputStream, dataPacketContents.length);
 
-            // Return null when it gets called second time.
-            doReturn(dataPacket).doReturn(null).when(this.transaction).receive();
+        // Return null when it gets called second time.
+        doReturn(dataPacket).doReturn(null).when(this.transaction).receive();
 
-            port.onTrigger(processContext, processSession);
+        port.onTrigger(processContext, processSession);
 
-            // Assert provenance.
-            final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-            assertEquals(1, provenanceEvents.size());
-            final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
-            assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
-            assertEquals(peerUrl + "/" + sourceFlowFileUuid, provenanceEvent.getTransitUri());
-            assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
+        // Assert provenance.
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
+        assertEquals("nifi://node1.example.com:9090/flowfile-uuid", provenanceEvent.getTransitUri());
+        assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
 
-            // Assert received flow files.
-            processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
-            final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
-            assertEquals(1, flowFiles.size());
-            final MockFlowFile flowFile = flowFiles.get(0);
-            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
-            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
-            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_PORT_ID.key(), "remote-group-port-id");
-        }
+        // Assert received flow files.
+        processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
+        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.get(0);
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_PORT_ID.key(), "remote-group-port-id");
 
     }
 

@@ -14,43 +14,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.io.socket.ssl;
-
-import java.io.IOException;
+package org.apache.nifi.remote.io.socket;
 
 import org.apache.nifi.remote.AbstractCommunicationsSession;
+import org.apache.nifi.remote.protocol.CommunicationsInput;
+import org.apache.nifi.remote.protocol.CommunicationsOutput;
 
-public class SSLSocketChannelCommunicationsSession extends AbstractCommunicationsSession {
+import java.io.IOException;
+import java.net.Socket;
 
-    private final SSLSocketChannel channel;
-    private final SSLSocketChannelInput request;
-    private final SSLSocketChannelOutput response;
+public class SocketCommunicationsSession extends AbstractCommunicationsSession {
 
-    public SSLSocketChannelCommunicationsSession(final SSLSocketChannel channel) {
+    private final Socket socket;
+    private final SocketInput request;
+    private final SocketOutput response;
+    private int timeout = 30000;
+
+    public SocketCommunicationsSession(final Socket socket) throws IOException {
         super();
-        request = new SSLSocketChannelInput(channel);
-        response = new SSLSocketChannelOutput(channel);
-        this.channel = channel;
+        this.socket = socket;
+        request = new SocketInput(socket);
+        response = new SocketOutput(socket);
     }
 
     @Override
-    public SSLSocketChannelInput getInput() {
+    public boolean isClosed() {
+        return socket.isClosed();
+    }
+
+    @Override
+    public CommunicationsInput getInput() {
         return request;
     }
 
     @Override
-    public SSLSocketChannelOutput getOutput() {
+    public CommunicationsOutput getOutput() {
         return response;
     }
 
     @Override
     public void setTimeout(final int millis) throws IOException {
-        channel.setTimeout(millis);
+        request.setTimeout(millis);
+        response.setTimeout(millis);
+        this.timeout = millis;
     }
 
     @Override
     public int getTimeout() throws IOException {
-        return channel.getTimeout();
+        return timeout;
     }
 
     @Override
@@ -64,7 +75,7 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
         }
 
         try {
-            channel.close();
+            socket.close();
         } catch (final IOException ioe) {
             if (suppressed != null) {
                 ioe.addSuppressed(suppressed);
@@ -79,17 +90,8 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
     }
 
     @Override
-    public boolean isClosed() {
-        return channel.isClosed();
-    }
-
-    @Override
     public boolean isDataAvailable() {
-        try {
-            return request.isDataAvailable();
-        } catch (final Exception e) {
-            return false;
-        }
+        return request.isDataAvailable();
     }
 
     @Override
@@ -104,11 +106,7 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
 
     @Override
     public void interrupt() {
-        channel.interrupt();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "[SSLSocketChannel=" + channel + "]";
+        request.interrupt();
+        response.interrupt();
     }
 }
