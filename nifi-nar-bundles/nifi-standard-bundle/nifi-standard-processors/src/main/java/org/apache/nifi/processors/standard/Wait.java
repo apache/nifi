@@ -315,8 +315,8 @@ public class Wait extends AbstractProcessor {
 
         final Consumer<FlowFile> transferToFailure = flowFile -> {
             flowFile = session.penalize(flowFile);
-            // This flowFile is now failed, our tracking is done, remove the WAIT_START_TIMESTAMP
-            session.removeAttribute(flowFile,WAIT_START_TIMESTAMP);
+            // This flowFile is now failed, our tracking is done, clear the timer
+            flowFile = clearWaitState(session, flowFile);
             getFlowFilesFor.apply(REL_FAILURE).add(flowFile);
         };
 

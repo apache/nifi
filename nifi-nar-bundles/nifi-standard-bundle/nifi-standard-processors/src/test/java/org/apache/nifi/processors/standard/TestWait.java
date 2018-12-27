@@ -69,63 +69,10 @@ public class TestWait {
 
         // no cache key attribute
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        // timestamp must be present
+        runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0).assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
         runner.clearTransferState();
     }
-
-    @Test
-    public void testSuccessClearsWaitTimestamp() throws InitializationException, IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
-        cachedAttributes.put("both", "notifyValue");
-        cachedAttributes.put("uuid", "notifyUuid");
-        cachedAttributes.put("notify.only", "notifyValue");
-
-        // Setup existing cache entry.
-        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
-        protocol.notify("key", "default", 1, cachedAttributes);
-
-        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
-        runner.setProperty(Wait.ATTRIBUTE_COPY_MODE, Wait.ATTRIBUTE_COPY_KEEP_ORIGINAL.getValue());
-
-        final Map<String, String> waitAttributes = new HashMap<>();
-        waitAttributes.put("releaseSignalAttribute", "key");
-        waitAttributes.put("wait.only", "waitValue");
-        waitAttributes.put("both", "waitValue");
-        waitAttributes.put("uuid", UUID.randomUUID().toString());
-        String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
-        runner.assertTransferCount(Wait.REL_SUCCESS, 1);
-
-        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
-
-        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
-
-        runner.clearTransferState();
-    }
-
-    @Test
-    public void testWaitKeepsTimeout() throws InitializationException {
-        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
-
-        final Map<String, String> props = new HashMap<>();
-        props.put("releaseSignalAttribute", "1");
-        runner.enqueue(new byte[]{}, props);
-
-        runner.run();
-
-        // no cache key attribute
-        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
-
-        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
-
-        outputFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
-
-        runner.clearTransferState();
-    }
-
 
     @Test
     public void testWaitKeepInUpstreamConnection() throws InitializationException {
@@ -156,6 +103,7 @@ public class TestWait {
 
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        ff.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         runner.clearTransferState();
         runner.enqueue(ff);
@@ -181,7 +129,7 @@ public class TestWait {
 
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
-
+        ff.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
         runner.clearTransferState();
         runner.enqueue(ff);
 
@@ -219,6 +167,7 @@ public class TestWait {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
+        runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         runner.clearTransferState();
     }
 
@@ -233,6 +182,7 @@ public class TestWait {
 
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
         runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists("wait.counter.total");
+        runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         runner.clearTransferState();
     }
 
@@ -287,6 +237,8 @@ public class TestWait {
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
 
+        // timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         // show a new attribute was copied from the cache
         assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
         // show that uuid was not overwritten
@@ -331,6 +283,8 @@ public class TestWait {
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
 
+        // timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         // show a new attribute was copied from the cache
         assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
         // show that uuid was not overwritten
@@ -372,7 +326,7 @@ public class TestWait {
         runner.run();
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
-
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
         /*
          * 2nd iteration.
          */
@@ -386,6 +340,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         // Still waiting since total count doesn't reach to 3.
         waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 3rd iteration.
@@ -397,6 +352,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         // Still waiting since total count doesn't reach to 3.
         waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 4th iteration.
@@ -411,6 +367,9 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+
+        // wait timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
 
         // show a new attribute was copied from the cache
         assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
@@ -456,6 +415,7 @@ public class TestWait {
         runner.run();
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 2nd iteration.
@@ -470,6 +430,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         // Still waiting since counter-B doesn't reach to 2.
         waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 3rd iteration.
@@ -484,6 +445,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         // Still waiting since total count doesn't reach to 3.
         waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+        waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 4th iteration.
@@ -499,6 +461,8 @@ public class TestWait {
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
 
+        // wait timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         // show a new attribute was copied from the cache
         assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
         // show that uuid was not overwritten
@@ -553,6 +517,8 @@ public class TestWait {
         runner.run();
         runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
         MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+        // timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         outputFlowFile.assertAttributeEquals("wait.counter.counter", "2");
 
         // expect counter to be decremented to 0 and releasable count remains 1.
@@ -569,6 +535,8 @@ public class TestWait {
         runner.run();
         runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
         outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+        // timer cleared
+        outputFlowFile.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP);
         // All counters are consumed.
         outputFlowFile.assertAttributeEquals("wait.counter.counter", "0");
 
