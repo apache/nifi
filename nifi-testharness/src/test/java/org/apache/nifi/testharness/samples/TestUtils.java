@@ -31,7 +31,7 @@ final class TestUtils {
 
         if (!binaryDistributionZipDir.exists()) {
             throw new IllegalStateException("NiFi distribution ZIP file not found at the expected location: "
-                    + binaryDistributionZipDir);
+                    + binaryDistributionZipDir.getAbsolutePath());
         }
 
         File[] files = binaryDistributionZipDir.listFiles((dir, name) ->
@@ -39,17 +39,17 @@ final class TestUtils {
 
         if (files == null) {
             throw new IllegalStateException(
-                    "Not a directory or I/O error reading: " + binaryDistributionZipDir);
+                    "Not a directory or I/O error reading: " + binaryDistributionZipDir.getAbsolutePath());
         }
 
         if (files.length == 0) {
             throw new IllegalStateException(
-                    "No NiFi distribution ZIP file is found in: " + binaryDistributionZipDir);
+                    "No NiFi distribution ZIP file is found in: " + binaryDistributionZipDir.getAbsolutePath());
         }
 
         if (files.length > 1) {
             throw new IllegalStateException(
-                    "Multiple NiFi distribution ZIP files are found in: " + binaryDistributionZipDir);
+                    "Multiple NiFi distribution ZIP files are found in: " + binaryDistributionZipDir.getAbsolutePath());
         }
 
         return files[0];
