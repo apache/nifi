@@ -113,7 +113,7 @@ public class JMSPublisherConsumerIT {
             });
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     // noop
@@ -143,7 +143,7 @@ public class JMSPublisherConsumerIT {
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
-            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -190,7 +190,7 @@ public class JMSPublisherConsumerIT {
                         JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
                         for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
-                            consumer.consume(destinationName, false, false, null, "UTF-8", callback);
+                            consumer.consume(destinationName, false, false, null, "UTF-8", 1000, callback);
                         }
                     } finally {
                         ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
@@ -229,7 +229,7 @@ public class JMSPublisherConsumerIT {
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             try {
-                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         callbackInvoked.set(true);
@@ -246,7 +246,7 @@ public class JMSPublisherConsumerIT {
 
             // should receive the same message, but will process it successfully
             while (!callbackInvoked.get()) {
-                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         if (response == null) {
@@ -265,7 +265,7 @@ public class JMSPublisherConsumerIT {
             // receiving next message and fail again
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                    consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {
@@ -287,7 +287,7 @@ public class JMSPublisherConsumerIT {
             // should receive the same message, but will process it successfully
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                    consumer.consume(destinationName, false, false, null, "UTF-8", 1000, new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {
