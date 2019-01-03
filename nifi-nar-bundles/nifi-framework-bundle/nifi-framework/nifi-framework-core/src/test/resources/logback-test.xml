@@ -17,7 +17,7 @@
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
+            <pattern>%-4r [%t] %-5p %c{3} - %m%n</pattern>
         </encoder>
     </appender>
 
@@ -33,6 +33,8 @@
     <logger name="org.apache.nifi.controller.tasks" level="DEBUG" />"
     <logger name="org.apache.nifi.controller.service" level="DEBUG"/>
     <logger name="org.apache.nifi.encrypt" level="DEBUG"/>
+    <logger name="org.apache.nifi.controller.repository.crypto" level="DEBUG"/>
+    <logger name="org.apache.nifi.security.repository" level="DEBUG"/>
     <logger name="org.apache.nifi.controller.service.mock" level="ERROR"/>
 
     <logger name="StandardProcessSession.claims" level="INFO" />

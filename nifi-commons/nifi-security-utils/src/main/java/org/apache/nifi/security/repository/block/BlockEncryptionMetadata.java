@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.repository.block;
 
 import org.apache.nifi.security.repository.RepositoryObjectEncryptionMetadata;
 
-public class EncryptionMetadata extends RepositoryObjectEncryptionMetadata {
-    EncryptionMetadata() {
+public class BlockEncryptionMetadata extends RepositoryObjectEncryptionMetadata {
+    public BlockEncryptionMetadata() {
     }
 
-    EncryptionMetadata(String keyId, String algorithm, byte[] ivBytes, String version, int cipherByteLength) {
+    public BlockEncryptionMetadata(String keyId, String algorithm, byte[] ivBytes, String version, int cipherByteLength) {
         this.keyId = keyId;
         this.ivBytes = ivBytes;
         this.algorithm = algorithm;
@@ -32,8 +32,7 @@ public class EncryptionMetadata extends RepositoryObjectEncryptionMetadata {
 
     @Override
     public String toString() {
-        String sb = "Provenance Record Encryption Metadata: " +
+        return "Block Encryption Metadata: " +
                 super.toString();
-        return sb;
     }
 }

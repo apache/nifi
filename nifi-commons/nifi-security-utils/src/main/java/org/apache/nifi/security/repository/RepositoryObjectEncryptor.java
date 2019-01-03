@@ -14,26 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.repository;
 
-import org.apache.nifi.security.repository.RepositoryObjectEncryptionMetadata;
+import java.security.KeyManagementException;
+import org.apache.nifi.security.kms.KeyProvider;
 
-public class EncryptionMetadata extends RepositoryObjectEncryptionMetadata {
-    EncryptionMetadata() {
-    }
+public interface RepositoryObjectEncryptor {
 
-    EncryptionMetadata(String keyId, String algorithm, byte[] ivBytes, String version, int cipherByteLength) {
-        this.keyId = keyId;
-        this.ivBytes = ivBytes;
-        this.algorithm = algorithm;
-        this.version = version;
-        this.cipherByteLength = cipherByteLength;
-    }
-
-    @Override
-    public String toString() {
-        String sb = "Provenance Record Encryption Metadata: " +
-                super.toString();
-        return sb;
-    }
+    void initialize(KeyProvider keyProvider) throws KeyManagementException;
 }
