@@ -134,7 +134,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("How long to wait to consume a message from the remote broker before giving up.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("1 sec")
+            .defaultValue("0 sec")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -186,7 +187,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final boolean shared = sharedBoolean == null ? false : sharedBoolean;
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
-        final long timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         consumer.consume(destinationName, durable, shared, subscriptionName, charset, timeout, new ConsumerCallback() {
             @Override
