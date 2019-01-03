@@ -14,26 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.provenance;
+package org.apache.nifi.security.repository;
 
-import org.apache.nifi.security.repository.RepositoryObjectEncryptionMetadata;
+public class StreamingEncryptionMetadata extends RepositoryObjectEncryptionMetadata {
 
-public class EncryptionMetadata extends RepositoryObjectEncryptionMetadata {
-    EncryptionMetadata() {
+    public StreamingEncryptionMetadata() {
+
     }
 
-    EncryptionMetadata(String keyId, String algorithm, byte[] ivBytes, String version, int cipherByteLength) {
+    public StreamingEncryptionMetadata(String keyId, String algorithm, byte[] ivBytes, String version) {
         this.keyId = keyId;
         this.ivBytes = ivBytes;
         this.algorithm = algorithm;
         this.version = version;
-        this.cipherByteLength = cipherByteLength;
+        this.cipherByteLength = -1;
     }
 
     @Override
     public String toString() {
-        String sb = "Provenance Record Encryption Metadata: " +
+        return "Streaming Encryption Metadata: " +
                 super.toString();
-        return sb;
     }
 }
