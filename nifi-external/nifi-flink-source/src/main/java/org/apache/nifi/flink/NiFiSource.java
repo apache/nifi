@@ -65,19 +65,19 @@ import java.util.Map;
  * StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
  *
  * SiteToSiteClientConfig clientConfig = new SiteToSiteClient.Builder()
- *  .url("http://localhost:8080/nifi")
- * 	.portName("Data for Flink")
- * 	.requestBatchCount(5)
- * 	.buildConfig();
+ *   .url("http://localhost:8080/nifi")
+ * 	 .portName("Data for Flink")
+ * 	 .requestBatchCount(5)
+ * 	 .buildConfig();
  *
  * SourceFunction<NiFiDataPacket> nifiSource = new NiFiSource(clientConfig);
  * DataStream<NiFiDataPacket> streamSource = env.addSource(nifiSource).setParallelism(2);
  *
  * DataStream<String> dataStream = streamSource.map(new MapFunction<NiFiDataPacket, String>() {
- *  @Override
- * 	public String map(NiFiDataPacket value) throws Exception {
- * 				return new String(value.getContent(), Charset.defaultCharset());
- * 	}
+ *   @Override
+ * 	 public String map(NiFiDataPacket value) throws Exception {
+ *     return new String(value.getContent(), Charset.defaultCharset());
+ * 	 }
  * });
  *
  * dataStream.print();
