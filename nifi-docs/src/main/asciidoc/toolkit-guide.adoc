@@ -889,8 +889,6 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
     └── lib
 ```
 
-[[additional-commands]]
-==== Additional Commands
 The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
 
 ===== nifi-cert.pem
@@ -1111,6 +1109,9 @@ coefficient:
     7a:00:bb:07:e9:13:91:82:9b
 ```
 
+[[additional-commands]]
+==== Additional Commands
+
 . To convert from DER encoded public certificate (`cert.der`) to PEM encoded (`cert.pem`):
   * If the DER file contains both the public certificate and private key, remove the private key with this command:
   ** `perl -pe 'BEGIN{undef $/;} s|-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----|Removed private key|gs' cert.der > cert.pem`
@@ -1126,6 +1127,13 @@ coefficient:
 . To convert from PKCS #8 PEM format to PKCS #1 PEM format:
   * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
   ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
+. To combine a private key in PEM format (`private.key`) and public certificate in PEM format (`certificate.pem`) into PKCS12 keystore:
+  * The following command will create the PKCS12 keystore (`keystore.p12`) from the two independent files. A Java keystore (JKS) cannot be formed directly from the PEM files:
+  ** `openssl pkcs12 -export -out keystore.p12 -inkey private.key -in certificate.pem`
+. To convert a PKCS12 keystore (`keystore.p12`) to JKS keystore (`keystore.jks`):
+  * The following command will create the JKS keystore (`keystore.jks`). The `-destalias` flag is optional, as NiFi does not currently read from a specific alias in the keystore. The user will be prompted for a keystore password, which must be set and have minimum 8 characters, and a key password, which can be the same as the keystore password or different:
+  ** `keytool -importkeystore -srckeystore keystore.p12 -srcstoretype pkcs12 -destkeystore keystore.jks
+       -deststoretype jks -destalias nifi-key`
 
 [[tls_external-signed_ca]]
 ==== Signing with Externally-signed CA Certificates
