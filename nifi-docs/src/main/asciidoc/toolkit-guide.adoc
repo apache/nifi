@@ -727,7 +727,7 @@ Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.ap
 
 ==== Potential issues with wildcard certificates
 * In many places throughout the codebase, cluster communications use certificate identities many times to identify a node, and if the certificate simply presents a wildcard DN, that doesn’t resolve to a specific node
-* Admins may need to provide a custom node identity in _authorizers.xml_ for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see the  <<administration-guide.adoc#user_authentication,User Authentication>> section in the System Administrator's Guide for more information).
+* Admins may need to provide a custom node identity in _authorizers.xml_ for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see the <<administration-guide.adoc#user_authentication,User Authentication>> section in the System Administrator's Guide for more information).
 * Admins have no traceability into which node performed an action because they all resolve to the same DN
 * Admins running multiple instances on the same machine using different ports to identify them can accidentally put `node1` hostname with `node2` port, and the address will resolve fine because it’s using the same certificate, but the host header handler will block it because the `node1` hostname is (correctly) not listed as an acceptable host for `node2` instance
 * If the wildcard certificate is compromised, all nodes are compromised
@@ -889,11 +889,9 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
     └── lib
 ```
 
-[[additional-commands]]
-==== Additional Commands
 The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
 
-===== nifi-cert.pem
+==== nifi-cert.pem
 
 ```
 # The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
@@ -985,7 +983,7 @@ Certificate:
          7b:c3:c4:37
 ```
 
-===== nifi-key.key
+==== nifi-key.key
 
 ```
 # The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
@@ -1111,27 +1109,11 @@ coefficient:
     7a:00:bb:07:e9:13:91:82:9b
 ```
 
-. To convert from DER encoded public certificate (`cert.der`) to PEM encoded (`cert.pem`):
-  * If the DER file contains both the public certificate and private key, remove the private key with this command:
-  ** `perl -pe 'BEGIN{undef $/;} s|-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----|Removed private key|gs' cert.der > cert.pem`
-  * If the DER file only contains the public certificate, use this command:
-  ** `openssl x509 -inform der -in cert.der -out cert.pem`
-. To convert from a PKCS12 keystore (`keystore.p12`) containing both the public certificate and private key into PEM encoded files (`$PASSWORD` is the keystore password):
-  * `openssl pkcs12 -in keystore.p12 -out cert.der -nodes -password "pass:$PASSWORD"`
-  * `openssl pkcs12 -in keystore.p12 -nodes -nocerts -out key.key -password "pass:$PASSWORD"`
-  * Follow the steps above to convert `cert.der` to `cert.pem`
-. To convert from a Java Keystore (`keystore.jks`) containing private key into PEM encoded files (`$P12_PASSWORD` is the PKCS12 keystore password, `$JKS_PASSWORD` is the Java keystore password you want to set, and `$ALIAS` can be any value -- the NiFi default is `nifi-key`):
-  * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
-  * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
-. To convert from PKCS #8 PEM format to PKCS #1 PEM format:
-  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
-  ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
-
 [[tls_external-signed_ca]]
 ==== Signing with Externally-signed CA Certificates
-To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.).
+To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see <<additional_certificate_commands>>). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.).
 
-To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional-commands>> above):
+To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional_certificate_commands>>):
 
 * `nifi-cert.pem` -- the public certificate of the *intermediate CA* in PEM format
 * `nifi-key.key` -- the Base64-encoded private key of the *intermediate CA* in PKCS #1 PEM format
@@ -1176,6 +1158,32 @@ $ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
 2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
 ----
+
+[[additional_certificate_commands]]
+=== Additional Certificate Commands
+
+. To convert from DER encoded public certificate (`cert.der`) to PEM encoded (`cert.pem`):
+  * If the DER file contains both the public certificate and private key, remove the private key with this command:
+  ** `perl -pe 'BEGIN{undef $/;} s|-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----|Removed private key|gs' cert.der > cert.pem`
+  * If the DER file only contains the public certificate, use this command:
+  ** `openssl x509 -inform der -in cert.der -out cert.pem`
+. To convert from a PKCS12 keystore (`keystore.p12`) containing both the public certificate and private key into PEM encoded files (`$PASSWORD` is the keystore password):
+  * `openssl pkcs12 -in keystore.p12 -out cert.der -nodes -password "pass:$PASSWORD"`
+  * `openssl pkcs12 -in keystore.p12 -nodes -nocerts -out key.key -password "pass:$PASSWORD"`
+  * Follow the steps above to convert `cert.der` to `cert.pem`
+. To convert from a Java Keystore (`keystore.jks`) containing private key into PEM encoded files (`$P12_PASSWORD` is the PKCS12 keystore password, `$JKS_PASSWORD` is the Java keystore password you want to set, and `$ALIAS` can be any value -- the NiFi default is `nifi-key`):
+  * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
+  * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
+. To convert from PKCS #8 PEM format to PKCS #1 PEM format:
+  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
+  ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
+. To combine a private key in PEM format (`private.key`) and public certificate in PEM format (`certificate.pem`) into PKCS12 keystore:
+  * The following command will create the PKCS12 keystore (`keystore.p12`) from the two independent files. A Java keystore (JKS) cannot be formed directly from the PEM files:
+  ** `openssl pkcs12 -export -out keystore.p12 -inkey private.key -in certificate.pem`
+. To convert a PKCS12 keystore (`keystore.p12`) to JKS keystore (`keystore.jks`):
+  * The following command will create the JKS keystore (`keystore.jks`). The `-destalias` flag is optional, as NiFi does not currently read from a specific alias in the keystore. The user will be prompted for a keystore password, which must be set and have minimum 8 characters, and a key password, which can be the same as the keystore password or different:
+  ** `keytool -importkeystore -srckeystore keystore.p12 -srcstoretype pkcs12 -destkeystore keystore.jks
+       -deststoretype jks -destalias nifi-key`
 
 [[zookeeper_migrator]]
 == ZooKeeper Migrator
