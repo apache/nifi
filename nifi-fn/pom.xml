@@ -18,22 +18,18 @@
     -->
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.apache.nifi.fn</groupId>
+    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-fn</artifactId>
     <version>1.9.0-SNAPSHOT</version>
 
-    <properties>
-        <java.version>1.8</java.version>
-        <nifi.version>1.9.0-SNAPSHOT</nifi.version>
-    </properties>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -94,55 +90,55 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-loading-utils</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core-api</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-api</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
             <type>war</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-processors</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>${nifi.version}</version>
+            <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
