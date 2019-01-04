@@ -221,9 +221,6 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         jmsTemplate.setConnectionFactory(cachingFactory);
         jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
-        // set of properties that may be good candidates for exposure via configuration
-        jmsTemplate.setReceiveTimeout(1000);
-
         return finishBuildingJmsWorker(cachingFactory, jmsTemplate, context);
     }
 }

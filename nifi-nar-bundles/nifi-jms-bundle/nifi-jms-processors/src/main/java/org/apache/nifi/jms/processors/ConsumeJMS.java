@@ -134,7 +134,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .description("How long to wait to consume a message from the remote broker before giving up.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 sec")
+            .defaultValue("1 sec")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -187,9 +187,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final boolean shared = sharedBoolean == null ? false : sharedBoolean;
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
-        final long timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
-        consumer.consume(destinationName, durable, shared, subscriptionName, charset, timeout, new ConsumerCallback() {
+        consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
             @Override
             public void accept(final JMSResponse response) {
                 if (response == null) {
@@ -220,6 +219,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
         int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
+
+        long timeout = processContext.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        jmsTemplate.setReceiveTimeout(timeout);
+
         return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
     }
 
