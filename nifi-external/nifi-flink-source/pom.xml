@@ -17,17 +17,29 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi</artifactId>
+        <artifactId>nifi-external</artifactId>
         <version>1.9.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-external</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>nifi-spark-receiver</module>
-        <module>nifi-storm-spout</module>
-        <module>nifi-example-bundle</module>
-        <module>nifi-flink-source</module>
-    </modules>
-</project>
+    <artifactId>nifi-flink-source</artifactId>
 
+    <properties>
+        <flink.version>1.6.2</flink.version>
+        <scala.version>2.11</scala.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java_${scala.version}</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-site-to-site-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
