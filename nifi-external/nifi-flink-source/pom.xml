@@ -24,8 +24,8 @@
     <artifactId>nifi-flink-source</artifactId>
 
     <properties>
-        <flink.version>1.6.2</flink.version>
-        <scala.version>2.11</scala.version>
+        <flink.version>1.7.1</flink.version>
+        <scala.version>2.12</scala.version>
     </properties>
 
     <dependencies>

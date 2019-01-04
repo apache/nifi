@@ -103,7 +103,7 @@ public class NiFiSource extends RichParallelSourceFunction<NiFiDataPacket> imple
     private volatile boolean isRunning = true;
 
     /**
-     * Constructs a new NiFiReceiver using the given client config and the default wait time of 1000 ms.
+     * Constructs a new NiFiSource using the given client config and the default wait time of 1000 ms.
      *
      * @param clientConfig the configuration for building a NiFi SiteToSiteClient
      */
@@ -112,7 +112,7 @@ public class NiFiSource extends RichParallelSourceFunction<NiFiDataPacket> imple
     }
 
     /**
-     * Constructs a new NiFiReceiver using the given client config and wait time.
+     * Constructs a new NiFiSource using the given client config and wait time.
      *
      * @param clientConfig the configuration for building a NiFi SiteToSiteClient
      * @param waitTimeMs the amount of time to wait (in milliseconds) if no data is available to pull from NiFi
