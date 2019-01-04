@@ -101,4 +101,157 @@ public class JMSConnectionFactoryProviderTest {
         new JMSConnectionFactoryProvider().getConnectionFactory();
     }
 
+    @Test
+    public void validWithSingleTestBroker() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost:1234");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.nifi.jms.testcflib.TestConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithSingleTestBrokerWithScheme() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "tcp://myhost:1234");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.nifi.jms.testcflib.TestConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithMultipleTestBrokers() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost01:1234,myhost02:1234");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.nifi.jms.testcflib.TestConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithSingleActiveMqBroker() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "tcp://myhost:61616");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.activemq.ActiveMQConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithMultipleActiveMqBrokers() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI,
+                "failover:(tcp://myhost01:61616,tcp://myhost02:61616)?randomize=false");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.activemq.ActiveMQConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithSingleTibcoBroker() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "tcp://myhost:7222");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "com.tibco.tibjms.TibjmsConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithMultipleTibcoBrokers() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "tcp://myhost01:7222,tcp://myhost02:7222");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "com.tibco.tibjms.TibjmsConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithSingleIbmMqBroker() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost(1414)");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "com.ibm.mq.jms.MQConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithMultipleIbmMqBrokers() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString();
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost01(1414),myhost02(1414)");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, clientLib);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "com.ibm.mq.jms.MQConnectionFactory");
+
+        runner.assertValid(cfProvider);
+    }
 }
