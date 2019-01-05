@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Consuming JMS processor which upon each invocation of
@@ -128,6 +129,14 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+    static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Timeout")
+            .description("How long to wait to consume a message from the remote broker before giving up.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 sec")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -154,6 +163,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
+        _propertyDescriptors.add(TIMEOUT);
         thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -209,6 +219,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
         int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
+
+        long timeout = processContext.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        jmsTemplate.setReceiveTimeout(timeout);
+
         return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
     }
 

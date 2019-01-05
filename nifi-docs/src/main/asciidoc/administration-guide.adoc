@@ -195,6 +195,7 @@ In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` c
 * <<toolkit-guide.adoc#wildcard_certificates,Wildcard Certificates>>
 * <<toolkit-guide.adoc#tls_operation_modes,Operation Modes: Standalone and Client/Server>>
 * <<toolkit-guide.adoc#tls_intermediate_ca,Using An Existing Intermediate Certificate Authority>>
+* <<toolkit-guide.adoc#additional_certificate_commands,Additional Certificate Commands>>
 
 
 [[user_authentication]]
