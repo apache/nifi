@@ -26,6 +26,8 @@ import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -49,6 +51,9 @@ import java.util.stream.Collectors;
 
 
 @SupportsBatching
+@WritesAttributes({
+        @WritesAttribute(attribute = "s3.tag.___", description = "The tags associated with the S3 object will be " +
+                "written as part of the FlowFile attributes")})
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -88,7 +93,7 @@ public class TagS3Object extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
-            .name("Version")
+            .name("version")
             .displayName("Version ID")
             .description("The Version of the Object to tag")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -122,6 +127,8 @@ public class TagS3Object extends AbstractS3Processor {
         final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
+
+
         final AmazonS3 s3 = getClient();
 
         SetObjectTaggingRequest r;
@@ -151,24 +158,19 @@ public class TagS3Object extends AbstractS3Processor {
             return;
         }
 
-        flowFile = setTagAttributes(context, session, flowFile);
+        flowFile = setTagAttributes(session, flowFile, tags);
 
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
     }
 
-    private FlowFile setTagAttributes(ProcessContext context, ProcessSession session, FlowFile flowFile) {
-        final String newTagKey = context.getProperty(TAG_KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
+    private FlowFile setTagAttributes(ProcessSession session, FlowFile flowFile, List<Tag> tags) {
+        flowFile = session.removeAllAttributes(flowFile, Pattern.compile("^s3\\.tag\\..*"));
 
-        if(!context.getProperty(APPEND_TAG).asBoolean()) {
-            flowFile = session.removeAllAttributes(flowFile, Pattern.compile("^s3\\.tag\\..*"));
-        }
-
-        final Map<String, String> tagMap = new HashMap<>();
-        tagMap.put("s3.tag." + newTagKey, newTagVal);
-        flowFile = session.putAllAttributes(flowFile, tagMap);
+        final Map<String, String> tagAttrs = new HashMap<>();
+        tags.stream().forEach(t -> tagAttrs.put("s3.tag." + t.getKey(), t.getValue()));
+        flowFile = session.putAllAttributes(flowFile, tagAttrs);
         return flowFile;
     }
 }
