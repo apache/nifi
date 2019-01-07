@@ -267,6 +267,51 @@ public class TestTagS3Object {
         assertTrue(pd.contains(TagS3Object.VERSION_ID));
     }
 
+    @Test
+    public void testBucketEvaluatedAsBlank() {
+        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.BUCKET, "${not.existant.attribute}");
+        runner.setProperty(TagS3Object.TAG_KEY, "key");
+        runner.setProperty(TagS3Object.TAG_VALUE, "val");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "delete-key");
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testTagKeyEvaluatedAsBlank() {
+        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.TAG_KEY, "${not.existant.attribute}");
+        runner.setProperty(TagS3Object.TAG_VALUE, "val");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "delete-key");
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testTagValEvaluatedAsBlank() {
+        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.TAG_KEY, "tagKey");
+        runner.setProperty(TagS3Object.TAG_VALUE, "${not.existant.attribute}");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "delete-key");
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
+    }
+
     private void mockGetExistingTags(Tag... currentTag) {
         List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
         Mockito.when(mockS3Client.getObjectTagging(Mockito.anyObject())).thenReturn(new GetObjectTaggingResult(currentTags));

@@ -125,9 +125,28 @@ public class TagS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagKey = context.getProperty(TAG_KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String newTagVal = context.getProperty(TAG_VALUE).evaluateAttributeExpressions(flowFile).getValue();
+
+        if(StringUtils.isBlank(bucket)){
+            failFlowWithBlankEvaluatedProperty(session, flowFile, BUCKET);
+            return;
+        }
+
+        if(StringUtils.isBlank(key)){
+            failFlowWithBlankEvaluatedProperty(session, flowFile, KEY);
+            return;
+        }
+
+        if(StringUtils.isBlank(newTagKey)){
+            failFlowWithBlankEvaluatedProperty(session, flowFile, TAG_KEY);
+            return;
+        }
+
+        if(StringUtils.isBlank(newTagVal)){
+            failFlowWithBlankEvaluatedProperty(session, flowFile, TAG_VALUE);
+            return;
+        }
+
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
-
-
 
         final AmazonS3 s3 = getClient();
 
@@ -163,6 +182,12 @@ public class TagS3Object extends AbstractS3Processor {
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
+    }
+
+    private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {
+        getLogger().error("{} value is blank after attribute expression language evaluation", new Object[]{pd.getName()});
+        flowFile = session.penalize(flowFile);
+        session.transfer(flowFile, REL_FAILURE);
     }
 
     private FlowFile setTagAttributes(ProcessSession session, FlowFile flowFile, List<Tag> tags) {
