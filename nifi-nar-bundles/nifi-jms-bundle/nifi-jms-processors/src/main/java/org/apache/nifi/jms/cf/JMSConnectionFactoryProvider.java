@@ -185,7 +185,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * service configuration. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
      * setQueueManager(..) method with a single argument.
-     * <p>
+     * <br>
      * There are also few adjustments to accommodate well known brokers. For
      * example ActiveMQ ConnectionFactory accepts address of the Message Broker
      * in a form of URL while IBMs in the form of host/port pair (more common).
