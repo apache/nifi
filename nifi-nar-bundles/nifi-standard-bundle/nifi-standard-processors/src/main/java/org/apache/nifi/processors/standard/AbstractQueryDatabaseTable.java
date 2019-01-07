@@ -65,6 +65,12 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
 
+    public static final String TRANSACTION_READ_UNCOMMITTED = "TRANSACTION_READ_UNCOMMITTED";
+    public static final String TRANSACTION_READ_COMMITTED = "TRANSACTION_READ_COMMITTED";
+    public static final String TRANSACTION_REPEATABLE_READ = "TRANSACTION_REPEATABLE_READ";
+    public static final String TRANSACTION_NONE = "TRANSACTION_NONE";
+    public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
+
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
@@ -110,6 +116,15 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor TRANS_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
+            .name("Transaction Isolation Level")
+            .displayName("Transaction Isolation Level")
+            .description("This setting will set the transaction isolation level for the database connection for drivers that support this setting")
+            .defaultValue(TRANSACTION_READ_UNCOMMITTED)
+            .required(true)
+            .allowableValues(TRANSACTION_NONE,TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
             .build();
 
     @Override
@@ -170,6 +185,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
                 ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
                 : 0;
+        final String transIsolationLevel = context.getProperty(TRANS_ISOLATION_LEVEL).evaluateAttributeExpressions().getValue();
 
 
         SqlWriter sqlWriter = configureSqlWriter(session, context);
@@ -226,6 +242,28 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
                 }
             }
+
+            int TransIsolationLevelInt;
+            switch (transIsolationLevel){
+                case "TRANSACTION_NONE":
+                    TransIsolationLevelInt = Connection.TRANSACTION_NONE;
+                    break;
+                case "TRANSACTION_READ_UNCOMMITTED":
+                    TransIsolationLevelInt = Connection.TRANSACTION_READ_UNCOMMITTED;
+                    break;
+                case "TRANSACTION_READ_COMMITTED":
+                    TransIsolationLevelInt = Connection.TRANSACTION_READ_COMMITTED;
+                    break;
+                case "TRANSACTION_REPEATABLE_READ":
+                    TransIsolationLevelInt = Connection.TRANSACTION_REPEATABLE_READ;
+                    break;
+                case "TRANSACTION_SERIALIZABLE":
+                    TransIsolationLevelInt = Connection.TRANSACTION_SERIALIZABLE;
+                    break;
+                default:
+                    TransIsolationLevelInt = Connection.TRANSACTION_NONE;
+            }
+            con.setTransactionIsolation(TransIsolationLevelInt);
 
             String jdbcURL = "DBCPService";
             try {

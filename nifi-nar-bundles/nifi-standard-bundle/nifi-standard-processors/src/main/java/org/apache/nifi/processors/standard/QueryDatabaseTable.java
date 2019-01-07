@@ -109,6 +109,7 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         pds.add(OUTPUT_BATCH_SIZE);
         pds.add(MAX_FRAGMENTS);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
+        pds.add(TRANS_ISOLATION_LEVEL);
         pds.add(USE_AVRO_LOGICAL_TYPES);
         pds.add(DEFAULT_PRECISION);
         pds.add(DEFAULT_SCALE);
