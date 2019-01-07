@@ -204,7 +204,12 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * explained in user manual for this component with links pointing to
      * documentation of various ConnectionFactories.
      *
-     * @see #setProperty(String, Object) method
+     * @see <a href="http://activemq.apache.org/maven/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html#setBrokerURL-java.lang.String-">setBrokerURL(String brokerURL)</a>
+     * @see <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html#setServerUrl(java.lang.String)">setServerUrl(String serverUrl)</a>
+     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setHostName_java.lang.String_">setHostName(String hostname)</a>
+     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setPort_int_">setPort(int port)</a>
+     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
+     * @see #setProperty(String propertyName, Object propertyValue)
      */
     private void setConnectionFactoryProperties(ConfigurationContext context) {
         for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -221,11 +226,14 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
                         this.setProperty("serverUrl", brokerValue);
                     } else {
+                        // Try to parse broker URI as colon separated host/port pair
                         String[] hostPort = brokerValue.split(":");
+                        // If broker URI indeed was colon separated host/port pair
                         if (hostPort.length == 2) {
                             this.setProperty("hostName", hostPort[0]);
                             this.setProperty("port", hostPort[1]);
-                        } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")){
+                        } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
+                            // Assuming IBM MQ style broker was specified, e.g. "myhost(1414)" and "myhost01(1414),myhost02(1414)"
                             this.setProperty("connectionNameList", brokerValue);
                         } else {
                             throw new IllegalArgumentException("Failed to parse broker url: " + brokerValue);
