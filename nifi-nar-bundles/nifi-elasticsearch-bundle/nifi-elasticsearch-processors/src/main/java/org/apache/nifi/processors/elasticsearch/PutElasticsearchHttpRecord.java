@@ -313,6 +313,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final String id_path = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
         final StringBuilder sb = new StringBuilder();
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
 
         int recordCount = 0;
         try (final InputStream in = session.read(flowFile);
@@ -345,7 +346,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 writeRecord(record, record.getSchema(), generator);
                 generator.flush();
                 generator.close();
-                json.append(out.toString());
+                json.append(out.toString(charset));
 
                 buildBulkCommand(sb, index, docType, indexOp, id, json.toString());
                 recordCount++;
