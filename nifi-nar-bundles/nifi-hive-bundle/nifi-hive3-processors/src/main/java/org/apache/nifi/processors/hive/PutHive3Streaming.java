@@ -412,9 +412,6 @@ public class PutHive3Streaming extends AbstractProcessor {
                 }
 
                 hiveStreamingConnection = makeStreamingConnection(options, reader);
-                // Add shutdown handler with higher priority than FileSystem shutdown hook so that streaming connection gets closed first before
-                // filesystem close (to avoid ClosedChannelException)
-                ShutdownHookManager.addShutdownHook(hiveStreamingConnection::close, FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
 
                 // Write records to Hive streaming, then commit and close
                 hiveStreamingConnection.beginTransaction();
