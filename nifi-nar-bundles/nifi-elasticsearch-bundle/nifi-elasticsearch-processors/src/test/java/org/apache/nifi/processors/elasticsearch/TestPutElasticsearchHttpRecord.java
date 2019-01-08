@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.HashMap;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okio.Buffer;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -42,16 +39,21 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutElasticsearchHttpRecord {
-
     private TestRunner runner;
 
     @After
@@ -61,7 +63,25 @@ public class TestPutElasticsearchHttpRecord {
 
     @Test
     public void testPutElasticSearchOnTriggerIndex() throws IOException {
-        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        processor.setRecordChecks(record -> {
+            assertEquals(1, record.get("id"));
+            assertEquals("reç1", record.get("name"));
+            assertEquals(101, record.get("code"));
+        }, record -> {
+            assertEquals(2, record.get("id"));
+            assertEquals("ræc2", record.get("name"));
+            assertEquals(102, record.get("code"));
+        }, record -> {
+            assertEquals(3, record.get("id"));
+            assertEquals("rèc3", record.get("name"));
+            assertEquals(103, record.get("code"));
+        }, record -> {
+            assertEquals(4, record.get("id"));
+            assertEquals("rëc4", record.get("name"));
+            assertEquals(104, record.get("code"));
+        });
+        runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -368,6 +388,7 @@ public class TestPutElasticsearchHttpRecord {
         int statusCode = 200;
         String statusMessage = "OK";
         String expectedUrl = null;
+        Consumer<Map>[] recordChecks;
 
         PutElasticsearchHttpRecordTestProcessor(boolean responseHasFailures) {
             this.responseHasFailures = responseHasFailures;
@@ -382,6 +403,11 @@ public class TestPutElasticsearchHttpRecord {
             expectedUrl = url;
         }
 
+        @SafeVarargs
+        final void setRecordChecks(Consumer<Map>... checks) {
+            recordChecks = checks;
+        }
+
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -391,6 +417,24 @@ public class TestPutElasticsearchHttpRecord {
                 if (statusCode != -1) {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
                     assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
+                    if (recordChecks != null) {
+                        final ObjectMapper mapper = new ObjectMapper();
+                        Buffer sink = new Buffer();
+                        realRequest.body().writeTo(sink);
+                        String line;
+                        int recordIndex = 0;
+                        boolean content = false;
+                        while ((line = sink.readUtf8Line()) != null) {
+                            if (content) {
+                                content = false;
+                                if (recordIndex < recordChecks.length) {
+                                    recordChecks[recordIndex++].accept(mapper.readValue(line, Map.class));
+                                }
+                            } else {
+                                content = true;
+                            }
+                        }
+                    }
                     StringBuilder sb = new StringBuilder("{\"took\": 1, \"errors\": \"");
                     sb.append(responseHasFailures);
                     sb.append("\", \"items\": [");
@@ -521,9 +565,9 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("code", RecordFieldType.INT);
 
-        parser.addRecord(1, "rec1", 101);
-        parser.addRecord(2, "rec2", 102);
-        parser.addRecord(3, "rec3", 103);
-        parser.addRecord(4, "rec4", 104);
+        parser.addRecord(1, "reç1", 101);
+        parser.addRecord(2, "ræc2", 102);
+        parser.addRecord(3, "rèc3", 103);
+        parser.addRecord(4, "rëc4", 104);
     }
 }

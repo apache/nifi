@@ -73,6 +73,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -198,6 +199,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
+        descriptors.add(CHARSET);
         descriptors.add(INDEX_OP);
         descriptors.add(SUPPRESS_NULLS);
 
@@ -313,6 +315,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final String id_path = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
         final StringBuilder sb = new StringBuilder();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         int recordCount = 0;
         try (final InputStream in = session.read(flowFile);
@@ -345,7 +348,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 writeRecord(record, record.getSchema(), generator);
                 generator.flush();
                 generator.close();
-                json.append(out.toString());
+                json.append(out.toString(charset.name()));
 
                 buildBulkCommand(sb, index, docType, indexOp, id, json.toString());
                 recordCount++;
