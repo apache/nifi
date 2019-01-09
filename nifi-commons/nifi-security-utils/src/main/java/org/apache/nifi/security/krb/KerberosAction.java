@@ -25,24 +25,24 @@ import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 
 /**
- * Helper class for processors to perform an action as a KeytabUser.
+ * Helper class for processors to perform an action as a KerberosUser.
  */
-public class KeytabAction {
+public class KerberosAction {
 
-    private final KeytabUser keytabUser;
+    private final KerberosUser kerberosUser;
     private final PrivilegedAction action;
     private final ProcessContext context;
     private final ComponentLog logger;
 
-    public KeytabAction(final KeytabUser keytabUser,
-                        final PrivilegedAction action,
-                        final ProcessContext context,
-                        final ComponentLog logger) {
-        this.keytabUser = keytabUser;
+    public KerberosAction(final KerberosUser kerberosUser,
+                          final PrivilegedAction action,
+                          final ProcessContext context,
+                          final ComponentLog logger) {
+        this.kerberosUser = kerberosUser;
         this.action = action;
         this.context = context;
         this.logger = logger;
-        Validate.notNull(this.keytabUser);
+        Validate.notNull(this.kerberosUser);
         Validate.notNull(this.action);
         Validate.notNull(this.context);
         Validate.notNull(this.logger);
@@ -50,10 +50,10 @@ public class KeytabAction {
 
     public void execute() {
         // lazily login the first time the processor executes
-        if (!keytabUser.isLoggedIn()) {
+        if (!kerberosUser.isLoggedIn()) {
             try {
-                keytabUser.login();
-                logger.info("Successful login for {}", new Object[]{keytabUser.getPrincipal()});
+                kerberosUser.login();
+                logger.info("Successful login for {}", new Object[]{kerberosUser.getPrincipal()});
             } catch (LoginException e) {
                 // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
                 context.yield();
@@ -63,7 +63,7 @@ public class KeytabAction {
 
         // check if we need to re-login, will only happen if re-login window is reached (80% of TGT life)
         try {
-            keytabUser.checkTGTAndRelogin();
+            kerberosUser.checkTGTAndRelogin();
         } catch (LoginException e) {
             // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
             context.yield();
@@ -72,15 +72,15 @@ public class KeytabAction {
 
         // attempt to execute the action, if an exception is caught attempt to logout/login and retry
         try {
-            keytabUser.doAs(action);
+            kerberosUser.doAs(action);
         } catch (SecurityException se) {
             logger.info("Privileged action failed, attempting relogin and retrying...");
             logger.debug("", se);
 
             try {
-                keytabUser.logout();
-                keytabUser.login();
-                keytabUser.doAs(action);
+                kerberosUser.logout();
+                kerberosUser.login();
+                kerberosUser.doAs(action);
             } catch (Exception e) {
                 // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
                 context.yield();
