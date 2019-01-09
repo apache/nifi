@@ -1,0 +1,316 @@
+nifi-hbase_2-client-service-nar
+Copyright 2014-2019 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+ (ASLv2) Apache Commons CLI
+    The following NOTICE information applies:
+      Apache Commons CLI
+      Copyright 2001-2009 The Apache Software Foundation
+
+  (ASLv2) Apache Curator
+    The following NOTICE information applies:
+      Curator Framework
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Client
+      Copyright 2011-2014 The Apache Software Foundation
+
+      Curator Recipes
+      Copyright 2011-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Directory Server
+    The following NOTICE information applies:
+      ApacheDS Protocol Kerberos Codec
+      Copyright 2003-2013 The Apache Software Foundation
+
+      ApacheDS I18n
+      Copyright 2003-2013 The Apache Software Foundation
+
+      Apache Directory API ASN.1 API
+      Copyright 2003-2013 The Apache Software Foundation
+
+      Apache Directory LDAP API Utilities
+      Copyright 2003-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Math
+    The following NOTICE information applies:
+      Apache Commons Math
+      Copyright 2001-2012 The Apache Software Foundation
+
+      This product includes software developed by
+      The Apache Software Foundation (http://www.apache.org/).
+
+      ===============================================================================
+
+      The BracketFinder (package org.apache.commons.math3.optimization.univariate)
+      and PowellOptimizer (package org.apache.commons.math3.optimization.general)
+      classes are based on the Python code in module "optimize.py" (version 0.5)
+      developed by Travis E. Oliphant for the SciPy library (http://www.scipy.org/)
+      Copyright © 2003-2009 SciPy Developers.
+      ===============================================================================
+
+      The LinearConstraint, LinearObjectiveFunction, LinearOptimizer,
+      RelationShip, SimplexSolver and SimplexTableau classes in package
+      org.apache.commons.math3.optimization.linear include software developed by
+      Benjamin McCann (http://www.benmccann.com) and distributed with
+      the following copyright: Copyright 2009 Google Inc.
+      ===============================================================================
+
+      This product includes software developed by the
+      University of Chicago, as Operator of Argonne National
+      Laboratory.
+      The LevenbergMarquardtOptimizer class in package
+      org.apache.commons.math3.optimization.general includes software
+      translated from the lmder, lmpar and qrsolv Fortran routines
+      from the Minpack package
+      Minpack Copyright Notice (1999) University of Chicago.  All rights reserved
+      ===============================================================================
+
+      The GraggBulirschStoerIntegrator class in package
+      org.apache.commons.math3.ode.nonstiff includes software translated
+      from the odex Fortran routine developed by E. Hairer and G. Wanner.
+      Original source copyright:
+      Copyright (c) 2004, Ernst Hairer
+      ===============================================================================
+
+      The EigenDecompositionImpl class in package
+      org.apache.commons.math3.linear includes software translated
+      from some LAPACK Fortran routines.  Original source copyright:
+      Copyright (c) 1992-2008 The University of Tennessee.  All rights reserved.
+      ===============================================================================
+
+      The MersenneTwister class in package org.apache.commons.math3.random
+      includes software translated from the 2002-01-26 version of
+      the Mersenne-Twister generator written in C by Makoto Matsumoto and Takuji
+      Nishimura. Original source copyright:
+      Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
+      All rights reserved
+      ===============================================================================
+
+      The LocalizedFormatsTest class in the unit tests is an adapted version of
+      the OrekitMessagesTest class from the orekit library distributed under the
+      terms of the Apache 2 licence. Original source copyright:
+      Copyright 2010 CS Systèmes d'Information
+      ===============================================================================
+
+      The HermiteInterpolator class and its corresponding test have been imported from
+      the orekit library distributed under the terms of the Apache 2 licence. Original
+      source copyright:
+      Copyright 2010-2012 CS Systèmes d'Information
+      ===============================================================================
+
+      The creation of the package "o.a.c.m.analysis.integration.gauss" was inspired
+      by an original code donated by Sébastien Brisard.
+      ===============================================================================
+
+  (ASLv2) Apache Jakarta HttpClient
+    The following NOTICE information applies:
+      Apache Jakarta HttpClient
+      Copyright 1999-2007 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Net
+    The following NOTICE information applies:
+      Apache Commons Net
+      Copyright 2001-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Collections
+    The following NOTICE information applies:
+      Apache Commons Collections
+      Copyright 2001-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Crypto
+    The following NOTICE information applies:
+      Apache Commons Crypto
+      Copyright 2016-2016 The Apache Software Foundation
+
+  (ASLv2) Jettison
+    The following NOTICE information applies:
+         Copyright 2006 Envoi Solutions LLC
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2011 The Apache Software Foundation
+
+  (ASLv2) Apache log4j
+    The following NOTICE information applies:
+      Apache log4j
+      Copyright 2007 The Apache Software Foundation
+
+  (ASLv2) Apache HttpComponents
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      Apache HttpComponents HttpCore
+      Copyright 2005-2011 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2008 The Apache Software Foundation
+
+  (ASLv2) Apache Jakarta Commons Digester
+    The following NOTICE information applies:
+      Apache Jakarta Commons Digester
+      Copyright 2001-2006 The Apache Software Foundation
+
+  (ASLv2) Apache Commons BeanUtils
+    The following NOTICE information applies:
+      Apache Commons BeanUtils
+      Copyright 2000-2008 The Apache Software Foundation
+
+  (ASLv2) Apache Avro
+    The following NOTICE information applies:
+      Apache Avro
+      Copyright 2009-2017 The Apache Software Foundation
+
+  (ASLv2) Snappy Java
+    The following NOTICE information applies:
+      This product includes software developed by Google
+       Snappy: http://code.google.com/p/snappy/ (New BSD License)
+
+      This product includes software developed by Apache
+       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+       (Apache 2.0 license)
+
+      This library containd statically linked libstdc++. This inclusion is allowed by
+      "GCC RUntime Library Exception"
+      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+  (ASLv2) ApacheDS
+    The following NOTICE information applies:
+      ApacheDS
+      Copyright 2003-2013 The Apache Software Foundation
+
+  (ASLv2) Apache ZooKeeper
+    The following NOTICE information applies:
+      Apache ZooKeeper
+      Copyright 2009-2012 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Compress
+    The following NOTICE information applies:
+      Apache Commons Compress
+      Copyright 2002-2017 The Apache Software Foundation
+
+      The files in the package org.apache.commons.compress.archivers.sevenz
+      were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
+      which has been placed in the public domain:
+
+      "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
+
+  (ASLv2) Apache Commons Daemon
+    The following NOTICE information applies:
+      Apache Commons Daemon
+      Copyright 1999-2013 The Apache Software Foundation
+
+  (ASLv2) The Netty Project
+    The following NOTICE information applies:
+      The Netty Project
+      Copyright 2011 The Netty Project
+
+  (ASLv2) Apache Xerces Java
+    The following NOTICE information applies:
+      Apache Xerces Java
+      Copyright 1999-2007 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      Portions of this software were originally based on the following:
+        - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
+        - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+        - voluntary contributions made by Paul Eng on behalf of the
+          Apache Software Foundation that were originally developed at iClick, Inc.,
+          software copyright (c) 1999.
+
+  (ASLv2) Google Guice
+    The following NOTICE information applies:
+      Google Guice - Core Library
+      Copyright 2006-2011 Google, Inc.
+
+      Google Guice - Extensions - Servlet
+      Copyright 2006-2011 Google, Inc.
+
+  (ASLv2) HBase Common
+      The following NOTICE information applies:
+        This product includes portions of the Guava project v14 and v21, specifically
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/util/Bytes.java'
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/util/ByteBufferUtils.java'
+
+        Copyright (C) 2007 The Guava Authors
+
+        Licensed under the Apache License, Version 2.0
+
+    (ASLv2) Apache HTrace Core
+      The following NOTICE information applies:
+        Copyright 2016 The Apache Software Foundation
+
+        Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
+        is a distributed tracing system that is Apache 2.0 Licensed.
+        Copyright 2012 Twitter, Inc.
+
+  (ASLv2) Jackson Core ASL
+      The following NOTICE information applies:
+        This product currently only contains code developed by authors
+        of specific components, as identified by the source code files;
+        if such notes are missing files have been created by
+        Tatu Saloranta.
+
+        For additional credits (generally to people who reported problems)
+        see CREDITS file.
+
+  (ASLv2) Jackson Mapper ASL
+      The following NOTICE information applies:
+        This product currently only contains code developed by authors
+        of specific components, as identified by the source code files;
+        if such notes are missing files have been created by
+        Tatu Saloranta.
+
+        For additional credits (generally to people who reported problems)
+        see CREDITS file.
+
+  (ASLv2) Audience Annotations
+    The following NOTICE information applies:
+      Apache Yetus
+      Copyright 2008-2018 The Apache Software Foundation
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+       Jetty Web Container
+       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
+
