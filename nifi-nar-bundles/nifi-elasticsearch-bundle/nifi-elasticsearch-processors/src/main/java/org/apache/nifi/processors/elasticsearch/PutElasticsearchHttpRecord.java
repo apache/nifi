@@ -55,6 +55,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SimpleDateFormatValidator;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -179,33 +180,35 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .build();
 
     static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
-            .name("put-es-record-date-format")
-            .displayName("Date Format")
-            .description("Custom date format to use when converting fields of date type " +
-                    "({\"type\": \"int\", \"logicalType\": \"date\"}).")
+            .name("Date Format")
+            .description("Specifies the format to use when reading/writing Date fields. "
+                    + "If not specified, the default format '" + RecordFieldType.DATE.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
+                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-
     static final PropertyDescriptor TIME_FORMAT = new PropertyDescriptor.Builder()
-            .name("put-es-record-time-format")
-            .displayName("Time Format")
-            .description("Custom time format to use when converting fields of time type " +
-                    "({\"int\": \"long\", \"logicalType\": \"time-millis\"}).")
+            .name("Time Format")
+            .description("Specifies the format to use when reading/writing Time fields. "
+                    + "If not specified, the default format '" + RecordFieldType.TIME.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
+                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-
     static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
-            .name("put-es-record-ts-format")
-            .displayName("Timestamp Format")
-            .description("Custom timestamp format to use when converting fields of timestamp type " +
-                    "({\"type\": \"long\", \"logicalType\": \"timestamp-millis\"}).")
+            .name("Timestamp Format")
+            .description("Specifies the format to use when reading/writing Timestamp fields. "
+                    + "If not specified, the default format '" + RecordFieldType.TIMESTAMP.getDefaultFormat() + "' is used. "
+                    + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by "
+                    + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
+                    + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new SimpleDateFormatValidator())
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     private static final Set<Relationship> relationships;
@@ -284,6 +287,18 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     public void setup(ProcessContext context) {
         super.setup(context);
         recordPathCache = new RecordPathCache(10);
+        this.dateFormat = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.dateFormat == null) {
+            this.dateFormat = RecordFieldType.DATE.getDefaultFormat();
+        }
+        this.timeFormat = context.getProperty(TIME_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.timeFormat == null) {
+            this.timeFormat = RecordFieldType.TIME.getDefaultFormat();
+        }
+        this.timestampFormat = context.getProperty(TIMESTAMP_FORMAT).evaluateAttributeExpressions().getValue();
+        if (this.timestampFormat == null) {
+            this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
+        }
     }
 
     @Override
@@ -347,18 +362,6 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         }
 
         this.nullSuppression = context.getProperty(SUPPRESS_NULLS).getValue();
-        this.dateFormat = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
-        if (this.dateFormat == null) {
-            this.dateFormat = RecordFieldType.DATE.getDefaultFormat();
-        }
-        this.timeFormat = context.getProperty(TIME_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
-        if (this.timeFormat == null) {
-            this.timeFormat = RecordFieldType.TIME.getDefaultFormat();
-        }
-        this.timestampFormat = context.getProperty(TIMESTAMP_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
-        if (this.timestampFormat == null) {
-            this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
-        }
 
         final String id_path = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
