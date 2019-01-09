@@ -41,13 +41,13 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -586,9 +586,9 @@ public class TestPutElasticsearchHttpRecord {
 	    parser.addSchemaField("time", RecordFieldType.TIME);
 	    parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
 
-        parser.addRecord(1, "reç1", 101, Date.valueOf("2018-12-20"), Time.valueOf("13:55:50"), Timestamp.valueOf("2018-12-20 13:55:50"));
-        parser.addRecord(2, "ræc2", 102, Date.valueOf("2018-12-20"), Time.valueOf("13:55:50"), Timestamp.valueOf("2018-12-20 13:55:50"));
-        parser.addRecord(3, "rèc3", 103, Date.valueOf("2018-12-20"), Time.valueOf("13:55:50"), Timestamp.valueOf("2018-12-20 13:55:50"));
-        parser.addRecord(4, "rëc4", 104, Date.valueOf("2018-12-20"), Time.valueOf("13:55:50"), Timestamp.valueOf("2018-12-20 13:55:50"));
+        parser.addRecord(1, "reç1", 101, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+        parser.addRecord(2, "ræc2", 102, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+        parser.addRecord(3, "rèc3", 103, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+        parser.addRecord(4, "rëc4", 104, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
     }
 }
