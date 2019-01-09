@@ -28,9 +28,9 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.krb.KeytabAction;
-import org.apache.nifi.security.krb.KeytabUser;
-import org.apache.nifi.security.krb.StandardKeytabUser;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosUser;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
 
@@ -63,7 +63,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
     private volatile String basicPassword;
     private volatile boolean basicAuthEnabled = false;
 
-    private volatile KeytabUser keytabUser;
+    private volatile KerberosUser kerberosUser;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
@@ -78,12 +78,12 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         if (kerberosCredentialsService != null) {
-            this.keytabUser = createKeytabUser(kerberosCredentialsService);
+            this.kerberosUser = createKeytabUser(kerberosCredentialsService);
         }
     }
 
-    protected KeytabUser createKeytabUser(final KerberosCredentialsService kerberosCredentialsService) {
-        return new StandardKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
+    protected KerberosUser createKeytabUser(final KerberosCredentialsService kerberosCredentialsService) {
+        return new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
     }
 
     @OnStopped
@@ -96,10 +96,10 @@ public abstract class SolrProcessor extends AbstractProcessor {
             }
         }
 
-        if (keytabUser != null) {
+        if (kerberosUser != null) {
             try {
-                keytabUser.logout();
-                keytabUser = null;
+                kerberosUser.logout();
+                kerberosUser = null;
             } catch (LoginException e) {
                 getLogger().debug("Error logging out keytab user", e);
             }
@@ -108,8 +108,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final KeytabUser keytabUser = getKerberosKeytabUser();
-        if (keytabUser == null) {
+        final KerberosUser kerberosUser = getKerberosKeytabUser();
+        if (kerberosUser == null) {
             doOnTrigger(context, session);
         } else {
             // wrap doOnTrigger in a privileged action
@@ -119,8 +119,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
             };
 
             // execute the privileged action as the given keytab user
-            final KeytabAction keytabAction = new KeytabAction(keytabUser, action, context, getLogger());
-            keytabAction.execute();
+            final KerberosAction kerberosAction = new KerberosAction(kerberosUser, action, context, getLogger());
+            kerberosAction.execute();
         }
     }
 
@@ -168,8 +168,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
         return basicAuthEnabled;
     }
 
-    protected final KeytabUser getKerberosKeytabUser() {
-        return keytabUser;
+    protected final KerberosUser getKerberosKeytabUser() {
+        return kerberosUser;
     }
 
     @Override

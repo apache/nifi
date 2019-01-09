@@ -37,7 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
-public class KeytabUserIT {
+public class KerberosUserIT {
 
     @ClassRule
     public static TemporaryFolder tmpDir = new TemporaryFolder();
@@ -50,6 +50,9 @@ public class KeytabUserIT {
     private static KerberosPrincipal principal2;
     private static File principal2KeytabFile;
 
+    private static KerberosPrincipal principal3;
+    private static final String principal3Password = "changeme";
+
     @BeforeClass
     public static void setupClass() throws Exception {
         kdc = new KDCServer(tmpDir.newFolder("mini-kdc_"));
@@ -58,31 +61,34 @@ public class KeytabUserIT {
 
         principal1 = new KerberosPrincipal("user1@" + kdc.getRealm());
         principal1KeytabFile = tmpDir.newFile("user1.keytab");
-        kdc.createKeytabFile(principal1KeytabFile, "user1");
+        kdc.createKeytabPrincipal(principal1KeytabFile, "user1");
 
         principal2 = new KerberosPrincipal("user2@" + kdc.getRealm());
         principal2KeytabFile = tmpDir.newFile("user2.keytab");
-        kdc.createKeytabFile(principal2KeytabFile, "user2");
+        kdc.createKeytabPrincipal(principal2KeytabFile, "user2");
+
+        principal3 = new KerberosPrincipal("user3@" + kdc.getRealm());
+        kdc.createPasswordPrincipal("user3", principal3Password);
     }
 
     @Test
-    public void testSuccessfulLoginAndLogout() throws LoginException {
+    public void testKeytabUserSuccessfulLoginAndLogout() throws LoginException {
         // perform login for user1
-        final KeytabUser user1 = new StandardKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
+        final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
         user1.login();
 
         // perform login for user2
-        final KeytabUser user2 = new StandardKeytabUser(principal2.getName(), principal2KeytabFile.getAbsolutePath());
+        final KerberosUser user2 = new KerberosKeytabUser(principal2.getName(), principal2KeytabFile.getAbsolutePath());
         user2.login();
 
         // verify user1 Subject only has user1 principal
-        final Subject user1Subject = ((StandardKeytabUser) user1).getSubject();
+        final Subject user1Subject = ((KerberosKeytabUser) user1).getSubject();
         final Set<Principal> user1SubjectPrincipals = user1Subject.getPrincipals();
         assertEquals(1, user1SubjectPrincipals.size());
         assertEquals(principal1.getName(), user1SubjectPrincipals.iterator().next().getName());
 
         // verify user2 Subject only has user2 principal
-        final Subject user2Subject = ((StandardKeytabUser) user2).getSubject();
+        final Subject user2Subject = ((KerberosKeytabUser) user2).getSubject();
         final Set<Principal> user2SubjectPrincipals = user2Subject.getPrincipals();
         assertEquals(1, user2SubjectPrincipals.size());
         assertEquals(principal2.getName(), user2SubjectPrincipals.iterator().next().getName());
@@ -101,9 +107,9 @@ public class KeytabUserIT {
     }
 
     @Test
-    public void testLoginWithUnknownPrincipal() throws LoginException {
+    public void testKeytabLoginWithUnknownPrincipal() throws LoginException {
         final String unknownPrincipal = "doesnotexist@" + kdc.getRealm();
-        final KeytabUser user1 = new StandardKeytabUser(unknownPrincipal, principal1KeytabFile.getAbsolutePath());
+        final KerberosUser user1 = new KerberosKeytabUser(unknownPrincipal, principal1KeytabFile.getAbsolutePath());
         try {
             user1.login();
             fail("Login should have failed");
@@ -114,8 +120,37 @@ public class KeytabUserIT {
     }
 
     @Test
+    public void testPasswordUserSuccessfulLoginAndLogout() throws LoginException {
+        // perform login for user
+        final KerberosUser user = new KerberosPasswordUser(principal3.getName(), principal3Password);
+        user.login();
+
+        // verify user Subject only has user principal
+        final Subject userSubject = ((KerberosPasswordUser) user).getSubject();
+        final Set<Principal> userSubjectPrincipals = userSubject.getPrincipals();
+        assertEquals(1, userSubjectPrincipals.size());
+        assertEquals(principal3.getName(), userSubjectPrincipals.iterator().next().getName());
+
+        // call check/relogin and verify neither user performed a relogin
+        assertFalse(user.checkTGTAndRelogin());
+
+        // perform logout for both users
+        user.logout();
+
+        // verify subjects have no more principals
+        assertEquals(0, userSubject.getPrincipals().size());
+    }
+
+    @Test(expected = LoginException.class)
+    public void testPasswordUserLoginWithInvalidPassword() throws LoginException {
+        // perform login for user
+        final KerberosUser user = new KerberosPasswordUser("user3", "NOT THE PASSWORD");
+        user.login();
+    }
+
+    @Test
     public void testCheckTGTAndRelogin() throws LoginException, InterruptedException {
-        final KeytabUser user1 = new StandardKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
+        final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
         user1.login();
 
         // Since we set the lifetime to 15 seconds we should hit a relogin before 15 attempts
@@ -136,7 +171,7 @@ public class KeytabUserIT {
 
     @Test
     public void testKeytabAction() {
-        final KeytabUser user1 = new StandardKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
+        final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
 
         final AtomicReference<String> resultHolder = new AtomicReference<>(null);
         final PrivilegedAction privilegedAction = () -> {
@@ -148,8 +183,8 @@ public class KeytabUserIT {
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
 
         // create the action to test and execute it
-        final KeytabAction keytabAction = new KeytabAction(user1, privilegedAction, context, logger);
-        keytabAction.execute();
+        final KerberosAction kerberosAction = new KerberosAction(user1, privilegedAction, context, logger);
+        kerberosAction.execute();
 
         // if the result holder has the string success then we know the action executed
         assertEquals("SUCCESS", resultHolder.get());
