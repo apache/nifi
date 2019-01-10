@@ -452,10 +452,10 @@ public class TestPutSolrContentStream {
         runner.assertValid();
 
         proc.onScheduled(runner.getProcessContext());
-        final KerberosKeytabUser kerberosUser = Mockito.mock(KerberosKeytabUser.class);
+        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();;
         Assert.assertNotNull(kerberosUser);
         Assert.assertEquals(principal, kerberosUser.getPrincipal());
-        Assert.assertEquals(keytab, kerberosUser.getKeytabFile());
+        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
