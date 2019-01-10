@@ -19,6 +19,8 @@ package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -46,6 +48,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@CapabilityDescription("Lookup a record from Elasticsearch Server associated with the specified document ID. " +
+        "The coordinates that are passed to the lookup must contain the key 'id'.")
+@Tags({"lookup", "enrich", "record", "elasticsearch"})
 public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Record> {
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("el-rest-client-service")
