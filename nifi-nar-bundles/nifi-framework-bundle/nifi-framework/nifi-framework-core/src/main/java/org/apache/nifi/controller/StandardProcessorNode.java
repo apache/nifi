@@ -77,6 +77,7 @@ import org.springframework.util.Assert;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1544,9 +1545,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 } finally {
                     schedulingAgentCallback.onTaskComplete();
                 }
-            } catch (final Exception e) {
+            } catch (Exception e) {
+                final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
                 procLog.error("Failed to properly initialize Processor. If still scheduled to run, NiFi will attempt to "
-                    + "initialize and run the Processor again after the 'Administrative Yield Duration' has elapsed. Failure is due to " + e, e);
+                    + "initialize and run the Processor again after the 'Administrative Yield Duration' has elapsed. Failure is due to " + cause, cause);
 
                 // If processor's task completed Exceptionally, then we want to retry initiating the start (if Processor is still scheduled to run).
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
