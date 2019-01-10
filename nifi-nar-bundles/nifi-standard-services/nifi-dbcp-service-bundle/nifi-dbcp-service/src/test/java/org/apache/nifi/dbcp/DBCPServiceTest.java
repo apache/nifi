@@ -237,9 +237,6 @@ public class DBCPServiceTest {
         Assert.assertEquals(4, service.getDataSource().getNumIdle());
         Assert.assertEquals(0, service.getDataSource().getNumActive());
 
-        Thread.sleep(500);
-        Assert.assertEquals(1, service.getDataSource().getNumIdle());
-
         service.getDataSource().close();
     }
 
