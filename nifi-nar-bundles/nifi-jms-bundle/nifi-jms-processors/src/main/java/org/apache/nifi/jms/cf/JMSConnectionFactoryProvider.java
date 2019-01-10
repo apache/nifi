@@ -139,6 +139,14 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                 .build();
     }
 
+    @Override
+    public void resetConnectionFactory(ConnectionFactory cachedFactory) {
+        if (cachedFactory == connectionFactory) {
+            getLogger().debug("Resetting connection factory");
+            connectionFactory = null;
+        }
+    }
+
     /**
      * @return new instance of {@link ConnectionFactory}
      */
@@ -316,5 +324,4 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
         }
     }
-
 }

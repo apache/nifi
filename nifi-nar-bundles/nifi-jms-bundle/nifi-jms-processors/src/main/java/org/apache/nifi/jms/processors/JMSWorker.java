@@ -36,6 +36,7 @@ abstract class JMSWorker {
     protected final JmsTemplate jmsTemplate;
     protected final ComponentLog processLog;
     private final CachingConnectionFactory connectionFactory;
+    private boolean isValid = true;
 
 
     /**
@@ -60,5 +61,13 @@ abstract class JMSWorker {
     public String toString() {
         return this.getClass().getSimpleName() + "[destination:" + this.jmsTemplate.getDefaultDestinationName()
                 + "; pub-sub:" + this.jmsTemplate.isPubSubDomain() + ";]";
+    }
+
+    public boolean isValid() {
+        return isValid;
+    }
+
+    public void setValid(boolean isValid) {
+        this.isValid = isValid;
     }
 }

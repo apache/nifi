@@ -35,4 +35,12 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
      */
     ConnectionFactory getConnectionFactory();
 
+    /**
+     * Resets {@link ConnectionFactory}.
+     * Provider should reset {@link ConnectionFactory} only if a copy provided by a client matches
+     * current {@link ConnectionFactory}.
+     * @param cachedFactory - {@link ConnectionFactory} cached by client.
+     */
+    void resetConnectionFactory(ConnectionFactory cachedFactory);
+
 }
