@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -65,11 +66,26 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
 
-    public static final String TRANSACTION_READ_UNCOMMITTED = "TRANSACTION_READ_UNCOMMITTED";
-    public static final String TRANSACTION_READ_COMMITTED = "TRANSACTION_READ_COMMITTED";
-    public static final String TRANSACTION_REPEATABLE_READ = "TRANSACTION_REPEATABLE_READ";
-    public static final String TRANSACTION_NONE = "TRANSACTION_NONE";
-    public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
+    private static AllowableValue TRANSACTION_READ_COMMITTED = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_READ_COMMITTED),
+            "TRANSACTION_READ_COMMITTED"
+    );
+    private static AllowableValue TRANSACTION_READ_UNCOMMITTED = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_READ_UNCOMMITTED),
+            "TRANSACTION_READ_UNCOMMITTED"
+    );
+    private static AllowableValue TRANSACTION_REPEATABLE_READ = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_REPEATABLE_READ),
+            "TRANSACTION_REPEATABLE_READ"
+    );
+    private static AllowableValue TRANSACTION_NONE =  new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_NONE),
+            "TRANSACTION_NONE"
+    );
+    private static AllowableValue TRANSACTION_SERIALIZABLE = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_SERIALIZABLE),
+            "TRANSACTION_SERIALIZABLE"
+    );
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -119,11 +135,10 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .build();
 
     public static final PropertyDescriptor TRANS_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
-            .name("Transaction Isolation Level")
+            .name("transaction-isolation-level")
             .displayName("Transaction Isolation Level")
             .description("This setting will set the transaction isolation level for the database connection for drivers that support this setting")
-            .defaultValue(TRANSACTION_READ_UNCOMMITTED)
-            .required(true)
+            .required(false)
             .allowableValues(TRANSACTION_NONE,TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
             .build();
 
@@ -185,8 +200,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
                 ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
                 : 0;
-        final String transIsolationLevel = context.getProperty(TRANS_ISOLATION_LEVEL).evaluateAttributeExpressions().getValue();
-
+        final Integer transIsolationLevel = context.getProperty(TRANS_ISOLATION_LEVEL).isSet()
+                ? context.getProperty(TRANS_ISOLATION_LEVEL).asInteger()
+                : null;
 
         SqlWriter sqlWriter = configureSqlWriter(session, context);
 
@@ -243,27 +259,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 }
             }
 
-            int TransIsolationLevelInt;
-            switch (transIsolationLevel){
-                case "TRANSACTION_NONE":
-                    TransIsolationLevelInt = Connection.TRANSACTION_NONE;
-                    break;
-                case "TRANSACTION_READ_UNCOMMITTED":
-                    TransIsolationLevelInt = Connection.TRANSACTION_READ_UNCOMMITTED;
-                    break;
-                case "TRANSACTION_READ_COMMITTED":
-                    TransIsolationLevelInt = Connection.TRANSACTION_READ_COMMITTED;
-                    break;
-                case "TRANSACTION_REPEATABLE_READ":
-                    TransIsolationLevelInt = Connection.TRANSACTION_REPEATABLE_READ;
-                    break;
-                case "TRANSACTION_SERIALIZABLE":
-                    TransIsolationLevelInt = Connection.TRANSACTION_SERIALIZABLE;
-                    break;
-                default:
-                    TransIsolationLevelInt = Connection.TRANSACTION_NONE;
+            if (transIsolationLevel != null) {
+                con.setTransactionIsolation(transIsolationLevel);
             }
-            con.setTransactionIsolation(TransIsolationLevelInt);
 
             String jdbcURL = "DBCPService";
             try {
