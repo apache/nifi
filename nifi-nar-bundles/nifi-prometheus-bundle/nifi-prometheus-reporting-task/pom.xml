@@ -28,12 +28,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>com.sun.net.httpserver</groupId>
-			<artifactId>http</artifactId>
-			<version>20070405</version>
-		</dependency>
-
-		<dependency>
 			<groupId>com.yammer.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
 			<version>${yammer.metrics.version}</version>
