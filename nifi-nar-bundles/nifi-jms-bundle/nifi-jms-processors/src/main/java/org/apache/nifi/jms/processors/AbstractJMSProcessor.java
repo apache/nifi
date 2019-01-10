@@ -157,8 +157,16 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
         try {
             rendezvousWithJms(context, session, worker);
+        } catch(ProcessException e) {
+            //in case of exception, make worker null so it won't be pushed back into a queue of workers.
+            //this will be helpful in a situation, when JNDI has changed, or JMS server is not available
+            //and reconnection is required.
+            worker = null;
+            throw e; //throw the exception as is. it will be printed into logs/bulletin by the framework.
         } finally {
-            workerPool.offer(worker);
+            if (worker != null) {
+                workerPool.offer(worker);
+            }
         }
     }
 
