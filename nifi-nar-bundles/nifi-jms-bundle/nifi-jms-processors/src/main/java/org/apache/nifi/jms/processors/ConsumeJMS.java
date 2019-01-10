@@ -188,28 +188,33 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
-        consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
-            @Override
-            public void accept(final JMSResponse response) {
-                if (response == null) {
-                    return;
+        try {
+            consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+                @Override
+                public void accept(final JMSResponse response) {
+                    if (response == null) {
+                        return;
+                    }
+
+                    FlowFile flowFile = processSession.create();
+                    flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+
+                    final Map<String, String> jmsHeaders = response.getMessageHeaders();
+                    final Map<String, String> jmsProperties = response.getMessageProperties();
+
+                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+                    flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+
+                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                    processSession.transfer(flowFile, REL_SUCCESS);
+                    processSession.commit();
                 }
-
-                FlowFile flowFile = processSession.create();
-                flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
-
-                final Map<String, String> jmsHeaders = response.getMessageHeaders();
-                final Map<String, String> jmsProperties = response.getMessageProperties();
-
-                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-
-                processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.commit();
-            }
-        });
+            });
+        } catch(Exception e) {
+            consumer.setValid(false);
+            throw e; // for backward compatibility with exception handling in flows
+        }
     }
 
     /**

@@ -139,6 +139,14 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
     }
 
     @Override
+    public synchronized void resetConnectionFactory(ConnectionFactory cachedFactory) {
+        if (cachedFactory == connectionFactory) {
+            getLogger().debug("Resetting connection factory");
+            connectionFactory = null;
+        }
+    }
+
+    @Override
     public synchronized ConnectionFactory getConnectionFactory() {
         if (connectionFactory == null) {
             connectionFactory = lookupConnectionFactory();
