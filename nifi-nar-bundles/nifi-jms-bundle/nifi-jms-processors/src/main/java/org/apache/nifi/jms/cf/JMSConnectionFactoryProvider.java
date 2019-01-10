@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import javax.jms.ConnectionFactory;
 import javax.net.ssl.SSLContext;
@@ -51,12 +52,10 @@ import org.slf4j.LoggerFactory;
  * <p>
  * It accomplishes it by adjusting current classpath by adding to it the
  * additional resources (i.e., JMS client libraries) provided by the user via
- * {@link JMSConnectionFactoryProvider#CLIENT_LIB_DIR_PATH}, allowing
- * it then to create an instance of the target {@link ConnectionFactory} based
- * on the provided
- * {@link JMSConnectionFactoryProvider#CONNECTION_FACTORY_IMPL} which
- * can be than access via {@link #getConnectionFactory()} method.
- * </p>
+ * {@link #CLIENT_LIB_DIR_PATH}, allowing it then to create an instance of the
+ * target {@link ConnectionFactory} based on the provided
+ * {@link #CONNECTION_FACTORY_IMPL} which can be than access via
+ * {@link #getConnectionFactory()} method.
  */
 @Tags({"jms", "messaging", "integration", "queue", "topic", "publish", "subscribe"})
 @CapabilityDescription("Provides a generic service to create vendor specific javax.jms.ConnectionFactory implementations. "
@@ -184,25 +183,26 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * invoked to set the corresponding property to a value provided by during
      * service configuration. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
-     * setQueueManager(..) method with a single argument.
-     * <br>
-     * There are also few adjustments to accommodate well known brokers. For
-     * example ActiveMQ ConnectionFactory accepts address of the Message Broker
-     * in a form of URL while IBMs in the form of host/port pair (more common).
-     * So this method will use value retrieved from the 'BROKER_URI' static
-     * property 'as is' if ConnectionFactory implementation is coming from
-     * ActiveMQ or Tibco. For all others (for now) the 'BROKER_URI' value will be
-     * split on ':' and the resulting pair will be used to execute
-     * setHostName(..) and setPort(..) methods on the provided
-     * ConnectionFactory. An exception to this if the ConnectionFactory
-     * implementation is coming from IBM MQ and multiple brokers are listed,
-     * in this case setConnectionNameList(..) method is executed.
-     * This may need to be maintained and adjusted to accommodate other
-     * implementation of ConnectionFactory, but only for URL/Host/Port issue.
-     * All other properties are set as dynamic properties where user essentially
-     * provides both property name and value, The bean convention is also
+     * setQueueManager(..) method with a single argument. The bean convention is also
      * explained in user manual for this component with links pointing to
      * documentation of various ConnectionFactories.
+     * <p>
+     * There are also few adjustments to accommodate well known brokers. For
+     * example ActiveMQ ConnectionFactory accepts address of the Message Broker
+     * in a form of URL while IBMs in the form of host/port pair(s).
+     * <p>
+     * This method will use the value retrieved from the 'BROKER_URI' static
+     * property as is. An exception to this if ConnectionFactory implementation
+     * is coming from IBM MQ and connecting to a stand-alone queue manager. In
+     * this case the Broker URI is expected to be entered as a colon separated
+     * host/port pair, which then is split on ':' and the resulting pair will be
+     * used to execute setHostName(..) and setPort(..) methods on the provided
+     * ConnectionFactory.
+     * <p>
+     * This method may need to be maintained and adjusted to accommodate other
+     * implementation of ConnectionFactory, but only for URL/Host/Port issue.
+     * All other properties are set as dynamic properties where user essentially
+     * provides both property name and value.
      *
      * @see <a href="http://activemq.apache.org/maven/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html#setBrokerURL-java.lang.String-">setBrokerURL(String brokerURL)</a>
      * @see <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html#setServerUrl(java.lang.String)">setServerUrl(String serverUrl)</a>
@@ -211,41 +211,41 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
      * @see #setProperty(String propertyName, Object propertyValue)
      */
-    private void setConnectionFactoryProperties(ConfigurationContext context) {
-        for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+    protected void setConnectionFactoryProperties(ConfigurationContext context) {
+        String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
+        String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
+        if (connectionFactoryValue.startsWith("org.apache.activemq")) {
+            this.setProperty("brokerURL", brokerValue);
+        } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
+            this.setProperty("serverUrl", brokerValue);
+        } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
+            // Try to parse broker URI as colon separated host/port pair
+            String[] hostPort = brokerValue.split(":");
+            if (hostPort.length == 2) {
+                // If broker URI indeed was colon separated host/port pair
+                this.setProperty("hostName", hostPort[0]);
+                this.setProperty("port", hostPort[1]);
+            } else {
+                // Assuming broker is in hostname(port) format
+                this.setProperty("connectionNameList", brokerValue);
+            }
+        }
+
+        SSLContextService sc = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if (sc != null) {
+            SSLContext ssl = sc.createSSLContext(ClientAuth.NONE);
+            this.setProperty("sSLSocketFactory", ssl.getSocketFactory());
+        }
+
+        List<Entry<PropertyDescriptor, String>> dynamicProperties = context.getProperties().entrySet().stream()
+                .filter(entry -> entry.getKey().isDynamic())
+                .collect(Collectors.toList());
+
+        for (Entry<PropertyDescriptor, String> entry : dynamicProperties) {
             PropertyDescriptor descriptor = entry.getKey();
             String propertyName = descriptor.getName();
-            if (descriptor.isDynamic()) {
-                this.setProperty(propertyName, entry.getValue());
-            } else {
-                if (descriptor == BROKER_URI) {
-                    String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
-                    String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
-                    if (connectionFactoryValue.startsWith("org.apache.activemq")) {
-                        this.setProperty("brokerURL", brokerValue);
-                    } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
-                        this.setProperty("serverUrl", brokerValue);
-                    } else {
-                        // Try to parse broker URI as colon separated host/port pair
-                        String[] hostPort = brokerValue.split(":");
-                        // If broker URI indeed was colon separated host/port pair
-                        if (hostPort.length == 2) {
-                            this.setProperty("hostName", hostPort[0]);
-                            this.setProperty("port", hostPort[1]);
-                        } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-                            // Assuming IBM MQ style broker was specified, e.g. "myhost(1414)" and "myhost01(1414),myhost02(1414)"
-                            this.setProperty("connectionNameList", brokerValue);
-                        } else {
-                            throw new IllegalArgumentException("Failed to parse broker url: " + brokerValue);
-                        }
-                    }
-                    SSLContextService sc = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-                    if (sc != null) {
-                        SSLContext ssl = sc.createSSLContext(ClientAuth.NONE);
-                        this.setProperty("sSLSocketFactory", ssl.getSocketFactory());
-                    }
-                } // ignore 'else', since it's the only non-dynamic property that is relevant to CF configuration
-            }
+            String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
+            this.setProperty(propertyName, propertyValue);
         }
     }
 
@@ -267,7 +267,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * follow bean convention and all their properties using Java primitives as
      * arguments.
      */
-    private void setProperty(String propertyName, Object propertyValue) {
+    protected void setProperty(String propertyName, Object propertyValue) {
         String methodName = this.toMethodName(propertyName);
         Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
         if (methods != null && methods.length > 0) {
