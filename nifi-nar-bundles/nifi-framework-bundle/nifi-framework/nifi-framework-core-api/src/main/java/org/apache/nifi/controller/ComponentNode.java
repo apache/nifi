@@ -179,7 +179,7 @@ public interface ComponentNode extends ComponentAuthorizable {
     /**
      * Asynchronously begins the validation process
      */
-    public abstract void performValidation();
+    public abstract ValidationStatus performValidation();
 
     /**
      * Returns a {@link List} of all {@link PropertyDescriptor}s that this

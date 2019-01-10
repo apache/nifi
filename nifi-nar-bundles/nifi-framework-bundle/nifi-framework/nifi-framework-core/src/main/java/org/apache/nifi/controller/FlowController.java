@@ -912,7 +912,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
                     try {
                         if (connectable instanceof ProcessorNode) {
-                            ((ProcessorNode) connectable).getValidationStatus(5, TimeUnit.SECONDS);
                             connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
                         } else {
                             startConnectable(connectable);
@@ -1242,7 +1241,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                         return ScheduledState.RUNNING;
                     }
 
-                    return procNode.getScheduledState();
+                    return procNode.getDesiredState();
                 }
 
                 @Override
@@ -1699,7 +1698,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode.getIdentifier() + " because the controller is terminated");
         }
 
-        reportingTaskNode.performValidation(); // ensure that the reporting task has completed its validation before attempting to start it
         reportingTaskNode.verifyCanStart();
         reportingTaskNode.reloadAdditionalResourcesIfNecessary();
         processScheduler.schedule(reportingTaskNode);
