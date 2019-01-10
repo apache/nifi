@@ -1485,6 +1485,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED) {
                 LOG.debug("{} is stopped. Will not call @OnScheduled lifecycle methods or begin trigger onTrigger() method", StandardProcessorNode.this);
                 schedulingAgentCallback.onTaskComplete();
+                scheduledState.set(ScheduledState.STOPPED);
                 return null;
             }
 
