@@ -25,6 +25,13 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 
 class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
+    Map data = [
+        "username": "john.smith",
+        "password": "testing1234",
+        "email": "john.smith@test.com",
+        "position": "Software Engineer"
+    ]
+
     @Override
     IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
         return null
@@ -52,18 +59,13 @@ class TestElasticSearchClientService extends AbstractControllerService implement
 
     @Override
     Map<String, Object> get(String index, String type, String id) throws IOException {
-        return null
+        return data
     }
 
     @Override
     SearchResponse search(String query, String index, String type) throws IOException {
         List hits = [[
-            "_source": [
-                "username": "john.smith",
-                "password": "testing1234",
-                "email": "john.smith@test.com",
-                "position": "Software Engineer"
-            ]
+            "_source": data
         ]]
         return new SearchResponse(hits, null, 1, 100, false)
     }
