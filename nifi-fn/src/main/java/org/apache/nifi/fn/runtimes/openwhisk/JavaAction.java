@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.fn.runtimes.OpenWhisk;
+package org.apache.nifi.fn.runtimes.openwhisk;
 
 import com.google.gson.JsonObject;
 import org.apache.nifi.fn.core.FnFlow;
@@ -38,16 +38,16 @@ public class JavaAction {
             boolean successful = flow.runOnce(output);
 
             StringBuilder response = new StringBuilder();
-            for(FnFlowFile file : output)
+            for (FnFlowFile file : output)
                 response.append("\n").append(file);
 
             result.addProperty("success", successful);
             result.addProperty("message", response.toString());
-        } catch (Exception ex){
+        } catch (Exception ex) {
             StringWriter sw = new StringWriter();
             ex.printStackTrace(new PrintWriter(sw));
-            result.addProperty("success",false);
-            result.addProperty("message", "Flow exception: "+ex.getMessage()+"--"+sw.toString());
+            result.addProperty("success", false);
+            result.addProperty("message", "Flow exception: " + ex.getMessage() + "--" + sw.toString());
         }
         return result;
     }

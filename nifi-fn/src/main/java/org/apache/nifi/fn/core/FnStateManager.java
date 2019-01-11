@@ -30,9 +30,10 @@ public class FnStateManager implements StateManager {
     private final AtomicInteger versionIndex = new AtomicInteger(0);
 
     private Map<Scope, FnStateMap> maps; //Local, Cluster
-    public FnStateManager(){
+
+    public FnStateManager() {
         this.maps = new HashMap<>();
-        for(Scope s : Scope.values()){
+        for (Scope s : Scope.values()) {
             this.maps.put(s, new FnStateMap(null, -1L));
         }
     }
@@ -44,9 +45,10 @@ public class FnStateManager implements StateManager {
     public synchronized StateMap getState(final Scope scope) {
         return maps.get(scope);
     }
+
     public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
-        if(oldValue == maps.get(scope)){
-            maps.put(scope,new FnStateMap(newValue, versionIndex.incrementAndGet()));
+        if (oldValue == maps.get(scope)) {
+            maps.put(scope, new FnStateMap(newValue, versionIndex.incrementAndGet()));
             return true;
         } else {
             return false;
@@ -54,6 +56,6 @@ public class FnStateManager implements StateManager {
     }
 
     public synchronized void clear(final Scope scope) {
-        setState(Collections.<String, String> emptyMap(), scope);
+        setState(Collections.<String, String>emptyMap(), scope);
     }
 }

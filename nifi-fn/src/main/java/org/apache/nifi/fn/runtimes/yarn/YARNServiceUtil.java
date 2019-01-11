@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.fn.runtimes.YARN;
+package org.apache.nifi.fn.runtimes.yarn;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -30,47 +30,47 @@ import java.nio.charset.StandardCharsets;
 public class YARNServiceUtil {
     private final String YARNUrl;
     private final String imageName;
-    public YARNServiceUtil(String YARNUrl, String imageName){
+
+    public YARNServiceUtil(String YARNUrl, String imageName) {
         this.YARNUrl = YARNUrl;
         this.imageName = imageName;
     }
-    public boolean launchYARNService(String name, int containerCount, String[] launchCommand, StringBuilder outMessage){
+
+    public boolean launchYARNService(String name, int containerCount, String[] launchCommand, StringBuilder outMessage) {
 
         JsonObject spec = new JsonObject();
-        spec.addProperty("name", name.substring(0,25));
+        spec.addProperty("name", name.substring(0, 25));
         spec.addProperty("version", "1.0.0");
-        spec.addProperty("description", "NiFi-Fn service launched with the following command: "+String.join(",",launchCommand));
+        spec.addProperty("description", "NiFi-Fn service launched with the following command: " + String.join(",", launchCommand));
 
         JsonObject component = new JsonObject();
-        component.addProperty("name","mc");
-        component.addProperty("number_of_containers",containerCount);
+        component.addProperty("name", "mc");
+        component.addProperty("number_of_containers", containerCount);
 
         JsonObject artifact = new JsonObject();
-        artifact.addProperty("id",this.imageName);
-        artifact.addProperty("type","DOCKER");
-        component.add("artifact",artifact);
+        artifact.addProperty("id", this.imageName);
+        artifact.addProperty("type", "DOCKER");
+        component.add("artifact", artifact);
 
-        component.addProperty("launch_command",String.join(",",launchCommand));
+        component.addProperty("launch_command", String.join(",", launchCommand));
 
         JsonObject resource = new JsonObject();
-        resource.addProperty("cpus",1);
-        resource.addProperty("memory","256");
-        component.add("resource",resource);
-
+        resource.addProperty("cpus", 1);
+        resource.addProperty("memory", "256");
+        component.add("resource", resource);
 
         JsonObject env = new JsonObject();
-        env.addProperty("YARN_CONTAINER_RUNTIME_DOCKER_RUN_OVERRIDE_DISABLE","true");
+        env.addProperty("YARN_CONTAINER_RUNTIME_DOCKER_RUN_OVERRIDE_DISABLE", "true");
         JsonObject configuration = new JsonObject();
-        configuration.add("env",env);
-        component.add("configuration",configuration);
+        configuration.add("env", env);
+        component.add("configuration", configuration);
 
         JsonArray components = new JsonArray();
         components.add(component);
         spec.add("components", components);
 
-
         HttpPost request = new HttpPost(
-                this.YARNUrl+"/app/v1/services?user.name="+System.getProperty("user.name")
+            this.YARNUrl + "/app/v1/services?user.name=" + System.getProperty("user.name")
         );
 
         try {

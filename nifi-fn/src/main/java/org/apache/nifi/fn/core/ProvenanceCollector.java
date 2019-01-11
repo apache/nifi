@@ -19,11 +19,17 @@ package org.apache.nifi.fn.core;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.provenance.*;
+import org.apache.nifi.provenance.ProvenanceEventBuilder;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ProvenanceCollector implements ProvenanceReporter {
     private static final Logger logger = LoggerFactory.getLogger(ProvenanceCollector.class);
@@ -48,8 +54,7 @@ public class ProvenanceCollector implements ProvenanceReporter {
     /**
      * Removes the given event from the reporter
      *
-     * @param event
-     *            event
+     * @param event event
      */
     void remove(final ProvenanceEventRecord event) {
         events.remove(event);
@@ -77,10 +82,9 @@ public class ProvenanceCollector implements ProvenanceReporter {
      * ability to de-dupe events, since one or more events may be created by the
      * session itself, as well as by the Processor
      *
-     * @param parents
-     *            parents
-     * @param child
-     *            child
+     * @param parents parents
+     * @param child child
+     *
      * @return record
      */
     ProvenanceEventRecord generateJoinEvent(final Collection<FlowFile> parents, final FlowFile child) {
@@ -124,11 +128,11 @@ public class ProvenanceCollector implements ProvenanceReporter {
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
-                    .setTransitUri(transitUri)
-                    .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
-                    .setEventDuration(transmissionMillis)
-                    .setDetails(details)
-                    .build();
+                .setTransitUri(transitUri)
+                .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
+                .setEventDuration(transmissionMillis)
+                .setDetails(details)
+                .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -154,10 +158,10 @@ public class ProvenanceCollector implements ProvenanceReporter {
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.FETCH)
-                    .setTransitUri(transitUri)
-                    .setEventDuration(transmissionMillis)
-                    .setDetails(details)
-                    .build();
+                .setTransitUri(transitUri)
+                .setEventDuration(transmissionMillis)
+                .setDetails(details)
+                .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -229,7 +233,7 @@ public class ProvenanceCollector implements ProvenanceReporter {
     public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
-                    .setTransitUri(transitUri).setDetails(details).build();
+                .setTransitUri(transitUri).setDetails(details).build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);

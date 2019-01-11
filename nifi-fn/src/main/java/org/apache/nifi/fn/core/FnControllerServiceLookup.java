@@ -31,18 +31,19 @@ import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNull;
 
 public class FnControllerServiceLookup implements ControllerServiceLookup {
 
-
     private final Map<String, FnControllerServiceConfiguration> controllerServiceMap = new ConcurrentHashMap<>();
     private final Map<String, SLF4JComponentLog> controllerServiceLoggers = new HashMap<>();
     private final Map<String, FnStateManager> controllerServiceStateManagers = new HashMap<>();
-
 
     public Map<String, FnControllerServiceConfiguration> getControllerServices() {
         return controllerServiceMap;
@@ -53,9 +54,10 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
         ControllerService service = ReflectionUtils.createControllerService(versionedControllerService);
         Map<String, String> properties = versionedControllerService.getProperties();
 
-        addControllerService(id,service,properties);
+        addControllerService(id, service, properties);
 
     }
+
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
         final SLF4JComponentLog logger = new SLF4JComponentLog(service);
         controllerServiceLoggers.put(identifier, logger);
@@ -94,7 +96,6 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
 
         controllerServiceMap.remove(service.getIdentifier());
     }
-
 
     protected FnControllerServiceConfiguration getConfiguration(final String identifier) {
         return controllerServiceMap.get(identifier);
@@ -143,7 +144,6 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
         return status == null ? null : serviceIdentifier;
     }
 
-
     public void disableControllerService(final ControllerService service) throws InvocationTargetException, IllegalAccessException {
         final FnControllerServiceConfiguration configuration = getConfiguration(service.getIdentifier());
         if (configuration == null) {
@@ -156,9 +156,9 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
 
         ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service);
 
-
         configuration.setEnabled(false);
     }
+
     public void enableControllerService(final ControllerService service, VariableRegistry registry) throws InvocationTargetException, IllegalAccessException {
         final FnControllerServiceConfiguration configuration = getConfiguration(service.getIdentifier());
         if (configuration == null) {
@@ -171,7 +171,6 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
         final ConfigurationContext configContext = new FnConfigurationContext(service, configuration.getProperties(), this, registry);
         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
 
-
         configuration.setEnabled(true);
     }
 
@@ -179,20 +178,23 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
         return controllerServiceLoggers.get(identifier);
     }
 
-
     Map<PropertyDescriptor, String> getControllerServiceProperties(final ControllerService controllerService) {
         return this.getConfiguration(controllerService.getIdentifier()).getProperties();
     }
+
     String getControllerServiceAnnotationData(final ControllerService controllerService) {
         return this.getConfiguration(controllerService.getIdentifier()).getAnnotationData();
     }
+
     public FnStateManager getStateManager(final ControllerService controllerService) {
         return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
+
     public void setControllerServiceAnnotationData(final ControllerService service, final String annotationData) {
         final FnControllerServiceConfiguration configuration = getControllerServiceConfigToUpdate(service);
         configuration.setAnnotationData(annotationData);
     }
+
     private FnControllerServiceConfiguration getControllerServiceConfigToUpdate(final ControllerService service) {
         final FnControllerServiceConfiguration configuration = getConfiguration(service.getIdentifier());
         if (configuration == null) {
@@ -205,7 +207,9 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
 
         return configuration;
     }
-    public ValidationResult setControllerServiceProperty(final ControllerService service, final PropertyDescriptor property, final FnProcessContext context, final VariableRegistry registry, final String value) {
+
+    public ValidationResult setControllerServiceProperty(final ControllerService service, final PropertyDescriptor property, final FnProcessContext context, final VariableRegistry registry, final
+    String value) {
         final FnStateManager serviceStateManager = controllerServiceStateManagers.get(service.getIdentifier());
         if (serviceStateManager == null) {
             throw new IllegalStateException("Controller service " + service + " has not been added to this TestRunner via the #addControllerService method");
@@ -216,7 +220,7 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
 
         final FnControllerServiceConfiguration configuration = getControllerServiceConfigToUpdate(service);
         final String oldValue = configuration.getProperties().get(property);
-        configuration.setProperty(property,value);
+        configuration.setProperty(property, value);
 
         if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
             service.onPropertyModified(property, oldValue, value);
@@ -224,9 +228,5 @@ public class FnControllerServiceLookup implements ControllerServiceLookup {
 
         return validationResult;
     }
-
-
-
-
 
 }

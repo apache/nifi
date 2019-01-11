@@ -20,6 +20,10 @@
 docker image will be tagged nifi-fn:1.9.0-SNAPSHOT
 
 ### Usage:
+After building, the Program can be run from the `target` directory:
+`java -cp nifi-fn-1.9.0-SNAPSHOT.jar:lib/* org.apache.nifi.fn.runtimes.Program <arguments>`
+
+Where the arguments dictate the runtime to use:
 ```
 1) RunFromRegistry [Once|Continuous] <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]
    RunFromRegistry [Once|Continuous] --json <JSON>
@@ -35,12 +39,16 @@ docker image will be tagged nifi-fn:1.9.0-SNAPSHOT
 
 ### Examples:
 ```
-1) RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
-         "DestinationDirectory-/tmp/nififn/output2/" "" "absolute.path-/tmp/nififn/input/;filename-test.txt" "absolute.path-/tmp/nififn/input/;filename-test2.txt"
-2) RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
+1) java -cp nifi-fn-1.9.0-SNAPSHOT.jar:lib/* org.apache.nifi.fn.runtimes.Program \
+    RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
+    "DestinationDirectory-/tmp/nififn/output2/" "" "absolute.path-/tmp/nififn/input/;filename-test.txt" "absolute.path-/tmp/nififn/input/;filename-test2.txt"
+2) java -cp nifi-fn-1.9.0-SNAPSHOT.jar:lib/* org.apache.nifi.fn.runtimes.Program \
+    RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
          "DestinationDirectory-/tmp/nififn/output2/" "f25c9204-6c95-3aa9-b0a8-c556f5f61849" "absolute.path-/tmp/nififn/input/;filename-test.txt"
-3) RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-fn:latest kafka-to-solr 3 --file kafka-to-solr.json
-4) RunOpenwhiskActionServer 8080
+3) java -cp nifi-fn-1.9.0-SNAPSHOT.jar:lib/* org.apache.nifi.fn.runtimes.Program \
+    RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-fn:latest kafka-to-solr 3 --file kafka-to-solr.json
+4) java -cp nifi-fn-1.9.0-SNAPSHOT.jar:lib/* org.apache.nifi.fn.runtimes.Program \
+    RunOpenwhiskActionServer 8080
 ```
 
 ###Notes:
