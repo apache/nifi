@@ -31,9 +31,9 @@ ARG NIFI_TOOLKIT_BINARY_PATH=${NIFI_TOOLKIT_BINARY_PATH:-/nifi/${NIFI_VERSION}/n
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
-
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
+ENV NIFI_WEB_HTTP_PORT=8080
 
 ADD sh/ ${NIFI_BASE_DIR}/scripts/
 
@@ -83,6 +83,8 @@ RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
 
 # Web HTTP(s) & Socket Site-to-Site Ports
 EXPOSE 8080 8443 10000
+
+HEALTHCHECK CMD curl -fsSL http://$(hostname -i || echo localhost):${NIFI_WEB_HTTP_PORT}/nifi || exit 1
 
 WORKDIR ${NIFI_HOME}
 
