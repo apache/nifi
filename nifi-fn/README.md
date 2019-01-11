@@ -15,15 +15,19 @@
 # NiFi-Fn
 
 ### Build:
-```mvn package```
+`mvn package`
 
-docker image will be tagged nifi-fn:1.9.0-SNAPSHOT
+Docker image will be tagged nifi-fn:1.10.0-SNAPSHOT
 
 ### Usage:
+After building, the Program can be run from the `target` directory:
+`java -cp "lib/*" org.apache.nifi.fn.NiFiFn <lib dir> <nar working directory> <arguments>`
+
+Where the arguments dictate the runtime to use:
 ```
 1) RunFromRegistry [Once|Continuous] <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]
    RunFromRegistry [Once|Continuous] --json <JSON>
-   RunFromRegistry [Once|Continuous] --file <File Name>
+   RunFromRegistry [Once|Continuous] --file <File Name>   # Filename of JSON file that matches the examples below.
 
 2) RunYARNServiceFromRegistry        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> \
                                            <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]
@@ -35,12 +39,15 @@ docker image will be tagged nifi-fn:1.9.0-SNAPSHOT
 
 ### Examples:
 ```
-1) RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
-         "DestinationDirectory-/tmp/nififn/output2/" "" "absolute.path-/tmp/nififn/input/;filename-test.txt" "absolute.path-/tmp/nififn/input/;filename-test2.txt"
-2) RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
-         "DestinationDirectory-/tmp/nififn/output2/" "f25c9204-6c95-3aa9-b0a8-c556f5f61849" "absolute.path-/tmp/nififn/input/;filename-test.txt"
-3) RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-fn:latest kafka-to-solr 3 --file kafka-to-solr.json
-4) RunOpenwhiskActionServer 8080
+1) java -cp "lib/*" org.apache.nifi.fn.NiFiFn lib/ work/ \
+    RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
+    "DestinationDirectory-/tmp/nififn/output2/" "" "absolute.path-/tmp/nififn/input/;filename-test.txt" "absolute.path-/tmp/nififn/input/;filename-test2.txt"
+2) java -cp "lib/*" org.apache.nifi.fn.NiFiFn lib/ work/ \
+    RunFromRegistry Once --file /Users/nifi/nifi-fn-configs/flow-abc.json
+3) java -cp "lib/*" org.apache.nifi.fn.NiFiFn lib/ work/ \
+    RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-fn:latest kafka-to-solr 3 --file kafka-to-solr.json
+4) java -cp "lib/*" org.apache.nifi.fn.NiFiFn lib/ work/ \
+    RunOpenwhiskActionServer 8080
 ```
 
 ###Notes:
@@ -54,42 +61,73 @@ docker image will be tagged nifi-fn:1.9.0-SNAPSHOT
           All other attributes will be passed to the flow using the variable registry interface
 ```
 
-###JSON Sample:
-```
-{
-  "nifi_registry": "http://localhost:61080",
-  "nifi_bucket": "3aa885db-30c8-4c87-989c-d32b8ea1d3d8",
-  "nifi_flow": "0d219eb8-419b-42ba-a5ee-ce07445c6fc5",
-  "nifi_flowversion": -1,
-  "nifi_materializecontent":true,
-  "nifi_failureports": ["f25c9204-6c95-3aa9-b0a8-c556f5f61849"],
-  "nifi_flowfiles":[{
-      "absolute.path":"/tmp/nififn/input/",
-      "filename":"test.txt",
+### JSON Format
+The JSON that is provided, either via the `--json` command-line argument or the `--file` command-line argument has the following elements:
 
-      "nifi_content":"hello"
-  },
-  {
-        "absolute.path":"/tmp/nififn/input/",
-        "filename":"test2.txt",
+- `registryUrl` : The URL of the NiFi Registry that should be used for pulling the Flow
+- `bucketId` : The UUID of the Bucket containing the flow
+- `flowId` : The UUID of the flow to run
+- `flowVersion` : _Optional_ - The Version of the flow to run. If not present or equal to -1, then the latest version of the flow will be used.
+- `materializeContent` : _Optional_ - Whether or not the contents of the FlowFile should be stored in Java Heap so that they can be read multiple times. If this value is `false`, the contents of any
+input FlowFile will be read as a stream of data and not buffered into heap. However, this means that the contents can be read only one time. This can be useful if transferring large files from HDFS to
+ another HDFS instance or directory, for example, and contains a simple flow such as `ListHDFS -> FetchHDFS -> PutHDFS`. In this flow, the contents of the files will be buffered into Java Heap if the
+ value of this argument is `true` but will not be if the value of this argument is `false`.
+- `failurePortIds`: _Optional_ - An array of Port UUID's, such that if any data is sent to one of the ports with these ID's, the flow is considered "failed" and will stop immediately.
+- `ssl`: _Optional_ - If present, provides SSL keystore and truststore information that can be used for interacting with the NiFi Registry and for Site-to-Site communications for Remote Process 
+Groups.
+- `flowFiles`: _Optional_ - An array of FlowFiles that should be provided to the flow's Input Port. Each element in the array is a JSON object. That JSON object can have multiple keys. If any of those
+keys is `nifi_content` then the String value of that element will be the FlowFile's content. Otherwise, the key/value pair is considered an attribute of the FlowFile.
+- `variables`: _Optional_ - Key/value pairs that will be passed to the NiFi Flow as variables of the root Process Group.
 
-        "nifi_content":"hi"
-  }],
 
-  "DestinationDirectory":"/tmp/nififn/output2/"
-}
-```
+### Minimal JSON Sample:
+    {
+      "registryUrl": "http://localhost:18080",
+      "bucketId": "3aa885db-30c8-4c87-989c-d32b8ea1d3d8",
+      "flowId": "0d219eb8-419b-42ba-a5ee-ce07445c6fc5"
+    }
+
+
+### Full JSON Sample:
+    {
+      "registryUrl": "https://localhost:9443",
+      "bucketId": "3aa885db-30c8-4c87-989c-d32b8ea1d3d8",
+      "flowId": "0d219eb8-419b-42ba-a5ee-ce07445c6fc5",
+      "flowVersion": 8,
+      "materializeContent":true,
+      "failurePortIds": ["f25c9204-6c95-3aa9-b0a8-c556f5f61849"],
+      "ssl": {
+        "keystoreFile": "/etc/security/keystore.jks",
+        "keystorePass": "apachenifi",
+        "keyPass": "nifiapache",
+        "keystoreType": "JKS",
+        "truststoreFile": "/etc/security/truststore.jks",
+        "truststorePass": "apachenifi",
+        "truststoreType": "JKS"
+      },
+      "flowFiles":[{
+          "absolute.path": "/tmp/nififn/input/",
+          "filename": "test.txt",
+
+          "nifi_content": "hello"
+      },
+      {
+            "absolute.path": "/tmp/nififn/input/",
+            "filename": "test2.txt",
+
+            "nifi_content": "hi"
+      }],
+      "variables": {
+        "DestinationDirectory" : "/tmp/nififn/output2/"
+      }
+    }
+
+
 
 ### TODO:
 * Provenance is always recorded instead of waiting for commit. Rollback could result in duplicates:
     -FnProvenanceReporter.send force option is not appreciated
-    -NiFi-FnProcessSession.adjustCounter immediate is not appreciated
-* Nar directory is hardcoded
-    reflectionUtil uses /usr/share/nifi-1.8.0/lib/ (location inside dockerfile)
-* ####Classloader does not work
-* Add support for:
-    process groups
-    funnels
+    -FnProcessSession.adjustCounter immediate is not appreciated
 * Send logs, metrics, and provenance to kafka/solr (configure a flow ID for each?)
 * counters
 * tests
