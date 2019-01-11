@@ -281,6 +281,9 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
                     getLogger().error("Failed to update Hive for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                             new Object[] {i, e}, e);
                     break;
+                case Self:
+                    getLogger().error("Failed to update Hive for {} due to {};", new Object[] {i, e}, e);
+                    break;
             }
         });
         return RollbackOnFailure.createOnError(onFlowFileError);

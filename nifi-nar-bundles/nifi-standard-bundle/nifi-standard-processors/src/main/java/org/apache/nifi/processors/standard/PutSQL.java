@@ -452,6 +452,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                             new Object[] {i, e}, e);
                     break;
+                case Self:
+                    getLogger().error("Failed to update database for {} due to {};", new Object[] {i, e}, e);
+                    break;
             }
         });
         return RollbackOnFailure.createOnError(onFlowFileError);
