@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.fn.runtimes.OpenWhisk;
+package org.apache.nifi.fn.runtimes.openwhisk;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -24,7 +24,11 @@ import com.sun.net.httpserver.HttpServer;
 import org.apache.nifi.fn.core.FnFlow;
 import org.apache.nifi.fn.core.FnFlowFile;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -72,23 +76,23 @@ public class NiFiFnOpenWhiskAction {
     private class InitHandler implements HttpHandler {
         public void handle(HttpExchange t) throws IOException {
             initialized = true;
-            writeResponse(t, 200,"Initialized");
+            writeResponse(t, 200, "Initialized");
 
-                InputStream is = t.getRequestBody();
+            InputStream is = t.getRequestBody();
             JsonParser parser = new JsonParser();
             JsonObject body = parser.parse(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))).getAsJsonObject();
             System.out.println("Init input: " + body);
             String code = body.get("value").getAsJsonObject().get("code").getAsString();
 
-            if(code.equals("GENERIC")){
+            if (code.equals("GENERIC")) {
                 initialized = true;
-                writeResponse(t, 200,"Initialized Generic Action");
+                writeResponse(t, 200, "Initialized Generic Action");
             } else {
                 JsonObject flowDefinition = parser.parse(code).getAsJsonObject();
                 try {
                     flow = FnFlow.createAndEnqueueFromJSON(flowDefinition);
                     initialized = true;
-                    writeResponse(t, 200, "Initialized "+flow);
+                    writeResponse(t, 200, "Initialized " + flow);
                 } catch (Exception e) {
                     e.printStackTrace(System.err);
                     writeResponse(t, 400, "Error: " + e.getMessage());
@@ -116,7 +120,9 @@ public class NiFiFnOpenWhiskAction {
                         "action_name":"/guest/nififn",
                         "deadline":"1541729057462",
                         "api_key":"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
-                        "value":{"registry":"http://172.26.224.116:61080","SourceCluster":"hdfs://172.26.224.119:8020","SourceFile":"test.txt","SourceDirectory":"hdfs://172.26.224.119:8020/tmp/nififn/input/","flow":"6cf8277a-c402-4957-8623-0fa9890dd45d","bucket":"e53b8a0d-5c85-4fcd-912a-1c549a586c83","DestinationDirectory":"hdfs://172.26.224.119:8020/tmp/nififn/output"},
+                        "value":{"registry":"http://172.26.224.116:61080","SourceCluster":"hdfs://172.26.224.119:8020","SourceFile":"test.txt",
+                        "SourceDirectory":"hdfs://172.26.224.119:8020/tmp/nififn/input/","flow":"6cf8277a-c402-4957-8623-0fa9890dd45d","bucket":"e53b8a0d-5c85-4fcd-912a-1c549a586c83",
+                        "DestinationDirectory":"hdfs://172.26.224.119:8020/tmp/nififn/output"},
                         "namespace":"guest"
                     }
                 input headers:
@@ -129,11 +135,10 @@ public class NiFiFnOpenWhiskAction {
                     Content-length: [595]
                  */
 
-
                 // Run Flow
                 Queue<FnFlowFile> output = new LinkedList<>();
                 boolean successful;
-                if(flow == null) {
+                if (flow == null) {
                     FnFlow tempFlow = FnFlow.createAndEnqueueFromJSON(inputObject);
                     successful = tempFlow.runOnce(output);
                 } else {
@@ -142,7 +147,7 @@ public class NiFiFnOpenWhiskAction {
                 }
 
                 StringBuilder response = new StringBuilder();
-                for(FnFlowFile file : output)
+                for (FnFlowFile file : output)
                     response.append("\n").append(file);
                 NiFiFnOpenWhiskAction.writeResponse(t, successful ? 200 : 400, response.toString());
 

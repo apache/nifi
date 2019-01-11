@@ -50,7 +50,10 @@ public class FnControllerServiceConfiguration {
     public void setProperties(final Map<PropertyDescriptor, String> props) {
         this.properties = new HashMap<>(props);
     }
-    public void setProperty(final PropertyDescriptor key, final String value) { this.properties.put(key,value); }
+
+    public void setProperty(final PropertyDescriptor key, final String value) {
+        this.properties.put(key, value);
+    }
 
     public String getProperty(final PropertyDescriptor descriptor) {
         final String value = properties.get(descriptor);

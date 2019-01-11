@@ -16,17 +16,10 @@
  */
 package org.apache.nifi.fn.core;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Set;
-import java.util.UUID;
-
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.VersionedControllerService;
@@ -34,6 +27,11 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Set;
 
 public class ReflectionUtils {
 
@@ -50,12 +48,13 @@ public class ReflectionUtils {
      * @param annotation the annotation to look for
      * @param instance to invoke a method of
      * @param args to supply in a method call
+     *
      * @throws InvocationTargetException ite
      * @throws IllegalArgumentException iae
      * @throws IllegalAccessException if not allowed to invoke that method
      */
     public static void invokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : instance.getClass().getMethods()) {
             if (method.isAnnotationPresent(annotation)) {
                 final boolean isAccessible = method.isAccessible();
@@ -65,15 +64,15 @@ public class ReflectionUtils {
                     final Class<?>[] argumentTypes = method.getParameterTypes();
                     if (argumentTypes.length > args.length) {
                         throw new IllegalArgumentException(String.format("Unable to invoke method %1$s on %2$s because method expects %3$s parameters but only %4$s were given",
-                                method.getName(), instance, argumentTypes.length, args.length));
+                            method.getName(), instance, argumentTypes.length, args.length));
                     }
 
                     for (int i = 0; i < argumentTypes.length; i++) {
                         final Class<?> argType = argumentTypes[i];
                         if (!argType.isAssignableFrom(args[i].getClass())) {
                             throw new IllegalArgumentException(String.format(
-                                    "Unable to invoke method %1$s on %2$s because method parameter %3$s is expected to be of type %4$s but argument passed was of type %5$s",
-                                    method.getName(), instance, i, argType, args[i].getClass()));
+                                "Unable to invoke method %1$s on %2$s because method parameter %3$s is expected to be of type %4$s but argument passed was of type %5$s",
+                                method.getName(), instance, i, argType, args[i].getClass()));
                         }
                     }
 
@@ -107,6 +106,7 @@ public class ReflectionUtils {
      * @param annotation the annotation to look for
      * @param instance to invoke a method of
      * @param args to supply in a method call
+     *
      * @return <code>true</code> if all appropriate methods were invoked and
      * returned without throwing an Exception, <code>false</code> if one of the
      * methods threw an Exception or could not be invoked; if <code>false</code>
@@ -122,7 +122,7 @@ public class ReflectionUtils {
                     final Class<?>[] argumentTypes = method.getParameterTypes();
                     if (argumentTypes.length > args.length) {
                         LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                                new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                            new Object[]{method.getName(), instance, argumentTypes.length, args.length});
                         return false;
                     }
 
@@ -130,7 +130,7 @@ public class ReflectionUtils {
                         final Class<?> argType = argumentTypes[i];
                         if (!argType.isAssignableFrom(args[i].getClass())) {
                             LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                                    new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                                new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
                             return false;
                         }
                     }
@@ -160,6 +160,7 @@ public class ReflectionUtils {
         }
         return true;
     }
+
     public static ControllerService createControllerService(VersionedControllerService versionedControllerService) {
         //org.apache.nifi.registry.flow.Bundle bundle = versionedControllerService.getBundle();
         //BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), "1.7.1");
@@ -171,7 +172,7 @@ public class ReflectionUtils {
         final Bundle systemBundle = SystemBundle.create(new NiFiProperties() {
             @Override
             public String getProperty(String s) {
-                if(s.equals("nifi.nar.library.directory"))
+                if (s.equals("nifi.nar.library.directory"))
                     return "/usr/share/nifi-1.8.0/lib/";
                 return null;
             }
@@ -197,6 +198,7 @@ public class ReflectionUtils {
             }
         }
     }
+
     public static Processor createProcessor(VersionedProcessor versionedProcessor) throws ProcessorInstantiationException {
         //org.apache.nifi.registry.flow.Bundle bundle = versionedProcessor.getBundle();
         //BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), "1.8.0");
@@ -208,7 +210,7 @@ public class ReflectionUtils {
         final Bundle systemBundle = SystemBundle.create(new NiFiProperties() {
             @Override
             public String getProperty(String s) {
-                if(s.equals("nifi.nar.library.directory"))
+                if (s.equals("nifi.nar.library.directory"))
                     return "/usr/share/nifi-1.8.0/lib/";
                 return null;
             }

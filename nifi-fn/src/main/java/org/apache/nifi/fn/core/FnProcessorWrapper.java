@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.fn.core;
 
-
-import org.apache.nifi.annotation.lifecycle.*;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -29,11 +33,19 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
 
 public class FnProcessorWrapper {
 
@@ -45,7 +57,6 @@ public class FnProcessorWrapper {
     private final Set<Relationship> autoTermination;
     private final Set<Relationship> successOutputPorts;
     private final Set<Relationship> failureOutputPorts;
-
 
     public boolean materializeContent;
     private final Processor processor;
@@ -64,19 +75,21 @@ public class FnProcessorWrapper {
     private volatile boolean isStopped = true;
     private volatile boolean initialized = false;
 
-    FnProcessorWrapper(final VersionedProcessor processor, final FnProcessorWrapper parent, FnControllerServiceLookup lookup, VariableRegistry registry, boolean materializeContent) throws InvocationTargetException, IllegalAccessException, ProcessorInstantiationException {
-        this(ReflectionUtils.createProcessor(processor),parent, lookup, registry,materializeContent);
-        for(String relationship : processor.getAutoTerminatedRelationships()) {
+    FnProcessorWrapper(final VersionedProcessor processor, final FnProcessorWrapper parent, FnControllerServiceLookup lookup, VariableRegistry registry, boolean materializeContent) throws
+        InvocationTargetException, IllegalAccessException, ProcessorInstantiationException {
+        this(ReflectionUtils.createProcessor(processor), parent, lookup, registry, materializeContent);
+        for (String relationship : processor.getAutoTerminatedRelationships()) {
             this.addAutoTermination(new Relationship.Builder().name(relationship).build());
         }
-        processor.getProperties().forEach((key, value) -> this.setProperty(key,value));
+        processor.getProperties().forEach((key, value) -> this.setProperty(key, value));
     }
 
-    FnProcessorWrapper(final Processor processor, final FnProcessorWrapper parent, FnControllerServiceLookup lookup, VariableRegistry registry, boolean materializeContent) throws InvocationTargetException, IllegalAccessException {
+    FnProcessorWrapper(final Processor processor, final FnProcessorWrapper parent, FnControllerServiceLookup lookup, VariableRegistry registry, boolean materializeContent) throws
+        InvocationTargetException, IllegalAccessException {
 
         this.processor = processor;
         this.parents = new ArrayList<>();
-        if(parent != null)
+        if (parent != null)
             this.parents.add(parent);
         this.lookup = lookup;
         this.materializeContent = materializeContent;
@@ -96,34 +109,36 @@ public class FnProcessorWrapper {
 
         final FnProcessorInitializationContext initContext = new FnProcessorInitializationContext(processor, context);
         processor.initialize(initContext);
-        logger =  initContext.getLogger();
+        logger = initContext.getLogger();
 
         ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
 
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
+    public Processor getProcessor() {
+        return this.processor;
+    }
 
-    public Processor getProcessor(){return this.processor;}
-
-    private void initialize(){
+    private void initialize() {
 
         //Validate context
         Collection<ValidationResult> validationResult = context.validate();
-        if(validationResult.stream().anyMatch(a->!a.isValid()) || !this.validate()) {
+        if (validationResult.stream().anyMatch(a -> !a.isValid()) || !this.validate()) {
             throw new IllegalArgumentException(
-                    "context is not valid: "+
-                            String.join("\n",validationResult.stream().map(r->r.toString()).collect(Collectors.toList())));
+                "context is not valid: " +
+                    String.join("\n", validationResult.stream().map(r -> r.toString()).collect(Collectors.toList())));
         }
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            logger.error("Exception: ",e);
+            logger.error("Exception: ", e);
         }
         initialized = true;
     }
+
     public boolean runRecursive(Queue<FnFlowFile> output) {
-        if(!initialized)
+        if (!initialized)
             initialize();
 
         AtomicBoolean processingSuccess = new AtomicBoolean(true);
@@ -134,25 +149,25 @@ public class FnProcessorWrapper {
             this.isStopped = false;
             AtomicBoolean nextStepCalled = new AtomicBoolean(false);
             try {
-                logger.info("Running "+this.processor.getClass().getSimpleName()+".onTrigger with "+inputQueue.size()+" records");
+                logger.info("Running " + this.processor.getClass().getSimpleName() + ".onTrigger with " + inputQueue.size() + " records");
                 processor.onTrigger(context, () -> {
                     final FnProcessSession session = new FnProcessSession(
-                                                                inputQueue,
-                                                                provenanceEvents,
-                                                                processor,
-                                                                outputRelationships,
-                                                                materializeContent,
-                                                                () -> {
-                                                                    if(!nextStepCalled.get()) {
-                                                                        nextStepCalled.set(true);
-                                                                        boolean successfulRun = runChildren(output);
-                                                                        processingSuccess.set(successfulRun);
-                                                                    }
-                                                                });
+                        inputQueue,
+                        provenanceEvents,
+                        processor,
+                        outputRelationships,
+                        materializeContent,
+                        () -> {
+                            if (!nextStepCalled.get()) {
+                                nextStepCalled.set(true);
+                                boolean successfulRun = runChildren(output);
+                                processingSuccess.set(successfulRun);
+                            }
+                        });
                     createdSessions.add(session);
                     return session;
                 });
-                if(!nextStepCalled.get()) {
+                if (!nextStepCalled.get()) {
                     nextStepCalled.set(true);
                     boolean successfulRun = runChildren(output);
                     processingSuccess.set(successfulRun);
@@ -160,37 +175,37 @@ public class FnProcessorWrapper {
                 provenanceEvents.clear();
                 Thread.sleep(runSchedule);
             } catch (final Exception t) {
-                logger.error("Exception in runRecursive "+this.processor.getIdentifier(),t);
+                logger.error("Exception in runRecursive " + this.processor.getIdentifier(), t);
                 return false;
             }
-        } while(!stopRequested && !inputQueue.isEmpty() && processingSuccess.get());
+        } while (!stopRequested && !inputQueue.isEmpty() && processingSuccess.get());
         this.isStopped = true;
         return processingSuccess.get();
     }
 
     private boolean runChildren(Queue<FnFlowFile> output) {
         Queue<FnFlowFile> penalizedFlowFiles = this.getPenalizedFlowFiles();
-        if(penalizedFlowFiles.size() > 0){
+        if (penalizedFlowFiles.size() > 0) {
             output.addAll(penalizedFlowFiles);
             return false;
         }
 
-        for(Relationship r : this.getProcessor().getRelationships()) {
-            if(this.autoTermination.contains(r))
+        for (Relationship r : this.getProcessor().getRelationships()) {
+            if (this.autoTermination.contains(r))
                 continue;
 
             Queue<FnFlowFile> files = this.getAndRemoveFlowFilesForRelationship(r);
-            if(files.size() == 0)
+            if (files.size() == 0)
                 continue;
 
-            if(this.failureOutputPorts.contains(r)) {
+            if (this.failureOutputPorts.contains(r)) {
                 output.addAll(files);
                 return false;
             }
-            if(this.successOutputPorts.contains(r))
+            if (this.successOutputPorts.contains(r))
                 output.addAll(files);
 
-            if(children.containsKey(r)) {
+            if (children.containsKey(r)) {
                 for (FnProcessorWrapper child : children.get(r)) {
                     child.enqueueAll(files);
                     boolean successfulRun = child.runRecursive(output);
@@ -201,19 +216,20 @@ public class FnProcessorWrapper {
         }
         return true;
     }
-    public void shutdown(){
+
+    public void shutdown() {
         this.stopRequested = true;
-        for(Relationship r : this.getProcessor().getRelationships()) {
-            if(this.autoTermination.contains(r))
+        for (Relationship r : this.getProcessor().getRelationships()) {
+            if (this.autoTermination.contains(r))
                 continue;
 
-            if(!children.containsKey(r))
-                throw new IllegalArgumentException("No child for relationship: "+r.getName());
+            if (!children.containsKey(r))
+                throw new IllegalArgumentException("No child for relationship: " + r.getName());
 
             children.get(r).forEach(FnProcessorWrapper::shutdown);
         }
 
-        while(!this.isStopped){
+        while (!this.isStopped) {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
@@ -230,13 +246,14 @@ public class FnProcessorWrapper {
         } catch (IllegalAccessException | InvocationTargetException e) {
             logger.error("Failure on shutdown: ", e);
         }
-        logger.info(this.processor.getClass().getSimpleName()+" shutdown");
+        logger.info(this.processor.getClass().getSimpleName() + " shutdown");
     }
-    public boolean validate(){
-        if(!context.isValid())
+
+    public boolean validate() {
+        if (!context.isValid())
             return false;
 
-        for(Relationship r : this.getProcessor().getRelationships()) {
+        for (Relationship r : this.getProcessor().getRelationships()) {
             boolean hasChildren = this.children.containsKey(r);
             boolean hasAutoterminate = this.autoTermination.contains(r);
             boolean hasFailureOutputPort = this.failureOutputPorts.contains(r);
@@ -246,45 +263,48 @@ public class FnProcessorWrapper {
                 return false;
             }
         }
-        for( Map.Entry<Relationship, ArrayList<FnProcessorWrapper>> child : this.children.entrySet()){
-            for(FnProcessorWrapper n : child.getValue()){
-                if(!n.validate())
+        for (Map.Entry<Relationship, ArrayList<FnProcessorWrapper>> child : this.children.entrySet()) {
+            for (FnProcessorWrapper n : child.getValue()) {
+                if (!n.validate())
                     return false;
             }
         }
         return true;
     }
 
-
-    public void enqueueAll(Queue<FnFlowFile> list){
+    public void enqueueAll(Queue<FnFlowFile> list) {
         inputQueue.addAll(list);
     }
+
     public Queue<FnFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
 
         List<FnFlowFile> sortedList = createdSessions.stream()
-                .flatMap(s-> s.getAndRemoveFlowFilesForRelationship(relationship).stream())
-                .sorted(Comparator.comparing(f -> f.getCreationTime()))
-                .collect(Collectors.toList());
+            .flatMap(s -> s.getAndRemoveFlowFilesForRelationship(relationship).stream())
+            .sorted(Comparator.comparing(f -> f.getCreationTime()))
+            .collect(Collectors.toList());
 
         return new LinkedList<>(sortedList);
     }
-    public Queue<FnFlowFile> getPenalizedFlowFiles(){
+
+    public Queue<FnFlowFile> getPenalizedFlowFiles() {
         List<FnFlowFile> sortedList = createdSessions.stream()
-                .flatMap(s-> s.getPenalizedFlowFiles().stream())
-                .sorted(Comparator.comparing(f -> f.getCreationTime()))
-                .collect(Collectors.toList());
+            .flatMap(s -> s.getPenalizedFlowFiles().stream())
+            .sorted(Comparator.comparing(f -> f.getCreationTime()))
+            .collect(Collectors.toList());
         return new LinkedList<>(sortedList);
 
     }
 
     public ValidationResult setProperty(final PropertyDescriptor property, final String propertyValue) {
-        return context.setProperty(property,propertyValue);
+        return context.setProperty(property, propertyValue);
     }
+
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
         return context.setProperty(propertyName, propertyValue);
     }
-    public void addOutputPort(Relationship relationship, boolean isFailurePort){
-        if(isFailurePort)
+
+    public void addOutputPort(Relationship relationship, boolean isFailurePort) {
+        if (isFailurePort)
             this.failureOutputPorts.add(relationship);
         else
             this.successOutputPorts.add(relationship);
@@ -292,7 +312,7 @@ public class FnProcessorWrapper {
 
     public FnProcessorWrapper addChild(Processor p, Relationship relationship) throws InvocationTargetException, IllegalAccessException {
         ArrayList<FnProcessorWrapper> list = children.computeIfAbsent(relationship, r -> new ArrayList<>());
-        FnProcessorWrapper child = new FnProcessorWrapper(p,this, lookup, variableRegistry, materializeContent);
+        FnProcessorWrapper child = new FnProcessorWrapper(p, this, lookup, variableRegistry, materializeContent);
         list.add(child);
 
         context.addConnection(relationship);
@@ -306,7 +326,8 @@ public class FnProcessorWrapper {
         context.addConnection(relationship);
         return child;
     }
-    public void addAutoTermination(Relationship relationship){
+
+    public void addAutoTermination(Relationship relationship) {
         this.autoTermination.add(relationship);
 
         context.addConnection(relationship);

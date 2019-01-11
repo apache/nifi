@@ -29,7 +29,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class FnFlowFile implements FlowFileRecord {
@@ -50,10 +58,11 @@ public class FnFlowFile implements FlowFileRecord {
     private long lastEnqueuedDate = 0;
     private long enqueuedIndex = 0;
 
-    public FnFlowFile(String content, Map<String,String> attributes, boolean materializeContent){
-        this(content.getBytes(StandardCharsets.UTF_8), attributes,materializeContent);
+    public FnFlowFile(String content, Map<String, String> attributes, boolean materializeContent) {
+        this(content.getBytes(StandardCharsets.UTF_8), attributes, materializeContent);
     }
-    public FnFlowFile(byte[] content, Map<String,String> attributes, boolean materializeContent){
+
+    public FnFlowFile(byte[] content, Map<String, String> attributes, boolean materializeContent) {
         this(materializeContent);
 
         this.attributes.putAll(attributes);
@@ -70,9 +79,10 @@ public class FnFlowFile implements FlowFileRecord {
         try {
             this.setData(toCopy.getDataArray());
         } catch (IOException e) {
-            throw new FlowFileAccessException("Exception creating FlowFile",e);
+            throw new FlowFileAccessException("Exception creating FlowFile", e);
         }
     }
+
     public FnFlowFile(final FnFlowFile toCopy, long offset, long size, boolean materializeContent) {
         this(materializeContent);
         this.id = toCopy.id;
@@ -83,9 +93,10 @@ public class FnFlowFile implements FlowFileRecord {
         try {
             this.setData(Arrays.copyOfRange(toCopy.getDataArray(), (int) offset, (int) (offset + size)));
         } catch (IOException e) {
-            throw new FlowFileAccessException("Exception creating FlowFile",e);
+            throw new FlowFileAccessException("Exception creating FlowFile", e);
         }
     }
+
     public FnFlowFile(boolean materializeContent) {
         this.materializeContent = materializeContent;
         this.creationTime = System.nanoTime();
@@ -96,7 +107,6 @@ public class FnFlowFile implements FlowFileRecord {
         attributes.put(CoreAttributes.PATH.key(), "target");
         attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
     }
-
 
     //region SimpleMethods
     void setPenalized(boolean penalized) {
@@ -210,7 +220,6 @@ public class FnFlowFile implements FlowFileRecord {
     }
     //endregion Methods
 
-
     @Override
     public String toString() {
         JsonObject attributes = new JsonObject();
@@ -221,6 +230,7 @@ public class FnFlowFile implements FlowFileRecord {
 
         return result.toString();
     }
+
     public String toStringFull() {
         JsonObject attributes = new JsonObject();
         this.attributes.forEach(attributes::addProperty);
@@ -228,9 +238,9 @@ public class FnFlowFile implements FlowFileRecord {
         JsonObject result = new JsonObject();
         result.add("attributes", attributes);
         try {
-            result.addProperty("content", new String(this.getDataArray(),StandardCharsets.UTF_8));
+            result.addProperty("content", new String(this.getDataArray(), StandardCharsets.UTF_8));
         } catch (IOException e) {
-            result.addProperty("content","Exception getting content: "+e.getMessage());
+            result.addProperty("content", "Exception getting content: " + e.getMessage());
         }
 
         return result.toString();
@@ -238,15 +248,15 @@ public class FnFlowFile implements FlowFileRecord {
 
     @Override
     public long getSize() {
-        if(isFullyMaterialized)
+        if (isFullyMaterialized)
             return data.length;
         else
             return 0;
     }
 
     public void addData(final byte[] data) {
-        if(materializeContent){
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        if (materializeContent) {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             try {
                 outputStream.write(this.data);
                 outputStream.write(data);
@@ -260,9 +270,10 @@ public class FnFlowFile implements FlowFileRecord {
             this.dataStreams.add(new ByteArrayInputStream(data));
         }
     }
+
     public void addData(final InputStream in) {
-        if(materializeContent) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        if (materializeContent) {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             try {
                 outputStream.write(this.data);
                 outputStream.write(in);
@@ -281,9 +292,10 @@ public class FnFlowFile implements FlowFileRecord {
         this.data = data;
         isFullyMaterialized = true;
     }
+
     public void setData(final InputStream in) {
-        if(materializeContent) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        if (materializeContent) {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             try {
                 outputStream.write(in);
             } catch (IOException e) {
@@ -299,7 +311,7 @@ public class FnFlowFile implements FlowFileRecord {
     }
 
     public InputStream getDataStream() {
-        if(isFullyMaterialized) {
+        if (isFullyMaterialized) {
             return new ByteArrayInputStream(this.data);
         } else {
             return new SequenceInputStream(
@@ -308,17 +320,19 @@ public class FnFlowFile implements FlowFileRecord {
             );
         }
     }
+
     public byte[] getDataArray() throws IOException {
-        if(!isFullyMaterialized) {
+        if (!isFullyMaterialized) {
             materializeData();
         }
 
         return this.data;
     }
+
     public void materializeData() throws IOException {
         InputStream in = this.getDataStream();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024*1024];
+        byte[] buffer = new byte[1024 * 1024];
         int read = 0;
         while ((read = in.read(buffer)) != -1) {
             baos.write(buffer, 0, read);

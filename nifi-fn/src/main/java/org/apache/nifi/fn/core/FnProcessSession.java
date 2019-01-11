@@ -32,12 +32,26 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -63,15 +77,15 @@ public class FnProcessSession implements ProcessSession {
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
     private final Runnable nextStep; //run before commit() completes
 
-    public FnProcessSession(final Queue<FnFlowFile> input, Collection<ProvenanceEventRecord> events, final Processor processor, Set<Relationship> outputRelationships, boolean materializeContent, Runnable nextStep) {
+    public FnProcessSession(final Queue<FnFlowFile> input, Collection<ProvenanceEventRecord> events, final Processor processor, Set<Relationship> outputRelationships, boolean materializeContent,
+                            Runnable nextStep) {
         this.processor = processor;
         this.inputQueue = input;
         this.provenanceReporter = new ProvenanceCollector(this, events, processor.getIdentifier(), processor.getClass().getSimpleName());
         this.materializeContent = materializeContent;
         this.nextStep = nextStep;
-        outputRelationships.forEach(r->outputMap.put(r,new LinkedList<>()));
+        outputRelationships.forEach(r -> outputMap.put(r, new LinkedList<>()));
     }
-
 
     //region Attributes
 
@@ -84,7 +98,7 @@ public class FnProcessSession implements ProcessSession {
         if (!(flowFile instanceof FnFlowFile)) {
             throw new IllegalArgumentException("Cannot update attributes of a flow file that I did not create");
         }
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
         newFlowFile.putAttributes(attrs);
@@ -105,7 +119,7 @@ public class FnProcessSession implements ProcessSession {
             throw new IllegalArgumentException("Should not be attempting to set FlowFile UUID via putAttribute");
         }
 
-        final FnFlowFile newFlowFile = new FnFlowFile( (FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -124,7 +138,7 @@ public class FnProcessSession implements ProcessSession {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
 
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
         newFlowFile.removeAttributes(attrNames);
@@ -160,7 +174,7 @@ public class FnProcessSession implements ProcessSession {
         if (!(flowFile instanceof FnFlowFile)) {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
         final Set<String> attrNames = new HashSet<>();
@@ -168,8 +182,6 @@ public class FnProcessSession implements ProcessSession {
         newFlowFile.removeAttributes(attrNames);
         return newFlowFile;
     }
-
-
 
     /**
      * Inherits the attributes from the given source flow file into another flow
@@ -249,7 +261,8 @@ public class FnProcessSession implements ProcessSession {
          */
         final Map<String, String> firstMap = flowFileList.iterator().next().getAttributes();
 
-        outer: for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
+        outer:
+        for (final Map.Entry<String, String> mapEntry : firstMap.entrySet()) {
             final String key = mapEntry.getKey();
             final String value = mapEntry.getValue();
             for (final FlowFile flowFile : flowFileList) {
@@ -265,16 +278,14 @@ public class FnProcessSession implements ProcessSession {
         return result;
     }
 
-
     //endregion
-
 
     //region Metadata
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {
         Collection<FnFlowFile> fnFlowFiles = (Collection<FnFlowFile>) (Collection) flowFiles;
-        FnProcessSession newFnOwner = (FnProcessSession)newOwner;
+        FnProcessSession newFnOwner = (FnProcessSession) newOwner;
         if (Objects.requireNonNull(newOwner) == this) {
             throw new IllegalArgumentException("Cannot migrate FlowFiles from a Process Session to itself");
         }
@@ -327,8 +338,8 @@ public class FnProcessSession implements ProcessSession {
         }
 
         final Set<String> flowFileIds = flowFiles.stream()
-                .map(ff -> ff.getAttribute(CoreAttributes.UUID.key()))
-                .collect(Collectors.toSet());
+            .map(ff -> ff.getAttribute(CoreAttributes.UUID.key()))
+            .collect(Collectors.toSet());
 
         provenanceReporter.migrate(newFnOwner.provenanceReporter, flowFileIds);
     }
@@ -397,7 +408,7 @@ public class FnProcessSession implements ProcessSession {
     @Override
     public void rollback(final boolean penalize) {
         //if we've already committed then rollback is basically a no-op
-        if(committed){
+        if (committed) {
             return;
         }
 
@@ -441,13 +452,13 @@ public class FnProcessSession implements ProcessSession {
         // if the flowfile provided was created in this session (i.e. it's in currentVersions and not in original versions),
         // then throw an exception indicating that you can't transfer flowfiles back to self.
         // this mimics the same behavior in StandardProcessSession
-        if(currentVersions.get(flowFile.getId()) != null && originalVersions.get(flowFile.getId()) == null) {
+        if (currentVersions.get(flowFile.getId()) != null && originalVersions.get(flowFile.getId()) == null) {
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
         }
 
         beingProcessed.remove(flowFile.getId());
-        inputQueue.add((FnFlowFile)flowFile);
-        updateLastQueuedDate((FnFlowFile)flowFile);
+        inputQueue.add((FnFlowFile) flowFile);
+        updateLastQueuedDate((FnFlowFile) flowFile);
 
     }
 
@@ -462,13 +473,13 @@ public class FnProcessSession implements ProcessSession {
             transfer(flowFile);
             return;
         }
-        if(!processor.getRelationships().contains(relationship)){
+        if (!processor.getRelationships().contains(relationship)) {
             throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
         }
 
         flowFile = validateState(flowFile);
 
-        if(outputMap.containsKey(relationship)){
+        if (outputMap.containsKey(relationship)) {
             Queue<FnFlowFile> queue = this.outputMap.get(relationship);
             queue.add((FnFlowFile) flowFile);
 
@@ -492,10 +503,11 @@ public class FnProcessSession implements ProcessSession {
     public ProvenanceReporter getProvenanceReporter() {
         return provenanceReporter;
     }
+
     @Override
     public FnFlowFile penalize(FlowFile flowFile) {
         flowFile = validateState(flowFile);
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         newFlowFile.setPenalized(true);
         penalized.add(newFlowFile);
@@ -599,7 +611,6 @@ public class FnProcessSession implements ProcessSession {
 
     //endregion
 
-
     @Override
     public void commit() {
         if (!beingProcessed.isEmpty()) {
@@ -618,7 +629,7 @@ public class FnProcessSession implements ProcessSession {
     @Override
     public FnFlowFile clone(FlowFile flowFile) {
         flowFile = validateState(flowFile);
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         beingProcessed.add(newFlowFile.getId());
         return newFlowFile;
@@ -628,18 +639,17 @@ public class FnProcessSession implements ProcessSession {
     public FnFlowFile clone(FlowFile flowFile, final long offset, final long size) {
         flowFile = validateState(flowFile);
         try {
-            ((FnFlowFile)flowFile).materializeData();
+            ((FnFlowFile) flowFile).materializeData();
         } catch (IOException e) {
             e.printStackTrace();
-            throw new FlowFileHandlingException("Error materializing data",e);
+            throw new FlowFileHandlingException("Error materializing data", e);
 
         }
         if (offset + size > flowFile.getSize()) {
             throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + flowFile.toString());
         }
 
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, offset, size, this.materializeContent);
-
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, offset, size, this.materializeContent);
 
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         beingProcessed.add(newFlowFile.getId());
@@ -658,7 +668,7 @@ public class FnProcessSession implements ProcessSession {
         }
 
         try {
-            copyTo(((FnFlowFile) flowFile).getDataStream(),out);
+            copyTo(((FnFlowFile) flowFile).getDataStream(), out);
         } catch (final IOException e) {
             throw new FlowFileAccessException(e.toString(), e);
         }
@@ -673,14 +683,14 @@ public class FnProcessSession implements ProcessSession {
         if (!(flowFile instanceof FnFlowFile)) {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
-        FnFlowFile fnFlowFile = (FnFlowFile)flowFile;
+        FnFlowFile fnFlowFile = (FnFlowFile) flowFile;
 
         final OpenOption mode = append ? StandardOpenOption.APPEND : StandardOpenOption.CREATE;
 
         try (final OutputStream out = Files.newOutputStream(path, mode)) {
-            if(fnFlowFile.materializeContent)
+            if (fnFlowFile.materializeContent)
                 fnFlowFile.materializeData();
-            copyTo(fnFlowFile.getDataStream(),out);
+            copyTo(fnFlowFile.getDataStream(), out);
         } catch (final IOException e) {
             throw new FlowFileAccessException(e.toString(), e);
         }
@@ -696,7 +706,7 @@ public class FnProcessSession implements ProcessSession {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
 
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         newFlowFile.setData(in);
 
         currentVersions.put(newFlowFile.getId(), newFlowFile);
@@ -713,10 +723,10 @@ public class FnProcessSession implements ProcessSession {
         if (!(flowFile instanceof FnFlowFile)) {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
-        if(keepSourceFile == false){
+        if (keepSourceFile == false) {
             throw new IllegalArgumentException("Not going to delete the file...");
         }
-        FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         try {
             newFlowFile.setData(Files.newInputStream(path));
         } catch (IOException e) {
@@ -745,8 +755,8 @@ public class FnProcessSession implements ProcessSession {
         }
         //allowSessionStreamManagement not used...
         try {
-            ((FnFlowFile)flowFile).materializeData();
-            callback.process(((FnFlowFile)flowFile).getDataStream());
+            ((FnFlowFile) flowFile).materializeData();
+            callback.process(((FnFlowFile) flowFile).getDataStream());
         } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         }
@@ -756,7 +766,7 @@ public class FnProcessSession implements ProcessSession {
     public InputStream read(FlowFile flowFile) {
         flowFile = validateState(flowFile);
 
-        return ((FnFlowFile)flowFile).getDataStream();
+        return ((FnFlowFile) flowFile).getDataStream();
     }
 
     @Override
@@ -775,7 +785,7 @@ public class FnProcessSession implements ProcessSession {
             throw new ProcessException(e.toString(), e);
         }
 
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         newFlowFile.setData(baos.toByteArray());
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         return newFlowFile;
@@ -792,7 +802,7 @@ public class FnProcessSession implements ProcessSession {
             @Override
             public void close() throws IOException {
                 super.close();
-                final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, materializeContent);
+                final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, materializeContent);
                 currentVersions.put(newFlowFile.getId(), newFlowFile);
             }
         };
@@ -847,9 +857,9 @@ public class FnProcessSession implements ProcessSession {
     public FnFlowFile merge(Collection<FlowFile> sources, FlowFile destination) {
         sources = validateState(sources);
         destination = validateState(destination);
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)destination, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) destination, this.materializeContent);
         for (final FlowFile flowFile : sources) {
-            newFlowFile.addData(((FnFlowFile)flowFile).getDataStream());
+            newFlowFile.addData(((FnFlowFile) flowFile).getDataStream());
         }
         currentVersions.put(newFlowFile.getId(), newFlowFile);
 
@@ -858,7 +868,7 @@ public class FnProcessSession implements ProcessSession {
 
     @Override
     public FnFlowFile merge(Collection<FlowFile> sources, FlowFile destination, byte[] header, byte[] footer, byte[] demarcator) {
-        Collection<FnFlowFile> fnSources = (Collection)validateState(sources);
+        Collection<FnFlowFile> fnSources = (Collection) validateState(sources);
         FnFlowFile fnDestination = validateState(destination);
 
         if (header != null) {
@@ -885,7 +895,7 @@ public class FnProcessSession implements ProcessSession {
 
     public FnFlowFile unpenalize(FlowFile flowFile) {
         flowFile = validateState(flowFile);
-        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile)flowFile, this.materializeContent);
+        final FnFlowFile newFlowFile = new FnFlowFile((FnFlowFile) flowFile, this.materializeContent);
         currentVersions.put(newFlowFile.getId(), newFlowFile);
         newFlowFile.setPenalized(false);
         penalized.remove(newFlowFile);
@@ -893,9 +903,7 @@ public class FnProcessSession implements ProcessSession {
     }
     //endregion
 
-
     //region Utility
-
 
     boolean isFlowFileKnown(final FlowFile flowFile) {
         final FlowFile curFlowFile = currentVersions.get(flowFile.getId());
@@ -912,11 +920,10 @@ public class FnProcessSession implements ProcessSession {
         return true;
     }
 
-
     private List<FlowFile> validateState(final Collection<FlowFile> flowFiles) {
         return flowFiles.stream()
-                .map(ff -> validateState(ff))
-                .collect(Collectors.toList());
+            .map(ff -> validateState(ff))
+            .collect(Collectors.toList());
     }
 
     private FnFlowFile validateState(final FlowFile flowFile) {
@@ -936,20 +943,21 @@ public class FnProcessSession implements ProcessSession {
         return currentVersion;
     }
 
-    public boolean isCommitted(){
+    public boolean isCommitted() {
         return committed;
     }
-    public boolean isRolledback(){
+
+    public boolean isRolledback() {
         return rolledback;
     }
 
-    public boolean isInputQueueEmpty(){
+    public boolean isInputQueueEmpty() {
         return this.inputQueue.isEmpty();
     }
 
-    public boolean areAllFlowFilesTransfered(final Relationship relationship){
-        if(outputMap.containsKey(relationship)) {
-            if(!outputMap.get(relationship).isEmpty())
+    public boolean areAllFlowFilesTransfered(final Relationship relationship) {
+        if (outputMap.containsKey(relationship)) {
+            if (!outputMap.get(relationship).isEmpty())
                 return false;
         }
         return true;
@@ -963,11 +971,11 @@ public class FnProcessSession implements ProcessSession {
         return removedFlowFiles.size();
     }
 
-
     public Queue<FnFlowFile> getAndRemoveFlowFilesForRelationship(final String relationship) {
         final Relationship procRel = new Relationship.Builder().name(relationship).build();
         return getAndRemoveFlowFilesForRelationship(procRel);
     }
+
     public Queue<FnFlowFile> getAndRemoveFlowFilesForRelationship(final Relationship relationship) {
         Queue<FnFlowFile> queue = this.outputMap.get(relationship);
         if (queue == null) {
@@ -982,7 +990,6 @@ public class FnProcessSession implements ProcessSession {
         return penalized;
     }
 
-
     private void updateLastQueuedDate(FnFlowFile FnFlowFile) {
         // Simulate StandardProcessSession.updateLastQueuedDate,
         // which is called when a flow file is transferred to a relationship.
@@ -990,9 +997,8 @@ public class FnProcessSession implements ProcessSession {
         FnFlowFile.setEnqueuedIndex(enqueuedIndex.incrementAndGet());
     }
 
-
     private void copyTo(InputStream in, OutputStream out) throws IOException {
-        byte[] buffer = new byte[1024*1024];
+        byte[] buffer = new byte[1024 * 1024];
         int len;
         while ((len = in.read(buffer)) != -1) {
             out.write(buffer, 0, len);

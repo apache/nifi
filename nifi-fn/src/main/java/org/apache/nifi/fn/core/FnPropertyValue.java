@@ -24,11 +24,11 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,33 +74,32 @@ public class FnPropertyValue implements PropertyValue {
         this.variableRegistry = variableRegistry;
     }
 
-
     private void ensureExpressionsEvaluated() {
         if (Boolean.TRUE.equals(expectExpressions) && !expressionsEvaluated) {
             throw new IllegalStateException("Attempting to retrieve value of " + propertyDescriptor
-                    + " without first evaluating Expressions, even though the PropertyDescriptor indicates "
-                    + "that the Expression Language is Supported. If you realize that this is the case and do not want "
-                    + "this error to occur, it can be disabled by calling TestRunner.setValidateExpressionUsage(false)");
+                + " without first evaluating Expressions, even though the PropertyDescriptor indicates "
+                + "that the Expression Language is Supported. If you realize that this is the case and do not want "
+                + "this error to occur, it can be disabled by calling TestRunner.setValidateExpressionUsage(false)");
         }
     }
 
     private void validateExpressionScope(boolean attributesAvailable) {
         // language scope is not null, we have attributes available but scope is not equal to FF attributes
         // it means that we're not evaluating against flow file attributes even though attributes are available
-        if(expressionLanguageScope != null
-                && (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+        if (expressionLanguageScope != null
+            && (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
-                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
-                    + " proper scope should be set in the property descriptor using"
-                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+                + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                + " proper scope should be set in the property descriptor using"
+                + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
 
         // if the service lookup is an instance of the validation context, we're in the validate() method
         // at this point we don't have any flow file available and we should not care about the scope
         // even though it is defined as FLOWFILE_ATTRIBUTES
-        if(expressionLanguageScope != null
-                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
-                && this.serviceLookup instanceof FnControllerServiceLookup) {
+        if (expressionLanguageScope != null
+            && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+            && this.serviceLookup instanceof FnControllerServiceLookup) {
             return;
         }
 
@@ -124,12 +123,12 @@ public class FnPropertyValue implements PropertyValue {
         //}
 
         // we're trying to evaluate against flow files attributes but we don't have any attributes available.
-        if(expressionLanguageScope != null
-                && (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+        if (expressionLanguageScope != null
+            && (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
-                    + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
-                    + " proper scope should be set in the property descriptor using"
-                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+                + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                + " proper scope should be set in the property descriptor using"
+                + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
     }
 
@@ -184,8 +183,8 @@ public class FnPropertyValue implements PropertyValue {
     private void markEvaluated() {
         if (Boolean.FALSE.equals(expectExpressions)) {
             throw new IllegalStateException("Attempting to Evaluate Expressions but " + propertyDescriptor
-                    + " indicates that the Expression Language is not supported. If you realize that this is the case and do not want "
-                    + "this error to occur, it can be disabled by calling TestRunner.setValidateExpressionUsage(false)");
+                + " indicates that the Expression Language is not supported. If you realize that this is the case and do not want "
+                + "this error to occur, it can be disabled by calling TestRunner.setValidateExpressionUsage(false)");
         }
         expressionsEvaluated = true;
     }
@@ -245,7 +244,7 @@ public class FnPropertyValue implements PropertyValue {
 
     @Override
     public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
-            throws ProcessException {
+        throws ProcessException {
         markEvaluated();
         if (rawValue == null) {
             return this;

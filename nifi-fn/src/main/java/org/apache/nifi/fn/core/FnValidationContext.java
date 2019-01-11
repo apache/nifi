@@ -27,7 +27,10 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.registry.VariableRegistry;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class FnValidationContext implements ValidationContext {
 
@@ -62,7 +65,7 @@ public class FnValidationContext implements ValidationContext {
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final FnProcessContext serviceProcessContext = new FnProcessContext(controllerService, lookup, null ,stateManager, variableRegistry);
+        final FnProcessContext serviceProcessContext = new FnProcessContext(controllerService, lookup, null, stateManager, variableRegistry);
         return new FnValidationContext(serviceProcessContext, lookup, stateManager, variableRegistry);
     }
 
@@ -78,7 +81,7 @@ public class FnValidationContext implements ValidationContext {
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        final Map<String, String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }
@@ -89,7 +92,6 @@ public class FnValidationContext implements ValidationContext {
     public String getAnnotationData() {
         return processContext.getAnnotationData();
     }
-
 
     @Override
     public boolean isExpressionLanguagePresent(final String value) {
@@ -116,7 +118,6 @@ public class FnValidationContext implements ValidationContext {
     public ControllerServiceLookup getControllerServiceLookup() {
         return this.lookup;
     }
-
 
     @Override
     public boolean isValidationRequired(final ControllerService service) {

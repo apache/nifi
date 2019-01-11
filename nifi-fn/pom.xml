@@ -18,20 +18,16 @@
     -->
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.apache.nifi</groupId>
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi</artifactId>
+        <version>1.9.0-SNAPSHOT</version>
+    </parent>
+
     <artifactId>nifi-fn</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -51,18 +47,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>org.apache.nifi.fn.runtimes.Program</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
+            <!--
             <plugin>
                 <groupId>com.spotify</groupId>
                 <artifactId>dockerfile-maven-plugin</artifactId>
@@ -83,6 +68,7 @@
                     </buildArgs>
                 </configuration>
             </plugin>
+            -->
         </plugins>
     </build>
 

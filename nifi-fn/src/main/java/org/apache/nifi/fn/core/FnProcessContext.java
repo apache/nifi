@@ -18,7 +18,11 @@ package org.apache.nifi.fn.core;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
-import org.apache.nifi.components.*;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -30,7 +34,16 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class FnProcessContext implements SchedulingContext, ControllerServiceInitializationContext {
 
@@ -39,7 +52,6 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
-
 
     private String annotationData = null;
     private boolean yieldCalled = false;
@@ -58,10 +70,13 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
 
     private final FnControllerServiceLookup lookup;
 
-    public FnProcessContext(final ConfigurableComponent component, final FnControllerServiceLookup lookup, final String componentName, final StateManager stateManager, final VariableRegistry variableRegistry) {
+    public FnProcessContext(final ConfigurableComponent component, final FnControllerServiceLookup lookup, final String componentName, final StateManager stateManager, final VariableRegistry
+        variableRegistry) {
         this(component, lookup, componentName, new SLF4JComponentLog(component), stateManager, variableRegistry);
     }
-    public FnProcessContext(final ConfigurableComponent component, final FnControllerServiceLookup lookup, final String componentName, final SLF4JComponentLog logger, final FnStateManager statemanager) {
+
+    public FnProcessContext(final ConfigurableComponent component, final FnControllerServiceLookup lookup, final String componentName, final SLF4JComponentLog logger, final FnStateManager
+        statemanager) {
         this(component, lookup, componentName, logger, statemanager, VariableRegistry.EMPTY_REGISTRY);
     }
 
@@ -77,11 +92,9 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
         this.lookup = lookup;
         this.stateManager = stateManager;
         this.variableRegistry = variableRegistry;
-        this.identifier = "ProcessContext-"+this.hashCode();
+        this.identifier = "ProcessContext-" + this.hashCode();
         this.logger = logger;
     }
-
-
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
@@ -109,10 +122,11 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
         return setProperty(new PropertyDescriptor.Builder().name(propertyName).build(), propertyValue);
     }
+
     public ValidationResult setProperty(final PropertyDescriptor descriptor, final String value) {
-        if(descriptor == null)
+        if (descriptor == null)
             throw new IllegalArgumentException("descriptor can not be null");
-        if(value == null)
+        if (value == null)
             throw new IllegalArgumentException("Cannot set property to null value; if the intent is to remove the property, call removeProperty instead");
 
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
@@ -158,7 +172,6 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
         return yieldCalled;
     }
 
-
     @Override
     public int getMaxConcurrentTasks() {
         return maxConcurrentTasks;
@@ -190,7 +203,7 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        final Map<String, String> propValueMap = new LinkedHashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }
@@ -210,9 +223,9 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
         for (Map.Entry<String, FnControllerServiceConfiguration> service : this.lookup.getControllerServices().entrySet()) {
             if (!service.getValue().isEnabled()) {
                 results.add(new ValidationResult.Builder()
-                        .explanation("Controller service " + service.getKey() + " for " + this.getName() + " is not enabled")
-                        .valid(false)
-                        .build());
+                    .explanation("Controller service " + service.getKey() + " for " + this.getName() + " is not enabled")
+                    .valid(false)
+                    .build());
             }
         }
         return results;
@@ -239,11 +252,11 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
             final ControllerService controllerService = this.lookup.getControllerService(controllerServiceId);
             if (controllerService == null) {
                 final ValidationResult result = new ValidationResult.Builder()
-                        .valid(false)
-                        .subject(descriptor.getDisplayName())
-                        .input(controllerServiceId)
-                        .explanation("Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier")
-                        .build();
+                    .valid(false)
+                    .subject(descriptor.getDisplayName())
+                    .input(controllerServiceId)
+                    .explanation("Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier")
+                    .build();
 
                 validationResults.add(result);
                 continue;
@@ -252,11 +265,11 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
             final Class<? extends ControllerService> requiredServiceClass = descriptor.getControllerServiceDefinition();
             if (!requiredServiceClass.isAssignableFrom(controllerService.getClass())) {
                 final ValidationResult result = new ValidationResult.Builder()
-                        .valid(false)
-                        .subject(descriptor.getDisplayName())
-                        .input(controllerServiceId)
-                        .explanation("Invalid Controller Service: " + controllerServiceId + " does not implement interface " + requiredServiceClass)
-                        .build();
+                    .valid(false)
+                    .subject(descriptor.getDisplayName())
+                    .input(controllerServiceId)
+                    .explanation("Invalid Controller Service: " + controllerServiceId + " does not implement interface " + requiredServiceClass)
+                    .build();
 
                 validationResults.add(result);
                 continue;
@@ -265,11 +278,11 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
             final boolean enabled = this.lookup.isControllerServiceEnabled(controllerServiceId);
             if (!enabled) {
                 validationResults.add(new ValidationResult.Builder()
-                        .input(controllerServiceId)
-                        .subject(descriptor.getDisplayName())
-                        .explanation("Controller Service with ID " + controllerServiceId + " is not enabled")
-                        .valid(false)
-                        .build());
+                    .input(controllerServiceId)
+                    .subject(descriptor.getDisplayName())
+                    .explanation("Controller Service with ID " + controllerServiceId + " is not enabled")
+                    .valid(false)
+                    .build());
             }
         }
 
@@ -300,7 +313,6 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
         }
         return encrypted;
     }
-
 
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
@@ -393,7 +405,6 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
-
     @Override
     public String getIdentifier() {
         return identifier;
@@ -413,6 +424,7 @@ public class FnProcessContext implements SchedulingContext, ControllerServiceIni
     public File getKerberosServiceKeytab() {
         return null; //this needs to be wired in.
     }
+
     @Override
     public File getKerberosConfigurationFile() {
         return null; //this needs to be wired in.
