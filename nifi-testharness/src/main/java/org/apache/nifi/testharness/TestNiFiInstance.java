@@ -233,6 +233,10 @@ public class TestNiFiInstance {
     String getNifiVersion() {
         switch (currentState) {
             case INSTALLED:
+            case FLOW_INSTALLED:
+            case STARTED:
+            case START_FAILED:
+            case STOP_FAILED:
             case STOPPED:
 
                 return Objects.requireNonNull(nifiVersion, "nifiVersion is null");
