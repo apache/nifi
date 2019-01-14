@@ -59,6 +59,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -754,10 +755,20 @@ public class AvroTypeUtil {
             case RECORD:
                 final GenericData.Record avroRecord = new GenericData.Record(fieldSchema);
 
-                final Record record = (Record) rawValue;
-                for (final RecordField recordField : record.getSchema().getFields()) {
-                    final Object recordFieldValue = record.getValue(recordField);
-                    final String recordFieldName = recordField.getFieldName();
+                final Set<Map.Entry<String, Object>> entries;
+                if (rawValue instanceof Map) {
+                    final Map<String, Object> map = (Map<String, Object>) rawValue;
+                    entries = map.entrySet();
+                } else if (rawValue instanceof Record) {
+                    entries = new HashSet<>();
+                    final Record record = (Record) rawValue;
+                    record.getSchema().getFields().forEach(field -> entries.add(new AbstractMap.SimpleEntry<>(field.getFieldName(), record.getValue(field))));
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Record");
+                }
+                for (final Map.Entry<String, Object> e : entries) {
+                    final Object recordFieldValue = e.getValue();
+                    final String recordFieldName = e.getKey();
 
                     final Field field = fieldSchema.getField(recordFieldName);
                     if (field == null) {
@@ -771,7 +782,14 @@ public class AvroTypeUtil {
             case UNION:
                 return convertUnionFieldValue(rawValue, fieldSchema, schema -> convertToAvroObject(rawValue, schema, fieldName, charset), fieldName);
             case ARRAY:
-                final Object[] objectArray = (Object[]) rawValue;
+                final Object[] objectArray;
+                if (rawValue instanceof List) {
+                    objectArray = ((List) rawValue).toArray();
+                } else if (rawValue instanceof Object[]) {
+                    objectArray = (Object[]) rawValue;
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to an Array");
+                }
                 final List<Object> list = new ArrayList<>(objectArray.length);
                 int i = 0;
                 for (final Object o : objectArray) {
