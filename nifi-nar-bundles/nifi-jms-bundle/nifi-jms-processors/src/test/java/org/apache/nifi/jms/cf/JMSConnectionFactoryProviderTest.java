@@ -76,7 +76,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validateNotValidForNonExistingLibPath() throws Exception {
+    public void validateNotValidForNonExistingLibPath() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -131,12 +131,12 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void validateGetConnectionFactoryFailureIfServiceNotConfigured() throws Exception {
+    public void validateGetConnectionFactoryFailureIfServiceNotConfigured() {
         new JMSConnectionFactoryProvider().getConnectionFactory();
     }
 
     @Test
-    public void validWithSingleTestBroker() throws Exception {
+    public void validWithSingleTestBroker() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -150,7 +150,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithSingleTestBrokerWithScheme() throws Exception {
+    public void validWithSingleTestBrokerWithScheme() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -164,7 +164,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithMultipleTestBrokers() throws Exception {
+    public void validWithMultipleTestBrokers() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -178,7 +178,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithSingleActiveMqBroker() throws Exception {
+    public void validWithSingleActiveMqBroker() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -192,7 +192,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithMultipleActiveMqBrokers() throws Exception {
+    public void validWithMultipleActiveMqBrokers() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -206,7 +206,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithSingleTibcoBroker() throws Exception {
+    public void validWithSingleTibcoBroker() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -220,7 +220,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithMultipleTibcoBrokers() throws Exception {
+    public void validWithMultipleTibcoBrokers() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -234,7 +234,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithSingleIbmMqBroker() throws Exception {
+    public void validWithSingleIbmMqBroker() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -248,7 +248,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void validWithMultipleIbmMqBrokers() throws Exception {
+    public void validWithMultipleIbmMqBrokers() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
@@ -262,7 +262,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleTestBrokerConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleTestBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -278,7 +278,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleTestBrokerWithSchemaConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleTestBrokerWithSchemaConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -294,7 +294,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnMultipleTestBrokersConnectionFactory() throws Exception {
+    public void propertiesSetOnMultipleTestBrokersConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -310,7 +310,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleActiveMqBrokerConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleActiveMqBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -326,7 +326,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnMultipleActiveMqBrokersConnectionFactory() throws Exception {
+    public void propertiesSetOnMultipleActiveMqBrokersConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -342,7 +342,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleTibcoBrokerConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleTibcoBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -358,7 +358,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnMultipleTibcoBrokersConnectionFactory() throws Exception {
+    public void propertiesSetOnMultipleTibcoBrokersConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -374,7 +374,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleIbmMqBrokerConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleIbmMqBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -390,7 +390,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnMultipleIbmMqBrokersConnectionFactory() throws Exception {
+    public void propertiesSetOnMultipleIbmMqBrokersConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
@@ -406,7 +406,7 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
-    public void propertiesSetOnSingleIbmMqColonSeparatedPairBrokerConnectionFactory() throws Exception {
+    public void propertiesSetOnSingleIbmMqColonSeparatedPairBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
         JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();

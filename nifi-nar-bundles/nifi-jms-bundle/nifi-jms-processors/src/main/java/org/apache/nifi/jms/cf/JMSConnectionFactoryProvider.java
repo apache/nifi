@@ -40,7 +40,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.slf4j.Logger;
@@ -151,7 +150,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     }
 
     @OnEnabled
-    public void enable(ConfigurationContext context) throws InitializationException {
+    public void enable(ConfigurationContext context) {
         try {
             if (!this.configured) {
                 if (logger.isInfoEnabled()) {
@@ -211,7 +210,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
      * @see #setProperty(String propertyName, Object propertyValue)
      */
-    protected void setConnectionFactoryProperties(ConfigurationContext context) {
+    void setConnectionFactoryProperties(ConfigurationContext context) {
         String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
         String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
         if (connectionFactoryValue.startsWith("org.apache.activemq")) {
@@ -267,7 +266,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * follow bean convention and all their properties using Java primitives as
      * arguments.
      */
-    protected void setProperty(String propertyName, Object propertyValue) {
+    void setProperty(String propertyName, Object propertyValue) {
         String methodName = this.toMethodName(propertyName);
         Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
         if (methods != null && methods.length > 0) {

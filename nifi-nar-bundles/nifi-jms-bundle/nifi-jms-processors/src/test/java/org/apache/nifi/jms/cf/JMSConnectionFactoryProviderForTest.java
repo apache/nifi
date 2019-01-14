@@ -18,7 +18,6 @@ package org.apache.nifi.jms.cf;
 
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.reporting.InitializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,12 +34,12 @@ public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryPro
 
     @OnEnabled
     @Override
-    public void enable(ConfigurationContext context) throws InitializationException {
+    public void enable(ConfigurationContext context) {
         setConnectionFactoryProperties(context);
     }
 
     @Override
-    protected void setProperty(String propertyName, Object propertyValue) {
+    void setProperty(String propertyName, Object propertyValue) {
         setProperties.put(propertyName, propertyValue);
     }
 
