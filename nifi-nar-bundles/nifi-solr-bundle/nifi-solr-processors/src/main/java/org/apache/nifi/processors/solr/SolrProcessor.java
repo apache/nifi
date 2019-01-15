@@ -185,6 +185,15 @@ public abstract class SolrProcessor extends AbstractProcessor {
         final List<ValidationResult> problems = new ArrayList<>();
 
         List<ValidationResult> _temp = new ArrayList<>(validateConnectionDetails(context));
+        boolean isClientSet = context.getProperty(CLIENT_SERVICE).isSet();
+        boolean isLocationSet = context.getProperty(SOLR_LOCATION).isSet();
+
+        if (isClientSet && isLocationSet) {
+            _temp.add(new ValidationResult.Builder()
+                .subject("Client Service/Solr location configuration")
+                .explanation("Client service and Solr location cannot be set at the same time.").build());
+        }
+
         if (_temp.size() == 0 && context.getProperty(CLIENT_SERVICE).isSet()) {
             return _temp; //This means that we're using the client service so we can stop.
         } else {
@@ -210,5 +219,4 @@ public abstract class SolrProcessor extends AbstractProcessor {
     protected Collection<ValidationResult> additionalCustomValidation(ValidationContext context) {
         return new ArrayList<>();
     }
-
 }
