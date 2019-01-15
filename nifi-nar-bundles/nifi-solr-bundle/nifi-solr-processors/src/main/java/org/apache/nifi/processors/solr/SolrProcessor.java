@@ -29,7 +29,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosAction;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.services.solr.SolrClientService;
 import org.apache.solr.client.solrj.SolrClient;
@@ -46,6 +45,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.createKeytabUser;
 import static org.apache.nifi.processors.solr.SolrUtils.validateConnectionDetails;
 
 /**
@@ -61,7 +61,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
     private volatile boolean basicAuthEnabled = false;
     private volatile boolean usedControllerService = false;
 
-    private volatile KerberosUser kerberosUser;
+    protected volatile KerberosUser kerberosUser;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
@@ -80,16 +80,12 @@ public abstract class SolrProcessor extends AbstractProcessor {
             this.solrClient = createSolrClient(context, solrLocation);
 
             final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            if (kerberosCredentialsService != null) {
+            if (kerberosCredentialsService != null && this.kerberosUser == null) {
                 this.kerberosUser = createKeytabUser(kerberosCredentialsService);
             }
 
             usedControllerService = false;
         }
-    }
-
-    protected KerberosUser createKeytabUser(final KerberosCredentialsService kerberosCredentialsService) {
-        return new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
     }
 
     @OnStopped

@@ -19,12 +19,17 @@
 
 package org.apache.nifi.services.solr;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.solr.client.solrj.SolrClient;
 
+import javax.security.auth.login.LoginException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,10 +47,12 @@ import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.createKeytabUser;
 import static org.apache.nifi.processors.solr.SolrUtils.createSolrClient;
 
 public class SolrClientServiceImpl extends AbstractControllerService implements SolrClientService {
     private static final List<PropertyDescriptor> DESCRIPTORS;
+    private KerberosUser kerberosUser;
 
     static PropertyDescriptor makeRequired(PropertyDescriptor _desc) {
         return new PropertyDescriptor.Builder()
@@ -85,6 +92,29 @@ public class SolrClientServiceImpl extends AbstractControllerService implements 
     public void onEnabled(ConfigurationContext context) {
         String location = context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
         solrClient = createSolrClient(context, location);
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (kerberosCredentialsService != null) {
+            this.kerberosUser = createKeytabUser(kerberosCredentialsService);
+        }
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        try {
+            solrClient.close();
+        } catch (IOException e) {
+            getLogger().error("Error disconnecting from Solr.", e);
+        }
+
+        if (kerberosUser != null) {
+            try {
+                kerberosUser.logout();
+                kerberosUser = null;
+            } catch (LoginException e) {
+                getLogger().error("Error logging out Kerberos user.", e);
+            }
+        }
     }
 
     @Override

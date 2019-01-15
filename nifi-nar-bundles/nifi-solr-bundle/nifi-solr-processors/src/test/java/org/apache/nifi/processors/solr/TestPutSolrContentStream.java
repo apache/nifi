@@ -648,7 +648,6 @@ public class TestPutSolrContentStream {
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends PutSolrContentStream {
         private SolrClient solrClient;
-        private KerberosUser kerberosUser;
 
         public TestableProcessor(SolrClient solrClient) {
             this.solrClient = solrClient;
@@ -664,12 +663,11 @@ public class TestPutSolrContentStream {
             return solrClient;
         }
 
-        @Override
         protected KerberosUser createKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
             if (kerberosUser != null) {
                 return kerberosUser;
             } else {
-                return super.createKeytabUser(kerberosCredentialsService);
+                return SolrUtils.createKeytabUser(kerberosCredentialsService);
             }
         }
 

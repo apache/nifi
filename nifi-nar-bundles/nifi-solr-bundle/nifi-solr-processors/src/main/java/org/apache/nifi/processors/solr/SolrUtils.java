@@ -35,6 +35,8 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -577,4 +579,7 @@ public class SolrUtils {
         return Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
+    public static KerberosUser createKeytabUser(final KerberosCredentialsService kerberosCredentialsService) {
+        return new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
+    }
 }
