@@ -28,9 +28,9 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.krb.KeytabAction;
-import org.apache.nifi.security.krb.KeytabUser;
-import org.apache.nifi.security.krb.StandardKeytabUser;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.services.solr.SolrClientService;
 import org.apache.solr.client.solrj.SolrClient;
 
@@ -46,7 +46,6 @@ import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.CLIENT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.createSolrClient;
 import static org.apache.nifi.processors.solr.SolrUtils.validateConnectionDetails;
 
 /**
@@ -104,12 +103,13 @@ public abstract class SolrProcessor extends AbstractProcessor {
                 }
             }
 
-        if (kerberosUser != null) {
-            try {
-                kerberosUser.logout();
-                kerberosUser = null;
-            } catch (LoginException e) {
-                getLogger().debug("Error logging out keytab user", e);
+            if (kerberosUser != null) {
+                try {
+                    kerberosUser.logout();
+                    kerberosUser = null;
+                } catch (LoginException e) {
+                    getLogger().debug("Error logging out keytab user", e);
+                }
             }
         }
     }
