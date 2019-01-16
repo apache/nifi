@@ -87,8 +87,6 @@ public class PrometheusMetricsFactory {
         JVM_STATUS.labels("count").set(jvmMetrics.uptime());
         JVM_STATUS.labels("file_descriptor").set(jvmMetrics.fileDescriptorUsage());
 
-        // TODO: implement jvm metrics for GC and thread stats (see old metrics service)
-
         return JVM_REGISTRY;
     }
 
