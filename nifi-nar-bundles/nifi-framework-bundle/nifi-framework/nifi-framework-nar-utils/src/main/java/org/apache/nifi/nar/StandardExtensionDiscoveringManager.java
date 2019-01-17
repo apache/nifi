@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -238,7 +239,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         if (!cobundledApis.isEmpty()) {
             logger.warn(String.format(
                     "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
-                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
         }
 
         // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
@@ -265,7 +266,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         if (!cobundledApis.isEmpty()) {
             logger.warn(String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
-                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
         }
 
         // the service is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
@@ -364,9 +365,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             logger.debug("Including ClassLoader resources from {} for component {}", new Object[] {bundle.getBundleDetails(), instanceIdentifier});
 
             final Set<URL> instanceUrls = new LinkedHashSet<>();
-            for (final URL url : narBundleClassLoader.getURLs()) {
-                instanceUrls.add(url);
-            }
+            instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
 
             ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 
@@ -374,7 +373,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
                 final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
 
-                while (ancestorClassLoader != null && ancestorClassLoader instanceof NarClassLoader) {
+                while (ancestorClassLoader instanceof NarClassLoader) {
                     final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
 
                     // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
@@ -384,9 +383,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                     }
 
                     final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
-                    for (final URL url : ancestorNarClassLoader.getURLs()) {
-                        instanceUrls.add(url);
-                    }
+                    Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
                     ancestorClassLoader = ancestorNarClassLoader.getParent();
                 }
             }
@@ -498,7 +495,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             throw new IllegalArgumentException("Class cannot be null");
         }
         final Set<Class> extensions = definitionMap.get(definition);
-        return (extensions == null) ? Collections.<Class>emptySet() : extensions;
+        return (extensions == null) ? Collections.emptySet() : extensions;
     }
 
     @Override
@@ -527,8 +524,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 
             for (final Class type : entry.getValue()) {
-                final List<Bundle> bundles = classNameBundleLookup.containsKey(type.getName())
-                        ? classNameBundleLookup.get(type.getName()) : Collections.emptyList();
+                final List<Bundle> bundles = classNameBundleLookup.getOrDefault(type.getName(), Collections.emptyList());
 
                 builder.append("\n\t").append(type.getName());
 
