@@ -19,6 +19,7 @@
 
 package org.apache.nifi.testharness;
 
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.testharness.api.FlowFileEditorCallback;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -124,7 +125,7 @@ public final class SimpleNiFiFlowDefinitionEditor implements FlowFileEditorCallb
 
         }
 
-        public Builder setClassOfSingleProcessor(String processorName, Class<?> mockProcessor) {
+        public <P extends Processor> Builder setClassOfSingleProcessor(String processorName, Class<P> mockProcessor) {
 
             return setClassOfSingleProcessor(processorName, mockProcessor.getName());
         }
