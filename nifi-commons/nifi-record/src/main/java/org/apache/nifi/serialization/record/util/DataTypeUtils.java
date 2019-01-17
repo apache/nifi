@@ -177,64 +177,71 @@ public class DataTypeUtils {
         return null;
     }
 
-
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
+        return getCompatibilityRate(value, dataType) != -1;
+    }
+
+    private static int getCompatibilityRate(final Object value, final DataType dataType) {
         switch (dataType.getFieldType()) {
             case ARRAY:
-                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType());
+                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType()) ? 100 : -1;
             case BIGINT:
-                return isBigIntTypeCompatible(value);
+                return isBigIntTypeCompatible(value) ? 100 : -1;
             case BOOLEAN:
-                return isBooleanTypeCompatible(value);
+                return isBooleanTypeCompatible(value) ? 100 : -1;
             case BYTE:
-                return isByteTypeCompatible(value);
+                return isByteTypeCompatible(value) ? 100 : -1;
             case CHAR:
-                return isCharacterTypeCompatible(value);
+                return isCharacterTypeCompatible(value) ? 100 : -1;
             case DATE:
-                return isDateTypeCompatible(value, dataType.getFormat());
+                return isDateTypeCompatible(value, dataType.getFormat()) ? 100 : -1;
             case DOUBLE:
-                return isDoubleTypeCompatible(value);
+                return isDoubleTypeCompatible(value) ? 100 : -1;
             case FLOAT:
-                return isFloatTypeCompatible(value);
+                return isFloatTypeCompatible(value) ? 100 : -1;
             case INT:
-                return isIntegerTypeCompatible(value);
+                return isIntegerTypeCompatible(value) ? 100 : -1;
             case LONG:
-                return isLongTypeCompatible(value);
+                return isLongTypeCompatible(value) ? 100 : -1;
             case RECORD: {
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                return isRecordTypeCompatible(schema, value);
+                return getRecordCompatibilityRating(schema, value);
             }
             case SHORT:
-                return isShortTypeCompatible(value);
+                return isShortTypeCompatible(value) ? 100 : -1;
             case TIME:
-                return isTimeTypeCompatible(value, dataType.getFormat());
+                return isTimeTypeCompatible(value, dataType.getFormat()) ? 100 : -1;
             case TIMESTAMP:
-                return isTimestampTypeCompatible(value, dataType.getFormat());
+                return isTimestampTypeCompatible(value, dataType.getFormat()) ? 100 : -1;
             case STRING:
-                return isStringTypeCompatible(value);
+                return isStringTypeCompatible(value) ? 100 : -1;
             case MAP:
-                return isMapTypeCompatible(value);
+                return isMapTypeCompatible(value) ? 100 : -1;
             case CHOICE: {
                 final DataType chosenDataType = chooseDataType(value, (ChoiceDataType) dataType);
-                return chosenDataType != null;
+                return chosenDataType != null ? 100 : -1;
             }
         }
 
-        return false;
+        return -1;
     }
 
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
+        DataType result = null;
+        int maxCompatibility = -1;
         for (final DataType subType : choiceType.getPossibleSubTypes()) {
-            if (isCompatibleDataType(value, subType)) {
+            int compatibility = getCompatibilityRate(value, subType);
+            if (compatibility > maxCompatibility) {
                 if (subType.getFieldType() == RecordFieldType.CHOICE) {
-                    return chooseDataType(value, (ChoiceDataType) subType);
+                    result = chooseDataType(value, (ChoiceDataType) subType);
+                } else {
+                    result = subType;
                 }
-
-                return subType;
+                maxCompatibility = compatibility;
             }
         }
 
-        return null;
+        return result;
     }
 
     public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {
@@ -492,22 +499,25 @@ public class DataTypeUtils {
      * Check if the given record structured object compatible with the schema.
      * @param schema record schema, schema validation will not be performed if schema is null
      * @param value the record structured object, i.e. Record or Map
-     * @return True if the object is compatible with the schema
+     * @return compatibility rating of the schema (how many non-null fields of the source have been successfully
+     * converted to the target schema). Ranges 0 (only null fields have been converted) to 100 (full compatibility), or
+     * -1 if schema is not compatible with the value.
      */
-    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
-
+    private static int getRecordCompatibilityRating(RecordSchema schema, Object value) {
         if (value == null) {
-            return false;
+            return -1;
         }
 
         if (!(value instanceof Record) && !(value instanceof Map)) {
-            return false;
+            return -1;
         }
 
         if (schema == null) {
-            return true;
+            return 100;
         }
 
+        int totalFields = 0;
+        int nonNullFields = 0;
         for (final RecordField childField : schema.getFields()) {
             final Object childValue;
             if (value instanceof Record) {
@@ -518,17 +528,18 @@ public class DataTypeUtils {
 
             if (childValue == null && !childField.isNullable()) {
                 logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                return false;
+                return -1;
             }
+            totalFields++;
             if (childValue == null) {
                 continue; // consider compatible
             }
-
+            nonNullFields++;
             if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                return false;
+                return -1;
             }
         }
-        return true;
+        return totalFields == 0 ? 100 : (100 * nonNullFields / totalFields);
     }
 
     public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType) {

@@ -18,6 +18,8 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
@@ -29,8 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static org.apache.nifi.serialization.record.RecordFieldType.STRING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -286,5 +294,15 @@ public class TestDataTypeUtils {
         Map<String,Object> testMap = new HashMap<>();
         testMap.put("Hello", "World");
         assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    }
+
+    @Test
+    public void testChoiceCompatibility() {
+        DataType choice1 = new RecordDataType(new SimpleRecordSchema(singletonList(new RecordField("field1", STRING.getDataType(), false))));
+        DataType choice2 = new RecordDataType(new SimpleRecordSchema(singletonList(new RecordField("field2", STRING.getDataType()))));
+        Record record = new MapRecord(new SimpleRecordSchema(emptyList()), singletonMap("field1", "value1"));
+        DataType dataType = DataTypeUtils.chooseDataType(record, new ChoiceDataType(asList(choice2, choice1)));
+        assertEquals(dataType, choice1);
+        assertNotEquals(dataType, choice2);
     }
 }
