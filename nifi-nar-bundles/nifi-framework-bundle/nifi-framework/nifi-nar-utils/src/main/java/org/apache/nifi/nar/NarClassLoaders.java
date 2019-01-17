@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -106,9 +107,10 @@ public final class NarClassLoaders {
      */
     public void init(final ClassLoader rootClassloader,
                      final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
-        if (frameworkWorkingDir == null || extensionsWorkingDir == null) {
+        if (extensionsWorkingDir == null) {
             throw new NullPointerException("cannot have empty arguments");
         }
+
         InitContext ic = initContext;
         if (ic == null) {
             synchronized (this) {
@@ -118,8 +120,10 @@ public final class NarClassLoaders {
                 }
             }
         }
+
         boolean matching = initContext.extensionWorkingDir.equals(extensionsWorkingDir)
-                && initContext.frameworkWorkingDir.equals(frameworkWorkingDir);
+                && Objects.equals(initContext.frameworkWorkingDir, frameworkWorkingDir);
+
         if (!matching) {
             throw new IllegalStateException("Cannot reinitialize and extension/framework directories cannot change");
         }
@@ -138,14 +142,17 @@ public final class NarClassLoaders {
         final Map<String, Set<BundleCoordinate>> narIdBundleLookup = new HashMap<>();
 
         // make sure the nar directory is there and accessible
-        FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
-        FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
-
         final List<File> narWorkingDirContents = new ArrayList<>();
-        final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
-        if (frameworkWorkingDirContents != null) {
-            narWorkingDirContents.addAll(Arrays.asList(frameworkWorkingDirContents));
+
+        if (frameworkWorkingDir != null) {
+            FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
+            if (frameworkWorkingDirContents != null) {
+                narWorkingDirContents.addAll(Arrays.asList(frameworkWorkingDirContents));
+            }
         }
+
+        FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
         final File[] extensionsWorkingDirContents = extensionsWorkingDir.listFiles();
         if (extensionsWorkingDirContents != null) {
             narWorkingDirContents.addAll(Arrays.asList(extensionsWorkingDirContents));
