@@ -43,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 public class NiFiMockFlowTest {
 
     private static final InputStream DEMO_DATA_AS_STREAM =
-            NiFiFlowTest.class.getResourceAsStream("/sample_technology_rss.xml");
+            NiFiMockFlowTest.class.getResourceAsStream("/sample_technology_rss.xml");
 
 
     // We have a dedicated class. It has to be public static
