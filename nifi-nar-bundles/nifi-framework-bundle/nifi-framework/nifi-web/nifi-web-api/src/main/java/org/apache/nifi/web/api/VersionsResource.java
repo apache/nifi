@@ -820,7 +820,7 @@ public class VersionsResource extends ApplicationResource {
                 versionControlInfoDto.setState(flowState.name());
 
                 final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroupContents(rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false,
-                    true, entity.getUpdateDescendantVersionedFlows());
+                    false, entity.getUpdateDescendantVersionedFlows());
                 final VersionControlInformationDTO updatedVci = updatedGroup.getComponent().getVersionControlInformation();
 
                 final VersionControlInformationEntity responseEntity = new VersionControlInformationEntity();
