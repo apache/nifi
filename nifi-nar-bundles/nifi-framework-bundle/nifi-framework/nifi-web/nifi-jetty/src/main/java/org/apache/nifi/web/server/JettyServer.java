@@ -18,6 +18,34 @@ package org.apache.nifi.web.server;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
@@ -47,7 +75,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.security.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
+import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
+import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -78,41 +109,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
 
 /**
  * Encapsulates the Jetty instance.
@@ -583,13 +579,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        // add a filter to set the X-Frame-Options filter
-        webappContext.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
-
-        // add a filter to set the Content Security Policy frame-ancestors directive
-        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
-        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
-        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
+        // add HTTP security headers to all responses
+        final String ALL_PATHS = "/*";
+        ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
+        if(props.isHTTPSConfigured()) {
+            filters.add(StrictTransportSecurityFilter.class);
+        }
+        filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -600,6 +596,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         logger.info("Loading WAR: " + warFile.getAbsolutePath() + " with context path set to " + contextPath);
         return webappContext;
+    }
+
+    private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
+        FilterHolder holder = new FilterHolder(clazz);
+        holder.setName(clazz.getSimpleName());
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
     private void addDocsServlets(WebAppContext docsContext) {
@@ -1147,30 +1149,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
     }
-
-    private static final Filter FRAME_OPTIONS_FILTER = new Filter() {
-        private static final String FRAME_OPTIONS = "X-Frame-Options";
-        private static final String SAME_ORIGIN = "SAMEORIGIN";
-
-        @Override
-        public void doFilter(final ServletRequest req, final ServletResponse resp, final FilterChain filterChain)
-                throws IOException, ServletException {
-
-            // set frame options accordingly
-            final HttpServletResponse response = (HttpServletResponse) resp;
-            response.setHeader(FRAME_OPTIONS, SAME_ORIGIN);
-
-            filterChain.doFilter(req, resp);
-        }
-
-        @Override
-        public void init(final FilterConfig config) {
-        }
-
-        @Override
-        public void destroy() {
-        }
-    };
 
     /**
      * Holds the result of loading WARs for custom UIs.
