@@ -47,7 +47,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.security.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
+import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
+import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -583,13 +586,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        // add a filter to set the X-Frame-Options filter
-        webappContext.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
-
-        // add a filter to set the Content Security Policy frame-ancestors directive
-        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
-        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
-        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
+        addHTTPHeaders(webappContext);
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -600,6 +597,28 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         logger.info("Loading WAR: " + warFile.getAbsolutePath() + " with context path set to " + contextPath);
         return webappContext;
+    }
+
+    private void addHTTPHeaders(WebAppContext webappContext) {
+        // Add a filter to set the X-Frame-Options header
+        FilterHolder xfoFilter = new FilterHolder(new XFrameOptionsFilter());
+        xfoFilter.setName(XFrameOptionsFilter.class.getSimpleName());
+        webappContext.addFilter(xfoFilter, "/*", EnumSet.allOf(DispatcherType.class));
+
+        // Add a filter to set the Content Security Policy frame-ancestors directive
+        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
+        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
+        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
+
+        // Add a filter to set the HSTS header
+        FilterHolder hstsFilter = new FilterHolder(new StrictTransportSecurityFilter());
+        hstsFilter.setName(StrictTransportSecurityFilter.class.getSimpleName());
+        webappContext.addFilter(hstsFilter, "/*", EnumSet.allOf(DispatcherType.class));
+
+        // Add a filter to set the XSS Protection header
+        FilterHolder xssProtectionFilter = new FilterHolder(new XSSProtectionFilter());
+        xssProtectionFilter.setName(XSSProtectionFilter.class.getSimpleName());
+        webappContext.addFilter(xssProtectionFilter, "/*", EnumSet.allOf(DispatcherType.class));
     }
 
     private void addDocsServlets(WebAppContext docsContext) {
@@ -1147,30 +1166,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
     }
-
-    private static final Filter FRAME_OPTIONS_FILTER = new Filter() {
-        private static final String FRAME_OPTIONS = "X-Frame-Options";
-        private static final String SAME_ORIGIN = "SAMEORIGIN";
-
-        @Override
-        public void doFilter(final ServletRequest req, final ServletResponse resp, final FilterChain filterChain)
-                throws IOException, ServletException {
-
-            // set frame options accordingly
-            final HttpServletResponse response = (HttpServletResponse) resp;
-            response.setHeader(FRAME_OPTIONS, SAME_ORIGIN);
-
-            filterChain.doFilter(req, resp);
-        }
-
-        @Override
-        public void init(final FilterConfig config) {
-        }
-
-        @Override
-        public void destroy() {
-        }
-    };
 
     /**
      * Holds the result of loading WARs for custom UIs.

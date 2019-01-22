@@ -155,29 +155,4 @@ public class JettyServerTest {
         verify(contextFactory).setTrustStoreType(trustStoreType);
         verify(contextFactory).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
     }
-
-    @Test
-    public void testNoDuplicateXFrameOptions() throws NoSuchFieldException, IllegalAccessException, ServletException, IOException {
-        Field xOptionsFilter = JettyServer.class.getDeclaredField("FRAME_OPTIONS_FILTER");
-        xOptionsFilter.setAccessible(true);
-        Filter filter = (Filter) xOptionsFilter.get(xOptionsFilter);
-
-        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-        Mockito.when(mockRequest.getRequestURI()).thenReturn("/");
-
-        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
-        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
-        ServletContext mockContext = Mockito.mock(ServletContext.class);
-        FilterConfig mockFilterConfig = Mockito.mock(FilterConfig.class);
-
-        when(mockFilterConfig.getServletContext()).thenReturn(mockContext);
-
-        filter.init(mockFilterConfig);
-
-        // Call doFilter twice, then check the header only appears once.
-        filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-        filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-
-        assertEquals(1, mockResponse.getHeaders("X-Frame-Options").size());
-    }
 }

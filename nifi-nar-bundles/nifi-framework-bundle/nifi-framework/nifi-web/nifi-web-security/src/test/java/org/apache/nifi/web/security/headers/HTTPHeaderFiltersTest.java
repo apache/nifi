@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security;
+package org.apache.nifi.web.security.headers;
 
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -28,7 +29,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
-public class ContentSecurityPolicyFilterTest {
+public class HTTPHeaderFiltersTest {
 
     @Test
     public void testCSPHeaderApplied() throws ServletException, IOException {
@@ -66,5 +67,61 @@ public class ContentSecurityPolicyFilterTest {
         // Verify
         assertEquals("frame-ancestors 'self'", mockResponse.getHeader("Content-Security-Policy"));
     }
+
+
+    @Test
+    public void testXFrameOptionsHeaderApplied() throws ServletException, IOException {
+        // Arrange
+
+        FilterHolder xfoFilter = new FilterHolder(new XFrameOptionsFilter());
+
+        // Set up request
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
+        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
+
+        // Action
+        xfoFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
+
+        // Verify
+        assertEquals("SAMEORIGIN", mockResponse.getHeader("X-Frame-Options"));
+    }
+
+    @Test
+    public void testHSTSHeaderApplied() throws ServletException, IOException {
+        // Arrange
+
+        FilterHolder hstsFilter = new FilterHolder(new StrictTransportSecurityFilter());
+
+        // Set up request
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
+        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
+
+        // Action
+        hstsFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
+
+        // Verify
+        assertEquals("max-age=31540000", mockResponse.getHeader("Strict-Transport-Security"));
+    }
+
+    @Test
+    public void testXSSProtectionHeaderApplied() throws ServletException, IOException {
+        // Arrange
+
+        FilterHolder xssFilter = new FilterHolder(new XSSProtectionFilter());
+
+        // Set up request
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+        MockHttpServletResponse mockResponse = new MockHttpServletResponse();
+        FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
+
+        // Action
+        xssFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
+
+        // Verify
+        assertEquals("1; mode=block", mockResponse.getHeader("X-XSS-Protection"));
+    }
+
 
 }

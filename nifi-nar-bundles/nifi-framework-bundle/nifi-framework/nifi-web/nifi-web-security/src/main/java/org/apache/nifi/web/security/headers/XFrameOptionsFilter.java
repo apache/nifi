@@ -14,28 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security;
+package org.apache.nifi.web.security.headers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
 
 /**
- * A filter to apply the Content Security Policy (which supersedes the X-Frame-Options header).
+ * A filter to apply the X-Frame-Options header.
  *
  */
-public class ContentSecurityPolicyFilter implements Filter {
-    private static final String HEADER = "Content-Security-Policy";
-    private static final String POLICY = "frame-ancestors 'self'";
+public class XFrameOptionsFilter implements Filter {
+    private static final String HEADER = "X-Frame-Options";
+    private static final String POLICY = "SAMEORIGIN";
 
-    private static final Logger logger = LoggerFactory.getLogger(ContentSecurityPolicyFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(XFrameOptionsFilter.class);
 
     @Override
     public void doFilter(final ServletRequest req, final ServletResponse resp, final FilterChain filterChain)
