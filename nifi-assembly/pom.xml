@@ -782,6 +782,23 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>include-hive1_1</id>
+            <!-- This profile handles the inclusion of Hive 1.1.x artifacts. The NAR
+            is quite large and makes the resultant binary distribution significantly
+            larger (150+ MB). -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive_1_1-nar</artifactId>
+                    <version>1.9.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-hive3</id>
             <!-- This profile handles the inclusion of Hive 3 artifacts. The NAR
             is quite large and makes the resultant binary distribution significantly
