@@ -266,14 +266,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             long flowFileCount = 0;
 
             do {
-                //fileToProcess = session.create();
-
-                // Assuring that if we have an input FlowFile
-                // the generated output inherit the attributes
-                //if(attributes != null){
-                //    fileToProcess = session.putAllAttributes(fileToProcess, attributes);
-                //}
-
                 if(inputFlowFile != null){
                     fileToProcess = session.create(inputFlowFile);
                 }else{
