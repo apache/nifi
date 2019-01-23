@@ -89,7 +89,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         boolean responseWritten = false;
 
         try {
-            validateHandshakeRequest(confirmed, peer, properties);
+            validateHandshakeRequest(confirmed, commsSession.getUserDn(), properties);
         } catch (HandshakeException e) {
             ResponseCode handshakeResult = e.getResponseCode();
             if(handshakeResult.containsMessage()){

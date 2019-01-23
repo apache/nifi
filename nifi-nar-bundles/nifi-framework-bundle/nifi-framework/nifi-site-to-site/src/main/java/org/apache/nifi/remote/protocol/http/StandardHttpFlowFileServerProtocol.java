@@ -82,7 +82,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
             // If it's not, then do handshake.
             confirmed = new HandshakeProperties();
             confirmed.setCommsIdentifier(transactionId);
-            validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+            validateHandshakeRequest(confirmed, commsSession.getUserDn(), commsSession.getHandshakeParams());
         }
 
         logger.debug("{} Done handshake, confirmed={}", this, confirmed);

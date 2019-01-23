@@ -156,8 +156,9 @@ import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
 import org.apache.nifi.remote.RemoteSiteListener;
-import org.apache.nifi.remote.SocketRemoteSiteListener;
 import org.apache.nifi.remote.cluster.NodeInformant;
+import org.apache.nifi.remote.protocol.raw.NIORemoteSiteListener;
+import org.apache.nifi.remote.protocol.raw.NIOSocketFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.socket.SocketFlowFileServerProtocol;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -546,10 +547,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
-            RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
+//            RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
+            RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, NIOSocketFlowFileServerProtocol.class);
 
             final NodeInformant nodeInformant = configuredForClustering ? new ClusterCoordinatorNodeInformant(clusterCoordinator) : null;
-            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null, nifiProperties, nodeInformant));
+            // TODO: let the implementation configurable.
+//            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null, nifiProperties, nodeInformant));
+            externalSiteListeners.add(new NIORemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null, nifiProperties, nodeInformant));
         }
 
         if (remoteInputHttpPort == null) {

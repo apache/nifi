@@ -43,9 +43,9 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.SocketChannelInput;
-import org.apache.nifi.remote.io.socket.SocketChannelOutput;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
+import org.apache.nifi.remote.io.socket.SocketInput;
+import org.apache.nifi.remote.io.socket.SocketOutput;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
@@ -62,9 +62,9 @@ public class TestSocketClientTransaction {
     private SocketClientTransaction getClientTransaction(ByteArrayInputStream bis, ByteArrayOutputStream bos, TransferDirection direction) throws IOException {
         PeerDescription description = null;
         String peerUrl = "";
-        SocketChannelCommunicationsSession commsSession = mock(SocketChannelCommunicationsSession.class);
-        SocketChannelInput socketIn = mock(SocketChannelInput.class);
-        SocketChannelOutput socketOut = mock(SocketChannelOutput.class);
+        SocketCommunicationsSession commsSession = mock(SocketCommunicationsSession.class);
+        SocketInput socketIn = mock(SocketInput.class);
+        SocketOutput socketOut = mock(SocketOutput.class);
         when(commsSession.getInput()).thenReturn(socketIn);
         when(commsSession.getOutput()).thenReturn(socketOut);
 

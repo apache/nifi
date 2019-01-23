@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
+import org.apache.nifi.remote.protocol.FlowFileRequest;
 import org.apache.nifi.remote.protocol.ServerProtocol;
 
 import java.util.Set;
@@ -64,7 +65,8 @@ public interface PublicPort extends Port {
     PortAuthorizationResult checkUserAuthorization(NiFiUser user);
 
     /**
-     * Receives data from the given stream
+     * Receives data from the given stream.
+     * This method blocks until receiving data completes.
      *
      * @param peer peer
      * @param serverProtocol protocol
@@ -75,6 +77,23 @@ public interface PublicPort extends Port {
      * @throws RequestExpiredException ree
      */
     int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+
+    /**
+     * <p>Start receiving data from the given stream.
+     *
+     * <p>After submitting a data receiving request, this method returns immediately.
+     * Then NiFi FlowController triggers corresponding InputPort to receive actual data using its thread pool.
+     * This method can be used from SiteToSite server protocol implementation using non-blocking IO.
+     *
+     * <p>In order to get the response, use {@link FlowFileRequest#getResponseQueue()}.
+     * A response object will be queued when the request has been processed.
+     *
+     * @param peer peer
+     * @param serverProtocol protocol
+     *
+     * @return the submitted request
+     */
+    FlowFileRequest startReceivingFlowFiles(Peer peer, ServerProtocol serverProtocol);
 
     /**
      * Transfers data to the given stream
@@ -90,5 +109,22 @@ public interface PublicPort extends Port {
     int transferFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
     TransferDirection getDirection();
+
+    /**
+     * <p>Start transferring data to the given stream.
+     *
+     * <p>After submitting a data transferring request, this method returns immediately.
+     * Then NiFi FlowController triggers corresponding OutputPort to transfer actual data using its thread pool.
+     * This method can be used from SiteToSite server protocol implementation using non-blocking IO.
+     *
+     * <p>In order to get the response, use {@link FlowFileRequest#getResponseQueue()}.
+     * A response object will be queued when the request has been processed.
+     *
+     * @param peer peer
+     * @param serverProtocol protocol
+     *
+     * @return the submitted request
+     */
+    FlowFileRequest startTransferringFlowFiles(Peer peer, ServerProtocol serverProtocol);
 
 }

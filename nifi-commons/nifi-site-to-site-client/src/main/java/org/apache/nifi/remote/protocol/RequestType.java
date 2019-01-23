@@ -18,6 +18,7 @@ package org.apache.nifi.remote.protocol;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 
 public enum RequestType {
@@ -33,7 +34,13 @@ public enum RequestType {
     }
 
     public static RequestType readRequestType(final DataInputStream dis) throws IOException {
-        final String requestTypeVal = dis.readUTF();
+        final String requestTypeVal;
+        try {
+            requestTypeVal = dis.readUTF();
+        } catch (EOFException e) {
+            return null;
+        }
+
         try {
             return RequestType.valueOf(requestTypeVal);
         } catch (final Exception e) {

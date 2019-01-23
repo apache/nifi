@@ -61,7 +61,8 @@ public class PeerSelector {
 
     private static final long PEER_REFRESH_PERIOD = 60000L;
 
-    private final ReentrantLock peerRefreshLock = new ReentrantLock();
+    private final ReentrantLock formulatePeerStatusesLock = new ReentrantLock();
+    private final ReentrantLock refreshPeersLock = new ReentrantLock();
     private volatile List<PeerStatus> peerStatuses;
     private volatile Set<PeerStatus> lastFetchedQueryablePeers;
     private volatile long peerRefreshTime = 0L;
@@ -265,7 +266,7 @@ public class PeerSelector {
     public PeerStatus getNextPeerStatus(final TransferDirection direction) {
         List<PeerStatus> peerList = peerStatuses;
         if (isPeerRefreshNeeded(peerList)) {
-            peerRefreshLock.lock();
+            formulatePeerStatusesLock.lock();
             try {
                 // now that we have the lock, check again that we need to refresh (because another thread
                 // could have been refreshing while we were waiting for the lock).
@@ -285,7 +286,7 @@ public class PeerSelector {
                     peerRefreshTime = systemTime.currentTimeMillis();
                 }
             } finally {
-                peerRefreshLock.unlock();
+                formulatePeerStatusesLock.unlock();
             }
         }
 
@@ -343,21 +344,26 @@ public class PeerSelector {
     }
 
     public void refreshPeers() {
-        final PeerStatusCache existingCache = peerStatusCache;
-        if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > systemTime.currentTimeMillis())) {
-            return;
-        }
-
+        refreshPeersLock.lock();
         try {
-            final Set<PeerStatus> statuses = fetchRemotePeerStatuses();
-            persistPeerStatuses(statuses);
-            peerStatusCache = new PeerStatusCache(statuses);
-            logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
-        } catch (Exception e) {
-            warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e.getMessage());
-            if (logger.isDebugEnabled()) {
-                logger.debug("", e);
+            final PeerStatusCache existingCache = peerStatusCache;
+            if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > systemTime.currentTimeMillis())) {
+                return;
             }
+
+            try {
+                final Set<PeerStatus> statuses = fetchRemotePeerStatuses();
+                persistPeerStatuses(statuses);
+                peerStatusCache = new PeerStatusCache(statuses);
+                logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
+            } catch (Exception e) {
+                warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e.getMessage());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("", e);
+                }
+            }
+        } finally {
+            refreshPeersLock.unlock();
         }
     }
 

@@ -21,9 +21,24 @@
         </encoder>
     </appender>
     
-    <logger name="nifi" level="DEBUG"/>
+    <logger name="nifi" level="INFO"/>
+    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="org.apache.nifi.remote.nio" level="INFO"/>
+    <logger name="org.apache.nifi.nio.MessageSequenceHandler" level="TRACE"/>
+    <logger name="org.apache.nifi.nio.stream" level="TRACE"/>
+    <logger name="org.apache.nifi.nio.stream.StreamToChannel" level="TRACE"/>
+    <logger name="org.apache.nifi.nio.stream.ChannelToStream" level="TRACE"/>
+    <logger name="org.apache.nifi.nio.ReadUTF" level="TRACE"/>
+    <logger name="org.apache.nifi.nio.WriteBytes" level="INFO"/>
+    <logger name="org.apache.nifi.nio.Rewind" level="TRACE"/>
+    <logger name="org.apache.nifi.remote.protocol" level="DEBUG"/>
+    <logger name="org.apache.nifi.remote.protocol.raw" level="INFO"/>
+    <logger name="org.apache.nifi.remote.protocol.raw.NIOSocketFlowFileServerProtocol" level="TRACE"/>
+    <logger name="org.apache.nifi.remote.protocol.raw.ReadRequestType" level="DEBUG"/>
+    <logger name="org.apache.nifi.remote.protocol.raw.ReceiveFlowFiles" level="TRACE"/>
+    <logger name="org.apache.nifi.remote.protocol.raw.TransferFlowFiles" level="DEBUG"/>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
     

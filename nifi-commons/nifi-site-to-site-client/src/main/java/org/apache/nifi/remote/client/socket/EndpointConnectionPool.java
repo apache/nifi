@@ -33,29 +33,31 @@ import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.net.URI;
-import java.nio.channels.SocketChannel;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -90,6 +92,8 @@ public class EndpointConnectionPool implements PeerStatusProvider {
     private final SiteInfoProvider siteInfoProvider;
     private final PeerSelector peerSelector;
     private final InetAddress localAddress;
+
+    private final Map<Tuple<String, Integer>, String> peerDnCache = new HashMap<>();
 
     public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
         final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider,
@@ -451,27 +455,39 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, localAddress, true);
-                socketChannel.connect();
+                final Socket socket = sslContext.getSocketFactory().createSocket(hostname, port);
+                socket.setSoTimeout(commsTimeout);
+                commsSession = new SocketCommunicationsSession(socket);
 
-                commsSession = new SSLSocketChannelCommunicationsSession(socketChannel);
+                logger.info("Connection is established, {}", socket);
 
+                final Tuple<String, Integer> peerKey = new Tuple<>(hostname, port);
+                String dn;
                 try {
-                    commsSession.setUserDn(socketChannel.getDn());
+                    dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
+                    peerDnCache.put(peerKey, dn);
                 } catch (final CertificateException ex) {
-                    throw new IOException(ex);
+                    // Due to a JDK bug, server may not return its certificate if another socket is created using the same sslContext.
+                    // It happens with JDK 11.0.2.
+                    // https://bugs.openjdk.java.net/browse/JDK-8220723
+                    if (ex.getCause() instanceof SSLPeerUnverifiedException
+                        && ex.getCause().getMessage().equals("peer not authenticated")
+                        && peerDnCache.containsKey(peerKey)) {
+                        dn = peerDnCache.get(peerKey);
+                        logger.info("Using cached peer DN {} for {}", dn, peerKey);
+                    } else {
+                        throw new IOException(ex);
+                    }
                 }
+                commsSession.setUserDn(dn);
+
             } else {
-                final SocketChannel socketChannel = SocketChannel.open();
-                if (localAddress != null) {
-                    final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
-                    socketChannel.socket().bind(localSocketAddress);
-                }
 
-                socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
-                socketChannel.socket().setSoTimeout(commsTimeout);
+                final Socket socket = new Socket();
+                socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
+                socket.setSoTimeout(commsTimeout);
 
-                commsSession = new SocketChannelCommunicationsSession(socketChannel);
+                commsSession = new SocketCommunicationsSession(socket);
             }
 
             commsSession.getOutput().getOutputStream().write(CommunicationsSession.MAGIC_BYTES);

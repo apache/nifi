@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -32,8 +33,13 @@ import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StopWatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardFlowFileCodec implements FlowFileCodec {
+
+    private static Logger LOG = LoggerFactory.getLogger(StandardFlowFileCodec.class);
 
     public static final int MAX_NUM_ATTRIBUTES = 25000;
 
@@ -56,12 +62,31 @@ public class StandardFlowFileCodec implements FlowFileCodec {
             writeString(entry.getValue(), out);
         }
 
-        out.writeLong(dataPacket.getSize());
+        final long dataSize = dataPacket.getSize();
+        out.writeLong(dataSize);
 
         final InputStream in = dataPacket.getData();
-        StreamUtils.copy(in, encodedOut);
+        copy(dataSize, in, encodedOut);
         encodedOut.flush();
     }
+
+    private long copy(long length, final InputStream source, final OutputStream destination) throws IOException {
+
+        final StopWatch stopWatch = new StopWatch(false);
+        final byte[] buffer = new byte[8192];
+        long totalRead = 0;
+        // Use 'available' so that it doesn't block
+        for (int available; totalRead < length && (available = source.available()) > 0;) {
+            stopWatch.start();
+            final int read = source.read(buffer, 0, Math.min(available, buffer.length));
+            destination.write(buffer, 0, read);
+            destination.flush();
+            totalRead += read;
+        }
+
+        return totalRead;
+    }
+
 
     @Override
     public DataPacket decode(final InputStream stream) throws IOException, ProtocolException {

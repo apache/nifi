@@ -99,6 +99,8 @@ public class PeerDescriptionModifier {
                             }
                             return matcher;
                 })
+                // Filter out http route configurations when HTTP S2S is disabled.
+                .filter(matcher -> !SiteToSiteTransportProtocol.HTTP.name().equalsIgnoreCase(matcher.group(1)) || properties.isSiteToSiteHttpEnabled())
                 .collect(Collectors.groupingBy(matcher -> new Tuple<>(matcher.group(1), matcher.group(2)),
                         Collectors.mapping(matcher -> new Tuple<>(matcher.group(3), matcher.group(0)), Collectors.toList())));
 

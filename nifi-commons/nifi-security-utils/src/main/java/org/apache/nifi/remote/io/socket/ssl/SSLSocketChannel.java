@@ -164,7 +164,12 @@ public class SSLSocketChannel implements Closeable {
             performHandshake();
             logger.debug("{} Successfully completed SSL handshake", this);
 
-            streamInManager.clear();
+            // NOTE: It's possible that application data is sent right after handshaking.
+            //       In that case, this streamInManager's buffer contains some data.
+            //       The data get lost if the buffer is cleared before reading it.
+            //       So, DO NOT clear streamInManager here.
+            // streamInManager.clear();
+
             streamOutManager.clear();
             appDataManager.clear();
 
@@ -297,6 +302,7 @@ public class SSLSocketChannel implements Closeable {
     private int readData(final ByteBuffer dest) throws IOException {
         final long startTime = System.currentTimeMillis();
 
+        long sleepNanos = 1L;
         while (true) {
             if (interrupted) {
                 throw new TransmissionDisabledException();
@@ -308,7 +314,6 @@ public class SSLSocketChannel implements Closeable {
 
             final int readCount = channel.read(dest);
 
-            long sleepNanos = 1L;
             if (readCount == 0) {
                 if (System.currentTimeMillis() > startTime + timeoutMillis) {
                     throw new SocketTimeoutException("Timed out reading from socket connected to " + hostname + ":" + port);
@@ -563,9 +568,8 @@ public class SSLSocketChannel implements Closeable {
         while (true) {
             // prepare buffers and call unwrap
             final ByteBuffer streamInBuffer = streamInManager.prepareForRead(1);
-            SSLEngineResult unwrapResponse = null;
             final ByteBuffer appDataBuffer = appDataManager.prepareForWrite(engine.getSession().getApplicationBufferSize());
-            unwrapResponse = engine.unwrap(streamInBuffer, appDataBuffer);
+            final SSLEngineResult unwrapResponse = engine.unwrap(streamInBuffer, appDataBuffer);
             logger.trace("{} When reading data, (handshake={}) Unwrap response: {}", this, handshaking, unwrapResponse);
 
             switch (unwrapResponse.getStatus()) {

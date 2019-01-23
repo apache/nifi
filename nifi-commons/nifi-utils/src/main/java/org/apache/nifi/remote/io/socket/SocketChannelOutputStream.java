@@ -28,7 +28,7 @@ public class SocketChannelOutputStream extends OutputStream {
 
     private static final long CHANNEL_FULL_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
     private final SocketChannel channel;
-    private volatile int timeout = 30000;
+    private volatile int timeoutMillis = 30000;
 
     private final ByteBuffer oneByteBuffer = ByteBuffer.allocate(1);
 
@@ -39,7 +39,7 @@ public class SocketChannelOutputStream extends OutputStream {
     }
 
     public void setTimeout(final int timeoutMillis) {
-        this.timeout = timeoutMillis;
+        this.timeoutMillis = timeoutMillis;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class SocketChannelOutputStream extends OutputStream {
         oneByteBuffer.put((byte) b);
         oneByteBuffer.flip();
 
-        final int timeoutMillis = this.timeout;
+        final int timeoutMillis = this.timeoutMillis;
         long maxTime = System.currentTimeMillis() + timeoutMillis;
         int bytesWritten;
 
@@ -85,7 +85,7 @@ public class SocketChannelOutputStream extends OutputStream {
     public void write(final byte[] b, final int off, final int len) throws IOException {
         final ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
 
-        final int timeoutMillis = this.timeout;
+        final int timeoutMillis = this.timeoutMillis;
         long maxTime = System.currentTimeMillis() + timeoutMillis;
         int bytesWritten;
 

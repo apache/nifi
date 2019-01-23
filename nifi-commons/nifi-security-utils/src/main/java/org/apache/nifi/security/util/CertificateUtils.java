@@ -51,6 +51,7 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -325,23 +326,35 @@ public final class CertificateUtils {
      * @throws CertificateException if there is a problem parsing the certificate
      */
     private static String extractPeerDNFromServerSSLSocket(Socket socket) throws CertificateException {
-        String dn = null;
         if (socket instanceof SSLSocket) {
             final SSLSocket sslSocket = (SSLSocket) socket;
-                try {
-                    final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
-                    if (certChains != null && certChains.length > 0) {
-                        X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
-                        dn = x509Certificate.getSubjectDN().getName().trim();
-                        logger.debug("Extracted DN={} from server certificate", dn);
-                    }
-                } catch (SSLPeerUnverifiedException e) {
-                    if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
-                        logger.error("The server did not present a certificate and thus the DN cannot" +
-                                " be extracted. Check that the other endpoint is providing a complete certificate chain");
-                    }
-                    throw new CertificateException(e);
-                }
+            return extractPeerDNFromSSLSession(sslSocket.getSession());
+        }
+        return null;
+    }
+
+    /**
+     * Returns the DN extracted from the peer certificate (either client or server).
+     *
+     * @param session the SSL session
+     * @return the extracted DN
+     * @throws CertificateException if there is a problem parsing the certificate
+     */
+    public static String extractPeerDNFromSSLSession(SSLSession session) throws CertificateException {
+        String dn = null;
+        try {
+            final Certificate[] certChains = session.getPeerCertificates();
+            if (certChains != null && certChains.length > 0) {
+                X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
+                dn = x509Certificate.getSubjectDN().getName().trim();
+                logger.debug("Extracted DN={} from peer certificate", dn);
+            }
+        } catch (SSLPeerUnverifiedException e) {
+            if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
+                logger.error("The peer did not present a certificate and thus the DN cannot" +
+                    " be extracted. Check that the other endpoint is providing a complete certificate chain");
+            }
+            throw new CertificateException(e);
         }
         return dn;
     }

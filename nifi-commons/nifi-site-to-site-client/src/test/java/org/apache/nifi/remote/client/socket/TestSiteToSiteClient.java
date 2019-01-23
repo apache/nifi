@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class TestSiteToSiteClient {
 
@@ -48,12 +49,13 @@ public class TestSiteToSiteClient {
 
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
                 .url("http://localhost:8080/nifi")
-                .portName("cba")
+                .portName("output")
                 .requestBatchCount(10)
+                .timeout(10, TimeUnit.HOURS)
                 .build();
 
         try {
-            for (int i = 0; i < 1000; i++) {
+            for (int i = 0; i < 10000; i++) {
                 final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
                 Assert.assertNotNull(transaction);
 
@@ -73,6 +75,11 @@ public class TestSiteToSiteClient {
 
                 transaction.confirm();
                 transaction.complete();
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         } finally {
             client.close();

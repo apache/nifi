@@ -32,7 +32,7 @@ public class StreamUtils {
         final byte[] buffer = new byte[8192];
         int len;
         long totalCount = 0L;
-        while ((len = source.read(buffer)) > 0) {
+        while ((len = source.read(buffer)) > -1) {
             destination.write(buffer, 0, len);
             totalCount += len;
         }
@@ -51,7 +51,7 @@ public class StreamUtils {
         final byte[] buffer = new byte[8192];
         int len;
         long bytesLeft = numBytes;
-        while ((len = source.read(buffer, 0, (int) Math.min(bytesLeft, buffer.length))) > 0) {
+        while ((len = source.read(buffer, 0, (int) Math.min(bytesLeft, buffer.length))) > -1) {
             destination.write(buffer, 0, len);
             bytesLeft -= len;
         }

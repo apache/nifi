@@ -49,6 +49,8 @@ import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.FlowFileRequest;
+import org.apache.nifi.remote.protocol.ProcessingResult;
 import org.apache.nifi.remote.protocol.ServerProtocol;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
@@ -95,7 +97,8 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     private final ProcessScheduler scheduler;
     private final Set<Relationship> relationships;
 
-    private final BlockingQueue<FlowFileRequest> requestQueue = new ArrayBlockingQueue<>(1000);
+    // TODO: make the requestQueue size configurable.
+    private final BlockingQueue<FlowFileRequest> requestQueue = new ArrayBlockingQueue<>(10000);
 
     private final Set<FlowFileRequest> activeRequests = new HashSet<>();
     private final Lock requestLock = new ReentrantLock();
@@ -245,11 +248,15 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             }
         } catch (final Exception e) {
             session.rollback();
+            final String message = String.format("%s Cannot service request from %s due to %s", this, flowFileRequest.getPeer(), e);
+            eventReporter.reportEvent(Severity.ERROR, CATEGORY, message);
+            logger.error(message, e);
             responseQueue.add(new ProcessingResult(e));
 
             return;
         }
 
+        logger.trace("Adding ProcessingResult transferCount={}", transferCount);
         responseQueue.add(new ProcessingResult(transferCount));
     }
 
@@ -413,141 +420,71 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         }
     }
 
-    private static class ProcessingResult {
-
-        private final int fileCount;
-        private final Exception problem;
-
-        public ProcessingResult(final int fileCount) {
-            this.fileCount = fileCount;
-            this.problem = null;
+    @Override
+    public FlowFileRequest startReceivingFlowFiles(Peer peer, ServerProtocol serverProtocol) {
+        if (getConnectableType() != ConnectableType.INPUT_PORT) {
+            throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
         }
 
-        public ProcessingResult(final Exception problem) {
-            this.fileCount = 0;
-            this.problem = problem;
+        if (!this.isRunning()) {
+            throw new IllegalStateException("Port not running");
         }
 
-        public Exception getProblem() {
-            return problem;
+        final FlowFileRequest request = new FlowFileRequest(peer, serverProtocol);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("New receiving FlowFile request is offered, requestQueue.size={}", requestQueue.size());
         }
 
-        public int getFileCount() {
-            return fileCount;
-        }
-    }
-
-    private static class FlowFileRequest {
-
-        private final Peer peer;
-        private final ServerProtocol protocol;
-        private final BlockingQueue<ProcessingResult> queue;
-        private final long creationTime;
-        private final AtomicBoolean beingServiced = new AtomicBoolean(false);
-
-        public FlowFileRequest(final Peer peer, final ServerProtocol protocol) {
-            this.creationTime = System.currentTimeMillis();
-            this.peer = peer;
-            this.protocol = protocol;
-            this.queue = new ArrayBlockingQueue<>(1);
+        if (!this.requestQueue.offer(request)) {
+            throw new ProcessException("FlowFile request queue is full.");
         }
 
-        public void setServiceBegin() {
-            this.beingServiced.set(true);
-        }
+        // Trigger this port to run.
+        scheduler.registerEvent(this);
 
-        public boolean isBeingServiced() {
-            return beingServiced.get();
-        }
-
-        public BlockingQueue<ProcessingResult> getResponseQueue() {
-            return queue;
-        }
-
-        public Peer getPeer() {
-            return peer;
-        }
-
-        public ServerProtocol getProtocol() {
-            return protocol;
-        }
-
-        public boolean isExpired() {
-            // use double the protocol's expiration because the sender may send data for a bit before
-            // the timeout starts being counted, and we don't want to timeout before the sender does.
-            // is this a good idea...???
-            long expiration = protocol.getRequestExpiration() * 2;
-            if (expiration <= 0L) {
-                return false;
-            }
-
-            if (expiration < 500L) {
-                expiration = 500L;
-            }
-
-            return System.currentTimeMillis() > creationTime + expiration;
-        }
+        return request;
     }
 
     @Override
     public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
-        if (getConnectableType() != ConnectableType.INPUT_PORT) {
-            throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
-        }
 
         if (!isRunning()) {
             throw new IllegalStateException("Port not running");
         }
 
-        try {
-            final FlowFileRequest request = new FlowFileRequest(peer, serverProtocol);
-            if (!this.requestQueue.offer(request)) {
+        final FlowFileRequest request = startReceivingFlowFiles(peer, serverProtocol);
+
+        // wait for the request to start getting serviced... and time out if it doesn't happen
+        // before the request expires
+        while (!request.isBeingServiced()) {
+            if (request.isExpired()) {
+                // Remove expired request, so that it won't block new request to be offered.
+                this.requestQueue.remove(request);
                 throw new RequestExpiredException();
-            }
-
-            // Trigger this port to run.
-            scheduler.registerEvent(this);
-
-            // Get a response from the response queue but don't wait forever if the port is stopped
-            ProcessingResult result = null;
-
-            // wait for the request to start getting serviced... and time out if it doesn't happen
-            // before the request expires
-            while (!request.isBeingServiced()) {
-                if (request.isExpired()) {
-                    // Remove expired request, so that it won't block new request to be offered.
-                    this.requestQueue.remove(request);
-                    throw new SocketTimeoutException("Read timed out");
-                } else {
-                    try {
-                        Thread.sleep(100L);
-                    } catch (final InterruptedException e) {
-                    }
+            } else {
+                try {
+                    logger.debug("The request is not being served yet. Waiting for 100ms...");
+                    Thread.sleep(100L);
+                } catch (final InterruptedException e) {
                 }
             }
+        }
 
-            // we've started to service the request. Now just wait until it's finished
+        // we've started to service the request. Now just wait until it's finished
+        final ProcessingResult result;
+        try {
             result = request.getResponseQueue().take();
-
-            final Exception problem = result.getProblem();
-            if (problem == null) {
-                return result.getFileCount();
-            } else {
-                throw problem;
-            }
-        } catch (final NotAuthorizedException | BadRequestException | RequestExpiredException e) {
-            throw e;
-        } catch (final ProtocolException e) {
-            throw new BadRequestException(e);
-        } catch (final Exception e) {
+        } catch (InterruptedException e) {
             throw new ProcessException(e);
         }
+
+        return result.getFileCount();
     }
 
     @Override
-    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
-            throws NotAuthorizedException, BadRequestException, RequestExpiredException {
+    public FlowFileRequest startTransferringFlowFiles(Peer peer, ServerProtocol serverProtocol) {
         if (getConnectableType() != ConnectableType.OUTPUT_PORT) {
             throw new IllegalStateException("Cannot send FlowFiles because this port is not an Output Port");
         }
@@ -559,14 +496,11 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         try {
             final FlowFileRequest request = new FlowFileRequest(peer, serverProtocol);
             if (!this.requestQueue.offer(request)) {
-                throw new RequestExpiredException();
+                throw new ProcessException("FlowFile request queue is full.");
             }
 
             // Trigger this port to run
             scheduler.registerEvent(this);
-
-            // Get a response from the response queue but don't wait forever if the port is stopped
-            ProcessingResult result;
 
             // wait for the request to start getting serviced... and time out if it doesn't happen
             // before the request expires
@@ -583,22 +517,29 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
                 }
             }
 
-            // we've started to service the request. Now just wait until it's finished
-            result = request.getResponseQueue().take();
+            return request;
 
-            final Exception problem = result.getProblem();
-            if (problem == null) {
-                return result.getFileCount();
-            } else {
-                throw problem;
-            }
-        } catch (final NotAuthorizedException | BadRequestException | RequestExpiredException e) {
-            throw e;
-        } catch (final ProtocolException e) {
-            throw new BadRequestException(e);
         } catch (final Exception e) {
             throw new ProcessException(e);
         }
+    }
+
+    @Override
+    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
+            throws NotAuthorizedException, BadRequestException, RequestExpiredException {
+
+        final FlowFileRequest request = startTransferringFlowFiles(peer, serverProtocol);
+
+        // we've started to service the request. Now just wait until it's finished
+        final ProcessingResult result;
+
+        try {
+            result = request.getResponseQueue().take();
+        } catch (InterruptedException e) {
+            throw new ProcessException(e);
+        }
+
+        return result.getFileCount();
     }
 
     @Override

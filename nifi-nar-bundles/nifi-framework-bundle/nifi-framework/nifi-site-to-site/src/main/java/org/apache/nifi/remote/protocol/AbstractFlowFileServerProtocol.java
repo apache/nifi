@@ -85,7 +85,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         return handshakeCompleted;
     }
 
-    protected void validateHandshakeRequest(HandshakeProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
+    protected void validateHandshakeRequest(HandshakeProperties confirmed, final String userDn, final Map<String, String> properties) throws HandshakeException {
         Boolean useGzip = null;
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String propertyName = entry.getKey();
@@ -118,7 +118,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                         confirmed.setBatchDurationNanos(TimeUnit.MILLISECONDS.toNanos(Long.parseLong(value)));
                         break;
                     case PORT_IDENTIFIER: {
-                        checkPortStatus(peer, value);
+                        checkPortStatus(userDn, value);
                     }
                 }
             } catch (final NumberFormatException nfe) {
@@ -133,7 +133,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     }
 
-    protected void checkPortStatus(final Peer peer, String portId) throws HandshakeException {
+    protected void checkPortStatus(final String userDn, String portId) throws HandshakeException {
         Port receivedPort = rootGroup.findInputPort(portId);
         if (receivedPort == null) {
             receivedPort = rootGroup.findOutputPort(portId);
@@ -148,7 +148,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         }
 
         this.port = (PublicPort) receivedPort;
-        final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
+        final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(userDn);
         if (!portAuthResult.isAuthorized()) {
             logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
             throw new HandshakeException(ResponseCode.UNAUTHORIZED, portAuthResult.getExplanation());

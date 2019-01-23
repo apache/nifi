@@ -127,7 +127,7 @@ public class RemoteResourceManager {
         return codec;
     }
 
-    private static FlowFileCodec createCodec(final String codecName) {
+    public static FlowFileCodec createCodec(final String codecName) {
         final Class<? extends FlowFileCodec> codecClass = codecClassMap.get(codecName);
         if (codecClass == null) {
             throw new IllegalArgumentException("Unknown Codec: " + codecName);
