@@ -27,6 +27,7 @@ public class OrEvaluator extends BooleanEvaluator {
 
     private final Evaluator<Boolean> subjectEvaluator;
     private final Evaluator<Boolean> rhsEvaluator;
+    private BooleanQueryResult rhsResult;
 
     public OrEvaluator(final Evaluator<Boolean> subjectEvaluator, final Evaluator<Boolean> rhsEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
@@ -44,12 +45,21 @@ public class OrEvaluator extends BooleanEvaluator {
             return new BooleanQueryResult(true);
         }
 
-        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes);
-        if (rhsValue == null) {
-            return new BooleanQueryResult(false);
+        // Returning previously evaluated result.
+        // The same OrEvaluator can be evaluated multiple times if subjectEvaluator is IteratingEvaluator.
+        // In that case, it's enough to evaluate the right hand side.
+        if (rhsResult != null) {
+            return rhsResult;
         }
 
-        return new BooleanQueryResult(rhsValue.getValue());
+        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes);
+        if (rhsValue == null) {
+            rhsResult = new BooleanQueryResult(false);
+        } else {
+            rhsResult = new BooleanQueryResult(rhsValue.getValue());
+        }
+
+        return rhsResult;
     }
 
     @Override

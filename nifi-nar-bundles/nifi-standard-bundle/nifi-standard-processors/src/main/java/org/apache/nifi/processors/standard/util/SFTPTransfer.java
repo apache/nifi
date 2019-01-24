@@ -188,6 +188,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final boolean symlink  = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
@@ -211,6 +212,7 @@ public class SFTPTransfer implements FileTransfer {
         final ChannelSftp sftp = getChannel(null);
         final boolean isPathMatch = pathFilterMatches;
 
+        //subDirs list is used for both 'sub directories' and 'symlinks'
         final List<LsEntry> subDirs = new ArrayList<>();
         try {
             final LsEntrySelector filter = new LsEntrySelector() {
@@ -231,7 +233,8 @@ public class SFTPTransfer implements FileTransfer {
                     }
 
                     // if is a directory and we're supposed to recurse
-                    if (recurse && entry.getAttrs().isDir()) {
+                    // OR if is a link and we're supposed to follow symlink
+                    if ((recurse && entry.getAttrs().isDir()) || (symlink && entry.getAttrs().isLink())){
                         subDirs.add(entry);
                         return LsEntrySelector.CONTINUE;
                     }
@@ -266,7 +269,7 @@ public class SFTPTransfer implements FileTransfer {
                 case ChannelSftp.SSH_FX_PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not perform listing on " + pathDesc + " due to insufficient permissions");
                 default:
-                    throw new IOException("Failed to obtain file listing for " + pathDesc, e);
+                    throw new IOException(String.format("Failed to obtain file listing for %s due to unexpected SSH_FXP_STATUS (%d)", pathDesc, e.id), e);
             }
         }
 
@@ -278,9 +281,10 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing);
             } catch (final IOException e) {
-                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
             }
         }
+
     }
 
     private FileInfo newFileInfo(final LsEntry entry, String path) {

@@ -18,6 +18,8 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.registry.flow.ComponentType;
 import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
@@ -49,4 +51,46 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    public static Predicate<FlowDifference> FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES = (fd) -> {
+        return !isIgnorableVersionedFlowCoordinateChange(fd);
+    };
+
+    public static boolean isIgnorableVersionedFlowCoordinateChange(final FlowDifference fd) {
+        if (fd.getDifferenceType() == DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED) {
+            final VersionedComponent componentA = fd.getComponentA();
+            final VersionedComponent componentB = fd.getComponentB();
+
+            if (componentA != null && componentB != null
+                    && componentA instanceof VersionedProcessGroup
+                    && componentB instanceof VersionedProcessGroup) {
+
+                final VersionedProcessGroup versionedProcessGroupA = (VersionedProcessGroup) componentA;
+                final VersionedProcessGroup versionedProcessGroupB = (VersionedProcessGroup) componentB;
+
+                final VersionedFlowCoordinates coordinatesA = versionedProcessGroupA.getVersionedFlowCoordinates();
+                final VersionedFlowCoordinates coordinatesB = versionedProcessGroupB.getVersionedFlowCoordinates();
+
+                if (coordinatesA != null && coordinatesB != null) {
+                    String registryUrlA = coordinatesA.getRegistryUrl();
+                    String registryUrlB = coordinatesB.getRegistryUrl();
+
+                    if (registryUrlA != null && registryUrlB != null && !registryUrlA.equals(registryUrlB)) {
+                        if (registryUrlA.endsWith("/")) {
+                            registryUrlA = registryUrlA.substring(0, registryUrlA.length() - 1);
+                        }
+
+                        if (registryUrlB.endsWith("/")) {
+                            registryUrlB = registryUrlB.substring(0, registryUrlB.length() - 1);
+                        }
+
+                        if (registryUrlA.equals(registryUrlB)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 }

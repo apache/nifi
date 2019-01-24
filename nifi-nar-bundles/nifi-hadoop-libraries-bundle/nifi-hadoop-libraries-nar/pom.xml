@@ -13,13 +13,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hadoop-libraries-bundle</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hadoop-libraries-nar</artifactId>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
+        <avro.version>1.8.1</avro.version>
         <curator.version>2.11.0</curator.version>
         <hadoop.version>3.0.0</hadoop.version>
     </properties>
@@ -27,7 +28,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <version>1.9.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -44,7 +45,12 @@
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.8.1</version>        
+            <version>${avro.version}</version>        
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro-ipc</artifactId>
+            <version>${avro.version}</version>        
         </dependency>
         <dependency>
             <groupId>com.github.stephenc.findbugs</groupId>

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.documentation.html;
 
-import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
-import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -32,18 +26,28 @@ import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.init.ProcessorInitializer;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
 
 public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testFullyDocumentedProcessor() throws IOException {
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
+
         FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -114,11 +118,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testNakedProcessor() throws IOException {
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
+
         NakedProcessor processor = new NakedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -152,11 +158,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testProcessorWithLoggerInitialization() throws IOException {
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
+
         ProcessorWithLogger processor = new ProcessorWithLogger();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -170,11 +178,13 @@ public class ProcessorDocumentationWriterTest {
 
     @Test
     public void testDeprecatedProcessor() throws IOException {
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
+
         DeprecatedProcessor processor = new DeprecatedProcessor();
-        ProcessorInitializer initializer = new ProcessorInitializer();
+        ProcessorInitializer initializer = new ProcessorInitializer(extensionManager);
         initializer.initialize(processor);
 
-        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter(extensionManager);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

@@ -67,15 +67,27 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
 
     @Override
     public synchronized void unregister(final String connectionId, final NodeIdentifier nodeId) {
-        final Set<AsyncLoadBalanceClient> clients = clientMap.remove(nodeId);
+        final Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);
         if (clients == null) {
             return;
         }
 
-        clients.forEach(client -> client.unregister(connectionId));
+        final Set<AsyncLoadBalanceClient> toRemove = new HashSet<>();
+        for (final AsyncLoadBalanceClient client : clients) {
+            client.unregister(connectionId);
+            if (client.getRegisteredConnectionCount() == 0) {
+                toRemove.add(client);
+            }
+        }
 
-        allClients.removeAll(clients);
-        logger.debug("Un-registered Connection with ID {} so that it will no longer send data to Node {}", connectionId, nodeId);
+        clients.removeAll(toRemove);
+        allClients.removeAll(toRemove);
+
+        if (clients.isEmpty()) {
+            clientMap.remove(nodeId);
+        }
+
+        logger.debug("Un-registered Connection with ID {} so that it will no longer send data to Node {}; {} clients were removed", connectionId, nodeId, toRemove.size());
     }
 
     private Set<AsyncLoadBalanceClient> registerClients(final NodeIdentifier nodeId) {

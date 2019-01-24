@@ -280,7 +280,7 @@ public class TestNodeClusterCoordinator {
         assertNotNull(statusChange);
         assertEquals(createNodeId(1), statusChange.getNodeIdentifier());
         assertEquals(DisconnectionCode.NODE_SHUTDOWN, statusChange.getDisconnectCode());
-        assertEquals("Unit Test", statusChange.getDisconnectReason());
+        assertEquals("Unit Test", statusChange.getReason());
     }
 
     @Test
@@ -407,7 +407,7 @@ public class TestNodeClusterCoordinator {
         nodeStatuses.clear();
 
         final NodeConnectionStatus oldStatus = new NodeConnectionStatus(-1L, nodeId1, NodeConnectionState.DISCONNECTED,
-            DisconnectionCode.BLOCKED_BY_FIREWALL, null, 0L);
+            null, DisconnectionCode.BLOCKED_BY_FIREWALL, null, 0L);
         final NodeStatusChangeMessage msg = new NodeStatusChangeMessage();
         msg.setNodeId(nodeId1);
         msg.setNodeConnectionStatus(oldStatus);

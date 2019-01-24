@@ -17,21 +17,29 @@
 package org.apache.nifi.controller.service;
 
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.controller.ExtensionBuilder;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.Collections;
+
 
 
 public class StandardControllerServiceProviderTest {
@@ -40,51 +48,53 @@ public class StandardControllerServiceProviderTest {
     private ControllerService implementation;
     private static VariableRegistry variableRegistry;
     private static NiFiProperties nifiProperties;
+    private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
+    private static FlowController flowController;
 
     @BeforeClass
-    public static void setupSuite() throws Exception {
+    public static void setupSuite() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
         nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
 
-        NarClassLoaders.getInstance().init(nifiProperties.getFrameworkWorkingDirectory(), nifiProperties.getExtensionsWorkingDirectory());
-
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
+
+        flowController = Mockito.mock(FlowController.class);
+        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
     }
+
 
     @Before
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
-        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, null, new StateManagerProvider() {
-            @Override
-            public StateManager getStateManager(final String componentId) {
-                return Mockito.mock(StateManager.class);
-            }
-
-            @Override
-            public void shutdown() {
-            }
-
-            @Override
-            public void enableClusterProvider() {
-            }
-
-            @Override
-            public void disableClusterProvider() {
-            }
-
-            @Override
-            public void onComponentRemoved(String componentId) {
-            }
-        }, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
-        ControllerServiceNode node = provider.createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), null, true);
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(Mockito.mock(FlowController.class), null, null);
+        ControllerServiceNode node = createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), provider);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();
+    }
+
+    private ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final ControllerServiceProvider serviceProvider) {
+        final ControllerServiceNode serviceNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(bundleCoordinate)
+            .controllerServiceProvider(serviceProvider)
+            .processScheduler(Mockito.mock(ProcessScheduler.class))
+            .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
+            .validationTrigger(Mockito.mock(ValidationTrigger.class))
+            .reloadComponent(Mockito.mock(ReloadComponent.class))
+            .variableRegistry(variableRegistry)
+            .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
+            .extensionManager(extensionManager)
+            .buildControllerService();
+
+        return serviceNode;
     }
 
     @Test(expected = UnsupportedOperationException.class)

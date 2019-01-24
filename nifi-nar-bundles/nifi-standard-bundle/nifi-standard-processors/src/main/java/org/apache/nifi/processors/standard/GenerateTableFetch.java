@@ -65,6 +65,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -97,7 +98,16 @@ import java.util.stream.IntStream;
         @WritesAttribute(attribute = "generatetablefetch.maxColumnNames", description = "The comma-separated list of column names used to keep track of data "
                 + "that has been returned since the processor started running."),
         @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
-        @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
+        @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition."),
+        @WritesAttribute(attribute="fragment.identifier", description="All FlowFiles generated from the same query result set "
+                + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+        @WritesAttribute(attribute = "fragment.count", description = "This is the total number of  "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
+        @WritesAttribute(attribute="fragment.index", description="This is the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all generated from the same execution. This can be "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same execution and in what order  "
+                + "FlowFiles were produced"),
 })
 @DynamicProperty(name = "initial.maxvalue.<max_value_column>", value = "Initial maximum value for the specified column",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES, description = "Specifies an initial "
@@ -132,6 +142,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS = new PropertyDescriptor.Builder()
+            .name("gen-table-output-flowfile-on-zero-results")
+            .displayName("Output Empty FlowFile on Zero Results")
+            .description("Depending on the specified properties, an execution of this processor may not result in any SQL statements generated. When this property "
+                    + "is true, an empty flow file will be generated (having the parent of the incoming flow file if present) and transferred to the 'success' relationship. "
+                    + "When this property is false, no output flow files will be generated.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
@@ -154,6 +176,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(PARTITION_SIZE);
         pds.add(COLUMN_FOR_VALUE_PARTITIONING);
         pds.add(WHERE_CLAUSE);
+        pds.add(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -237,6 +260,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnForPartitioning = context.getProperty(COLUMN_FOR_VALUE_PARTITIONING).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean useColumnValsForPaging = !StringUtils.isEmpty(columnForPartitioning);
         final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
+        final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -290,7 +314,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
             String columnsClause = null;
             List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
-            maxValueSelectColumns.add("COUNT(*)");
+
+            // replace unnecessary row count with -1 stub value when column values for paging is used, or when partition size is zero.
+            if (useColumnValsForPaging || partitionSize == 0) {
+                maxValueSelectColumns.add("-1");
+            } else {
+                maxValueSelectColumns.add("COUNT(*)");
+            }
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
             IntStream.range(0, numMaxValueColumns).forEach((index) -> {
@@ -419,39 +449,76 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 }
 
                 // Generate SQL statements to read "pages" of data
-                Long limit = partitionSize == 0 ? null : (long) partitionSize;
-                for (long i = 0; i < numberOfFetches; i++) {
-                    // Add a right bounding for the partitioning column if necessary (only on last partition, meaning we don't need the limit)
-                    if ((i == numberOfFetches - 1) && useColumnValsForPaging && (maxValueClauses.isEmpty() || customWhereClause != null)) {
-                        maxValueClauses.add(columnForPartitioning + " <= " + maxValueForPartitioning);
-                        limit = null;
-                    }
+                final String fragmentIdentifier = UUID.randomUUID().toString();
+                List<FlowFile> flowFilesToTransfer = new ArrayList<>();
 
-                    //Update WHERE list to include new right hand boundaries
-                    whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
-
-                    Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
-
-                    final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset, columnForPartitioning);
-                    FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                    sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.tableName", tableName);
-                    if (columnNames != null) {
-                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.columnNames", columnNames);
-                    }
-                    if (StringUtils.isNotBlank(whereClause)) {
-                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.whereClause", whereClause);
-                    }
-                    if (StringUtils.isNotBlank(maxColumnNames)) {
-                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.maxColumnNames", maxColumnNames);
-                    }
-                    sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.limit", String.valueOf(limit));
-                    if (partitionSize != 0) {
-                        sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.offset", String.valueOf(offset));
-                    }
-                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                Map<String, String> baseAttributes = new HashMap<>();
+                baseAttributes.put("generatetablefetch.tableName", tableName);
+                if (columnNames != null) {
+                    baseAttributes.put("generatetablefetch.columnNames", columnNames);
                 }
+
+                final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
+                if (StringUtils.isNotBlank(maxColumnNames)) {
+                    baseAttributes.put("generatetablefetch.maxColumnNames", maxColumnNames);
+                }
+
+                baseAttributes.put(FRAGMENT_ID, fragmentIdentifier);
+                baseAttributes.put(FRAGMENT_COUNT, String.valueOf(numberOfFetches));
+
+                // If there are no SQL statements to be generated, still output an empty flow file if specified by the user
+                if (numberOfFetches == 0 && outputEmptyFlowFileOnZeroResults) {
+                    FlowFile emptyFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                    Map<String, String> attributesToAdd = new HashMap<>();
+
+                    whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
+                    attributesToAdd.put("generatetablefetch.whereClause", whereClause);
+
+                    attributesToAdd.put("generatetablefetch.limit", null);
+                    if (partitionSize != 0) {
+                        attributesToAdd.put("generatetablefetch.offset", null);
+                    }
+                    // Add fragment attributes
+                    attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(0));
+
+                    attributesToAdd.putAll(baseAttributes);
+                    emptyFlowFile = session.putAllAttributes(emptyFlowFile, attributesToAdd);
+                    flowFilesToTransfer.add(emptyFlowFile);
+                } else {
+                    Long limit = partitionSize == 0 ? null : (long) partitionSize;
+                    for (long i = 0; i < numberOfFetches; i++) {
+                        // Add a right bounding for the partitioning column if necessary (only on last partition, meaning we don't need the limit)
+                        if ((i == numberOfFetches - 1) && useColumnValsForPaging && (maxValueClauses.isEmpty() || customWhereClause != null)) {
+                            maxValueClauses.add(columnForPartitioning + " <= " + maxValueForPartitioning);
+                            limit = null;
+                        }
+
+                        //Update WHERE list to include new right hand boundaries
+                        whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
+                        Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
+                        // Don't use an ORDER BY clause if there's only one partition
+                        final String orderByClause = partitionSize == 0 ? null : maxColumnNames;
+
+                        final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, columnForPartitioning);
+                        FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                        sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                        Map<String,String> attributesToAdd = new HashMap<>();
+
+                        attributesToAdd.put("generatetablefetch.whereClause", whereClause);
+                        attributesToAdd.put("generatetablefetch.limit", (limit == null) ? null : limit.toString());
+                        if (partitionSize != 0) {
+                            attributesToAdd.put("generatetablefetch.offset", String.valueOf(offset));
+                        }
+                        // Add fragment attributes
+                        attributesToAdd.put(FRAGMENT_INDEX, String.valueOf(i));
+
+                        attributesToAdd.putAll(baseAttributes);
+                        sqlFlowFile = session.putAllAttributes(sqlFlowFile, attributesToAdd);
+                        flowFilesToTransfer.add(sqlFlowFile);
+                    }
+                }
+
+                session.transfer(flowFilesToTransfer, REL_SUCCESS);
 
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);

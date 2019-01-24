@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-kite-bundle</artifactId>
@@ -36,7 +36,13 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kite-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <!-- Explicitly force Netty to 3.6.9 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.6.9.Final</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

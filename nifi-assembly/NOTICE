@@ -31,6 +31,9 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
   The derived work is adapted from
     release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
   and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  The derived work is adapted from
+    release-3.0.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+  and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
 
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc
@@ -308,7 +311,7 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Framework
     The following NOTICE information applies:
-      Spring Framework 4.1.4.RELEASE
+      Spring Framework 4.x,5.x.RELEASE
       Copyright (c) 2002-2015 Pivotal, Inc.
 
   (ASLv2) Spring Security
@@ -1873,4 +1876,4 @@ SIL OFL 1.1
 ******************
 
 The following binary components are provided under the SIL Open Font License 1.1
-  (SIL OFL 1.1) FontAwesome (4.6.1 - http://fortawesome.github.io/Font-Awesome/license/)
+  (SIL OFL 1.1) FontAwesome (4.7.0 - https://fontawesome.com/license/free)

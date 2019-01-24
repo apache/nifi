@@ -71,18 +71,26 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
 public class NiFiRegistryFlowMapper {
+
+    private final ExtensionManager extensionManager;
+
     // We need to keep a mapping of component id to versionedComponentId as we transform these objects. This way, when
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
     // identifier based on the comopnent's actual id. We do connections last, so that all components will already have been
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
+    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
     public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
-            final boolean mapDescendantVersionedFlows) {
+                                                             final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
         final InstantiatedVersionedProcessGroup mapped = mapGroup(group, serviceProvider, registryClient, true, mapDescendantVersionedFlows);
 
@@ -228,6 +236,20 @@ public class NiFiRegistryFlowMapper {
         return versionedId;
     }
 
+    private <E extends Exception> String getIdOrThrow(final Optional<String> currentVersionedId, final String componentId, final Supplier<E> exceptionSupplier) throws E {
+        if (currentVersionedId.isPresent()) {
+            return currentVersionedId.get();
+        } else {
+            final String resolved = versionedComponentIds.get(componentId);
+            if (resolved == null) {
+                throw exceptionSupplier.get();
+            }
+
+            return resolved;
+        }
+    }
+
+
     private String getGroupId(final String groupId) {
         return versionedComponentIds.get(groupId);
     }
@@ -250,6 +272,7 @@ public class NiFiRegistryFlowMapper {
         final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
         versionedConnection.setLoadBalanceStrategy(flowFileQueue.getLoadBalanceStrategy().name());
         versionedConnection.setPartitioningAttribute(flowFileQueue.getPartitioningAttribute());
+        versionedConnection.setLoadBalanceCompression(flowFileQueue.getLoadBalanceCompression().name());
 
         versionedConnection.setBends(connection.getBendPoints().stream()
             .map(this::mapPosition)
@@ -264,39 +287,27 @@ public class NiFiRegistryFlowMapper {
     public ConnectableComponent mapConnectable(final Connectable connectable) {
         final ConnectableComponent component = new InstantiatedConnectableComponent(connectable.getIdentifier(), connectable.getProcessGroupIdentifier());
 
-        final Optional<String> versionedId = connectable.getVersionedComponentId();
-        if (versionedId.isPresent()) {
-            component.setId(versionedId.get());
-        } else {
-            final String resolved = versionedComponentIds.get(connectable.getIdentifier());
-            if (resolved == null) {
-                throw new IllegalArgumentException("Unable to map Connectable Component with identifier " + connectable.getIdentifier() + " to any version-controlled component");
-            }
-
-            component.setId(resolved);
-        }
+        final String versionedId = getIdOrThrow(connectable.getVersionedComponentId(), connectable.getIdentifier(),
+            () -> new IllegalArgumentException("Unable to map Connectable Component with identifier " + connectable.getIdentifier() + " to any version-controlled component"));
+        component.setId(versionedId);
 
         component.setComments(connectable.getComments());
+
+        final String groupId;
         if (connectable instanceof RemoteGroupPort) {
             final RemoteGroupPort port = (RemoteGroupPort) connectable;
             final RemoteProcessGroup rpg = port.getRemoteProcessGroup();
             final Optional<String> rpgVersionedId = rpg.getVersionedComponentId();
-            final String groupId;
-            if (rpgVersionedId.isPresent()) {
-                groupId = rpgVersionedId.get();
-            } else {
-                final String resolved = versionedComponentIds.get(rpg.getIdentifier());
-                if (resolved == null) {
-                    throw new IllegalArgumentException("Unable to find the Versioned Component ID for Remote Process Group that " + connectable + " belongs to");
-                }
+            groupId = getIdOrThrow(rpgVersionedId, rpg.getIdentifier(),
+                () -> new IllegalArgumentException("Unable to find the Versioned Component ID for Remote Process Group that " + connectable + " belongs to"));
 
-                groupId = resolved;
-            }
-
-            component.setGroupId(groupId);
         } else {
-            component.setGroupId(connectable.getProcessGroupIdentifier());
+            groupId = getIdOrThrow(connectable.getProcessGroup().getVersionedComponentId(), connectable.getProcessGroupIdentifier(),
+                () -> new IllegalArgumentException("Unable to find the Versioned Component ID for the Process Group that " + connectable + " belongs to"));
         }
+
+        component.setGroupId(groupId);
+
         component.setName(connectable.getName());
         component.setType(ConnectableComponentType.valueOf(connectable.getConnectableType().name()));
         return component;
@@ -381,7 +392,7 @@ public class NiFiRegistryFlowMapper {
 
         final List<ControllerServiceAPI> serviceApis = new ArrayList<>();
         for (final Class<?> serviceApiClass : serviceApiClasses) {
-            final BundleCoordinate bundleCoordinate = ExtensionManager.getBundle(serviceApiClass.getClassLoader()).getBundleDetails().getCoordinate();
+            final BundleCoordinate bundleCoordinate = extensionManager.getBundle(serviceApiClass.getClassLoader()).getBundleDetails().getCoordinate();
 
             final ControllerServiceAPI serviceApi = new ControllerServiceAPI();
             serviceApi.setType(serviceApiClass.getName());

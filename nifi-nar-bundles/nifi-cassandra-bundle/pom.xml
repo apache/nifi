@@ -19,8 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
+
+    <properties>
+        <cassandra.sdk.version>3.3.0</cassandra.sdk.version>
+    </properties>
 
     <artifactId>nifi-cassandra-bundle</artifactId>
     <packaging>pom</packaging>
@@ -28,6 +32,10 @@
     <modules>
         <module>nifi-cassandra-processors</module>
         <module>nifi-cassandra-nar</module>
+        <module>nifi-cassandra-services-api</module>
+        <module>nifi-cassandra-services-api-nar</module>
+        <module>nifi-cassandra-services</module>
+        <module>nifi-cassandra-services-nar</module>
     </modules>
 
     <dependencyManagement>
@@ -35,7 +43,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

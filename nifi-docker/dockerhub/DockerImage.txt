@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apache/nifi:1.8.0
+apache/nifi:1.9.0

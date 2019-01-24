@@ -16,10 +16,44 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.AbstractComponentNode;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.TerminationAwareLogger;
+import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -34,41 +68,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.documentation.DeprecationNotice;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.validation.ValidationState;
-import org.apache.nifi.components.validation.ValidationTrigger;
-import org.apache.nifi.controller.AbstractComponentNode;
-import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.ReloadComponent;
-import org.apache.nifi.controller.TerminationAwareLogger;
-import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.processor.SimpleProcessLogger;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.util.CharacterFilterUtils;
-import org.apache.nifi.util.ReflectionUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
@@ -92,19 +91,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent,
-                                         final ValidationTrigger validationTrigger) {
+                                         final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider, implementation.getComponent().getClass().getSimpleName(),
-            implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, validationTrigger, false);
+            implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, extensionManager, validationTrigger, false);
     }
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final String componentType, final String componentCanonicalClass,
-                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger,
-                                         final boolean isExtensionMissing) {
+                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                         final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
@@ -318,25 +317,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
-
-        final ValidationState validationState = getValidationState();
-        switch (validationState.getStatus()) {
-            case INVALID:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + validationState.getValidationErrors());
-            case VALIDATING:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because its validation has not yet completed");
-        }
     }
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
-        }
-
-        final Collection<ValidationResult> validationErrors = getValidationErrors(ignoredReferences);
-        if (ignoredReferences != null && !validationErrors.isEmpty()) {
-            throw new IllegalStateException("Controller Service with ID " + getIdentifier() + " cannot be enabled because it is not currently valid: " + validationErrors);
         }
     }
 
@@ -388,8 +374,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             case DISABLED:
             case DISABLING:
                 return true;
-            case ENABLED:
             case ENABLING:
+                // If enabling and currently not valid, then we must trigger validation to occur. This allows the #enable method
+                // to continue running in the background and complete enabling when the service becomes valid.
+                return getValidationStatus() != ValidationStatus.VALID;
+            case ENABLED:
             default:
                 return false;
         }
@@ -397,7 +386,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     /**
      * Will atomically enable this service by invoking its @OnEnabled operation.
-     * It uses CAS operation on {@link #stateRef} to transition this service
+     * It uses CAS operation on {@link #stateTransition} to transition this service
      * from DISABLED to ENABLING state. If such transition succeeds the service
      * will be marked as 'active' (see {@link ControllerServiceNode#isActive()}).
      * If such transition doesn't succeed then no enabling logic will be
@@ -428,8 +417,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
+                    if (!isActive()) {
+                        LOG.debug("{} is no longer active so will not attempt to enable it", StandardControllerServiceNode.this);
+                        stateTransition.disable();
+                        return;
+                    }
+
+                    final ValidationStatus validationStatus = getValidationStatus();
+                    if (validationStatus != ValidationStatus.VALID) {
+                        LOG.debug("Cannot enable {} because it is not currently valid. Will try again in 5 seconds", StandardControllerServiceNode.this);
+                        scheduler.schedule(this, 5, TimeUnit.SECONDS);
+                        future.completeExceptionally(new RuntimeException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
+                        return;
+                    }
+
                     try {
-                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
@@ -445,7 +448,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                             invokeDisable(configContext);
                             stateTransition.disable();
                         } else {
-                            LOG.debug("Successfully enabled {}", service);
+                            LOG.info("Successfully enabled {}", service);
                         }
                     } catch (Exception e) {
                         future.completeExceptionally(e);
@@ -459,7 +462,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         } else {
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
                             }
                             stateTransition.disable();
@@ -477,7 +480,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.
-     * It uses CAS operation on {@link #stateRef} to transition this service
+     * It uses CAS operation on {@link #stateTransition} to transition this service
      * from ENABLED to DISABLING state. If such transition succeeds the service
      * will be de-activated (see {@link ControllerServiceNode#isActive()}).
      * If such transition doesn't succeed (the service is still in ENABLING state)
@@ -529,7 +532,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     private void invokeDisable(ConfigurationContext configContext) {
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {

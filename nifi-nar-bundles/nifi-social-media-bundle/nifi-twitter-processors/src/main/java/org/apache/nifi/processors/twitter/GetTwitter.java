@@ -16,9 +16,21 @@
  */
 package org.apache.nifi.processors.twitter;
 
+import com.twitter.hbc.ClientBuilder;
+import com.twitter.hbc.core.Client;
+import com.twitter.hbc.core.Constants;
+import com.twitter.hbc.core.endpoint.Location;
+import com.twitter.hbc.core.endpoint.Location.Coordinate;
+import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
+import com.twitter.hbc.core.endpoint.StatusesFirehoseEndpoint;
+import com.twitter.hbc.core.endpoint.StatusesSampleEndpoint;
+import com.twitter.hbc.core.endpoint.StreamingEndpoint;
+import com.twitter.hbc.core.event.Event;
+import com.twitter.hbc.core.processor.StringDelimitedProcessor;
+import com.twitter.hbc.httpclient.auth.Authentication;
+import com.twitter.hbc.httpclient.auth.OAuth1;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +43,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -56,24 +67,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.twitter.hbc.ClientBuilder;
-import com.twitter.hbc.core.Client;
-import com.twitter.hbc.core.Constants;
-import com.twitter.hbc.core.endpoint.Location ;
-import com.twitter.hbc.core.endpoint.Location.Coordinate ;
-import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
-import com.twitter.hbc.core.endpoint.StatusesFirehoseEndpoint;
-import com.twitter.hbc.core.endpoint.StatusesSampleEndpoint;
-import com.twitter.hbc.core.endpoint.StreamingEndpoint;
-import com.twitter.hbc.core.event.Event;
-import com.twitter.hbc.core.processor.StringDelimitedProcessor;
-import com.twitter.hbc.httpclient.auth.Authentication;
-import com.twitter.hbc.httpclient.auth.OAuth1;
-
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"twitter", "tweets", "social media", "status", "json"})
-@CapabilityDescription("Pulls status changes from Twitter's streaming API")
+@CapabilityDescription("Pulls status changes from Twitter's streaming API. In versions starting with 1.9.0, the Consumer Key and Access Token are marked as sensitive according to https://developer.twitter.com/en/docs/basics/authentication/guides/securing-keys-and-tokens")
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
 public class GetTwitter extends AbstractProcessor {
 
@@ -92,6 +89,7 @@ public class GetTwitter extends AbstractProcessor {
             .name("Consumer Key")
             .description("The Consumer Key provided by Twitter")
             .required(true)
+            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CONSUMER_SECRET = new PropertyDescriptor.Builder()
@@ -105,6 +103,7 @@ public class GetTwitter extends AbstractProcessor {
             .name("Access Token")
             .description("The Access Token provided by Twitter")
             .required(true)
+            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor ACCESS_TOKEN_SECRET = new PropertyDescriptor.Builder()
@@ -221,7 +220,7 @@ public class GetTwitter extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws MalformedURLException {
+    public void onScheduled(final ProcessContext context) {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),
@@ -369,7 +368,7 @@ public class GetTwitter extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, REL_SUCCESS);
-        session.getProvenanceReporter().receive(flowFile, Constants.STREAM_HOST + client.getEndpoint().getURI().toString());
+        session.getProvenanceReporter().receive(flowFile, Constants.STREAM_HOST + client.getEndpoint().getURI());
     }
 
     private static class FollowingValidator implements Validator {

@@ -597,7 +597,7 @@ public class TestCSVRecordReader {
     @Test
     public void testQuote() throws IOException, MalformedRecordException {
         final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withQuote('"');
-        final String text = "\"name\"\n\"\"\"\"";
+        final String text = "\"name\"\n\"\"\"\"\n\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -607,9 +607,12 @@ public class TestCSVRecordReader {
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
-            final Record record = reader.nextRecord();
-            final String name = (String)record.getValue("name");
+            Record record = reader.nextRecord();
+            String name = (String)record.getValue("name");
+            assertEquals("\"", name);
 
+            record = reader.nextRecord(false, false);
+            name = (String)record.getValue("name");
             assertEquals("\"", name);
         }
     }

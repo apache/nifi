@@ -17,12 +17,14 @@
 package org.apache.nifi.controller.serialization
 
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.controller.StandardFlowSynchronizer
 import org.apache.nifi.encrypt.EncryptionException
 import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.util.NiFiProperties
+import org.apache.nifi.web.api.dto.ProcessGroupDTO
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
@@ -32,12 +34,15 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.w3c.dom.Document
+import org.w3c.dom.Element
 
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -133,6 +138,83 @@ class FlowFromDOMFactoryTest {
 
         // Assert
         assert msg.message =~ "Check that the ${KEY} value in nifi.properties matches the value used to encrypt the flow.xml.gz file"
+    }
+
+    @Test
+    void testShouldDecryptSensitiveFlowValueRegardlessOfPropertySensitiveStatus() throws Exception {
+        // Arrange
+
+        // Create a mock Element object to be parsed
+
+        // TODO: Mock call to StandardFlowSynchronizer#readFlowFromDisk()
+        final String FLOW_XML = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flowController encoding-version="1.3">
+  <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+  <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
+  <registries/>
+  <rootGroup>
+    <id>32aeba59-0167-1000-fc76-847bf5d10d73</id>
+    <name>NiFi Flow</name>
+    <position x="0.0" y="0.0"/>
+    <comment/>
+    <processor>
+      <id>32af5e4e-0167-1000-ad5f-c79ff57c851e</id>
+      <name>Example Processor</name>
+      <position x="461.0" y="80.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.test.ExampleProcessor</class>
+      <bundle>
+        <group>org.apache.nifi</group>
+        <artifact>nifi-test-nar</artifact>
+        <version>1.9.0-SNAPSHOT</version>
+      </bundle>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Plaintext Property</name>
+        <value>plain value</value>
+      </property>
+      <property>
+        <name>Sensitive Property</name>
+        <value>enc{29077eedc9af7515cc3e0d2d29a93a5cbb059164876948458fd0c890009c8661}</value>
+      </property>
+    </processor>
+  </rootGroup>
+  <controllerServices/>
+  <reportingTasks/>
+</flowController>
+"""
+
+        // TODO: Mock call to StandardFlowSynchronizer#parseFlowBytes()
+        Document flow = StandardFlowSynchronizer.parseFlowBytes(FLOW_XML.getBytes(StandardCharsets.UTF_8))
+
+        // Logic to extract root process group
+        final Element rootElement = flow.getDocumentElement()
+
+        final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0)
+        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement)
+
+        StringEncryptor flowEncryptor = new StringEncryptor(EncryptionMethod.MD5_128AES.algorithm, EncryptionMethod.MD5_128AES.provider, DEFAULT_PASSWORD)
+
+        // Act
+        ProcessGroupDTO decryptedProcessGroupDTO = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, flowEncryptor, encodingVersion)
+        logger.info("PG DTO: ${decryptedProcessGroupDTO}")
+
+        // Assert
+        def processorProperties = decryptedProcessGroupDTO.contents.processors.first().config.properties
+        logger.info("Parsed processor properties: ${processorProperties}")
+
+        assert processorProperties.find { it.key == "Plaintext Property" }.value == "plain value"
+        assert processorProperties.find { it.key == "Sensitive Property" }.value == "sensitive value"
     }
 
     private

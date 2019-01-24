@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.net.URL;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.nar.ExtensionManager;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-
-import org.apache.nifi.annotation.lifecycle.OnAdded;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
  *
@@ -34,18 +32,10 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 public interface ControllerServiceProvider extends ControllerServiceLookup {
 
     /**
-     * Creates a new Controller Service of the specified type and assigns it the
-     * given id. If <code>firstTimeadded</code> is true, calls any methods that
-     * are annotated with {@link OnAdded}
-     *
-     * @param type of service
-     * @param id of service
-     * @param bundleCoordinate the coordinate of the bundle for the service
-     * @param additionalUrls optional additional URL resources to add to the class loader of the component
-     * @param firstTimeAdded for service
-     * @return the service node
+     * Notifies the ControllerServiceProvider that the given Controller Service has been added to the flow
+     * @param serviceNode the Controller Service Node
      */
-    ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded);
+    void onControllerServiceAdded(ControllerServiceNode serviceNode);
 
     /**
      * @param id of the service
@@ -113,10 +103,9 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
     Future<Void> disableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
 
     /**
-     * @return a Set of all Controller Services that exist for this service
-     *         provider
+     * @return a Set of all Controller Services that exist for this service provider
      */
-    Set<ControllerServiceNode> getAllControllerServices();
+    Collection<ControllerServiceNode> getNonRootControllerServices();
 
     /**
      * Verifies that all running Processors and Reporting Tasks referencing the
@@ -225,4 +214,10 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *         identifier
      */
     ControllerService getControllerServiceForComponent(String serviceIdentifier, String componentId);
+
+    /**
+     * @return the ExtensionManager used by this provider
+     */
+    ExtensionManager getExtensionManager();
+
 }

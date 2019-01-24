@@ -191,4 +191,16 @@ class TestFlattenJson {
             Assert.assertEquals("Separator not applied.", "http://localhost/value1", parsed["first.second.third[0]"])
         }
     }
+
+    @Test
+    void testEscapeForJson() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([ name: "José"
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
+        baseTest(testRunner, json,1) { parsed ->
+            Assert.assertEquals("Separator not applied.", "José", parsed["name"])
+        }
+    }
 }

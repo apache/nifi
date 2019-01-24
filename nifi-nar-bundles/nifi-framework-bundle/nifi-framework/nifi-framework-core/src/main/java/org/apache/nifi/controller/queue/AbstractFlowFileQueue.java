@@ -141,6 +141,10 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     @Override
     public boolean isFull() {
+        return isFull(size());
+    }
+
+    protected boolean isFull(final QueueSize queueSize) {
         final MaxQueueSize maxSize = getMaxQueueSize();
 
         // Check if max size is set
@@ -148,7 +152,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             return false;
         }
 
-        final QueueSize queueSize = size();
         if (maxSize.getMaxCount() > 0 && queueSize.getObjectCount() >= maxSize.getMaxCount()) {
             return true;
         }
@@ -187,7 +190,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             @Override
             public void run() {
                 int position = 0;
-                int resultCount = 0;
                 final List<FlowFileSummary> summaries = new ArrayList<>();
 
                 // Create an ArrayList that contains all of the contents of the active queue.
@@ -213,7 +215,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
                     }
                 }
 
-                logger.debug("{} Finished listing FlowFiles for active queue with a total of {} results", this, resultCount);
+                logger.debug("{} Finished listing FlowFiles for active queue with a total of {} results out of {} FlowFiles", this, summaries.size(), allFlowFiles.size());
                 listRequest.setFlowFileSummaries(summaries);
                 listRequest.setState(ListFlowFileState.COMPLETE);
             }

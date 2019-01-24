@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -78,7 +79,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = nodeIds -> {};
+    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;
@@ -134,7 +135,9 @@ public class TestStandardLoadBalanceProtocol {
         }).when(contentRepo).write(Mockito.any(ContentClaim.class));
 
         final Connection connection = Mockito.mock(Connection.class);
-        when(flowController.getConnection(Mockito.anyString())).thenReturn(connection);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
 
         flowFileQueue = Mockito.mock(LoadBalancedFlowFileQueue.class);
         when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
@@ -204,7 +207,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);
@@ -266,7 +269,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);
@@ -331,7 +334,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -393,7 +396,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException eof) {
             // expected
@@ -440,7 +443,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(COMPLETE_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -458,7 +461,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -492,7 +497,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.close();
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected EOFException but none was thrown");
         } catch (final EOFException e) {
             // expected
@@ -509,7 +514,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(0)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -541,7 +548,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.write(ABORT_TRANSACTION);
 
         try {
-            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
             Assert.fail("Expected TransactionAbortedException but none was thrown");
         } catch (final TransactionAbortedException e) {
             // expected
@@ -559,7 +566,9 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.verify(flowFileRepo, times(0)).updateRepository(anyCollection());
         Mockito.verify(provenanceRepo, times(0)).registerEvents(anyList());
         Mockito.verify(flowFileQueue, times(0)).putAll(anyCollection());
-        Mockito.verify(contentRepo, times(1)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).incrementClaimaintCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(2)).decrementClaimantCount(claimContents.keySet().iterator().next());
+        Mockito.verify(contentRepo, times(1)).remove(claimContents.keySet().iterator().next());
     }
 
     @Test
@@ -590,7 +599,7 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(COMPLETE_TRANSACTION);
 
-        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1, "unit.test");
+        protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(3, serverResponse.length);

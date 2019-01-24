@@ -189,12 +189,12 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws IllegalAccessException if there is an error accessing the type
      * @throws ClassNotFoundException if the class cannot be found
      */
-    public static <T> T createInstance(final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
+    public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
         try {
-            final List<Bundle> bundles = ExtensionManager.getBundles(implementationClassName);
+            final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
             if (bundles.size() == 0) {
                 throw new IllegalStateException(String.format("The specified implementation class '%s' is not known to this nifi.", implementationClassName));
             }

@@ -17,7 +17,7 @@
 [![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
 [![Docker pulls](https://img.shields.io/docker/pulls/apache/nifi.svg)](https://hub.docker.com/r/apache/nifi/)
 [![Version](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-utils.svg)](https://nifi.apache.org/download.html)
-[![HipChat](https://img.shields.io/badge/chat-on%20HipChat-brightgreen.svg)](https://www.hipchat.com/gzh2m5YML)
+[![Slack](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://join.slack.com/t/apachenifi/shared_invite/enQtNDI2NDMyMTY3MTA5LWJmZDI3MmM1ZmYyODQwZDYwM2MyMDY5ZjkyMDkxY2JmOGMyNmEzYTE0MTRkZTYwYzZlYTJkY2JhZTYyMzcyZGI)
 
 [Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and
 reliable system to process and distribute data.
@@ -171,12 +171,11 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
-java cryptography libraries for SSL, SSH, and the protection
+Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
+Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
 http://bouncycastle.org/about.html
-http://www.jasypt.org/faq.html
-http://jcraft.com/c-info.html
+http://www.jcraft.com/c-info.html
 http://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.
 

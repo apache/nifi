@@ -392,7 +392,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             }
 
             // schedule the background thread to load the users/groups
-            ldapSync.scheduleWithFixedDelay(() -> load(context), syncInterval, syncInterval, TimeUnit.MILLISECONDS);
+            ldapSync.scheduleWithFixedDelay(() -> {
+                try {
+                    load(context);
+                } catch (final Throwable t) {
+                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", new Object[] {t.toString(), syncInterval});
+                    if (logger.isDebugEnabled()) {
+                        logger.error("", t);
+                    }
+                }
+            }, syncInterval, syncInterval, TimeUnit.MILLISECONDS);
         } catch (final AuthorizationAccessException e) {
             throw new AuthorizerCreationException(e);
         }
@@ -637,6 +646,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     // build the group
                     groupList.add(groupBuilder.build());
                 });
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("-------------------------------------");
+                logger.debug("Loaded the following users from LDAP:");
+                userList.forEach((user) -> logger.debug(" - " + user));
+                logger.debug("--------------------------------------");
+                logger.debug("Loaded the following groups from LDAP:");
+                groupList.forEach((group) -> logger.debug(" - " + group));
+                logger.debug("--------------------------------------");
             }
 
             // record the updated tenants

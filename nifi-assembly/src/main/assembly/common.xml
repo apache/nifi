@@ -91,6 +91,15 @@
             </unpackOptions>
         </dependencySet>
     </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>.</directory>
+            <outputDirectory>extensions</outputDirectory>
+            <excludes>
+                <exclude>*/**</exclude>
+            </excludes>
+        </fileSet>
+    </fileSets>
     <files>
         <file>
             <source>./README.md</source>

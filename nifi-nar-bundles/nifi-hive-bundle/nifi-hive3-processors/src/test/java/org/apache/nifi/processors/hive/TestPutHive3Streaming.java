@@ -54,8 +54,11 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -151,18 +154,26 @@ public class TestPutHive3Streaming {
     }
 
     private void configure(final PutHive3Streaming processor, final int numUsers) throws InitializationException {
-        configure(processor, numUsers, -1);
+        configure(processor, numUsers, false, -1);
     }
 
-    private void configure(final PutHive3Streaming processor, final int numUsers, int failAfter) throws InitializationException {
-        configure(processor, numUsers, failAfter, null);
+    private void configure(final PutHive3Streaming processor, final int numUsers, boolean failOnCreateReader, int failAfter) throws InitializationException {
+        configure(processor, numUsers, failOnCreateReader, failAfter, null);
     }
 
-    private void configure(final PutHive3Streaming processor, final int numUsers, final int failAfter,
+    private void configure(final PutHive3Streaming processor, final int numUsers, final boolean failOnCreateReader, final int failAfter,
                            final BiFunction<Integer, MockRecordParser, Void> recordGenerator) throws InitializationException {
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
-        MockRecordParser readerFactory = new MockRecordParser();
+        MockRecordParser readerFactory = new MockRecordParser() {
+            @Override
+            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
+                if (failOnCreateReader) {
+                    throw new SchemaNotFoundException("test");
+                }
+                return super.createRecordReader(variables, in, logger);
+            }
+        };
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
             readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
@@ -343,7 +354,7 @@ public class TestPutHive3Streaming {
 
     @Test
     public void onTriggerBadInput() throws Exception {
-        configure(processor, 1, 0);
+        configure(processor, 1, false, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
@@ -355,13 +366,46 @@ public class TestPutHive3Streaming {
 
     @Test
     public void onTriggerBadInputRollbackOnFailure() throws Exception {
-        configure(processor, 1, 0);
+        configure(processor, 1, false, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
 
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue("I am not an Avro record".getBytes());
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void onTriggerBadCreate() throws Exception {
+        configure(processor, 1, true, 0);
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void onTriggerBadCreateRollbackOnFailure() throws Exception {
+        configure(processor, 1, true, 0);
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
+
+        runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
+        runner.enqueue(new byte[0]);
         try {
             runner.run();
             fail("ProcessException should be thrown");
@@ -750,6 +794,145 @@ public class TestPutHive3Streaming {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
         assertEquals("10", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
         assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    //logical types
+
+    @Test
+    public void testNullDateHandling() throws IOException, MalformedRecordException, InitializationException {
+        String schemaText = "{ \"name\":\"test\", \"type\":\"record\", \"fields\":[ { \"name\":\"dob\", \"type\": [ \"null\", { \"type\":\"int\", \"logicalType\":\"date\"  }  ] } ] }";
+        schema = new Schema.Parser().parse(schemaText);
+        processor.setFields(Arrays.asList(
+                new FieldSchema("dob", serdeConstants.DATE_TYPE_NAME, "null dob")
+        ));
+        //setup runner
+        runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        MockRecordParser readerFactory = new MockRecordParser();
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+        }
+
+        readerFactory.addRecord(new Object[] { null });
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "mock-reader-factory");
+
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "dobs");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.dobs", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    @Test
+    public void testNullTimestampHandling() throws IOException, MalformedRecordException, InitializationException {
+        String schemaText = "{ \"name\":\"test\", \"type\":\"record\", \"fields\":[ { \"name\":\"dob\", \"type\": [ \"null\", { \"type\":\"long\", \"logicalType\":\"timestamp-millis\"  }  ] } ] }";
+        schema = new Schema.Parser().parse(schemaText);
+        processor.setFields(Arrays.asList(
+                new FieldSchema("dob", serdeConstants.TIMESTAMP_TYPE_NAME, "null dob")
+        ));
+        //setup runner
+        runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        MockRecordParser readerFactory = new MockRecordParser();
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+        }
+
+        readerFactory.addRecord(new Object[] { null });
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "mock-reader-factory");
+
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "ts");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.ts", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    @Test
+    public void testNullDecimalHandling() throws IOException, MalformedRecordException, InitializationException {
+        String schemaText = "{ \"name\":\"test\", \"type\":\"record\", \"fields\":[ { \"name\":\"amount\", \"type\": [ \"null\", { \"type\":\"bytes\", "
+            + "\"logicalType\":\"decimal\", \"precision\":18, \"scale\":2  }  ] } ] }";
+        schema = new Schema.Parser().parse(schemaText);
+        processor.setFields(Arrays.asList(
+                new FieldSchema("amount", serdeConstants.DECIMAL_TYPE_NAME, "null amount")
+        ));
+        //setup runner
+        runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        MockRecordParser readerFactory = new MockRecordParser();
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+        }
+
+        readerFactory.addRecord(new Object[] { null });
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "mock-reader-factory");
+
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "transactions");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.transactions", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    @Test
+    public void testNullArrayHandling() throws IOException, MalformedRecordException, InitializationException {
+        String schemaText = "{ \"name\":\"test\", \"type\":\"record\", \"fields\":[ { \"name\":\"groups\", \"type\": [ \"null\", { \"type\":\"array\", \"items\":\"string\" }  ] } ] }";
+        schema = new Schema.Parser().parse(schemaText);
+        processor.setFields(Arrays.asList(
+                new FieldSchema("groups", "array<string>", "null groups")
+        ));
+        //setup runner
+        runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        MockRecordParser readerFactory = new MockRecordParser();
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+        }
+
+        readerFactory.addRecord(new Object[] { null });
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "mock-reader-factory");
+
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "groups");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.groups", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
     }
 
     @Test

@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.util.Connectables;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,11 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.util.Connectables;
 
 public class EventDrivenWorkerQueue implements WorkerQueue {
 
@@ -69,6 +69,8 @@ public class EventDrivenWorkerQueue implements WorkerQueue {
                     try {
                         workMonitor.wait(timeLeft);
                     } catch (final InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                        return null;
                     }
                 } else {
                     // Decrement the amount of work there is to do for this worker.

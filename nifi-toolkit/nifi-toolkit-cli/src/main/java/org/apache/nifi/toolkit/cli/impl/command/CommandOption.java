@@ -49,6 +49,9 @@ public enum CommandOption {
     SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
     SRC_FLOW_VERSION("sfv", "sourceFlowVersion", "A version of a flow from the source registry", true),
 
+    // NiFi - Nodes
+    NIFI_NODE_ID("nnid", "nifiNodeId", "The ID of a node in the NiFi cluster", true),
+
     // NiFi - Registries
     REGISTRY_CLIENT_ID("rcid", "registryClientId", "The id of a registry client", true),
     REGISTRY_CLIENT_NAME("rcn", "registryClientName", "The name of the registry client", true),

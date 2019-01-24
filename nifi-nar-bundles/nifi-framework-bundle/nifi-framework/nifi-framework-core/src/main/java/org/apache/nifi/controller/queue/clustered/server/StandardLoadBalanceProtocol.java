@@ -39,15 +39,12 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -60,14 +57,11 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
@@ -122,25 +116,12 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final InputStream in = new BufferedInputStream(socket.getInputStream());
         final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
 
-        String peerDescription = socket.getInetAddress().toString();
+        String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
-            final SSLSession sslSession = ((SSLSocket) socket).getSession();
+            logger.debug("Connection received from peer {}", peerDescription);
 
-            final Set<String> certIdentities;
-            try {
-                certIdentities = getCertificateIdentities(sslSession);
-
-                final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
-                peerDescription = CertificateUtils.extractUsername(dn);
-            } catch (final CertificateException e) {
-                throw new IOException("Failed to extract Client Certificate", e);
-            }
-
-            logger.debug("Connection received from peer {}. Will perform authorization against Client Identities '{}'",
-                peerDescription, certIdentities);
-
-            authorizer.authorize(certIdentities);
-            logger.debug("Client Identities {} are authorized to load balance data", certIdentities);
+            peerDescription = authorizer.authorize((SSLSocket) socket);
+            logger.debug("Client Identities are authorized to load balance data for peer {}", peerDescription);
         }
 
         final int version = negotiateProtocolVersion(in, out, peerDescription);
@@ -154,23 +135,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        receiveFlowFiles(in, out, peerDescription, version, socket.getInetAddress().getHostName());
-    }
-
-    private Set<String> getCertificateIdentities(final SSLSession sslSession) throws CertificateException, SSLPeerUnverifiedException {
-        final Certificate[] certs = sslSession.getPeerCertificates();
-        if (certs == null || certs.length == 0) {
-            throw new SSLPeerUnverifiedException("No certificates found");
-        }
-
-        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
-        cert.checkValidity();
-
-        final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
-                .map(CertificateUtils::extractUsername)
-                .collect(Collectors.toSet());
-
-        return identities;
+        receiveFlowFiles(in, out, peerDescription, version);
     }
 
 
@@ -224,7 +189,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion, final String nodeName) throws IOException {
+    protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);
         final long startTimestamp = System.currentTimeMillis();
 
@@ -238,7 +203,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             return;
         }
 
-        final Connection connection = flowController.getConnection(connectionId);
+        final Connection connection = flowController.getFlowManager().getConnection(connectionId);
         if (connection == null) {
             logger.error("Attempted to receive FlowFiles from Peer {} for Connection with ID {} but no connection exists with that ID", peerDescription, connectionId);
             throw new TransactionAbortedException("Attempted to receive FlowFiles from Peer " + peerDescription + " for Connection with ID " + connectionId + " but no Connection exists with that ID");
@@ -250,13 +215,15 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     "not configured to allow for Load Balancing");
         }
 
+        final LoadBalancedFlowFileQueue loadBalancedFlowFileQueue = (LoadBalancedFlowFileQueue) flowFileQueue;
+
         final int spaceCheck = dataIn.read();
         if (spaceCheck < 0) {
             throw new EOFException("Expected to receive a request to determine whether or not space was available for Connection with ID " + connectionId + " from Peer " + peerDescription);
         }
 
         if (spaceCheck == CHECK_SPACE) {
-            if (flowFileQueue.isFull()) {
+            if (loadBalancedFlowFileQueue.isLocalPartitionFull()) {
                 logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
                 out.write(QUEUE_FULL);
                 out.flush();
@@ -285,17 +252,14 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                     if (contentClaim == null) {
                         contentClaim = contentRepository.create(false);
                         contentClaimOut = contentRepository.write(contentClaim);
-                    } else {
-                        contentRepository.incrementClaimaintCount(contentClaim);
                     }
 
-                    final RemoteFlowFileRecord flowFile;
-                    try {
-                        flowFile = receiveFlowFile(dataIn, contentClaimOut, contentClaim, claimOffset, protocolVersion, peerDescription, compression);
-                    } catch (final Exception e) {
-                        contentRepository.decrementClaimantCount(contentClaim);
-                        throw e;
-                    }
+                    final RemoteFlowFileRecord flowFile = receiveFlowFile(dataIn, contentClaimOut, contentClaim, claimOffset, protocolVersion, peerDescription, compression);
+
+                    // The FlowFile's Content Claim will either be null or equal to the provided Content Claim.
+                    // Incrementing the FlowFile's content claim will increment the count for the provided Content Claim, if it was
+                    // assigned to the FlowFIle, or call incrementClaimantCount with an argument of null, which will do nothing.
+                    contentRepository.incrementClaimaintCount(flowFile.getFlowFile().getContentClaim());
 
                     flowFilesReceived.add(flowFile);
 
@@ -307,14 +271,25 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 }
             }
 
+            // When the Content Claim is created initially, it has a Claimaint Count of 1. We then increment the Claimant Count for each FlowFile that we add to the Content Claim,
+            // which means that the claimant count is currently 1 larger than it needs to be. So we will decrement the claimant count now. If that results in a count of 0, then
+            // we can go ahead and remove the Content Claim, since we know it's not being referenced.
+            final int count = contentRepository.decrementClaimantCount(contentClaim);
+
             verifyChecksum(checksum, in, out, peerDescription, flowFilesReceived.size());
-            completeTransaction(in, out, peerDescription, flowFilesReceived, nodeName, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
+            completeTransaction(in, out, peerDescription, flowFilesReceived, connectionId, startTimestamp, (LoadBalancedFlowFileQueue) flowFileQueue);
+
+            if (count == 0) {
+                contentRepository.remove(contentClaim);
+            }
         } catch (final Exception e) {
             // If any Exception occurs, we need to decrement the claimant counts for the Content Claims that we wrote to because
             // they are no longer needed.
             for (final RemoteFlowFileRecord remoteFlowFile : flowFilesReceived) {
                 contentRepository.decrementClaimantCount(remoteFlowFile.getFlowFile().getContentClaim());
             }
+
+            contentRepository.remove(contentClaim);
 
             throw e;
         }
@@ -323,7 +298,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
     private void completeTransaction(final InputStream in, final OutputStream out, final String peerDescription, final List<RemoteFlowFileRecord> flowFilesReceived,
-                                     final String nodeName, final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
+                                     final String connectionId, final long startTimestamp, final LoadBalancedFlowFileQueue flowFileQueue) throws IOException {
         final int completionIndicator = in.read();
         if (completionIndicator < 0) {
             throw new EOFException("Expected to receive a Transaction Completion Indicator from Peer " + peerDescription + " but encountered EOF");
@@ -342,7 +317,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         logger.debug("Received Complete Transaction indicator from Peer {}", peerDescription);
-        registerReceiveProvenanceEvents(flowFilesReceived, nodeName, connectionId, startTimestamp);
+        registerReceiveProvenanceEvents(flowFilesReceived, peerDescription, connectionId, startTimestamp);
         updateFlowFileRepository(flowFilesReceived, flowFileQueue);
         transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
 
@@ -465,6 +440,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         final Map<String, String> attributes = readAttributes(metadataIn);
+        final String sourceSystemUuid = attributes.get(CoreAttributes.UUID.key());
 
         logger.debug("Received Attributes {} from Peer {}", attributes, peerDescription);
 
@@ -476,6 +452,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(flowFileRepository.getNextFlowFileSequence())
             .addAttributes(attributes)
+            .addAttribute(CoreAttributes.UUID.key(), UUID.randomUUID().toString())
             .contentClaim(contentClaimTriple.getContentClaim())
             .contentClaimOffset(contentClaimTriple.getClaimOffset())
             .size(contentClaimTriple.getContentLength())
@@ -484,7 +461,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             .build();
 
         logger.debug("Received FlowFile {} with {} attributes and {} bytes of content", flowFileRecord, attributes.size(), contentClaimTriple.getContentLength());
-        return new RemoteFlowFileRecord(attributes.get(CoreAttributes.UUID.key()), flowFileRecord);
+        return new RemoteFlowFileRecord(sourceSystemUuid, flowFileRecord);
     }
 
     private Map<String, String> readAttributes(final DataInputStream in) throws IOException {

@@ -119,6 +119,10 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         registeredPartitions.remove(connectionId);
     }
 
+    public synchronized int getRegisteredConnectionCount() {
+        return registeredPartitions.size();
+    }
+
     private synchronized Map<String, RegisteredPartition> getRegisteredPartitions() {
         return new HashMap<>(registeredPartitions);
     }
@@ -252,7 +256,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             } while (success);
 
             if (loadBalanceSession.isComplete()) {
-                loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getFlowFilesSent());
+                loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getFlowFilesSent(), nodeIdentifier);
             }
 
             return anySuccess;

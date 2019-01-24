@@ -39,6 +39,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.HadoopValidators;
+import org.apache.nifi.util.StringUtils;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -101,29 +102,30 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             return parseSchema(uriOrLiteral);
         }
 
+        if(uri.getScheme() == null) {
+            throw new SchemaNotFoundException("If the schema is not a JSON string, a scheme must be specified in the URI "
+                    + "(ex: dataset:, view:, resource:, file:, hdfs:, etc).");
+        }
+
         try {
             if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
                 return Datasets.load(uri).getDataset().getDescriptor().getSchema();
             } else if ("resource".equals(uri.getScheme())) {
-                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
-                        .openStream()) {
+                try (InputStream in = Resources.getResource(uri.getSchemeSpecificPart()).openStream()) {
                     return parseSchema(uri, in);
                 }
             } else {
                 // try to open the file
                 Path schemaPath = new Path(uri);
-                FileSystem fs = schemaPath.getFileSystem(conf);
-                try (InputStream in = fs.open(schemaPath)) {
+                try (FileSystem fs = schemaPath.getFileSystem(conf); InputStream in = fs.open(schemaPath)) {
                     return parseSchema(uri, in);
                 }
             }
 
         } catch (DatasetNotFoundException e) {
-            throw new SchemaNotFoundException(
-                    "Cannot read schema of missing dataset: " + uri, e);
+            throw new SchemaNotFoundException("Cannot read schema of missing dataset: " + uri, e);
         } catch (IOException e) {
-            throw new SchemaNotFoundException(
-                    "Failed while reading " + uri + ": " + e.getMessage(), e);
+            throw new SchemaNotFoundException("Failed while reading " + uri + ": " + e.getMessage(), e);
         }
     }
 
@@ -131,8 +133,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         try {
             return new Schema.Parser().parse(literal);
         } catch (RuntimeException e) {
-            throw new SchemaNotFoundException(
-                    "Failed to parse schema: " + literal, e);
+            throw new SchemaNotFoundException("Failed to parse schema: " + literal, e);
         }
     }
 
@@ -149,6 +150,10 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
             Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue());
             String error = null;
+
+            if(StringUtils.isBlank(uri)) {
+                return new ValidationResult.Builder().subject(subject).input(uri).explanation("Schema cannot be null.").valid(false).build();
+            }
 
             final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
             if (!elPresent) {

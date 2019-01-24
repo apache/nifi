@@ -19,14 +19,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-aws-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <aws-java-sdk-version>1.11.412</aws-java-sdk-version>
+        <aws-java-sdk-version>1.11.461</aws-java-sdk-version>
     </properties>
 
     <dependencyManagement>

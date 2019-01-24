@@ -17,29 +17,22 @@
  */
 package org.apache.nifi.controller.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
@@ -49,7 +42,8 @@ import org.apache.nifi.controller.service.mock.ServiceC;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
@@ -67,6 +61,21 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardControllerServiceProvider {
 
@@ -95,6 +104,7 @@ public class TestStandardControllerServiceProvider {
 
     private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private static NiFiProperties niFiProperties;
+    private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
     private FlowController controller;
 
@@ -105,12 +115,17 @@ public class TestStandardControllerServiceProvider {
 
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     @Before
     public void setup() {
         controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
         Mockito.doAnswer(new Answer<ProcessorNode>() {
@@ -119,7 +134,7 @@ public class TestStandardControllerServiceProvider {
                 final String id = invocation.getArgumentAt(0, String.class);
                 return processorMap.get(id);
             }
-        }).when(controller).getProcessorNode(Mockito.anyString());
+        }).when(flowManager).getProcessorNode(Mockito.anyString());
 
         Mockito.doAnswer(new Answer<Object>() {
             @Override
@@ -128,11 +143,12 @@ public class TestStandardControllerServiceProvider {
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }
-        }).when(controller).onProcessorAdded(Mockito.any(ProcessorNode.class));
+        }).when(flowManager).onProcessorAdded(Mockito.any(ProcessorNode.class));
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
+            null, stateManagerProvider, niFiProperties);
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {
@@ -141,38 +157,65 @@ public class TestStandardControllerServiceProvider {
         serviceNode.setProperties(props);
     }
 
+
+    private ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final ControllerServiceProvider serviceProvider) {
+        final ControllerServiceNode serviceNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(bundleCoordinate)
+            .controllerServiceProvider(serviceProvider)
+            .processScheduler(Mockito.mock(ProcessScheduler.class))
+            .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
+            .validationTrigger(Mockito.mock(ValidationTrigger.class))
+            .reloadComponent(Mockito.mock(ReloadComponent.class))
+            .variableRegistry(variableRegistry)
+            .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
+            .extensionManager(extensionManager)
+            .buildControllerService();
+
+        serviceProvider.onControllerServiceAdded(serviceNode);
+
+        return serviceNode;
+    }
+
+
     @Test
     public void testDisableControllerService() {
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
 
-        final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), null,false);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceB.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
         serviceNode.performValidation();
         serviceNode.getValidationStatus(5, TimeUnit.SECONDS);
         provider.enableControllerService(serviceNode);
         provider.disableControllerService(serviceNode);
     }
 
-    @Test(timeout = 1000000)
-    public void testEnableDisableWithReference() {
+    @Test(timeout = 10000)
+    public void testEnableDisableWithReference() throws InterruptedException {
         final ProcessGroup group = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(group);
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(group);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
 
-        final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        Mockito.when(controller.getControllerServiceProvider()).thenReturn(provider);
+
+        final ControllerServiceNode serviceNodeB = createControllerService(ServiceB.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        final ControllerServiceNode serviceNodeA = createControllerService(ServiceA.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
         group.addControllerService(serviceNodeA);
         group.addControllerService(serviceNodeB);
 
@@ -180,17 +223,24 @@ public class TestStandardControllerServiceProvider {
 
         try {
             provider.enableControllerService(serviceNodeA);
-            Assert.fail("Was able to enable Service A but Service B is disabled.");
         } catch (final IllegalStateException expected) {
         }
 
+        assertSame(ControllerServiceState.ENABLING, serviceNodeA.getState());
+
         serviceNodeB.performValidation();
-        serviceNodeB.getValidationStatus(5, TimeUnit.SECONDS);
+        assertSame(ValidationStatus.VALID, serviceNodeB.getValidationStatus(5, TimeUnit.SECONDS));
         provider.enableControllerService(serviceNodeB);
 
         serviceNodeA.performValidation();
-        serviceNodeA.getValidationStatus(5, TimeUnit.SECONDS);
-        provider.enableControllerService(serviceNodeA);
+        assertSame(ValidationStatus.VALID, serviceNodeA.getValidationStatus(5, TimeUnit.SECONDS));
+
+        final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        // Wait for Service A to become ENABLED. This will happen in a background thread after approximately 5 seconds, now that Service A is valid.
+        while (serviceNodeA.getState() != ControllerServiceState.ENABLED && System.nanoTime() <= maxTime) {
+            Thread.sleep(5L);
+        }
+        assertSame(ControllerServiceState.ENABLED, serviceNodeA.getState());
 
         try {
             provider.disableControllerService(serviceNodeB);
@@ -218,14 +268,17 @@ public class TestStandardControllerServiceProvider {
     public void testOrderingOfServices() {
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, null, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+            new StandardControllerServiceProvider(controller, null, null);
+        final ControllerServiceNode serviceNode1 = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
+        final ControllerServiceNode serviceNode2 = createControllerService(ServiceB.class.getName(), "2", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
 
@@ -283,8 +336,7 @@ public class TestStandardControllerServiceProvider {
         // But we want to ensure that the method returns successfully without throwing a StackOverflowException or anything
         // like that.
         nodeMap.clear();
-        final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode3 = createControllerService(ServiceA.class.getName(), "3", systemBundle.getBundleDetails().getCoordinate(), provider);
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "3");
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "1");
         nodeMap.put("1", serviceNode1);
@@ -309,10 +361,8 @@ public class TestStandardControllerServiceProvider {
         // Add multiple completely disparate branches.
         nodeMap.clear();
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
-        final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceB.class.getName(), "5",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode4 = createControllerService(ServiceB.class.getName(), "4", systemBundle.getBundleDetails().getCoordinate(), provider);
+        final ControllerServiceNode serviceNode5 = createControllerService(ServiceB.class.getName(), "5", systemBundle.getBundleDetails().getCoordinate(), provider);
         setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "4");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
@@ -378,10 +428,14 @@ public class TestStandardControllerServiceProvider {
 
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, mockInitContext.getIdentifier(),
-                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, niFiProperties,
-            new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider,
+                new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
-        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, Mockito.mock(FlowController.class),
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        final FlowController flowController = Mockito.mock(FlowController.class );
+        Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
+
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, flowController,
             new MutableVariableRegistry(variableRegistry));
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);
@@ -393,13 +447,16 @@ public class TestStandardControllerServiceProvider {
     public void testEnableReferencingComponents() {
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, null, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
         serviceNode.addReference(procNode);
@@ -415,25 +472,24 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void validateEnableServices() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
-        StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
-        ProcessGroup procGroup = new MockProcessGroup(controller);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
 
-        ControllerServiceNode A = provider.createControllerService(ServiceA.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode C = provider.createControllerService(ServiceA.class.getName(), "C",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode D = provider.createControllerService(ServiceB.class.getName(), "D",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode E = provider.createControllerService(ServiceA.class.getName(), "E",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode F = provider.createControllerService(ServiceB.class.getName(), "F",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
+        ProcessGroup procGroup = new MockProcessGroup(controller);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+
+        ControllerServiceNode A = createControllerService(ServiceA.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode B = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode C = createControllerService(ServiceA.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode D = createControllerService(ServiceB.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode E = createControllerService(ServiceA.class.getName(), "E", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode F = createControllerService(ServiceB.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         procGroup.addControllerService(A);
         procGroup.addControllerService(B);
@@ -468,23 +524,23 @@ public class TestStandardControllerServiceProvider {
      */
     @Test
     public void validateEnableServices2() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
-            stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
-        ProcessGroup procGroup = new MockProcessGroup(controller);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
 
-        ControllerServiceNode A = provider.createControllerService(ServiceC.class.getName(), "A",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode C = provider.createControllerService(ServiceB.class.getName(), "C",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode D = provider.createControllerService(ServiceA.class.getName(), "D",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode F = provider.createControllerService(ServiceA.class.getName(), "F",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
+        ProcessGroup procGroup = new MockProcessGroup(controller);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+
+        ControllerServiceNode A = createControllerService(ServiceC.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode B = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode C = createControllerService(ServiceB.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode D = createControllerService(ServiceA.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode F = createControllerService(ServiceA.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         procGroup.addControllerService(A);
         procGroup.addControllerService(B);
@@ -500,7 +556,7 @@ public class TestStandardControllerServiceProvider {
         setProperty(D, ServiceA.OTHER_SERVICE.getName(), "C");
 
         final List<ControllerServiceNode> services = Arrays.asList(C, F, A, B, D);
-        services.stream().forEach(ControllerServiceNode::performValidation);
+        services.forEach(ControllerServiceNode::performValidation);
 
         provider.enableControllerServices(services);
 
@@ -513,27 +569,25 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void validateEnableServicesWithDisabledMissingService() {
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
-        StandardControllerServiceProvider provider =
-            new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
-        ProcessGroup procGroup = new MockProcessGroup(controller);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
 
-        ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceA.class.getName(), "5",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode6 = provider.createControllerService(ServiceB.class.getName(), "6",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        ControllerServiceNode serviceNode7 = provider.createControllerService(ServiceC.class.getName(), "7",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
+        ProcessGroup procGroup = new MockProcessGroup(controller);
+
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+
+        ControllerServiceNode serviceNode1 = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode2 = createControllerService(ServiceA.class.getName(), "2", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode3 = createControllerService(ServiceA.class.getName(), "3", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode4 = createControllerService(ServiceB.class.getName(), "4", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode5 = createControllerService(ServiceA.class.getName(), "5", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode6 = createControllerService(ServiceB.class.getName(), "6", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode7 = createControllerService(ServiceC.class.getName(), "7", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         procGroup.addControllerService(serviceNode1);
         procGroup.addControllerService(serviceNode2);

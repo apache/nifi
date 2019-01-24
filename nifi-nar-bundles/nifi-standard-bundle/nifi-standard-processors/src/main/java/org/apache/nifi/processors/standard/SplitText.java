@@ -16,31 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -64,6 +47,25 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.util.TextLineDemarcator;
 import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SideEffectFree
@@ -158,19 +160,17 @@ public class SplitText extends AbstractProcessor {
     private static final Set<Relationship> relationships;
 
     static {
-        properties = Collections.unmodifiableList(Arrays.asList(new PropertyDescriptor[]{
-                LINE_SPLIT_COUNT,
-                FRAGMENT_MAX_SIZE,
-                HEADER_LINE_COUNT,
-                HEADER_MARKER,
-                REMOVE_TRAILING_NEWLINES
-        }));
+        properties = Collections.unmodifiableList(Arrays.asList(
+            LINE_SPLIT_COUNT,
+            FRAGMENT_MAX_SIZE,
+            HEADER_LINE_COUNT,
+            HEADER_MARKER,
+            REMOVE_TRAILING_NEWLINES));
 
-        relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Relationship[]{
-                REL_ORIGINAL,
-                REL_SPLITS,
-                REL_FAILURE
-        })));
+        relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_ORIGINAL,
+            REL_SPLITS,
+            REL_FAILURE)));
     }
 
     private volatile boolean removeTrailingNewLines;
@@ -259,9 +259,11 @@ public class SplitText extends AbstractProcessor {
             processSession.transfer(sourceFlowFile, REL_FAILURE);
         } else {
             final String fragmentId = UUID.randomUUID().toString();
-            List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(fragmentId, sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
+            final List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(fragmentId, sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
+
             final FlowFile originalFlowFile = FragmentAttributes.copyAttributesToOriginal(processSession, sourceFlowFile, fragmentId, splitFlowFiles.size());
             processSession.transfer(originalFlowFile, REL_ORIGINAL);
+
             if (!splitFlowFiles.isEmpty()) {
                 processSession.transfer(splitFlowFiles, REL_SPLITS);
             }
@@ -291,6 +293,7 @@ public class SplitText extends AbstractProcessor {
      */
     private List<FlowFile> generateSplitFlowFiles(String fragmentId, FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession){
         List<FlowFile> splitFlowFiles = new ArrayList<>();
+
         FlowFile headerFlowFile = null;
         long headerCrlfLength = 0;
         if (splitInfo != null) {
@@ -305,7 +308,11 @@ public class SplitText extends AbstractProcessor {
                     fragmentId, fragmentIndex++, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
             splitFlowFiles.add(splitFlowFile);
         } else {
-            for (SplitInfo computedSplitInfo : computedSplitsInfo) {
+            final Iterator<SplitInfo> itr = computedSplitsInfo.iterator();
+            while (itr.hasNext()) {
+                final SplitInfo computedSplitInfo = itr.next();
+                itr.remove();
+
                 long length = this.removeTrailingNewLines ? computedSplitInfo.trimmedLength : computedSplitInfo.length;
                 boolean proceedWithClone = headerFlowFile != null || length > 0;
                 if (proceedWithClone) {
@@ -326,16 +333,24 @@ public class SplitText extends AbstractProcessor {
                     splitFlowFiles.add(splitFlowFile);
                 }
             }
+
             // Update fragment.count with real split count (i.e. don't count files for which there was no clone)
-            for (FlowFile splitFlowFile : splitFlowFiles) {
-                splitFlowFile = processSession.putAttribute(splitFlowFile, FRAGMENT_COUNT, String.valueOf(fragmentIndex - 1)); // -1 because the index starts at 1 (see above)
+            final String fragmentCount = String.valueOf(fragmentIndex - 1); // -1 because the index starts at 1 (see above)
+
+            final ListIterator<FlowFile> flowFileItr = splitFlowFiles.listIterator();
+            while (flowFileItr.hasNext()) {
+                FlowFile splitFlowFile = flowFileItr.next();
+
+                final FlowFile updated = processSession.putAttribute(splitFlowFile, FRAGMENT_COUNT, fragmentCount);
+                flowFileItr.set(updated);
             }
         }
 
-        getLogger().info("Split " + sourceFlowFile + " into " + splitFlowFiles.size() + " flow files" + (headerFlowFile != null ? " containing headers." : "."));
+        getLogger().info("Split {} into {} FlowFiles{}", new Object[] {sourceFlowFile, splitFlowFiles.size(), headerFlowFile == null ? " containing headers." : "."});
         if (headerFlowFile != null) {
             processSession.remove(headerFlowFile);
         }
+
         return splitFlowFiles;
     }
 

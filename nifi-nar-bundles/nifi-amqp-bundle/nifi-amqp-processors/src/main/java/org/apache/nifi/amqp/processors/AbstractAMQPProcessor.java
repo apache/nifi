@@ -16,17 +16,11 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import javax.net.ssl.SSLContext;
-
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.DefaultSaslConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -37,9 +31,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DefaultSaslConfig;
+import javax.net.ssl.SSLContext;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -224,7 +221,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         // if the property to use cert authentication is set but the SSL service hasn't been configured, throw an exception.
         if (useCertAuthentication && sslService == null) {
-            throw new ProviderCreationException("This processor is configured to use cert authentication, " +
+            throw new IllegalStateException("This processor is configured to use cert authentication, " +
                     "but the SSL Context Service hasn't been configured. You need to configure the SSL Context Service.");
         }
         final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
@@ -237,7 +234,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                 try {
                     clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
-                    throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                    throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
                 }
             }

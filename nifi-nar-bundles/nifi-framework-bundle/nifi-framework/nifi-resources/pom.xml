@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -80,6 +80,7 @@
         <nifi.ui.banner.text />
         <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
         <nifi.nar.library.directory>./lib</nifi.nar.library.directory>
+        <nifi.nar.library.autoload.directory>./extensions</nifi.nar.library.autoload.directory>
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
 
@@ -144,7 +145,6 @@
         <nifi.security.truststore />
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
-        <nifi.security.needClientAuth />
         <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
@@ -184,8 +184,8 @@
         <nifi.cluster.flow.election.max.candidates />
 
         <!-- nifi.properties: cluster load balance properties -->
-        <nifi.cluster.load.balance.host></nifi.cluster.load.balance.host>
-        <nifi.cluster.load.balance.port>7430</nifi.cluster.load.balance.port>
+        <nifi.cluster.load.balance.host />
+        <nifi.cluster.load.balance.port>6342</nifi.cluster.load.balance.port>
         <nifi.cluster.load.balance.connections.per.node>4</nifi.cluster.load.balance.connections.per.node>
         <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>
         <nifi.cluster.load.balance.comms.timeout>30 sec</nifi.cluster.load.balance.comms.timeout>

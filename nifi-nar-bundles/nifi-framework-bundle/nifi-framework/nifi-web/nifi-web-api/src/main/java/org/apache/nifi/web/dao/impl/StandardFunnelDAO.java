@@ -31,7 +31,7 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     private FlowController flowController;
 
     private Funnel locateFunnel(final String funnelId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Funnel funnel = rootGroup.findFunnel(funnelId);
 
         if (funnel == null) {
@@ -43,13 +43,13 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
 
     @Override
     public boolean hasFunnel(String funnelId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findFunnel(funnelId) != null;
     }
 
     @Override
     public Funnel createFunnel(String groupId, FunnelDTO funnelDTO) {
-        if (funnelDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, funnelDTO.getParentGroupId())) {
+        if (funnelDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, funnelDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Funnel is being added.");
         }
 
@@ -57,7 +57,7 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // create the funnel
-        Funnel funnel = flowController.createFunnel(funnelDTO.getId());
+        Funnel funnel = flowController.getFlowManager().createFunnel(funnelDTO.getId());
         if (funnelDTO.getPosition() != null) {
             funnel.setPosition(new Position(funnelDTO.getPosition().getX(), funnelDTO.getPosition().getY()));
         }

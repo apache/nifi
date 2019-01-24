@@ -17,11 +17,9 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hive.common.util.ShutdownHookManager;
 import org.apache.hive.streaming.ConnectionError;
 import org.apache.hive.streaming.HiveStreamingConnection;
 import org.apache.hive.streaming.InvalidTable;
@@ -412,9 +410,6 @@ public class PutHive3Streaming extends AbstractProcessor {
                 }
 
                 hiveStreamingConnection = makeStreamingConnection(options, reader);
-                // Add shutdown handler with higher priority than FileSystem shutdown hook so that streaming connection gets closed first before
-                // filesystem close (to avoid ClosedChannelException)
-                ShutdownHookManager.addShutdownHook(hiveStreamingConnection::close, FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
 
                 // Write records to Hive streaming, then commit and close
                 hiveStreamingConnection.beginTransaction();
@@ -435,7 +430,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                     throw new ShouldRetryException(te.getLocalizedMessage(), te);
                 }
             } catch (RecordReaderFactoryException rrfe) {
-                throw new ProcessException(rrfe);
+                if (rollbackOnFailure) {
+                    throw new ProcessException(rrfe);
+                } else {
+                    session.transfer(flowFile, REL_FAILURE);
+                }
             }
         } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
             if (rollbackOnFailure) {

@@ -17,113 +17,43 @@
 
 package org.apache.nifi.confluent.schemaregistry.client;
 
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.time.Duration;
 
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
-    private final long expirationNanos;
 
-    private final Map<String, CachedRecordSchema> nameCache;
-    private final Map<Integer, CachedRecordSchema> idCache;
+    private final LoadingCache<String, RecordSchema> nameCache;
+    private final LoadingCache<Integer, RecordSchema> idCache;
 
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
-        this.expirationNanos = expirationNanos;
 
-        nameCache = new Cache<>(cacheSize);
-        idCache = new Cache<>(cacheSize);
+        nameCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(client::getSchema);
+        idCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(client::getSchema);
     }
 
     @Override
     public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
-        RecordSchema schema = getFromCache(nameCache, schemaName);
-        if (schema != null) {
-            return schema;
-        }
-
-        schema = client.getSchema(schemaName);
-
-        synchronized (nameCache) {
-            nameCache.put(schemaName, new CachedRecordSchema(schema));
-        }
-
-        return schema;
+        return nameCache.get(schemaName);
     }
 
     @Override
     public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
-        RecordSchema schema = getFromCache(idCache, schemaId);
-        if (schema != null) {
-            return schema;
-        }
-
-        schema = client.getSchema(schemaId);
-
-        synchronized (idCache) {
-            idCache.put(schemaId, new CachedRecordSchema(schema));
-        }
-
-        return schema;
+        return idCache.get(schemaId);
     }
 
-    private RecordSchema getFromCache(final Map<?, CachedRecordSchema> cache, final Object key) {
-        final CachedRecordSchema cachedSchema;
-        synchronized (cache) {
-            cachedSchema = cache.get(key);
-        }
-
-        if (cachedSchema == null) {
-            return null;
-        }
-
-        if (cachedSchema.isOlderThan(System.nanoTime() - expirationNanos)) {
-            return null;
-        }
-
-        return cachedSchema.getSchema();
-    }
-
-
-    private static class Cache<K, V> extends LinkedHashMap<K, V> {
-        private final int cacheSize;
-
-        public Cache(final int cacheSize) {
-            this.cacheSize = cacheSize;
-        }
-
-        @Override
-        protected boolean removeEldestEntry(final Map.Entry<K, V> eldest) {
-            return size() >= cacheSize;
-        }
-    }
-
-
-    private static class CachedRecordSchema {
-        private final RecordSchema schema;
-        private final long cachedTimestamp;
-
-        public CachedRecordSchema(final RecordSchema schema) {
-            this(schema, System.nanoTime());
-        }
-
-        public CachedRecordSchema(final RecordSchema schema, final long timestamp) {
-            this.schema = schema;
-            this.cachedTimestamp = timestamp;
-        }
-
-        public RecordSchema getSchema() {
-            return schema;
-        }
-
-        public boolean isOlderThan(final long timestamp) {
-            return cachedTimestamp < timestamp;
-        }
-    }
 }

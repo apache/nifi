@@ -24,6 +24,7 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,21 @@ public class TestDataTypeUtils {
         ts = DataTypeUtils.toTimestamp(date, null, null);
         assertNotNull(ts);
         assertEquals("Times didn't match", ts.getTime(), sDate.getTime());
+    }
+
+    /*
+     * This was a bug in NiFi 1.8 where converting from a Timestamp to a Date with the record path API
+     * would throw an exception.
+     */
+    @Test
+    public void testTimestampToDate() {
+        java.util.Date date = new java.util.Date();
+        Timestamp ts = DataTypeUtils.toTimestamp(date, null, null);
+        assertNotNull(ts);
+
+        java.sql.Date output = DataTypeUtils.toDate(ts, null, null);
+        assertNotNull(output);
+        assertEquals("Timestamps didn't match", output.getTime(), ts.getTime());
     }
 
     @Test
@@ -166,6 +182,18 @@ public class TestDataTypeUtils {
         assertTrue(o instanceof String[]);
         assertEquals("4", ((String[])o)[1]);
 
+    }
+
+    @Test
+    public void testToArray() {
+        final List<String> list = Arrays.asList("Seven", "Eleven", "Thirteen");
+
+        final Object[] array = DataTypeUtils.toArray(list, "list", null);
+
+        assertEquals(list.size(), array.length);
+        for (int i = 0; i < list.size(); i++) {
+            assertEquals(list.get(i), array[i]);
+        }
     }
 
     @Test

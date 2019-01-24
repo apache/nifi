@@ -58,6 +58,10 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         fields.add(new RecordField(fieldName, type.getDataType(), isNullable));
     }
 
+    public void addSchemaField(final RecordField recordField) {
+        fields.add(recordField);
+    }
+
     public void addRecord(Object... values) {
         records.add(values);
     }
@@ -75,7 +79,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
 
             @Override
             public Record nextRecord(final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
-                if (failAfterN >= recordCount) {
+                if (failAfterN >= 0 && recordCount >= failAfterN) {
                     throw new MalformedRecordException("Intentional Unit Test Exception because " + recordCount + " records have been read");
                 }
                 recordCount++;

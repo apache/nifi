@@ -88,6 +88,7 @@
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- oidc -->

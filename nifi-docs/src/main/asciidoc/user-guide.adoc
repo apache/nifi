@@ -71,7 +71,7 @@ UI may become unavailable.
 	context about the data; they are made up of key-value pairs.
 	All FlowFiles have the following Standard Attributes:
 
-- *uuid*: A unique identifier for the FlowFile
+- *uuid*: A Universally Unique Identifier that distinguishes the FlowFile from other FlowFiles in the system.
 - *filename*: A human-readable filename that may be used when storing the data to disk or in an external service
 - *path*: A hierarchically structured value that can be used when storing data to disk or an external service so that the data is not stored in a single directory
 
@@ -119,13 +119,13 @@ UI may become unavailable.
 	As a result, several components may be combined together to make a larger building block from which to create a dataflow.
 	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
 
-*flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the flow.xml.gz. This file is located in the nifi/conf directory by default.
-	Any change made on the canvas is automatically saved to this file, without the user needing to click a "save" button.
+*flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the _flow.xml.gz_. This file is located in the `nifi/conf` directory by default.
+	Any change made on the canvas is automatically saved to this file, without the user needing to click a "Save" button.
 	In addition, NiFi automatically creates a backup copy of this file in the archive directory when it is updated.
-	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace flow.xml.gz with a desired backup copy, then restart NiFi.
-	In a clustered environment, stop the entire NiFi cluster, replace the flow.xml.gz of one of nodes, and restart the node. Remove flow.xml.gz from other nodes.
+	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace _flow.xml.gz_ with a desired backup copy, then restart NiFi.
+	In a clustered environment, stop the entire NiFi cluster, replace the _flow.xml.gz_ of one of nodes, and restart the node. Remove _flow.xml.gz_ from other nodes.
 	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
-	The name and location of flow.xml.gz, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[System Administrator’s Guide] for further details.
+	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[System Administrator’s Guide] for further details.
 
 
 
@@ -441,7 +441,7 @@ image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
-choosing `Configure`
+choosing `Configure`.
 
 
 [[component-versioning]]
@@ -540,17 +540,17 @@ data may be processable at a later time. When this occurs, the Processor may cho
 prevent the FlowFile from being Processed for some period of time. For example, if the Processor is to push the data
 to a remote service, but the remote service already has a file with the same name as the filename that the Processor
 is specifying, the Processor may penalize the FlowFile. The 'Penalty Duration' allows the DFM to specify how long the
-FlowFile should be penalized. The default value is 30 seconds.
+FlowFile should be penalized. The default value is `30 seconds`.
 
 Similarly, the Processor may determine that some situation exists such that the Processor can no longer make any progress,
 regardless of the data that it is processing. For example, if a Processor is to push data to a remote service and that
 service is not responding, the Processor cannot make any progress. As a result, the Processor should 'yield', which will
 prevent the Processor from being scheduled to run for some period of time. That period of time is specified by setting
-the 'Yield Duration'. The default value is 1 second.
+the 'Yield Duration'. The default value is `1 second`.
 
 The last configurable option on the left-hand side of the Settings tab is the Bulletin level. Whenever the Processor writes
 to its log, the Processor also will generate a Bulletin. This setting indicates the lowest level of Bulletin that should be
-shown in the User Interface. By default, the Bulletin level is set to WARN, which means it will display all warning and error-level
+shown in the User Interface. By default, the Bulletin level is set to `WARN`, which means it will display all warning and error-level
 bulletins.
 
 The right-hand side of the Settings tab contains an 'Automatically Terminate Relationships' section. Each of the Relationships that is
@@ -570,6 +570,7 @@ The second tab in the Processor Configuration dialog is the Scheduling Tab:
 
 image::scheduling-tab.png["Scheduling Tab"]
 
+===== Scheduling Strategy
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
 *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
@@ -636,13 +637,15 @@ For example:
 
 For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
 
-Next, the Scheduling Tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
+===== Concurrent Tasks
+Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
 resources that then are not usable by other Processors. This essentially provides a relative weighting of Processors -- it controls
 how much of the system's resources should be allocated to this Processor instead of other Processors. This field is available for
 most Processors. There are, however, some types of Processors that can only be scheduled with a single Concurrent task.
 
+===== Run Schedule
 The 'Run Schedule' dictates how often the Processor should be scheduled to run. The valid values for this field depend on the selected
 Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
 Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
@@ -650,7 +653,8 @@ The default value of `0 sec` means that the Processor should run as often as pos
 for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
-When configured for clustering, an Execution setting will be available. This setting is used to determine which node(s) the Processor will be
+===== Execution
+The Execution setting is used to determine on which node(s) the Processor will be
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
 'Primary Node' will result in this Processor being scheduled on the Primary Node only.  Processors that have been configured for 'Primary Node' execution are identified by a "P" next to the processor icon:
 
@@ -660,6 +664,7 @@ To quickly identify 'Primary Node' processors, the "P" icon is also shown in the
 
 image::primary-node-processors-summary.png["Primary Node Processors in Summary Page"]
 
+===== Run Duration
 The right-hand side of the Scheduling tab contains a slider for choosing the 'Run Duration'. This controls how long the Processor should be scheduled
 to run each time that it is triggered. On the left-hand side of the slider, it is marked 'Lower latency' while the right-hand side
 is marked 'Higher throughput'. When a Processor finishes running, it must update the repository in order to transfer the FlowFiles to
@@ -672,8 +677,8 @@ Lower Latency or Higher Throughput.
 
 ==== Properties Tab
 
-The Properties Tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
-must define which Properties make sense for its use case. Below, we see the Properties Tab for a RouteOnAttribute Processor:
+The Properties tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
+must define which Properties make sense for its use case. Below, we see the Properties tab for a RouteOnAttribute Processor:
 
 image::properties-tab.png["Properties Tab"]
 
@@ -743,7 +748,7 @@ so that it is not overridden by existing environment properties, system properti
 There are two ways to use and manage custom properties:
 
 * In the NiFi UI via the Variables window
-* Referencing custom properties via 'nifi.properties'
+* Referencing custom properties via _nifi.properties_
 
 [[Variables_Window]]
 ==== Variables Window
@@ -764,7 +769,7 @@ image::variables-context_menu-pg.png["Variables in Context Menu for PG"]
 
 ===== Creating a Variable
 
-In the Variables window, click the "+" button to create a new variable.  Add a name:
+In the Variables window, click the `+` button to create a new variable.  Add a name:
 
 image::variable-name.png["Variable Name Creation"]
 
@@ -834,7 +839,7 @@ image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing 
 Identify one or more sets of key/value pairs, and give them to your system administrator.
 
 Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
-field in the 'nifi.properties' file is updated with the custom properties location.
+field in the _nifi.properties_ file is updated with the custom properties location.
 
 NOTE: NiFi must be restarted for these updates to be picked up.
 
@@ -860,7 +865,7 @@ This displays the NiFi Settings window. The window has four tabs: General, Repor
 
 image:settings-general-tab.png["Controller Settings General Tab"]
 
-To the right of the General tab is the Reporting Task Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right corner to create a new Controller Service.
+To the right of the General tab is the Reporting Task Controller Services tab. From this tab, the DFM may click the `+` button in the upper-right corner to create a new Controller Service.
 
 image:controller-services-tab.png["Controller Services Tab"]
 
@@ -868,16 +873,16 @@ The Add Controller Service window opens. This window is similar to the Add Proce
 
 image:add-controller-service-window.png["Add Controller Service Window"]
 
-Once you have added a Controller Service, you can configure it by clicking the Configure button in the
-far-right column. Other buttons in this column include Enable, Remove and Access Policies.
+Once you have added a Controller Service, you can configure it by clicking the `Configure` button in the
+far-right column. Other buttons in this column include `Enable`, `Remove` and `Access Policies`.
 
 image:controller-services-configure-buttons.png["Controller Services Buttons"]
 
-You can obtain information about Controller Services by clicking the Usage and Alerts buttons in the left-hand column.
+You can obtain information about Controller Services by clicking the `Usage` and `Alerts` buttons in the left-hand column.
 
 image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
-When the DFM clicks the Configure button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
+When the DFM clicks the `Configure` button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
 
 image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
@@ -885,7 +890,7 @@ The Properties tab lists the various properties that apply to the particular con
 
 image:configure-controller-service-properties.png["Configure Controller Service Properties"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel button to cancel the changes and close the window.
+The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click the `Apply` button to apply the configuration and close the window, or click the `Cancel` button to cancel the changes and close the window.
 
 
 [[Controller_Services_for_Dataflows]]
@@ -905,7 +910,7 @@ Use the following steps to add a Controller Service:
 +
 image::process-group-configuration-window.png["Process Group Configuration Window"]
 2. From the Process Group Configuration page, select the Controller Services tab.
-3. Click the "+" button to display the Add Controller Service dialog.
+3. Click the `+` button to display the Add Controller Service dialog.
 4. Select the Controller Service desired, and click Add.
 5. Perform any necessary Controller Service configuration tasks by clicking the Configure icon (image:iconConfigure.png["Configure"]) in the right-hand column.
 
@@ -913,7 +918,7 @@ image::process-group-configuration-window.png["Process Group Configuration Windo
 [[Enabling_Disabling_Controller_Services]]
 ==== Enabling/Disabling Controller Services
 
-After a Controller Service has been configured, it must be enabled in order to run. Do this using the Enable button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the Disable button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
+After a Controller Service has been configured, it must be enabled in order to run. Do this using the `Enable` button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the `Disable` button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
 
 image:enable-controller-service-scope.png["Enable Controller Service Scope"]
 
@@ -924,7 +929,7 @@ Reporting Tasks run in the background to provide statistical reports about what 
 
 image:controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. Select the Reporting Tasks tab and click the "+" button in the upper-right corner to create a new Reporting Task.
+This displays the NiFi Settings window. Select the Reporting Tasks tab and click the `+` button in the upper-right corner to create a new Reporting Task.
 
 image:reporting-tasks-tab.png["Reporting Tasks Tab"]
 
@@ -932,15 +937,15 @@ The Add Reporting Task window opens. This window is similar to the Add Processor
 
 image:add-reporting-task-window.png["Add Reporting Task Window"]
 
-Once a Reporting Task has been added, the DFM may configure it by clicking the Edit button in the far-right column. Other buttons in this column include Start, Remove, State and Access Policies.
+Once a Reporting Task has been added, the DFM may configure it by clicking the `Edit` button in the far-right column. Other buttons in this column include `Start`, `Remove`, `State` and `Access Policies`.
 
 image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
 
-You can obtain information about Reporting Tasks by clicking the View Details, Usage, and Alerts buttons in the left-hand column.
+You can obtain information about Reporting Tasks by clicking the `View Details`, `Usage`, and `Alerts` buttons in the left-hand column.
 
 image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
-When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+When the DFM clicks the `Edit` button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
 image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
@@ -948,9 +953,9 @@ The Properties tab lists the various properties that may be configured for the t
 
 image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click the Cancel button to cancel the changes and close the window.
+The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the `Apply` button to apply the configuration and close the window, or click the `Cancel` button to cancel the changes and close the window.
 
-When you want to run the Reporting Task, click the Start button (image:iconStart.png["Start Button"]).
+When you want to run the Reporting Task, click the `Start` button (image:iconStart.png["Start Button"]).
 
 
 [[Connecting_Components]]
@@ -973,7 +978,7 @@ and the same 'Create Connection' dialog appears.
 
 ==== Details Tab
 
-The Details Tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
+The Details tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
 image::create-connection.png["Create Connection"]
@@ -986,13 +991,11 @@ automatically be 'cloned', and a copy will be sent to each of those Connections.
 
 ==== Settings
 
-The Settings Tab provides the ability to configure the Connection's name, FlowFile expiration, Back Pressure thresholds, and
-Prioritization:
+The Settings tab provides the ability to configure the Connection's Name, FlowFile Expiration, Back Pressure Thresholds, Load Balance Strategy and Prioritization:
 
 image:connection-settings.png["Connection Settings"]
 
-The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships
-that are active for the Connection.
+The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships that are active for the Connection.
 
 ===== FlowFile Expiration
 FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
@@ -1012,8 +1015,8 @@ is the "Back pressure data size threshold." This specifies the maximum amount of
 applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
 kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
 
-NOTE: By default each new connection added will have a default Back Pressure Object Threshold of 10,000 objects and Back Pressure Data Size Threshold of 1 GB.
-These defaults can be changed by modifying the appropriate properties in the `nifi.properties` file.
+NOTE: By default each new connection added will have a default Back Pressure Object Threshold of `10,000 objects` and Back Pressure Data Size Threshold of `1 GB`.
+These defaults can be changed by modifying the appropriate properties in the _nifi.properties_ file.
 
 When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
 
@@ -1026,6 +1029,54 @@ image:back_pressure_indicator_hover.png["Back Pressure Indicator Hover Text"]
 When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
+
+===== Load Balancing
+
+[[load_balance_strategy]]
+====== Load Balance Strategy
+To distribute the data in a flow across the nodes in the cluster, NiFi offers the following load balance strategies:
+
+- *Do not load balance*: Do not load balance FlowFiles between nodes in the cluster. This is the default.
+- *Partition by attribute*: Determines which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. All FlowFiles that have the same value for the Attribute will be sent to the same node in the cluster. If the destination node is disconnected from the cluster or if unable to communicate, the data does not fail over to another node. The data will queue, waiting for the node to be available again. Additionally, if a node joins or leaves the cluster necessitating a rebalance of the data, consistent hashing is applied to avoid having to redistribute all of the data.
+- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is queued for that node will be automatically redistributed to another node(s).
+- *Single node*: All FlowFiles will be sent to a single node in the cluster.  Which node they are sent to is not configurable. If the node is disconnected from the cluster or if unable to communicate with the node, the data that is queued for that node will remain queued until the node is available again.
+
+NOTE: In addition to the UI settings, there are <<administration-guide.adoc#cluster_node_properties,Cluster Node Properties>> related to load balancing that must also be configured in _nifi.properties_.
+
+NOTE: NiFi persists the nodes that are in a cluster across restarts.  This prevents the redistribution of data until all of the nodes have connected. If the cluster is shutdown and a node is not intended to be brought back up, the user is responsible for removing the node from the cluster via the "Cluster" dialog in the UI (see <<administration-guide.adoc#managing_nodes,Managing Nodes>> for more information).
+
+====== Load Balance Compression
+After selecting the load balance strategy, the user can configure whether or not data should be compressed when being transferred between nodes in the cluster.
+
+image:load_balance_compression_options.png["Load Balance Compression Options"]
+
+The following compression options are available:
+
+- *Do not compress*: FlowFiles will not be compressed. This is the default.
+- *Compress attributes only*: FlowFile attributes will be compressed, but FlowFile contents will not.
+- *Compress attributes and content*: FlowFile attributes and contents will be compressed.
+
+====== Load Balance Indicator
+When a load balance strategy has been implemented for a connection, a load balance indicator (image:iconLoadBalance.png["Load Balance Icon"]) will appear on the connection:
+
+image:load_balance_configured_connection.png["Connection Configured with Load Balance Strategy"]
+
+Hovering over the icon will display the connection's load balance strategy and compression configuration.  The icon in this state also indicates that all data in the connection has been distributed across the cluster.
+
+image:load_balance_distributed_connection.png["Distributed Load Balance Connection"]
+
+When data is actively being transferred between the nodes in the cluster, the load balance indicator will change orientation and color:
+
+image:load_balance_active_connection.png["Active Load Balance Connection"]
+
+====== Cluster Connection Summary
+To see where data has been distributed among the cluster nodes, select Summary from the Global Menu.  Then select the "Connections" tab and the "View Connection Details" icon for a source:
+
+image:summary_connections.png["NiFi Summary Connections"]
+
+This will open the Cluster Connection Summary dialog, which shows the data on each node in the cluster:
+
+image:cluster_connection_summary.png["Cluster Connection Summary Dialog"]
 
 ===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
@@ -1040,9 +1091,15 @@ The following prioritizers are available:
 - *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
 - *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected'.
-- *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
+- *PriorityAttributePrioritizer*: Given two FlowFiles, an attribute called “priority” will be extracted. The one that has the lowest priority value will be processed first.
+** Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set.
+** If only one has that attribute it will go first.
+** Values for the "priority" attribute can be alphanumeric, where "a" will come before "z" and "1" before "9"
+** If "priority" attribute cannot be parsed as a long, unicode string ordering will be used. For example: "99" and "100" will be ordered so the flowfile with "99" comes first, but "A-99" and "A-100" will sort so the flowfile with "A-100" comes first.
 
-===== Changing Configuration and Context Menu Options
+NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
+
+==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 image:nifi-connection.png["Connection"]
@@ -1207,7 +1264,7 @@ After you drag the GenerateFlowFile and LogAttribute processors to the canvas an
 
 * Generate FlowFile
 ** On the Scheduling tab, set Run schedule to: 5 sec. Note that the GenerateFlowFile processor can create many FlowFiles very quickly; that's why setting the Run schedule is important so that this flow does not overwhelm the system NiFi is running on.
-** On the Properties tab, set File Size to: 10 kb
+** On the Properties tab, set File Size to: 10 KB
 
 * Log Attribute
 ** On the Settings tab, under Auto-terminate relationships, select the checkbox next to Success. This will terminate FlowFiles after this processor has successfully processed them.
@@ -1243,7 +1300,7 @@ In order to start a component, the following conditions must be met:
 - The component must have no active tasks. For more information about active tasks, see the "Anatomy of ..."
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
-Components can be started by selecting all of the components to start and then clicking the Start button (
+Components can be started by selecting all of the components to start and then clicking the `Start` button (
 image:buttonStart.png["Start"]
 ) in the
 Operate Palette or by right-clicking a single component and choosing Start from the context menu.
@@ -1259,7 +1316,7 @@ image:iconRun.png["Run"]
 === Stopping a Component
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
-and clicking Stop from the context menu, or by selecting the component and clicking the Stop button (
+and clicking Stop from the context menu, or by selecting the component and clicking the `Stop` button (
 image:buttonStop.png["Stop"]
 ) in the Operate Palette.
 
@@ -1283,7 +1340,7 @@ intentionally not running and those that may have been stopped temporarily (for 
 configuration) and inadvertently were never restarted.
 
 When it is desirable to re-enable a component, it can be enabled by selecting the component and
-clicking the Enable button (
+clicking the `Enable` button (
 image:buttonEnable.png["Enable"]
 ) in the Operate Palette. This is available only when the selected component or components are disabled.
 Alternatively, a component can be enabled by checking the checkbox next  to the "Enabled" option in
@@ -1295,7 +1352,7 @@ image:iconAlert.png["Invalid"]
 image:iconStop.png["Stopped"]
 ), depending on whether or not the component is valid.
 
-A component is then disabled by selecting the component and clicking the Disable button (
+A component is then disabled by selecting the component and clicking the `Disable` button (
 image:buttonDisable.png["Disable"]
 ) in the Operate Palette, or by clearing the checkbox next to the "Enabled" option in the Settings tab
 of the Processor configuration dialog or the configuration dialog for a Port.
@@ -1644,10 +1701,8 @@ The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue l
 a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
 configured priority. The listing can be performed even if the source and destination are actively running.
 
-Additionally, details for a Flowfile in the listing can be viewed by clicking on the Details icon (
-image:iconDetails.png["Details"]
-) in the left most column. From here, the FlowFile details and attributes are available as well buttons for
-downloading or viewing the content. Viewing the content is only available if the nifi.content.viewer.url has been configured.
+Additionally, details for a Flowfile in the listing can be viewed by clicking the `Details` button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
+downloading or viewing the content. Viewing the content is only available if the `nifi.content.viewer.url` has been configured.
 If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
 no longer be in the active queue.
 
@@ -1697,8 +1752,8 @@ The Summary page also includes the following elements:
 - *Status History*: Clicking the Status History icon will open a new dialog that shows a historical view of the statistics that
 	are rendered for this component. See the section <<Status_History>> for more information.
 
-- *Refresh*: The Refresh button allows the user to refresh the information displayed without closing the dialog and opening it
-	again. The time at which the information was last refreshed is shown just to the right of the Refresh button. The information
+- *Refresh*: The `Refresh` button allows the user to refresh the information displayed without closing the dialog and opening it
+	again. The time at which the information was last refreshed is shown just to the right of the `Refresh` button. The information
 	on the page is not automatically refreshed.
 
 - *Filter*: The Filter element allows users to filter the contents of the Summary table by typing in all or part of some criteria,
@@ -1709,9 +1764,9 @@ The Summary page also includes the following elements:
 	entries exist in the table.
 
 - *Pop-Out*: When monitoring a flow, it is helpful to be able to open the Summary table in a separate browser tab or window. The
-	Pop-Out button, next to the Close button, will cause the entire Summary dialog to be opened in a new browser tab or window
+	"Pop Out" button, next to the `Close` button, will cause the entire Summary dialog to be opened in a new browser tab or window
 	(depending on the configuration of the browser). Once the page is "popped out", the dialog is closed in the original
-	browser tab/window. In the new tab/window, the Pop-Out button and the Go-To button will no longer be available.
+	browser tab/window. In the new tab/window, the "Pop Out" button and the "Go To" button will no longer be available.
 
 - *System Diagnostics*: The System Diagnostics window provides information about how the system is performing with respect to
 	system resource utilization. While this is intended mostly for administrators, it is provided in this view because it
@@ -1729,7 +1784,7 @@ past five minutes, it is often useful to have a view of historical statistics as
 by right-clicking on a component and choosing the "Status History" menu option or by clicking on the Status History in the Summary page (see <<Summary_Page>>
 for more information).
 
-The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours. For specific
+The amount of historical information that is stored is configurable in the NiFi properties but defaults to `24 hours`. For specific
 configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
 When the Status History dialog is opened, it provides a graph of historical statistics:
 
@@ -1781,7 +1836,7 @@ To connect NiFi to a Registry, select Controller Settings from the Global Menu.
 
 image::controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. Select the Registry Clients tab and click the "+" button in the upper-right corner to register a new Registry client.
+This displays the NiFi Settings window. Select the Registry Clients tab and click the `+` button in the upper-right corner to register a new Registry client.
 
 image::registry-clients-tab.png["Registry Clients Tab"]
 
@@ -1877,7 +1932,9 @@ The following actions are not considered local changes:
 * modifying sensitive property values
 * modifying remote process group URLs
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
-* modifying variables
+* creating, modifying or deleting variables
+
+NOTE: Creating a variable does not trigger a local change because creating a variable on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses the new variable, which will trigger a local change. Modifying a variable does not trigger a local change because variable values are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those variables specific for the given environment. Deleting a variable does not trigger a local change because the component that references that variable will need need to be modified, which will trigger a local change.
 
 WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. See <<Variables_in_Versioned_Flows>> for more information.
 
@@ -2093,7 +2150,7 @@ received from others can then be imported into an instance of NiFi and dragged o
 [[Create_Template]]
 === Creating a Template
 To create a Template, select the components that are to be a part of the template, and then click the
-"Create Template" (
+`Create Template` (
 image:iconNewTemplate.png["Create Template"]
 ) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
 
@@ -2102,7 +2159,7 @@ current Process Group. This means that creating a Template with nothing selected
 will create a single Template that contains the entire flow.
 
 After clicking this button, the user is prompted to provide a name and an optional description for the template.
-Each template must have a unique name. After entering the name and optional description, clicking the Create button
+Each template must have a unique name. After entering the name and optional description, clicking the `Create` button
 will generate the template and notify the user that the template was successfully created, or provide an appropriate
 error message if unable to create the template for some reason.
 
@@ -2118,12 +2175,12 @@ After receiving a Template that has been exported from another NiFi, the first s
 the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
 authorization.
 
-From the Operate Palette, click the "Upload Template" (
+From the Operate Palette, click the `Upload Template` (
 image:iconUploadTemplate.png["Upload Template"]
 )  button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
 dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
 Select the file and click Open.
-Clicking the "Upload" button will attempt to import the Template into this instance of NiFi.
+Clicking the `Upload` button will attempt to import the Template into this instance of NiFi.
 The Upload Template dialog will update to show "Success" or an error message if there was a problem importing the template.
 
 
@@ -2135,7 +2192,7 @@ image:iconTemplate.png["Template"]
 ) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
 
 This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
-click the "Add" button. The Template will be added to the canvas with the upper-left-hand side of the Template
+click the `Add` button. The Template will be added to the canvas with the upper-left-hand side of the Template
 being placed wherever the user dropped the Template icon.
 
 This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
@@ -2156,8 +2213,8 @@ filter the templates to see only those of interest, export, and delete Templates
 ==== Exporting a Template
 Once a Template has been created, it can be shared with others in the Template Management page.
 To export a Template, locate the Template in the table. The Filter in the top-right corner
-can be used to help find the appropriate Template if several are available. Then click the Export or Download button (
-image:iconExport.png["Export"]
+can be used to help find the appropriate Template if several are available. Then click the `Download` button (
+image:iconDownloadTemplate.png["Export"]
 ). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported
 into other instances of NiFi (see <<Import_Template>>).
 
@@ -2165,7 +2222,7 @@ into other instances of NiFi (see <<Import_Template>>).
 ==== Removing a Template
 
 Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
-may be used to find the appropriate Template if several are available) and click the Delete button (
+may be used to find the appropriate Template if several are available) and click the `Delete` button (
 image:iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
 and will no longer be available to add to the canvas.
@@ -2179,8 +2236,7 @@ like dataflow compliance and optimization in real time. By default, NiFi updates
 is configurable.
 
 
-To access the Data Provenance page, select  Data Provenance from the Global Menu. Clicking this button opens a dialog window t
-hat allows the user to see the most recent Data Provenance information available,
+To access the Data Provenance page, select "Data Provenance" from the Global Menu. This opens a dialog window that allows the user to see the most recent Data Provenance information available,
 search the information for specific items, and filter the search results. It is also possible to open additional dialog windows to see event details,
 replay data at any point within the dataflow, and see a graphical representation of the data's lineage, or path through the flow.
 (These features are described in depth below.)
@@ -2238,7 +2294,7 @@ image:search-receive-event-abc.png["Search for RECEIVE Event"]
 
 [[event_details]]
 === Details of an Event
-In the far-left column of the Data Provenance page, there is a View Details icon for each event (image:iconDetails.png["Details"]).
+In the far-left column of the Data Provenance page, there is a `View Details` icon for each event (image:iconDetails.png["Details"]).
 Clicking this button opens a dialog window with three tabs: Details, Attributes, and Content.
 
 image:event-details.png["Event Details", width=700]
@@ -2297,7 +2353,7 @@ image:expanded-events.png["Expanded Events"]
 
 [[writeahead-provenance]]
 === Write Ahead Provenance Repository
-By default, the Provenance Repository is implemented in a Persistent Provenance configuration. In Apache NiFi 1.2.0, the Write Ahead configuration was introduced to provide the same capabilities as Persistent Provenance, but with far better performance. Migrating to the Write Ahead configuration is easy to accomplish. Simply change the setting for the `nifi.provenance.repository.implementation` system property in the `nifi.properties` file from the default value of `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and restart NiFi.
+By default, the Provenance Repository is implemented in a Persistent Provenance configuration. In Apache NiFi 1.2.0, the Write Ahead configuration was introduced to provide the same capabilities as Persistent Provenance, but with far better performance. Migrating to the Write Ahead configuration is easy to accomplish. Simply change the setting for the `nifi.provenance.repository.implementation` system property in the _nifi.properties_ file from the default value of `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository` and restart NiFi.
 
 However, to increase the chances of a successful migration consider the following factors and recommended actions.
 
@@ -2309,7 +2365,7 @@ The `WriteAheadProvenanceRepository` can use the Provenance data stored by the `
 If you are upgrading from an older version of NiFi to 1.2.0 or later, it is recommended that you do not change the provenance configuration to Write Ahead until you confirm your flows and environment are stable in 1.2.0 first.  This reduces the number of variables in your upgrade and can simplify the debugging process if any issues arise.
 
 ==== Bootstrap.conf
-While better performance is achieved with the G1 garbage collector, Java 8 bugs may surface more frequently in the Write Ahead configuration.  It is recommended that the following line is commented out in the `bootstrap.conf` file in the `conf` directory:
+While better performance is achieved with the G1 garbage collector, Java 8 bugs may surface more frequently in the Write Ahead configuration.  It is recommended that the following line is commented out in the _bootstrap.conf_ file in the `conf` directory:
 
 ....
 java.arg.13=-XX:+UseG1GC
@@ -2352,10 +2408,10 @@ The `EncryptedWriteAheadProvenanceRepository` is a new implementation of the pro
 
 The `WriteAheadProvenanceRepository` was introduced in NiFi 1.2.0 and provided a refactored and much faster provenance repository implementation than the previous `PersistentProvenanceRepository`. The encrypted version wraps that implementation with a record writer and reader which encrypt and decrypt the serialized bytes respectively.
 
-The fully qualified class `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository` is specified as the provenance repository implementation in `nifi.properties` as the value of `nifi.provenance.repository.implementation`. In addition, <<administration-guide.adoc#encrypted-write-ahead-provenance-repository-properties,new properties>> must be populated to allow successful initialization.
+The fully qualified class `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository` is specified as the provenance repository implementation in _nifi.properties_ as the value of `nifi.provenance.repository.implementation`. In addition, <<administration-guide.adoc#encrypted-write-ahead-provenance-repository-properties,new properties>> must be populated to allow successful initialization.
 
 ===== StaticKeyProvider
-The `StaticKeyProvider` implementation defines keys directly in `nifi.properties`. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in `nifi.properties` using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
+The `StaticKeyProvider` implementation defines keys directly in _nifi.properties_. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in _nifi.properties_ using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
 
 The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
 ....
@@ -2376,10 +2432,10 @@ key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa
 key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
 ....
 
-Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in `conf/bootstrap.conf`.
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
 ===== Key Rotation
-Simply update `nifi.properties` to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
+Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
 
 ==== Writing and Reading Event Records
 Once the repository is initialized, all provenance event record write operations are serialized according to the configured schema writer (`EventIdFirstSchemaRecordWriter` by default for `WriteAheadProvenanceRepository`) to a `byte[]`. Those bytes are then encrypted using an implementation of `ProvenanceEventEncryptor` (the only current implementation is `AES/GCM/NoPadding`) and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `byte[]` is then written to the repository on disk as normal.

@@ -75,6 +75,14 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
+    public void offloadQueue() {
+    }
+
+    @Override
+    public void resetOffloadedQueue() {
+    }
+
+    @Override
     public boolean isActivelyLoadBalancing() {
         return false;
     }

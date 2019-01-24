@@ -17,16 +17,15 @@
 
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.util.NiFiProperties;
+
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.framework.security.util.SslContextFactory;
-import org.apache.nifi.util.NiFiProperties;
 
 public class StandardFlowRegistryClient implements FlowRegistryClient {
     private NiFiProperties nifiProperties;
@@ -71,16 +70,19 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
         }
 
+        // Handles case where the URI entered has a trailing slash, or includes the trailing /nifi-registry-api
+        final String registryBaseUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
-            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
+            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties);
             if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
                 throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
                     + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "
                     + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
             }
 
-            registry = new RestBasedFlowRegistry(this, registryId, registryUrl, sslContext, registryName);
+            registry = new RestBasedFlowRegistry(this, registryId, registryBaseUrl, sslContext, registryName);
             registry.setDescription(description);
         } else {
             throw new IllegalArgumentException("Cannot create Flow Registry with URI of " + registryUrl

@@ -578,7 +578,7 @@ public class FileSystemRepository implements ContentRepository {
             }
 
             final long modulatedSectionIndex = currentIndex % SECTIONS_PER_CONTAINER;
-            final String section = String.valueOf(modulatedSectionIndex);
+            final String section = String.valueOf(modulatedSectionIndex).intern();
             final String claimId = System.currentTimeMillis() + "-" + currentIndex;
 
             resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant, true);
@@ -864,9 +864,16 @@ public class FileSystemRepository implements ContentRepository {
 
         }
 
-        // see javadocs for claim.getLength() as to why we do this.
+        // A claim length of -1 indicates that the claim is still being written to and we don't know
+        // the length. In this case, we don't limit the Input Stream. If the Length has been populated, though,
+        // it is possible that the Length could then be extended. However, we do want to avoid ever allowing the
+        // stream to read past the end of the Content Claim. To accomplish this, we use a LimitedInputStream but
+        // provide a LongSupplier for the length instead of a Long value. this allows us to continue reading until
+        // we get to the end of the Claim, even if the Claim grows. This may happen, for instance, if we obtain an
+        // InputStream for this claim, then read from it, write more to the claim, and then attempt to read again. In
+        // such a case, since we have written to that same Claim, we should still be able to read those bytes.
         if (claim.getLength() >= 0) {
-            return new LimitedInputStream(fis, claim.getLength());
+            return new LimitedInputStream(fis, claim::getLength);
         } else {
             return fis;
         }

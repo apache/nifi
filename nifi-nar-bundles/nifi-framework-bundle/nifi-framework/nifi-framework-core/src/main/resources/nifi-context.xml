@@ -40,6 +40,10 @@
         <property name="properties" ref="nifiProperties" />
     </bean>
 
+    <!-- extension manager -->
+    <bean id="extensionManager" class="org.apache.nifi.spring.ExtensionManagerFactoryBean">
+    </bean>
+
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
@@ -51,6 +55,7 @@
         <property name="variableRegistry" ref="variableRegistry"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryClient" ref="flowRegistryClient" />
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- flow service -->

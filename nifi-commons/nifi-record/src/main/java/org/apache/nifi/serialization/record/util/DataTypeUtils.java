@@ -339,6 +339,11 @@ public class DataTypeUtils {
             return dest;
         }
 
+        if (value instanceof List) {
+            final List<?> list = (List<?>)value;
+            return list.toArray();
+        }
+
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
     }
 
@@ -595,6 +600,11 @@ public class DataTypeUtils {
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
+        }
+
+        if (value instanceof java.util.Date) {
+            java.util.Date _temp = (java.util.Date)value;
+            return new Date(_temp.getTime());
         }
 
         if (value instanceof Date) {

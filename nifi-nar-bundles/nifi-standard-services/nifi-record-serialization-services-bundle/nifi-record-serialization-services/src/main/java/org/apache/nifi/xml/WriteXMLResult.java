@@ -91,7 +91,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         if (recordTagName != null) {
             this.recordTagName = recordTagName;
         } else {
-            Optional<String> recordTagNameOptional = recordSchema.getIdentifier().getName();
+            Optional<String> recordTagNameOptional = recordSchema.getSchemaName().isPresent()? recordSchema.getSchemaName() : recordSchema.getIdentifier().getName();
             if (recordTagNameOptional.isPresent()) {
                 this.recordTagName = recordTagNameOptional.get();
             } else {

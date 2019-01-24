@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;

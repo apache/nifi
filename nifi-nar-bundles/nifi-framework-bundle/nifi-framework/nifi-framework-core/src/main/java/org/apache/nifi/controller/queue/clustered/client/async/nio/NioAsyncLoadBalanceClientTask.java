@@ -66,13 +66,9 @@ public class NioAsyncLoadBalanceClientTask implements Runnable {
                     }
 
                     final NodeConnectionState connectionState = connectionStatus.getState();
-                    if (connectionState == NodeConnectionState.DISCONNECTED || connectionState == NodeConnectionState.DISCONNECTING) {
-                        client.nodeDisconnected();
-                        continue;
-                    }
-
                     if (connectionState != NodeConnectionState.CONNECTED) {
-                        logger.debug("Client {} is for node that is not currently connected (state = {}) so will not communicate with node", client, connectionState);
+                        logger.debug("Notifying Client {} that node is not connected because current state is {}", client, connectionState);
+                        client.nodeDisconnected();
                         continue;
                     }
 

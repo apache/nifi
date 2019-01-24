@@ -109,7 +109,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     public static final PropertyDescriptor HIVEQL_PRE_QUERY = new PropertyDescriptor.Builder()
             .name("hive-pre-query")
             .displayName("HiveQL Pre-Query")
-            .description("HiveQL pre-query to execute. Semicolon-delimited list of queries. "
+            .description("A semicolon-delimited list of queries executed before the main SQL query is executed. "
                     + "Example: 'set tez.queue.name=queue1; set hive.exec.orc.split.strategy=ETL; set hive.exec.reducers.bytes.per.reducer=1073741824'. "
                     + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
             .required(false)
@@ -129,7 +129,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     public static final PropertyDescriptor HIVEQL_POST_QUERY = new PropertyDescriptor.Builder()
             .name("hive-post-query")
             .displayName("HiveQL Post-Query")
-            .description("HiveQL post-query to execute. Semicolon-delimited list of queries. "
+            .description("A semicolon-delimited list of queries executed after the main SQL query is executed. "
                     + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

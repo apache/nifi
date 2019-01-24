@@ -35,6 +35,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -85,7 +86,7 @@ public class TestAbstractComponentNode {
         public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
             super("id", Mockito.mock(ValidationContextFactory.class), Mockito.mock(ControllerServiceProvider.class), "unit test component",
                 ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
-                validationTrigger, false);
+                Mockito.mock(StandardExtensionDiscoveringManager.class), validationTrigger, false);
 
             this.pauseMillis = pauseMillis;
         }

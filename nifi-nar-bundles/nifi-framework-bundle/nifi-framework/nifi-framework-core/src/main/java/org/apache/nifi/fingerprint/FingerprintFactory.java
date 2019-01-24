@@ -84,11 +84,13 @@ public class FingerprintFactory {
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final StringEncryptor encryptor;
     private final DocumentBuilder flowConfigDocBuilder;
+    private final ExtensionManager extensionManager;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor) {
+    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
+        this.extensionManager = extensionManager;
 
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
@@ -108,9 +110,10 @@ public class FingerprintFactory {
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder) {
+    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
+        this.extensionManager = extensionManager;
     }
 
     /**
@@ -408,7 +411,7 @@ public class FingerprintFactory {
 
         // get the temp instance of the Processor so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(className, bundle);
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(className, coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(className, coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get Processor of type {}; its default properties will be fingerprinted instead of being ignored.", className);
         }
@@ -640,7 +643,7 @@ public class FingerprintFactory {
 
         // get the temp instance of the ControllerService so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ControllerService of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
@@ -672,7 +675,7 @@ public class FingerprintFactory {
     private BundleCoordinate getCoordinate(final String type, final BundleDTO dto) {
         BundleCoordinate coordinate;
         try {
-            coordinate = BundleUtils.getCompatibleBundle(type, dto);
+            coordinate = BundleUtils.getCompatibleBundle(extensionManager, type, dto);
         } catch (final IllegalStateException e) {
             if (dto == null) {
                 coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
@@ -697,7 +700,7 @@ public class FingerprintFactory {
 
         // get the temp instance of the ReportingTask so that we know the default property values
         final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
-        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(dto.getType(), coordinate);
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ReportingTask of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }

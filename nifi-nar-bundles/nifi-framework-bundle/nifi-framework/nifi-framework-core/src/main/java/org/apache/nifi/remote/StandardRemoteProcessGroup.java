@@ -16,8 +16,41 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.exception.CommunicationsException;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroupCounts;
+import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -47,47 +80,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.connectable.Port;
-import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.CommunicationsException;
-import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroupCounts;
-import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the Root Process Group of a remote NiFi Instance. Holds
- * information about that remote instance, as well as {@link IncomingPort}s and
- * {@link OutgoingPort}s for communicating with the remote instance.
+ * information about that remote instance, as well as Incoming Ports and
+ * Outgoing Ports for communicating with the remote instance.
  */
 public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
@@ -148,8 +146,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private final ScheduledExecutorService backgroundThreadExecutor;
 
-    public StandardRemoteProcessGroup(final String id, final String targetUris, final ProcessGroup processGroup,
-                                      final FlowController flowController, final SSLContext sslContext, final NiFiProperties nifiProperties) {
+    public StandardRemoteProcessGroup(final String id, final String targetUris, final ProcessGroup processGroup, final ProcessScheduler processScheduler,
+                                      final BulletinRepository bulletinRepository, final SSLContext sslContext, final NiFiProperties nifiProperties) {
         this.nifiProperties = nifiProperties;
         this.id = requireNonNull(id);
 
@@ -157,13 +155,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         this.targetId = null;
         this.processGroup = new AtomicReference<>(processGroup);
         this.sslContext = sslContext;
-        this.scheduler = flowController.getProcessScheduler();
+        this.scheduler = processScheduler;
         this.authorizationIssue = "Establishing connection to " + targetUris;
 
         final String expirationPeriod = nifiProperties.getProperty(NiFiProperties.REMOTE_CONTENTS_CACHE_EXPIRATION, "30 secs");
         remoteContentsCacheExpiration = FormatUtils.getTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS);
 
-        final BulletinRepository bulletinRepository = flowController.getBulletinRepository();
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
 
@@ -700,7 +697,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * @return a set of {@link OutgoingPort}s used for transmitting FlowFiles to
+     * @return a set of Outgoing Ports used for transmitting FlowFiles to
      * the remote instance
      */
     @Override

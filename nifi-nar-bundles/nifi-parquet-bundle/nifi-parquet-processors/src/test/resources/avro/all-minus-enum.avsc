@@ -1,0 +1,60 @@
+{
+	"name": "myrecord",
+	"namespace": "parquet.avro",
+	"type": "record",
+	"fields": [{
+		"name": "mynull",
+		"type": "null"
+	}, {
+		"name": "myboolean",
+		"type": "boolean"
+	}, {
+		"name": "myint",
+		"type": "int"
+	}, {
+		"name": "mylong",
+		"type": "long"
+	}, {
+		"name": "myfloat",
+		"type": "float"
+	}, {
+		"name": "mydouble",
+		"type": "double"
+	}, {
+		"name": "mybytes",
+		"type": "bytes"
+	}, {
+		"name": "mystring",
+		"type": "string"
+	}, {
+		"name": "mynestedrecord",
+		"type": {
+			"type": "record",
+			"name": "ignored1",
+			"fields": [{
+				"name": "mynestedint",
+				"type": "int"
+			}]
+		}
+	}, {
+		"name": "myarray",
+		"type": {
+			"type": "array",
+			"items": "int"
+		}
+	}, {
+		"name": "mymap",
+		"type": {
+			"type": "map",
+			"values": "int"
+		}
+	}, {
+		"name": "myfixed",
+		"type": {
+			"type": "fixed",
+			"name": "ignored3",
+			"namespace": "",
+			"size": 1
+		}
+	}]
+}

@@ -84,7 +84,8 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
 )
 @WritesAttributes({
         @WritesAttribute(attribute = "wait.start.timestamp", description = "All FlowFiles will have an attribute 'wait.start.timestamp', which sets the "
-        + "initial epoch timestamp when the file first entered this processor.  This is used to determine the expiration time of the FlowFile."),
+        + "initial epoch timestamp when the file first entered this processor.  This is used to determine the expiration time of the FlowFile.  "
+        + "This attribute is not written when the FlowFile is transferred to failure or success"),
         @WritesAttribute(attribute = "wait.counter.<counterName>", description = "If a signal exists when the processor runs, "
         + "each count value in the signal is copied.")
 })
@@ -314,6 +315,8 @@ public class Wait extends AbstractProcessor {
 
         final Consumer<FlowFile> transferToFailure = flowFile -> {
             flowFile = session.penalize(flowFile);
+            // This flowFile is now failed, our tracking is done, clear the timer
+            flowFile = clearWaitState(session, flowFile);
             getFlowFilesFor.apply(REL_FAILURE).add(flowFile);
         };
 
@@ -328,9 +331,19 @@ public class Wait extends AbstractProcessor {
                     relationship = Relationship.SELF;
                 }
             }
-
+            final Relationship finalRelationship = relationship;
             final List<FlowFile> flowFilesWithSignalAttributes = routedFlowFiles.getValue().stream()
-                    .map(f -> copySignalAttributes(session, f, signalRef.get(), originalSignalCounts, replaceOriginalAttributes)).collect(Collectors.toList());
+                    .map(f -> {
+                        if (REL_SUCCESS.equals(finalRelationship)) {
+                            // These flowFiles will be exiting the wait, clear the timer
+                            f = clearWaitState(session, f);
+                        }
+                        return copySignalAttributes(session, f, signalRef.get(),
+                            originalSignalCounts,
+                            replaceOriginalAttributes);
+                    })
+                    .collect(Collectors.toList());
+
             session.transfer(flowFilesWithSignalAttributes, relationship);
         };
 
@@ -468,6 +481,10 @@ public class Wait extends AbstractProcessor {
             throw new ProcessException(String.format("Unable to communicate with cache while updating %s due to %s", signalId, e), e);
         }
 
+    }
+
+    private FlowFile clearWaitState(final ProcessSession session, final FlowFile flowFile) {
+        return session.removeAttribute(flowFile, WAIT_START_TIMESTAMP);
     }
 
     private FlowFile copySignalAttributes(final ProcessSession session, final FlowFile flowFile, final Signal signal, final Map<String, Long> originalCount, final boolean replaceOriginal) {

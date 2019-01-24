@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -66,12 +67,16 @@ public class TestStandardRemoteProcessGroupDAO {
         final String remoteProcessGroupInputPortId = "remote-process-group-input-port-id";
 
         final FlowController flowController = mock(FlowController.class);
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
         final RemoteGroupPort remoteGroupPort = mock(RemoteGroupPort.class);
 
         dao.setFlowController(flowController);
-        when(flowController.getGroup(any())).thenReturn(processGroup);
+        when(flowManager.getRootGroup()).thenReturn(processGroup);
+        when(flowManager.getGroup(any())).thenReturn(processGroup);
         when(processGroup.findRemoteProcessGroup(eq(remoteProcessGroupId))).thenReturn(remoteProcessGroup);
         when(remoteProcessGroup.getInputPort(remoteProcessGroupInputPortId)).thenReturn(remoteGroupPort);
         when(remoteGroupPort.getName()).thenReturn("remote-group-port");

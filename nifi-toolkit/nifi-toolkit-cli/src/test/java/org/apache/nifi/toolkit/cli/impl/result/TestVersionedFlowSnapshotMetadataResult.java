@@ -69,13 +69,13 @@ public class TestVersionedFlowSnapshotMetadataResult {
         //System.out.println(resultOut);
 
         // can't get the time zone to line up on travis, so ignore this for now
-        final String expected = "\n" +
-                "Ver   Date                         Author   Message                                    \n" +
-                "---   --------------------------   ------   ----------------------------------------   \n" ;//+
+        final String expectedPattern = "^\\n" +
+                "Ver +Date + Author + Message +\\n" +
+                "-+ +-+ +-+ +-+ +\\n" +
                 //"1     Wed, Feb 14 2018 12:00 EST   user1    This is a long comment, longer than t...   \n" +
                 //"2     Wed, Feb 14 2018 12:30 EST   user2    This is v2                                 \n" +
-                //"\n";
+                "(.|\\n)+$";
 
-        Assert.assertTrue(resultOut.startsWith(expected));
+        Assert.assertTrue(resultOut.matches(expectedPattern));
     }
 }

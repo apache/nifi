@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.jms.ConnectionFactory;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -40,6 +31,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapter;
 import org.springframework.jms.core.JmsTemplate;
+
+import javax.jms.ConnectionFactory;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Base JMS processor to support implementation of JMS producers and consumers.
@@ -60,7 +59,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .name("User Name")
             .description("User Name used for authentication and authorization.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
@@ -206,7 +206,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
         final UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
         cfCredentialsAdapter.setTargetConnectionFactory(connectionFactory);
-        cfCredentialsAdapter.setUsername(context.getProperty(USER).getValue());
+        cfCredentialsAdapter.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cfCredentialsAdapter.setPassword(context.getProperty(PASSWORD).getValue());
 
         final CachingConnectionFactory cachingFactory = new CachingConnectionFactory(cfCredentialsAdapter);
@@ -220,9 +220,6 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         JmsTemplate jmsTemplate = new JmsTemplate();
         jmsTemplate.setConnectionFactory(cachingFactory);
         jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
-
-        // set of properties that may be good candidates for exposure via configuration
-        jmsTemplate.setReceiveTimeout(1000);
 
         return finishBuildingJmsWorker(cachingFactory, jmsTemplate, context);
     }

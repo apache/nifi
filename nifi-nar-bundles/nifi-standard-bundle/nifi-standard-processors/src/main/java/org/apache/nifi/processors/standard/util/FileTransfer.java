@@ -141,6 +141,14 @@ public interface FileTransfer extends Closeable {
         .defaultValue("false")
         .allowableValues("true", "false")
         .build();
+    public static final PropertyDescriptor FOLLOW_SYMLINK = new PropertyDescriptor.Builder()
+        .name("follow-symlink")
+        .displayName("Follow symlink")
+        .description("If true, will pull even symbolic files and also nested symbolic subdirectories; otherwise, will not read symbolic files and will not traverse symbolic link subdirectories")
+        .required(true)
+        .defaultValue("false")
+        .allowableValues("true", "false")
+        .build();
     public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("File Filter Regex")
         .description("Provides a Java Regular Expression for filtering Filenames; if a filter is supplied, only files whose names match that Regular Expression will be fetched")

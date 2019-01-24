@@ -36,6 +36,7 @@ import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
@@ -122,6 +123,31 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                 return (ReconnectionResponseMessage) response;
             } else {
                 throw new ProtocolException("Expected message type '" + MessageType.FLOW_RESPONSE + "' but found '" + response.getType() + "'");
+            }
+        } finally {
+            SocketUtils.closeQuietly(socket);
+        }
+    }
+
+    /**
+     * Requests a node to be offloaded. The configured value for
+     * handshake timeout is applied to the socket before making the request.
+     *
+     * @param msg a message
+     * @throws ProtocolException if the message failed to be sent
+     */
+    @Override
+    public void offload(final OffloadMessage msg) throws ProtocolException {
+        Socket socket = null;
+        try {
+            socket = createSocket(msg.getNodeId(), true);
+
+            // marshal message to output stream
+            try {
+                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
+                marshaller.marshal(msg, socket.getOutputStream());
+            } catch (final IOException ioe) {
+                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
             }
         } finally {
             SocketUtils.closeQuietly(socket);

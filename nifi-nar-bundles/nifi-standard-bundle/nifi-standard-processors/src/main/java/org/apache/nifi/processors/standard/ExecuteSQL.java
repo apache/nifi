@@ -77,12 +77,18 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
                 + "'yyyy-MM-dd HH:mm:ss.SSS' for Timestamp is used.")
 })
 @WritesAttributes({
-        @WritesAttribute(attribute = "executesql.row.count", description = "Contains the number of rows returned in the select query"),
-        @WritesAttribute(attribute = "executesql.query.duration", description = "Combined duration of the query execution time and fetch time in milliseconds"),
-        @WritesAttribute(attribute = "executesql.query.executiontime", description = "Duration of the query execution time in milliseconds"),
-        @WritesAttribute(attribute = "executesql.query.fetchtime", description = "Duration of the result set fetch time in milliseconds"),
+        @WritesAttribute(attribute = "executesql.row.count", description = "Contains the number of rows returned by the query. "
+                + "If 'Max Rows Per Flow File' is set, then this number will reflect the number of rows in the Flow File instead of the entire result set."),
+        @WritesAttribute(attribute = "executesql.query.duration", description = "Combined duration of the query execution time and fetch time in milliseconds. "
+                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
+        @WritesAttribute(attribute = "executesql.query.executiontime", description = "Duration of the query execution time in milliseconds. "
+                + "This number will reflect the query execution time regardless of the 'Max Rows Per Flow File' setting."),
+        @WritesAttribute(attribute = "executesql.query.fetchtime", description = "Duration of the result set fetch time in milliseconds. "
+                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
         @WritesAttribute(attribute = "executesql.resultset.index", description = "Assuming multiple result sets are returned, "
                 + "the zero based index of this result set."),
+        @WritesAttribute(attribute = "executesql.error.message", description = "If processing an incoming flow file causes "
+                + "an Exception, the Flow File is routed to failure and this attribute is set to the exception message."),
         @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
         @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
@@ -114,7 +120,9 @@ public class ExecuteSQL extends AbstractExecuteSQL {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
+        pds.add(SQL_PRE_QUERY);
         pds.add(SQL_SELECT_QUERY);
+        pds.add(SQL_POST_QUERY);
         pds.add(QUERY_TIMEOUT);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         pds.add(USE_AVRO_LOGICAL_TYPES);

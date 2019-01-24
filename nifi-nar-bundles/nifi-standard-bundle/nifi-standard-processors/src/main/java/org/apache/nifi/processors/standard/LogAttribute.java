@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -58,6 +59,7 @@ import com.google.common.collect.Sets;
 @SupportsBatching
 @Tags({"attributes", "logging"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Emits attributes of the FlowFile at the specified log level")
 public class LogAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()

@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.9.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-atlas-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <properties>
         <atlas.version>0.8.1</atlas.version>
@@ -37,14 +37,20 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.7.1.Final</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-atlas-reporting-task</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-client-dto</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.9.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.atlas</groupId>

@@ -396,6 +396,8 @@ public class AvroTypeUtil {
 
         final String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
         final SimpleRecordSchema recordSchema = schemaText == null ? new SimpleRecordSchema(schemaId) : new SimpleRecordSchema(schemaText, AVRO_SCHEMA_FORMAT, schemaId);
+        recordSchema.setSchemaName(avroSchema.getName());
+        recordSchema.setSchemaNamespace(avroSchema.getNamespace());
         final DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
         final Map<String, DataType> knownRecords = new HashMap<>();
         knownRecords.put(schemaFullName, recordSchemaType);
@@ -629,7 +631,9 @@ public class AvroTypeUtil {
                     final int desiredScale = decimalType.getScale();
                     final BigDecimal decimal = rawDecimal.scale() == desiredScale
                             ? rawDecimal : rawDecimal.setScale(desiredScale, BigDecimal.ROUND_HALF_UP);
-                    return new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType);
+                    return fieldSchema.getType() == Type.BYTES
+                        ? new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType) //return GenericByte
+                        : new Conversions.DecimalConversion().toFixed(decimal, fieldSchema, logicalType); //return GenericFixed
                 }
                 if (rawValue instanceof byte[]) {
                     return ByteBuffer.wrap((byte[]) rawValue);

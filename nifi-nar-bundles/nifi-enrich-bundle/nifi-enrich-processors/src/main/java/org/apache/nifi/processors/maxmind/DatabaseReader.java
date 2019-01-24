@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.processors.maxmind;
 
+import com.fasterxml.jackson.databind.BeanProperty;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.maxmind.db.Metadata;
+import com.maxmind.db.Reader;
+import com.maxmind.db.Reader.FileMode;
+import com.maxmind.geoip2.GeoIp2Provider;
+import com.maxmind.geoip2.model.AnonymousIpResponse;
+import com.maxmind.geoip2.model.CityResponse;
+import com.maxmind.geoip2.model.ConnectionTypeResponse;
+import com.maxmind.geoip2.model.CountryResponse;
+import com.maxmind.geoip2.model.DomainResponse;
+import com.maxmind.geoip2.model.IspResponse;
+import com.maxmind.geoip2.record.Traits;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -23,23 +42,6 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
-
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.maxmind.db.Metadata;
-import com.maxmind.db.Reader;
-import com.maxmind.db.Reader.FileMode;
-import com.maxmind.geoip2.GeoIp2Provider;
-import com.maxmind.geoip2.exception.AddressNotFoundException;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.AnonymousIpResponse;
-import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.model.ConnectionTypeResponse;
-import com.maxmind.geoip2.model.CountryResponse;
-import com.maxmind.geoip2.model.DomainResponse;
-import com.maxmind.geoip2.model.IspResponse;
 
 /**
  * <p>
@@ -54,10 +56,10 @@ import com.maxmind.geoip2.model.IspResponse;
 public class DatabaseReader implements GeoIp2Provider, Closeable {
 
     private final Reader reader;
-
     private final ObjectMapper om;
+    private List<String> locales;
 
-    private DatabaseReader(Builder builder) throws IOException {
+    private DatabaseReader(final Builder builder) throws IOException {
         if (builder.stream != null) {
             this.reader = new Reader(builder.stream);
         } else if (builder.database != null) {
@@ -65,26 +67,27 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
         } else {
             // This should never happen. If it does, review the Builder class
             // constructors for errors.
-            throw new IllegalArgumentException(
-                    "Unsupported Builder configuration: expected either File or URL");
+            throw new IllegalArgumentException("Unsupported Builder configuration: expected either File or URL");
         }
+
         this.om = new ObjectMapper();
-        this.om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                false);
-        this.om.configure(
-                DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-        InjectableValues inject = new InjectableValues.Std().addValue(
-                "locales", builder.locales);
+        this.om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
+        this.om.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
+        InjectableValues inject = new InjectableValues.Std().addValue("locales", builder.locales);
         this.om.setInjectableValues(inject);
+
+        this.locales = builder.locales;
     }
 
     /**
      * <p>
      * Constructs a Builder for the DatabaseReader. The file passed to it must be a valid GeoIP2 database file.
      * </p>
+     *
      * <p>
      * <code>Builder</code> creates instances of <code>DatabaseReader</code> from values set by the methods.
      * </p>
+     *
      * <p>
      * Only the values set in the <code>Builder</code> constructor are required.
      * </p>
@@ -150,16 +153,11 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      * @return An object of type T with the data for the IP address or null if no information could be found for the given IP address
      * @throws IOException if there is an error opening or reading from the file.
      */
-    private <T> T get(InetAddress ipAddress, Class<T> cls, boolean hasTraits,
-            String type) throws IOException, AddressNotFoundException {
-
+    private <T> T get(InetAddress ipAddress, Class<T> cls, boolean hasTraits, String type) throws IOException {
         String databaseType = this.getMetadata().getDatabaseType();
         if (!databaseType.contains(type)) {
-            String caller = Thread.currentThread().getStackTrace()[2]
-                    .getMethodName();
-            throw new UnsupportedOperationException(
-                    "Invalid attempt to open a " + databaseType
-                    + " database using the " + caller + " method");
+            String caller = Thread.currentThread().getStackTrace()[2].getMethodName();
+            throw new UnsupportedOperationException("Invalid attempt to open a " + databaseType + " database using the " + caller + " method");
         }
 
         ObjectNode node = (ObjectNode) this.reader.get(ipAddress);
@@ -168,19 +166,10 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
             return null;
         }
 
-        ObjectNode ipNode;
-        if (hasTraits) {
-            if (!node.has("traits")) {
-                node.set("traits", this.om.createObjectNode());
-            }
-            ipNode = (ObjectNode) node.get("traits");
-        } else {
-            ipNode = node;
-        }
-        ipNode.put("ip_address", ipAddress.getHostAddress());
-
-        return this.om.treeToValue(node, cls);
+        InjectableValues inject = new JsonInjector(ipAddress.getHostAddress());
+        return this.om.reader(inject).treeToValue(node, cls);
     }
+
 
     /**
      * <p>
@@ -200,15 +189,13 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
     }
 
     @Override
-    public CountryResponse country(InetAddress ipAddress) throws IOException,
-            GeoIp2Exception {
-        return this.get(ipAddress, CountryResponse.class, true, "Country");
+    public CountryResponse country(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, CountryResponse.class, true, "Country");
     }
 
     @Override
-    public CityResponse city(InetAddress ipAddress) throws IOException,
-            GeoIp2Exception {
-        return this.get(ipAddress, CityResponse.class, true, "City");
+    public CityResponse city(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, CityResponse.class, true, "City");
     }
 
     /**
@@ -216,12 +203,10 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      *
      * @param ipAddress IPv4 or IPv6 address to lookup.
      * @return a AnonymousIpResponse for the requested IP address.
-     * @throws GeoIp2Exception if there is an error looking up the IP
      * @throws IOException if there is an IO error
      */
-    public AnonymousIpResponse anonymousIp(InetAddress ipAddress) throws IOException,
-            GeoIp2Exception {
-        return this.get(ipAddress, AnonymousIpResponse.class, false, "GeoIP2-Anonymous-IP");
+    public AnonymousIpResponse anonymousIp(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, AnonymousIpResponse.class, false, "GeoIP2-Anonymous-IP");
     }
 
     /**
@@ -229,13 +214,10 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      *
      * @param ipAddress IPv4 or IPv6 address to lookup.
      * @return a ConnectTypeResponse for the requested IP address.
-     * @throws GeoIp2Exception if there is an error looking up the IP
      * @throws IOException if there is an IO error
      */
-    public ConnectionTypeResponse connectionType(InetAddress ipAddress)
-            throws IOException, GeoIp2Exception {
-        return this.get(ipAddress, ConnectionTypeResponse.class, false,
-                "GeoIP2-Connection-Type");
+    public ConnectionTypeResponse connectionType(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, ConnectionTypeResponse.class, false,"GeoIP2-Connection-Type");
     }
 
     /**
@@ -243,13 +225,10 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      *
      * @param ipAddress IPv4 or IPv6 address to lookup.
      * @return a DomainResponse for the requested IP address.
-     * @throws GeoIp2Exception if there is an error looking up the IP
      * @throws IOException if there is an IO error
      */
-    public DomainResponse domain(InetAddress ipAddress) throws IOException,
-            GeoIp2Exception {
-        return this
-                .get(ipAddress, DomainResponse.class, false, "GeoIP2-Domain");
+    public DomainResponse domain(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, DomainResponse.class, false, "GeoIP2-Domain");
     }
 
     /**
@@ -257,12 +236,10 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      *
      * @param ipAddress IPv4 or IPv6 address to lookup.
      * @return an IspResponse for the requested IP address.
-     * @throws GeoIp2Exception if there is an error looking up the IP
      * @throws IOException if there is an IO error
      */
-    public IspResponse isp(InetAddress ipAddress) throws IOException,
-            GeoIp2Exception {
-        return this.get(ipAddress, IspResponse.class, false, "GeoIP2-ISP");
+    public IspResponse isp(InetAddress ipAddress) throws IOException {
+        return get(ipAddress, IspResponse.class, false, "GeoIP2-ISP");
     }
 
     /**
@@ -270,5 +247,26 @@ public class DatabaseReader implements GeoIp2Provider, Closeable {
      */
     public Metadata getMetadata() {
         return this.reader.getMetadata();
+    }
+
+    private class JsonInjector extends InjectableValues {
+        private final String ip;
+
+        JsonInjector(final String ip) {
+            this.ip = ip;
+        }
+
+        @Override
+        public Object findInjectableValue(final Object valueId, final DeserializationContext ctxt, final BeanProperty forProperty, final Object beanInstance) throws JsonMappingException {
+            if ("ip_address".equals(valueId)) {
+                return ip;
+            } else if ("traits".equals(valueId)) {
+                return new Traits(ip);
+            } else if ("locales".equals(valueId)) {
+                return locales;
+            }
+
+            return null;
+        }
     }
 }

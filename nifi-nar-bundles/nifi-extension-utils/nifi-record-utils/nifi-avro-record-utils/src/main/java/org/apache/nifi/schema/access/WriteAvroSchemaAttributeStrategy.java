@@ -17,26 +17,23 @@
 
 package org.apache.nifi.schema.access;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.avro.Schema;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
-    private final Map<RecordSchema, String> avroSchemaTextCache = new LinkedHashMap<RecordSchema, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<RecordSchema, String> eldest) {
-            return size() > 10;
-        }
-    };
+    private final LoadingCache<RecordSchema, String> avroSchemaTextCache = Caffeine.newBuilder()
+            .maximumSize(10)
+            .build(schema -> AvroTypeUtil.extractAvroSchema(schema).toString());
 
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
@@ -53,14 +50,7 @@ public class WriteAvroSchemaAttributeStrategy implements SchemaAccessWriter {
             }
         }
 
-        String schemaText = avroSchemaTextCache.get(schema);
-        if (schemaText == null) {
-            final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
-            schemaText = avroSchema.toString();
-            avroSchemaTextCache.put(schema, schemaText);
-        }
-
-        return Collections.singletonMap("avro.schema", schemaText);
+        return Collections.singletonMap("avro.schema", avroSchemaTextCache.get(schema));
     }
 
     @Override

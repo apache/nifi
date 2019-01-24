@@ -189,7 +189,8 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
         final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
         for (final RecordField field : schema.getFields()) {
             names.add(field.getFieldName());
-            types.add(getRelDataType(field.getDataType(), javaTypeFactory));
+            final RelDataType relDataType = getRelDataType(field.getDataType(), javaTypeFactory);
+            types.add(javaTypeFactory.createTypeWithNullability(relDataType, field.isNullable()));
         }
 
         logger.debug("Found Schema: {}", new Object[] {schema});

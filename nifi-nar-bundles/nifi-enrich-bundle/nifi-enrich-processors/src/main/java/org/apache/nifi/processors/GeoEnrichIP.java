@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.processors;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.maxmind.geoip2.model.CityResponse;
+import com.maxmind.geoip2.record.Subdivision;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -39,9 +35,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.StopWatch;
 
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.record.Subdivision;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @EventDriven
 @SideEffectFree
@@ -102,7 +100,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
         try {
             response = dbReader.city(inetAddress);
             stopWatch.stop();
-        } catch (final IOException | GeoIp2Exception ex) {
+        } catch (final IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
             // Most name or IP resolutions failure should have been triggered in the try loop above but
             // environmental conditions may trigger errors during the second resolution as well.

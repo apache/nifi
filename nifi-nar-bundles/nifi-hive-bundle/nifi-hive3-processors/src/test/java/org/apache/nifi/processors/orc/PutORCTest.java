@@ -46,6 +46,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -66,6 +67,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -74,6 +77,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
@@ -159,7 +163,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), filename);
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "100");
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS myTable (name STRING, favorite_number INT, favorite_color STRING, scale DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -230,7 +234,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "10");
         // DDL will be created with field names normalized (lowercased, e.g.) for Hive by default
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS myTable (id INT, timemillis INT, timestampmillis TIMESTAMP, dt DATE, dec DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DOUBLE) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -247,7 +251,9 @@ public class PutORCTest {
                     assertEquals((int) currUser, ((IntWritable) x.get(0)).get());
                     assertEquals(timeMillis, ((IntWritable) x.get(1)).get());
                     assertEquals(timestampMillis, ((TimestampWritableV2) x.get(2)).getTimestamp().toSqlTimestamp());
-                    assertEquals(dt.toLocalDate().toEpochDay(), ((DateWritableV2) x.get(3)).get().toEpochDay());
+                    final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
+                    assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
                     assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
                     return null;
                 }
@@ -377,6 +383,41 @@ public class PutORCTest {
         // verify we don't have the temp dot file after success
         final File tempAvroORCFile = new File(DIRECTORY + "/." + filename);
         Assert.assertFalse(tempAvroORCFile.exists());
+    }
+
+    @Test
+    public void testNestedRecords() throws Exception {
+        testRunner = TestRunners.newTestRunner(proc);
+        testRunner.setProperty(PutORC.HADOOP_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        testRunner.setProperty(PutORC.DIRECTORY, DIRECTORY);
+
+        MockRecordParser readerFactory = new MockRecordParser();
+
+        final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/nested_record.avsc"), StandardCharsets.UTF_8);
+        schema = new Schema.Parser().parse(avroSchema);
+
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField);
+        }
+
+        Map<String,Object> nestedRecordMap = new HashMap<>();
+        nestedRecordMap.put("id", 11088000000001615L);
+        nestedRecordMap.put("x", "Hello World!");
+
+        RecordSchema nestedRecordSchema = AvroTypeUtil.createSchema(schema.getField("myField").schema());
+        MapRecord nestedRecord = new MapRecord(nestedRecordSchema, nestedRecordMap);
+        // This gets added in to its spot in the schema, which is already named "myField"
+        readerFactory.addRecord(nestedRecord);
+
+        testRunner.addControllerService("mock-reader-factory", readerFactory);
+        testRunner.enableControllerService(readerFactory);
+
+        testRunner.setProperty(PutORC.RECORD_READER, "mock-reader-factory");
+
+        testRunner.enqueue("trigger");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
     }
 
     private void verifyORCUsers(final Path orcUsers, final int numExpectedUsers) throws IOException {

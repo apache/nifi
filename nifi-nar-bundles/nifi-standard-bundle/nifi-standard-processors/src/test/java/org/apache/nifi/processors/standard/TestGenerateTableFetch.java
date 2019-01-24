@@ -44,12 +44,17 @@ import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.DB_TYPE;
+import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_COUNT;
+import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_ID;
+import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_INDEX;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.REL_SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -114,7 +119,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRows() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRows() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -140,6 +145,8 @@ public class TestGenerateTableFetch {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        flowFile.assertAttributeEquals(FRAGMENT_INDEX, "0");
+        flowFile.assertAttributeEquals(FRAGMENT_COUNT, "1");
         ResultSet resultSet = stmt.executeQuery(query);
         // Should be three records
         assertTrue(resultSet.next());
@@ -160,6 +167,15 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "2");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
+        // Check fragment attributes
+        List<MockFlowFile> resultFFs = runner.getFlowFilesForRelationship(REL_SUCCESS);
+        MockFlowFile ff1 = resultFFs.get(0);
+        MockFlowFile ff2 = resultFFs.get(1);
+        assertEquals(ff1.getAttribute(FRAGMENT_ID), ff2.getAttribute(FRAGMENT_ID));
+        assertEquals(ff1.getAttribute(FRAGMENT_INDEX), "0");
+        assertEquals(ff1.getAttribute(FRAGMENT_COUNT), "2");
+        assertEquals(ff2.getAttribute(FRAGMENT_INDEX), "1");
+        assertEquals(ff2.getAttribute(FRAGMENT_COUNT), "2");
 
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
@@ -524,8 +540,52 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0).assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID");
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2");
+        flowFile.assertAttributeExists("generatetablefetch.limit");
+        flowFile.assertAttributeEquals("generatetablefetch.limit", null);
         runner.clearTransferState();
+    }
+
+    @Test
+    public void testFlowFileGeneratedOnZeroResults() throws SQLException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.COLUMN_NAMES, "ID,BUCKET");
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
+        // Set partition size to 0 so we can see that the flow file gets all rows
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
+        runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "false");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "true");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
+        assertEquals("ID,BUCKET", flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertEquals("1=1", flowFile.getAttribute("generatetablefetch.whereClause"));
+        assertEquals("ID", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
+        assertNull(flowFile.getAttribute("generatetablefetch.limit"));
+        assertNull(flowFile.getAttribute("generatetablefetch.offset"));
+        assertEquals("0", flowFile.getAttribute("fragment.index"));
+        assertEquals("0", flowFile.getAttribute("fragment.count"));
     }
 
     @Test

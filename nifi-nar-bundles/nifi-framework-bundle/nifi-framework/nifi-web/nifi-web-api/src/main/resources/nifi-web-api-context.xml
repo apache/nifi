@@ -34,7 +34,7 @@
     <!-- revision manager -->
     <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager">
     </bean>
-    
+
     <!-- content access -->
     <bean id="contentAccess" class="org.apache.nifi.web.StandardNiFiContentAccess">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -52,6 +52,7 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- snippet utils -->
@@ -60,7 +61,7 @@
         <property name="flowController" ref="flowController"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
     </bean>
-    
+
     <bean id="clusterComponentLifecycle" class="org.apache.nifi.web.util.ClusterReplicationComponentLifecycle">
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="requestReplicator" ref="requestReplicator" />
@@ -107,10 +108,13 @@
         <property name="componentStateDAO" ref="componentStateDAO"/>
         <property name="flowController" ref="flowController" />
     </bean>
+    <bean id="reloadComponent" class="org.apache.nifi.controller.StandardReloadComponent">
+        <constructor-arg index="0" ref="flowController" />
+    </bean>
     <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="componentStateDAO" ref="componentStateDAO"/>
-        <property name="reloadComponent" ref="flowController" />
+        <property name="reloadComponent" ref="reloadComponent" />
     </bean>
     <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
         <property name="stateManagerProvider" ref="stateManagerProvider"/>
@@ -191,7 +195,7 @@
         <property name="flowRegistryClient" ref="flowRegistryClient" />
         <property name="registryDAO" ref="flowRegistryDAO" />
     </bean>
-    
+
     <!-- component ui extension configuration context -->
     <bean id="nifiWebConfigurationContext" class="org.apache.nifi.web.StandardNiFiWebConfigurationContext">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -450,7 +454,7 @@
     </bean>
 
     <!-- enable aop -->
-    <!-- 
+    <!--
         By setting '-target-class' to 'true' Spring will use CGLIB for
         proxying instead of JDK dynamic proxy.  CGLIB uses class extension so
         at runtime we can cast to the concrete class.  With JDK dynamic proxy,
@@ -541,7 +545,7 @@
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
-    
+
     <!-- NiFi locking -->
     <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
 

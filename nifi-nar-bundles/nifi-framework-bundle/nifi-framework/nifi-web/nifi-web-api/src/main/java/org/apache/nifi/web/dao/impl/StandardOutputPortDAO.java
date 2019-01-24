@@ -37,7 +37,7 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
     private FlowController flowController;
 
     private Port locatePort(final String portId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Port port = rootGroup.findOutputPort(portId);
 
         if (port == null) {
@@ -49,13 +49,13 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
 
     @Override
     public boolean hasPort(String portId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findOutputPort(portId) != null;
     }
 
     @Override
     public Port createPort(String groupId, PortDTO portDTO) {
-        if (isNotNull(portDTO.getParentGroupId()) && !flowController.areGroupsSame(groupId, portDTO.getParentGroupId())) {
+        if (isNotNull(portDTO.getParentGroupId()) && !flowController.getFlowManager().areGroupsSame(groupId, portDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the OutputPort is being added.");
         }
 
@@ -70,9 +70,9 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
         // determine if this is the root group
         Port port;
         if (group.getParent() == null) {
-            port = flowController.createRemoteOutputPort(portDTO.getId(), portDTO.getName());
+            port = flowController.getFlowManager().createRemoteOutputPort(portDTO.getId(), portDTO.getName());
         } else {
-            port = flowController.createLocalOutputPort(portDTO.getId(), portDTO.getName());
+            port = flowController.getFlowManager().createLocalOutputPort(portDTO.getId(), portDTO.getName());
         }
 
         // ensure we can perform the update before we add the processor to the flow

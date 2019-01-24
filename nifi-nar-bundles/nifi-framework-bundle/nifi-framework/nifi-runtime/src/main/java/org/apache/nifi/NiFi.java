@@ -19,6 +19,7 @@ package org.apache.nifi;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.FileUtils;
@@ -128,7 +129,7 @@ public class NiFi {
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         // load the extensions classloaders
-        NarClassLoaders narClassLoaders = NarClassLoaders.getInstance();
+        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
 
         narClassLoaders.init(rootClassLoader,
                 properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());

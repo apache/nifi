@@ -16,48 +16,36 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.cluster.Heartbeater;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
@@ -65,7 +53,8 @@ import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -92,6 +81,35 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
+
 public class TestStandardProcessScheduler {
 
     private StandardProcessScheduler scheduler = null;
@@ -100,9 +118,13 @@ public class TestStandardProcessScheduler {
     private final StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
     private VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private FlowController controller;
+    private FlowManager flowManager;
     private ProcessGroup rootGroup;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
+    private ControllerServiceProvider serviceProvider;
+
     private volatile String propsFile = TestStandardProcessScheduler.class.getResource("/standardprocessschedulertest.nifi.properties").getFile();
 
     @Before
@@ -114,45 +136,81 @@ public class TestStandardProcessScheduler {
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class), null, stateMgrProvider, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
         final ReportingInitializationContext config = new StandardReportingInitializationContext(UUID.randomUUID().toString(), "Test", SchedulingStrategy.TIMER_DRIVEN, "5 secs",
-                Mockito.mock(ComponentLog.class), null, nifiProperties, null);
+                Mockito.mock(ComponentLog.class), null, KerberosConfig.NOT_CONFIGURED, null);
         reportingTask.initialize(config);
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
         final TerminationAwareLogger logger = Mockito.mock(TerminationAwareLogger.class);
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<ReportingTask> loggableComponent = new LoggableComponent<>(reportingTask, systemBundle.getBundleDetails().getCoordinate(), logger);
-        taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), null, scheduler, validationContextFactory,
-            new StandardComponentVariableRegistry(variableRegistry), reloadComponent, new SynchronousValidationTrigger());
+        taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), Mockito.mock(FlowController.class), scheduler, validationContextFactory,
+            new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
+        flowManager = Mockito.mock(FlowManager.class);
         controller = Mockito.mock(FlowController.class);
+        when(controller.getFlowManager()).thenReturn(flowManager);
+        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
+
+        serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null);
 
         final ConcurrentMap<String, ProcessorNode> processorMap = new ConcurrentHashMap<>();
         Mockito.doAnswer(new Answer<ProcessorNode>() {
             @Override
-            public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
+            public ProcessorNode answer(InvocationOnMock invocation) {
                 final String id = invocation.getArgumentAt(0, String.class);
                 return processorMap.get(id);
             }
-        }).when(controller).getProcessorNode(Mockito.anyString());
+        }).when(flowManager).getProcessorNode(Mockito.anyString());
 
         Mockito.doAnswer(new Answer<Object>() {
             @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
+            public Object answer(InvocationOnMock invocation) {
                 final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }
-        }).when(controller).onProcessorAdded(Mockito.any(ProcessorNode.class));
+        }).when(flowManager).onProcessorAdded(any(ProcessorNode.class));
+
+        when(controller.getControllerServiceProvider()).thenReturn(serviceProvider);
 
         rootGroup = new MockProcessGroup(controller);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(rootGroup);
+        when(flowManager.getGroup(Mockito.anyString())).thenReturn(rootGroup);
+
+        when(controller.getReloadComponent()).thenReturn(Mockito.mock(ReloadComponent.class));
+
+        doAnswer(new Answer<ControllerServiceNode>() {
+            @Override
+            public ControllerServiceNode answer(final InvocationOnMock invocation) throws Throwable {
+                final String type = invocation.getArgumentAt(0, String.class);
+                final String id = invocation.getArgumentAt(1, String.class);
+                final BundleCoordinate bundleCoordinate = invocation.getArgumentAt(2, BundleCoordinate.class);
+
+                final ControllerServiceNode serviceNode = new ExtensionBuilder()
+                    .identifier(id)
+                    .type(type)
+                    .bundleCoordinate(bundleCoordinate)
+                    .controllerServiceProvider(serviceProvider)
+                    .processScheduler(Mockito.mock(ProcessScheduler.class))
+                    .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
+                    .validationTrigger(Mockito.mock(ValidationTrigger.class))
+                    .reloadComponent(Mockito.mock(ReloadComponent.class))
+                    .variableRegistry(variableRegistry)
+                    .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
+                    .extensionManager(extensionManager)
+                    .buildControllerService();
+
+                serviceProvider.onControllerServiceAdded(serviceNode);
+                return serviceNode;
+            }
+        }).when(flowManager).createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean());
     }
 
     @After
@@ -169,7 +227,7 @@ public class TestStandardProcessScheduler {
      * run. This unit test is intended to verify that we have this resolved.
      */
     @Test
-    public void testReportingTaskDoesntKeepRunningAfterStop() throws InterruptedException, InitializationException {
+    public void testReportingTaskDoesntKeepRunningAfterStop() throws InterruptedException {
         taskNode.performValidation();
         scheduler.schedule(taskNode);
 
@@ -191,20 +249,20 @@ public class TestStandardProcessScheduler {
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
         final String uuid = UUID.randomUUID().toString();
         final Processor proc = new ServiceReferencingProcessor();
-        proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, null));
+        proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
 
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
 
-        final StandardControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null,
-            Mockito.mock(StateManagerProvider.class), variableRegistry, nifiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service",
-                systemBundle.getBundleDetails().getCoordinate(), null, true);
+        final ControllerServiceNode service = flowManager.createControllerService(NoStartServiceImpl.class.getName(), "service",
+                systemBundle.getBundleDetails().getCoordinate(), null, true, true);
+
         rootGroup.addControllerService(service);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
-        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid,
-                new StandardValidationContextFactory(serviceProvider, variableRegistry),
-            scheduler, serviceProvider, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, variableRegistry);
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, scheduler,
+            serviceProvider, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
+
         rootGroup.addProcessor(procNode);
 
         Map<String, String> procProps = new HashMap<>();
@@ -221,18 +279,18 @@ public class TestStandardProcessScheduler {
 
         scheduler.stopProcessor(procNode);
         assertTrue(service.isActive());
-        assertTrue(service.getState() == ControllerServiceState.ENABLING);
+        assertSame(service.getState(), ControllerServiceState.ENABLING);
         scheduler.disableControllerService(service);
-        assertTrue(service.getState() == ControllerServiceState.DISABLING);
+        assertSame(service.getState(), ControllerServiceState.DISABLING);
         assertFalse(service.isActive());
 
         while (service.getState() != ControllerServiceState.DISABLED) {
             Thread.sleep(5L);
         }
-        assertTrue(service.getState() == ControllerServiceState.DISABLED);
+        assertSame(service.getState(), ControllerServiceState.DISABLED);
     }
 
-    private class TestReportingTask extends AbstractReportingTask {
+    public class TestReportingTask extends AbstractReportingTask {
 
         private final AtomicBoolean failOnScheduled = new AtomicBoolean(true);
         private final AtomicInteger onScheduleAttempts = new AtomicInteger(0);
@@ -253,7 +311,7 @@ public class TestStandardProcessScheduler {
         }
     }
 
-    private static class ServiceReferencingProcessor extends AbstractProcessor {
+    public static class ServiceReferencingProcessor extends AbstractProcessor {
 
         static final PropertyDescriptor SERVICE_DESC = new PropertyDescriptor.Builder()
                 .name("service")
@@ -282,11 +340,11 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateServiceEnablementLogicHappensOnlyOnce() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
-            stateMgrProvider, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
 
-        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+
+        serviceNode.performValidation();
 
         assertFalse(serviceNode.isActive());
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
@@ -307,10 +365,10 @@ public class TestStandardProcessScheduler {
                 }
             });
         }
-        // need to sleep a while since we are emulating async invocations on
-        // method that is also internally async
-        Thread.sleep(500);
+
         executor.shutdown();
+        executor.awaitTermination(10, TimeUnit.SECONDS);
+
         assertFalse(asyncFailed.get());
         assertEquals(1, ts.enableInvocationCount());
     }
@@ -324,11 +382,9 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateDisabledServiceCantBeDisabled() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider,
-            variableRegistry, nifiProperties, new SynchronousValidationTrigger());
 
-        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -347,10 +403,9 @@ public class TestStandardProcessScheduler {
                 }
             });
         }
-        // need to sleep a while since we are emulating async invocations on
-        // method that is also internally async
-        Thread.sleep(500);
+
         executor.shutdown();
+        executor.awaitTermination(10, TimeUnit.SECONDS);
         assertFalse(asyncFailed.get());
         assertEquals(0, ts.disableInvocationCount());
     }
@@ -364,12 +419,13 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateEnabledServiceCanOnlyBeDisabledOnce() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider,
-            variableRegistry, nifiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+
+        assertSame(ValidationStatus.VALID, serviceNode.performValidation());
+
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
-        scheduler.enableControllerService(serviceNode);
+        scheduler.enableControllerService(serviceNode).get();
         assertTrue(serviceNode.isActive());
         final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -390,8 +446,8 @@ public class TestStandardProcessScheduler {
         }
         // need to sleep a while since we are emulating async invocations on
         // method that is also internally async
-        Thread.sleep(500);
         executor.shutdown();
+        executor.awaitTermination(10, TimeUnit.SECONDS); // change to seconds.
         assertFalse(asyncFailed.get());
         assertEquals(1, ts.disableInvocationCount());
     }
@@ -399,13 +455,20 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateDisablingOfTheFailedService() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
-            stateMgrProvider, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode serviceNode = provider.createControllerService(FailingService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
-        scheduler.enableControllerService(serviceNode);
-        Thread.sleep(1000);
+
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(FailingService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+        serviceNode.performValidation();
+
+        final Future<?> future = scheduler.enableControllerService(serviceNode);
+        try {
+            future.get();
+        } catch (final Exception e) {
+            // Expected behavior because the FailingService throws Exception when attempting to enable
+        }
+
         scheduler.shutdown();
+
         /*
          * Because it was never disabled it will remain active since its
          * enabling is being retried. This may actually be a bug in the
@@ -413,7 +476,7 @@ public class TestStandardProcessScheduler {
          * services, shut down processors etc) before shutting down itself
          */
         assertTrue(serviceNode.isActive());
-        assertTrue(serviceNode.getState() == ControllerServiceState.ENABLING);
+        assertSame(serviceNode.getState(), ControllerServiceState.ENABLING);
     }
 
     /**
@@ -421,23 +484,22 @@ public class TestStandardProcessScheduler {
      * be disabled. This test is set up in such way that disabling of the
      * service could be initiated by both disable and enable methods. In other
      * words it tests two conditions in
-     * {@link StandardControllerServiceNode#disable(java.util.concurrent.ScheduledExecutorService, Heartbeater)}
+     * {@link StandardControllerServiceNode#disable(ScheduledExecutorService)}
      * where the disabling of the service can be initiated right there (if
      * ENABLED), or if service is still enabling its disabling will be deferred
      * to the logic in
-     * {@link StandardControllerServiceNode#enable(java.util.concurrent.ScheduledExecutorService, long, Heartbeater)}
+     * {@link StandardControllerServiceNode#enable(ScheduledExecutorService, long)}
      * IN any even the resulting state of the service is DISABLED
      */
     @Test
     @Ignore
     public void validateEnabledDisableMultiThread() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider,
-            variableRegistry, nifiProperties, new SynchronousValidationTrigger());
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null);
         final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
-            final ControllerServiceNode serviceNode = provider.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",
-                    systemBundle.getBundleDetails().getCoordinate(), null, false);
+            final ControllerServiceNode serviceNode = flowManager.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",
+                    systemBundle.getBundleDetails().getCoordinate(), null, false, true);
 
             executor.execute(new Runnable() {
                 @Override
@@ -454,7 +516,7 @@ public class TestStandardProcessScheduler {
             });
             Thread.sleep(100);
             assertFalse(serviceNode.isActive());
-            assertTrue(serviceNode.getState() == ControllerServiceState.DISABLED);
+            assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
         }
 
         // need to sleep a while since we are emulating async invocations on
@@ -476,18 +538,23 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
-            stateMgrProvider, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
-        final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
+
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(LongEnablingService.class.getName(),
+                "1", systemBundle.getBundleDetails().getCoordinate(), null, false, true);
+
         final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(Long.MAX_VALUE);
+
+        serviceNode.performValidation();
         scheduler.enableControllerService(serviceNode);
-        Thread.sleep(100);
+
         assertTrue(serviceNode.isActive());
+        final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (ts.enableInvocationCount() != 1 && System.nanoTime() <= maxTime) {
+            Thread.sleep(1L);
+        }
         assertEquals(1, ts.enableInvocationCount());
 
-        Thread.sleep(1000);
         scheduler.disableControllerService(serviceNode);
         assertFalse(serviceNode.isActive());
         assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
@@ -500,13 +567,13 @@ public class TestStandardProcessScheduler {
         final FailOnScheduledProcessor proc = new FailOnScheduledProcessor();
         proc.setDesiredFailureCount(3);
 
-        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
-            new StandardValidationContextFactory(controller, variableRegistry),
-            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+            new StandardValidationContextFactory(serviceProvider, variableRegistry),
+            scheduler, serviceProvider, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
         procNode.performValidation();
         rootGroup.addProcessor(procNode);
@@ -520,19 +587,19 @@ public class TestStandardProcessScheduler {
     }
 
     // Test that if processor times out in the @OnScheduled but responds to interrupt, it keeps getting scheduled
-    @Test(timeout = 1000000)
+    @Test(timeout = 10000)
     public void testProcessorTimeOutRespondsToInterrupt() throws InterruptedException {
         final FailOnScheduledProcessor proc = new FailOnScheduledProcessor();
         proc.setDesiredFailureCount(0);
         proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, true, 1);
 
-        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
-            new StandardValidationContextFactory(controller, variableRegistry),
-            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+            new StandardValidationContextFactory(serviceProvider, variableRegistry),
+            scheduler, serviceProvider, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
         rootGroup.addProcessor(procNode);
 
@@ -555,13 +622,13 @@ public class TestStandardProcessScheduler {
         proc.setDesiredFailureCount(0);
         proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, false, 1);
 
-        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, KerberosConfig.NOT_CONFIGURED));
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
-            new StandardValidationContextFactory(controller, variableRegistry),
-            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
+            new StandardValidationContextFactory(serviceProvider, variableRegistry),
+            scheduler, serviceProvider, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
         rootGroup.addProcessor(procNode);
 
@@ -623,6 +690,6 @@ public class TestStandardProcessScheduler {
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class), null, stateMgrProvider, nifiProperties);
     }
 }

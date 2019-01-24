@@ -19,14 +19,11 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.AuthenticationException;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -105,8 +102,8 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
-            CONTACT_POINTS, KEYSPACE, TABLE, CLIENT_AUTH, USERNAME, PASSWORD, RECORD_READER_FACTORY,
-            BATCH_SIZE, CONSISTENCY_LEVEL, BATCH_STATEMENT_TYPE, PROP_SSL_CONTEXT_SERVICE));
+            CONNECTION_PROVIDER_SERVICE, CONTACT_POINTS, KEYSPACE, TABLE, CLIENT_AUTH, USERNAME, PASSWORD,
+            RECORD_READER_FACTORY, BATCH_SIZE, CONSISTENCY_LEVEL, BATCH_STATEMENT_TYPE, PROP_SSL_CONTEXT_SERVICE));
 
     private final static Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -119,20 +116,6 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
-    }
-
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        try {
-            connectToCassandra(context);
-        } catch (NoHostAvailableException nhae) {
-            getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this statement", nhae);
-            getLogger().error(nhae.getCustomMessage(10, true, false));
-            throw new ProcessException(nhae);
-        } catch (AuthenticationException ae) {
-            getLogger().error("Invalid username/password combination", ae);
-            throw new ProcessException(ae);
-        }
     }
 
     @Override
@@ -210,13 +193,13 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     }
 
     @OnUnscheduled
-    public void stop() {
-        super.stop();
+    public void stop(ProcessContext context) {
+        super.stop(context);
     }
 
     @OnShutdown
-    public void shutdown() {
-        super.stop();
+    public void shutdown(ProcessContext context) {
+        super.stop(context);
     }
 
 }
