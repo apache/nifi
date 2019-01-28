@@ -85,6 +85,14 @@ public class GetTwitter extends AbstractProcessor {
             .allowableValues(ENDPOINT_SAMPLE, ENDPOINT_FIREHOSE, ENDPOINT_FILTER)
             .defaultValue(ENDPOINT_SAMPLE.getValue())
             .build();
+    public static final PropertyDescriptor MAX_CONNECTION_RETRIES = new PropertyDescriptor.Builder()
+            .name("max-connection-retries")
+            .displayName("Max Connection Retries")
+            .description("The maximum number of connection attempts before giving up")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("5")
+            .build();
     public static final PropertyDescriptor CONSUMER_KEY = new PropertyDescriptor.Builder()
             .name("Consumer Key")
             .description("The Consumer Key provided by Twitter")
@@ -161,6 +169,7 @@ public class GetTwitter extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(ENDPOINT);
+        descriptors.add(MAX_CONNECTION_RETRIES);
         descriptors.add(CONSUMER_KEY);
         descriptors.add(CONSUMER_SECRET);
         descriptors.add(ACCESS_TOKEN);
@@ -222,6 +231,7 @@ public class GetTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
+        final int maxRetries = context.getProperty(MAX_CONNECTION_RETRIES).asInteger().intValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),
                 context.getProperty(ACCESS_TOKEN).getValue(),
@@ -319,6 +329,7 @@ public class GetTwitter extends AbstractProcessor {
         }
 
         clientBuilder.hosts(host).endpoint(streamingEndpoint);
+        clientBuilder.retries(maxRetries);
         client = clientBuilder.build();
         client.connect();
     }
@@ -340,8 +351,12 @@ public class GetTwitter extends AbstractProcessor {
                     break;
                 case CONNECTION_ERROR:
                 case HTTP_ERROR:
-                    getLogger().error("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
-                    client.reconnect();
+                    if (event.getMessage().endsWith("420 Enhance Your Calm")) {
+                        getLogger().warn("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
+                    } else {
+                        getLogger().error("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
+                        client.reconnect();
+                    }
                     break;
                 default:
                     break;
