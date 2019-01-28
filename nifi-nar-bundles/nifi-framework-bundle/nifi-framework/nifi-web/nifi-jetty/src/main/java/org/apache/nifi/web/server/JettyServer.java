@@ -586,7 +586,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        addHTTPHeaders(webappContext);
+        ArrayList<Class<? extends Filter>> filters = new ArrayList<>();
+        filters.add(XFrameOptionsFilter.class);
+        filters.add(ContentSecurityPolicyFilter.class);
+        filters.add(StrictTransportSecurityFilter.class);
+        filters.add(XSSProtectionFilter.class);
+        filters.forEach( (filter) -> addFilters(filter, "/*", webappContext));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -599,26 +604,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return webappContext;
     }
 
-    private void addHTTPHeaders(WebAppContext webappContext) {
-        // Add a filter to set the X-Frame-Options header
-        FilterHolder xfoFilter = new FilterHolder(new XFrameOptionsFilter());
-        xfoFilter.setName(XFrameOptionsFilter.class.getSimpleName());
-        webappContext.addFilter(xfoFilter, "/*", EnumSet.allOf(DispatcherType.class));
-
-        // Add a filter to set the Content Security Policy frame-ancestors directive
-        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
-        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
-        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
-
-        // Add a filter to set the HSTS header
-        FilterHolder hstsFilter = new FilterHolder(new StrictTransportSecurityFilter());
-        hstsFilter.setName(StrictTransportSecurityFilter.class.getSimpleName());
-        webappContext.addFilter(hstsFilter, "/*", EnumSet.allOf(DispatcherType.class));
-
-        // Add a filter to set the XSS Protection header
-        FilterHolder xssProtectionFilter = new FilterHolder(new XSSProtectionFilter());
-        xssProtectionFilter.setName(XSSProtectionFilter.class.getSimpleName());
-        webappContext.addFilter(xssProtectionFilter, "/*", EnumSet.allOf(DispatcherType.class));
+    private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
+        FilterHolder holder = new FilterHolder(clazz);
+        holder.setName(clazz.getSimpleName());
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
     private void addDocsServlets(WebAppContext docsContext) {
