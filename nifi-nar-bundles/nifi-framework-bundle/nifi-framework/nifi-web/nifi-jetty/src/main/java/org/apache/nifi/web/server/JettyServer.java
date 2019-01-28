@@ -589,7 +589,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         ArrayList<Class<? extends Filter>> filters = new ArrayList<>();
         filters.add(XFrameOptionsFilter.class);
         filters.add(ContentSecurityPolicyFilter.class);
-        filters.add(StrictTransportSecurityFilter.class);
+        if(props.isHTTPSConfigured()) {
+            filters.add(StrictTransportSecurityFilter.class);
+        }
         filters.add(XSSProtectionFilter.class);
         filters.forEach( (filter) -> addFilters(filter, "/*", webappContext));
 
