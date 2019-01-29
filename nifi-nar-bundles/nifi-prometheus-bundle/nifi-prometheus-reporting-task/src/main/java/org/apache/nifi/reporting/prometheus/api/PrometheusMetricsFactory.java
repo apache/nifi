@@ -103,7 +103,6 @@ public class PrometheusMetricsFactory {
         JVM_STATUS.labels("count").set(jvmMetrics.uptime());
         JVM_STATUS.labels("file_descriptor").set(jvmMetrics.fileDescriptorUsage());
 
-
         return JVM_REGISTRY;
     }
 
