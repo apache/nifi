@@ -17,7 +17,12 @@
 
 package org.apache.nifi.reporting.prometheus.api;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessorStatus;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 
@@ -43,6 +48,9 @@ public class PrometheusMetricsFactory {
     private static final Gauge AMOUNT_ITEMS = Gauge.build().name("process_group_amount_items").help("Total amount of items in ProcessGroup").labelNames("status", "application", "process_group")
             .register(NIFI_REGISTRY);
 
+    private static final Gauge PROCESSOR_COUNTERS = Gauge.build().name("processor_counters").help("Counters exposed by Processors").labelNames("processor_name", "counter_name", "processor_id")
+            .register(NIFI_REGISTRY);
+
     private static final Gauge JVM_HEAP = Gauge.build().name("jvm_heap_stats").help("The JVM heap stats").labelNames("status").register(JVM_REGISTRY);
 
     private static final Gauge JVM_THREAD = Gauge.build().name("jvm_thread_stats").help("The JVM thread stats").labelNames("status").register(JVM_REGISTRY);
@@ -52,6 +60,7 @@ public class PrometheusMetricsFactory {
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String applicationId) {
 
         String processGroupName = status.getName();
+        Collection<ProcessorStatus> processorStatus = status.getProcessorStatus();
         AMOUNT_FLOWFILES_TOTAL.labels("sent", applicationId, processGroupName).set(status.getFlowFilesSent());
         AMOUNT_FLOWFILES_TOTAL.labels("transferred", applicationId, processGroupName).set(status.getFlowFilesTransferred());
         AMOUNT_FLOWFILES_TOTAL.labels("received", applicationId, processGroupName).set(status.getFlowFilesReceived());
@@ -72,6 +81,13 @@ public class PrometheusMetricsFactory {
 
         AMOUNT_THREADS_TOTAL.labels("nano", applicationId, processGroupName).set(status.getActiveThreadCount());
 
+        for (ProcessorStatus pstatus : processorStatus) {
+            Map<String, Long> counters = pstatus.getCounters();
+            Set<String> counterNames = counters.keySet();
+
+
+            counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS.labels(pstatus.getName(), entry.getKey(), pstatus.getId()).set(entry.getValue()));
+        }
         return NIFI_REGISTRY;
 
     }
@@ -87,7 +103,6 @@ public class PrometheusMetricsFactory {
         JVM_STATUS.labels("count").set(jvmMetrics.uptime());
         JVM_STATUS.labels("file_descriptor").set(jvmMetrics.fileDescriptorUsage());
 
-        // TODO: implement jvm metrics for GC and thread stats (see old metrics service)
 
         return JVM_REGISTRY;
     }

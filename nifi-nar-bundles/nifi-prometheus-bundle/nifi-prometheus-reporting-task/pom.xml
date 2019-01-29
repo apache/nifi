@@ -21,18 +21,13 @@
 	<properties>
 		<prometheus.version>0.3.0</prometheus.version>
 		<yammer.metrics.version>2.2.0</yammer.metrics.version>
+                <jetty.version>9.3.8.v20160314</jetty.version>
 	</properties>
 
 	<artifactId>nifi-prometheus-reporting-task</artifactId>
 	<description>Prometheus /metrics http endpoint for monitoring</description>
 
 	<dependencies>
-		<dependency>
-			<groupId>com.sun.net.httpserver</groupId>
-			<artifactId>http</artifactId>
-			<version>20070405</version>
-		</dependency>
-
 		<dependency>
 			<groupId>com.yammer.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
@@ -65,12 +60,6 @@
 			<artifactId>simpleclient_servlet</artifactId>
 			<version>${prometheus.version}</version>
 		</dependency>
-		<!-- Pushgateway exposition -->
-		<dependency>
-			<groupId>io.prometheus</groupId>
-			<artifactId>simpleclient_pushgateway</artifactId>
-			<version>${prometheus.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-mock</artifactId>
@@ -80,13 +69,13 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-continuation</artifactId>
-			<version>8.1.21.v20160908</version>
+			<version>${jetty.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-http</artifactId>
-			<version>8.1.21.v20160908</version>
+			<version>${jetty.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -94,27 +83,12 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-servlet</artifactId>
-			<version>8.1.21.v20160908</version>
-		</dependency>
-		<dependency>
-			<groupId>io.prometheus</groupId>
-			<artifactId>simpleclient</artifactId>
-			<version>0.0.23</version>
-		</dependency>
-		<dependency>
-			<groupId>io.prometheus</groupId>
-			<artifactId>simpleclient_hotspot</artifactId>
-			<version>0.0.23</version>
-		</dependency>
-		<dependency>
-			<groupId>io.prometheus</groupId>
-			<artifactId>simpleclient_servlet</artifactId>
-			<version>0.0.23</version>
+			<version>${jetty.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>8.1.21.v20160908</version>
+			<version>${jetty.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -125,7 +99,7 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-util</artifactId>
-			<version>8.1.21.v20160908</version>
+			<version>${jetty.version}</version>
 		</dependency>
 
 	</dependencies>
