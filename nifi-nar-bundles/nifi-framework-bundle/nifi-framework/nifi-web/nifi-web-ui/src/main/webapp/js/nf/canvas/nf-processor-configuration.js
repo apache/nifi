@@ -68,8 +68,18 @@
 }(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
     'use strict';
 
+    /**
+     * Configuration option variable for the nfProcessorDetails dialog
+     */
+    var config;
+
     // possible values for a processor's run duration (in millis)
     var RUN_DURATION_VALUES = [0, 25, 50, 100, 250, 500, 1000, 2000];
+
+    // key paths to the status objects
+    var ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
+        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
+        BULLETINS_KEY = 'bulletins';
 
     /**
      * Gets the available scheduling strategies based on the specified processor.
@@ -492,8 +502,13 @@
     return {
         /**
          * Initializes the processor properties tab.
+         *
+         * @param {options}   The configuration options object for the dialog
          */
-        init: function () {
+        init: function (options) {
+            //set the configuration options
+            config = options;
+
             // initialize the properties tabs
             $('#processor-configuration-tabs').tabbs({
                 tabStyle: 'tab',
@@ -546,12 +561,22 @@
 
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
+
+                        //stop any synchronization
+                        if(config.supportsStatusBar){
+                            $('#processor-configuration-status-bar').statusbar('disconnect');
+                        }
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
+
+            //if the status bar is supported, initialize it.
+            if(config.supportsStatusBar){
+                $('#processor-configuration-status-bar').statusbar();
+            }
 
             // initialize the bulletin combo
             $('#bulletin-level-combo').combo({
@@ -612,8 +637,9 @@
          * Shows the configuration dialog for the specified processor.
          *
          * @argument {selection} selection      The selection
+         * @argument {cb} callback              The callback function to execute after the dialog is displayed
          */
-        showConfiguration: function (selection) {
+        showConfiguration: function (selection, cb) {
             if (nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
 
@@ -773,6 +799,9 @@
                             hover: '#004849',
                             text: '#ffffff'
                         },
+                        disabled : function() {
+                            return !nfCanvasUtils.supportsModification(selection);
+                        },
                         handler: {
                             click: function () {
                                 // close all fields currently being edited
@@ -792,19 +821,19 @@
                             }
                         }
                     },
-                        {
-                            buttonText: 'Cancel',
-                            color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
-                            },
-                            handler: {
-                                click: function () {
-                                    $('#processor-configuration').modal('hide');
-                                }
+                    {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                $('#processor-configuration').modal('hide');
                             }
-                        }];
+                        }
+                    }];
 
                     // determine if we should show the advanced button
                     if (nfCommon.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
@@ -858,6 +887,55 @@
                         });
                     }
 
+                    //Synchronize the current component canvas attributes in the status bar
+                    if(config.supportsStatusBar){
+
+                        //initialize the canvas synchronization
+                        $("#processor-configuration-status-bar").statusbar('observe',processor.id, function(){
+                            $('#processor-configuration').modal('refreshButtons');
+                        });
+
+                        //if there are active threads, add the terminate button to the status bar
+                        if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
+                            nfCommon.getKeyValue(processorResponse,ACTIVE_THREAD_COUNT_KEY) != 0){
+
+                            $("#processor-configuration-status-bar").statusbar('buttons',[{
+                                buttonText: 'Terminate',
+                                clazz: 'fa fa-hourglass-end button-icon',
+                                color: {
+                                    hover: '#C7D2D7',
+                                    base: 'transparent',
+                                    text: '#004849'
+                                },
+                                disabled : function() {
+                                    return nfCanvasUtils.supportsModification(selection);
+                                },
+                                handler: {
+                                    click: function() {
+                                        var cb = function(){
+                                            var p = nfProcessor.get(processor.id);
+                                            if(nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) != 0){
+                                                nfDialog.showOkDialog({
+                                                    dialogContent: 'Terminate threads request was processed, but active threads still persist. Please try again later.',
+                                                    headerText: 'Unable to Terminate'
+                                                });
+                                            }
+                                            else {
+                                                //refresh the dialog
+                                                $('#processor-configuration-status-bar').statusbar('refreshButtons');
+                                                $('#processor-configuration').modal('refreshButtons');
+                                            }
+                                            $('#processor-configuration-status-bar').statusbar('showButtons');
+                                        };
+
+                                        //execute the terminate call
+                                        $('#processor-configuration-status-bar').statusbar('hideButtons');
+                                        config.nfActions.terminate(selection,cb);
+                                    }
+                                }
+                            }]);
+                        }
+                    }
                     // set the button model
                     $('#processor-configuration').modal('setButtonModel', buttons);
 
@@ -876,6 +954,17 @@
                     var processorRelationships = $('#auto-terminate-relationship-names');
                     if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
+                    }
+
+                    // Ensure the properties table has rendered correctly if initially selected
+                    if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties' &&
+                        $('#processor-properties').find('.slick-viewport').height() == 0) {
+                        $('#processor-properties').propertytable('resetTableSize');
+                    }
+
+                    //execute the callback if one was provided
+                    if(typeof cb == 'function'){
+                        cb();
                     }
                 }).fail(nfErrorHandler.handleAjaxError);
             }

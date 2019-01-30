@@ -71,3 +71,8 @@ div.relationship-description {
     margin-left: 16px;
     margin-top: 2px;
 }
+
+/* status bar button icon */
+#processor-details div.dialog-status-bar div.button-icon.fa-cog {
+    font-size : 14px !important;
+}

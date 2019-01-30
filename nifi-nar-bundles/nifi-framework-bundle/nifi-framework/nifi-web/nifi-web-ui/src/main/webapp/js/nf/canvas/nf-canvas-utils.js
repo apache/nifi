@@ -575,6 +575,16 @@
         },
 
         /**
+         * Gets the selection object of the id passed.
+         *
+         * @param {id}              The uuid of the component to retrieve
+         * @returns {selection}     The selection object of the component id passed
+         */
+        getSelectionById: function(id){
+            return d3.select('#id-' + id);
+        },
+
+        /**
          * Gets the coordinates neccessary to center a bounding box on the screen.
          *
          * @param {type} boundingBox
