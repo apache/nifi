@@ -480,6 +480,7 @@ public class TestPutKudu {
         setUpTestRunner(testRunner);
         testRunner.setProperty(PutKudu.FLUSH_MODE, flushMode.name());
         testRunner.setProperty(PutKudu.BATCH_SIZE, String.valueOf(batchSize));
+        testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, String.valueOf(batchSize));
 
         IntStream.range(0, numFlowFiles).forEach(i -> testRunner.enqueue(""));
         testRunner.run(numFlowFiles);
