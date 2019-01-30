@@ -25,9 +25,11 @@
                 'nf.Dialog',
                 'nf.ErrorHandler',
                 'nf.CustomUi',
-                'nf.ClusterSummary'],
-            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
-                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary));
+                'nf.ClusterSummary',
+                'nf.Processor',
+                'nf.ProcessorConfiguration'],
+            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration) {
+                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorDetails =
@@ -37,7 +39,9 @@
                 require('nf.Dialog'),
                 require('nf.ErrorHandler'),
                 require('nf.CustomUi'),
-                require('nf.ClusterSummary')));
+                require('nf.ClusterSummary'),
+                require('nf.Processor'),
+                require('nf.ProcessorConfiguration')));
     } else {
         nf.ProcessorDetails = factory(root.$,
             root.nf.Common,
@@ -45,9 +49,11 @@
             root.nf.Dialog,
             root.nf.ErrorHandler,
             root.nf.CustomUi,
-            root.nf.ClusterSummary);
+            root.nf.ClusterSummary,
+            root.nf.Processor,
+            root.nf.ProcessorConfiguration);
     }
-}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
+}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration) {
     'use strict';
 
     /**
@@ -260,7 +266,7 @@
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
-                    buttonText: 'Ok',
+                    buttonText: 'Close',
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -273,6 +279,82 @@
                         }
                     }
                 }];
+
+                // determine if we should show the Stop & Configure  button
+                if (top === window &&
+                        nfCommon.isDefinedAndNotNull(processor.state) &&
+                        nfCommon.isDefinedAndNotNull(processorResponse.uri) &&
+                        nfCommon.isDefinedAndNotNull(nfProcessor) &&
+                        nfCommon.isDefinedAndNotNull(nfProcessorConfiguration) ) {
+
+                    //Add in the Stop & Configure button
+                    buttons.splice(1,0,{
+                         buttonText: ' Stop & Configure',
+                         clazz: 'fa fa-stop button-icon auto-width',
+                         color: {
+                             base: '#E3E8EB',
+                             hover: '#C7D2D7',
+                             text: '#813131'
+                         },
+                         disabled : function(){
+                           return !( processor.state == "RUNNING" &&
+                                     (processorResponse.permissions.canWrite ||
+                                         processorResponse.operatePermissions.canWrite) );
+                         },
+                         handler: {
+                             click: function () {
+
+                                $(this).find('.fa-stop').addClass('disabled-button'); //disable the Stop & Configure button
+
+                                var showConfig = function(data) {
+                                    nfProcessorConfiguration.showConfiguration({
+                                        datum : function(){return data},
+                                        classed : function(t){return (t=='processor')}
+                                    });
+                                    setTimeout(function(){$('#processor-details').modal('hide');},100);
+                                }
+
+                                $.ajax({
+                                  type: 'PUT',
+                                  url: processorResponse.uri + '/run-status',
+                                  data: JSON.stringify({
+                                         'revision': processorResponse.revision,
+                                         'state': 'STOPPED'
+                                  }),
+                                  dataType: 'json',
+                                  contentType: 'application/json'
+                                }).done(function (data) {
+
+                                    nfProcessor.set(data);
+                                    if(data.status.aggregateSnapshot.activeThreadCount > 0) {
+                                        nfDialog.showYesNoDialog({
+                                            headerText: 'Terminate active threads?',
+                                            dialogContent: 'There are currently active threads '+
+                                                'present for this processor, do you wish to terminate them?',
+                                            noHandler: function () {
+                                                //close the dialog
+                                            },
+                                            yesHandler: function () {
+
+                                                //send the terminate call
+                                                $.ajax({
+                                                      type: 'DELETE',
+                                                      url: data.uri + '/threads',
+                                                      dataType: 'json',
+                                                      contentType: 'application/json'
+                                                 }).done(function (data) {
+                                                    showConfig(data);
+                                                 }).fail(nfErrorHandler.handleAjaxError);
+                                            }
+                                        });
+                                    } else {
+                                        showConfig(data);
+                                    }
+                                }).fail(nfErrorHandler.handleAjaxError);
+                             }
+                         }
+                     });
+                }
 
                 // determine if we should show the advanced button
                 if (top === window && nfCommon.isDefinedAndNotNull(nfCustomUi) && nfCommon.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {

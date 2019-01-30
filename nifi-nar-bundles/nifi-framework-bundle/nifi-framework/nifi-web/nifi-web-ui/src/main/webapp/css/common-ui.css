@@ -443,6 +443,10 @@ div.button-icon {
     font-size: 18px !important;
 }
 
+div.button-icon.auto-width {
+    width : auto !important;
+}
+
 div.button {
     height: 32px;
     width: 90px;
