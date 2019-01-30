@@ -22,8 +22,13 @@ import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Upsert;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
+import javax.security.auth.login.LoginException;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +40,9 @@ import static org.mockito.Mockito.when;
 public class MockPutKudu extends PutKudu {
     private KuduSession session;
     private LinkedList<Insert> insertQueue;
+
+    private boolean loggedIn = false;
+    private boolean loggedOut = false;
 
     public MockPutKudu() {
         this(mock(KuduSession.class));
@@ -61,16 +69,69 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduClient createClient(final String masters) {
+    protected KuduClient buildClient(final String masters) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
             when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
         } catch (final Exception e) {
-
+            throw new AssertionError(e);
         }
 
         return client;
+    }
+
+    public boolean loggedIn() {
+        return loggedIn;
+    }
+
+    public boolean loggedOut() {
+        return loggedOut;
+    }
+
+    @Override
+    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+        return new KerberosUser() {
+
+            @Override
+            public void login() {
+                loggedIn = true;
+            }
+
+            @Override
+            public void logout() {
+                loggedOut = true;
+            }
+
+            @Override
+            public <T> T doAs(final PrivilegedAction<T> action) throws IllegalStateException {
+                return action.run();
+            }
+
+            @Override
+            public <T> T doAs(final PrivilegedExceptionAction<T> action) throws IllegalStateException, PrivilegedActionException {
+                try {
+                    return action.run();
+                } catch (Exception e) {
+                    throw new PrivilegedActionException(e);
+                }
+            }
+
+            @Override
+            public boolean checkTGTAndRelogin() {
+                return true;
+            }
+
+            @Override
+            public boolean isLoggedIn() {
+                return loggedIn && !loggedOut;
+            }
+
+            @Override
+            public String getPrincipal() {
+                return principal;
+            }
+        };
     }
 
     @Override

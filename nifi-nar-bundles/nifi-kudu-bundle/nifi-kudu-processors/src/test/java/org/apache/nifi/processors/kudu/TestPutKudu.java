@@ -28,8 +28,10 @@ import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -70,6 +72,8 @@ import java.util.stream.IntStream;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -148,6 +152,42 @@ public class TestPutKudu {
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
     }
+
+    @Test
+    public void testKerberosEnabled() throws InitializationException {
+        createRecordReader(1);
+
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("unit-test-principal", "unit-test-keytab");
+        testRunner.addControllerService("kerb", kerberosCredentialsService);
+        testRunner.enableControllerService(kerberosCredentialsService);
+
+        testRunner.setProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE, "kerb");
+
+        testRunner.run(1, false);
+
+        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
+        assertTrue(proc.loggedIn());
+        assertFalse(proc.loggedOut());
+
+        testRunner.run(1, true, false);
+        assertTrue(proc.loggedOut());
+    }
+
+
+    @Test
+    public void testInsecureClient() throws InitializationException {
+        createRecordReader(1);
+
+        testRunner.run(1, false);
+
+        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
+        assertFalse(proc.loggedIn());
+        assertFalse(proc.loggedOut());
+
+        testRunner.run(1, true, false);
+        assertFalse(proc.loggedOut());
+    }
+
 
     @Test
     public void testInvalidReaderShouldRouteToFailure() throws InitializationException, SchemaNotFoundException, MalformedRecordException, IOException {
@@ -515,5 +555,26 @@ public class TestPutKudu {
     @Test
     public void testKuduPartialFailuresOnManualFlush() throws Exception {
         testKuduPartialFailure(FlushMode.MANUAL_FLUSH);
+    }
+
+
+    public static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
+        private final String keytab;
+        private final String principal;
+
+        public MockKerberosCredentialsService(final String keytab, final String principal) {
+            this.keytab = keytab;
+            this.principal = principal;
+        }
+
+        @Override
+        public String getKeytab() {
+            return keytab;
+        }
+
+        @Override
+        public String getPrincipal() {
+            return principal;
+        }
     }
 }
