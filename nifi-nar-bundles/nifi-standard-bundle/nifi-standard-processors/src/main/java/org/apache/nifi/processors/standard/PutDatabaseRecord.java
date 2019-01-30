@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.avro.AvroRuntimeException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +54,8 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import com.google.common.base.Throwables;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -473,8 +476,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             try {
                 if (s == null) {
                     return ErrorTypes.PersistentFailure;
+                } else if (Throwables.getRootCause(s) instanceof IOException && (s instanceof AvroRuntimeException || s instanceof IllegalStateException) ) {
+                    return ErrorTypes.InvalidInput;
+                } else {
+                    throw s;
                 }
-                throw s;
 
             } catch (IllegalArgumentException
                     |MalformedRecordException
