@@ -18,6 +18,8 @@
 package org.apache.nifi.processors.kudu;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -34,6 +36,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import org.apache.kudu.client.Upsert;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,8 +44,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -54,8 +59,10 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,8 +72,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+
 @EventDriven
 @SupportsBatching
+@RequiresInstanceClassLoading // Because of calls to UserGroupInformation.setConfiguration
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
@@ -74,23 +84,31 @@ import java.util.stream.Collectors;
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
 public class PutKudu extends AbstractProcessor {
-    protected static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor KUDU_MASTERS = new Builder()
         .name("Kudu Masters")
         .description("List all kudu masters's ip with port (e.g. 7051), comma separated")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
 
-    protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor TABLE_NAME = new Builder()
         .name("Table Name")
         .description("The name of the Kudu Table to put data into")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
 
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials to use for authentication")
+        .required(false)
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .build();
+
+    public static final PropertyDescriptor RECORD_READER = new Builder()
         .name("record-reader")
         .displayName("Record Reader")
         .description("The service for reading records from incoming flow files.")
@@ -98,7 +116,7 @@ public class PutKudu extends AbstractProcessor {
         .required(true)
         .build();
 
-    protected static final PropertyDescriptor SKIP_HEAD_LINE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor SKIP_HEAD_LINE = new Builder()
         .name("Skip head line")
         .description("Deprecated. Used to ignore header lines, but this should be handled by a RecordReader " +
             "(e.g. \"Treat First Line as Header\" property of CSVReader)")
@@ -108,7 +126,7 @@ public class PutKudu extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor INSERT_OPERATION = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .allowableValues(OperationType.values())
@@ -116,7 +134,7 @@ public class PutKudu extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor FLUSH_MODE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor FLUSH_MODE = new Builder()
         .name("Flush Mode")
         .description("Set the new flush mode for a kudu session.\n" +
             "AUTO_FLUSH_SYNC: the call returns when the operation is persisted, else it throws an exception.\n" +
@@ -149,7 +167,7 @@ public class PutKudu extends AbstractProcessor {
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
 
 
@@ -177,6 +195,7 @@ public class PutKudu extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
         properties.add(TABLE_NAME);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
@@ -197,7 +216,7 @@ public class PutKudu extends AbstractProcessor {
 
 
     @OnScheduled
-    public void OnScheduled(final ProcessContext context) throws KuduException {
+    public void OnScheduled(final ProcessContext context) throws IOException {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
@@ -206,13 +225,29 @@ public class PutKudu extends AbstractProcessor {
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
 
         getLogger().debug("Setting up Kudu connection...");
-        kuduClient = createClient(kuduMasters);
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        kuduClient = createClient(kuduMasters, credentialsService);
         kuduTable = kuduClient.openTable(tableName);
         getLogger().debug("Kudu connection successfully initialized");
     }
 
-    protected KuduClient createClient(final String masters) {
-        return new KuduClient.KuduClientBuilder(masters).build();
+    protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) throws IOException {
+        if (credentialsService == null) {
+            return new KuduClient.KuduClientBuilder(masters).build();
+        }
+
+        final String keytab = credentialsService.getKeytab();
+        final String principal = credentialsService.getPrincipal();
+
+        // We do not have any Hadoop Configuration to use for this Processor. However, if we call UserGroupInformation.loginUserFromKeytab() it will return
+        // immediately without logging in via keytab, as it initializes via the empty Configuration object, which has 'hadoop.security.authentication' set to "simple".
+        // So, in order for the login to happen from a keytab, we have to create a Configuration object to explicitly set authentication to Kerberos and then set
+        // that on the UserGroupInformation and use that to login.
+        final Configuration hadoopConfig = new Configuration();
+        hadoopConfig.set("hadoop.security.authentication", "kerberos");
+        UserGroupInformation.setConfiguration(hadoopConfig);
+        UserGroupInformation.loginUserFromKeytab(principal, keytab);
+        return UserGroupInformation.getLoginUser().doAs((PrivilegedAction<KuduClient>) () -> new KuduClient.KuduClientBuilder(masters).build());
     }
 
     @OnStopped

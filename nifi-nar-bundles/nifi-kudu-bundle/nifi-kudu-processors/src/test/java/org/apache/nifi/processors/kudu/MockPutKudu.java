@@ -22,6 +22,7 @@ import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Upsert;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.serialization.record.Record;
 
 import java.util.Arrays;
@@ -61,7 +62,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduClient createClient(final String masters) {
+    protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
