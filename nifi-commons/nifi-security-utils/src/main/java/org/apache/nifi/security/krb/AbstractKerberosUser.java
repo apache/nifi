@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
@@ -34,14 +33,9 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Used to authenticate and execute actions when Kerberos is enabled and a keytab is being used.
- *
- * Some of the functionality in this class is adapted from Hadoop's UserGroupInformation.
- */
-public class StandardKeytabUser implements KeytabUser {
+public abstract class AbstractKerberosUser implements KerberosUser {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardKeytabUser.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractKerberosUser.class);
 
     static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
@@ -50,18 +44,15 @@ public class StandardKeytabUser implements KeytabUser {
      */
     static final float TICKET_RENEW_WINDOW = 0.80f;
 
-    private final String principal;
-    private final String keytabFile;
-    private final AtomicBoolean loggedIn = new AtomicBoolean(false);
+    protected final String principal;
+    protected final AtomicBoolean loggedIn = new AtomicBoolean(false);
 
-    private Subject subject;
-    private LoginContext loginContext;
+    protected Subject subject;
+    protected LoginContext loginContext;
 
-    public StandardKeytabUser(final String principal, final String keytabFile) {
+    public AbstractKerberosUser(final String principal) {
         this.principal = principal;
-        this.keytabFile = keytabFile;
-        Validate.notBlank(principal);
-        Validate.notBlank(keytabFile);
+        Validate.notBlank(this.principal);
     }
 
     /**
@@ -80,18 +71,18 @@ public class StandardKeytabUser implements KeytabUser {
             if (loginContext == null) {
                 LOGGER.debug("Initializing new login context...");
                 this.subject = new Subject();
-
-                final Configuration config = new KeytabConfiguration(principal, keytabFile);
-                this.loginContext = new LoginContext("KeytabConf", subject, null, config);
+                this.loginContext = createLoginContext(subject);
             }
 
             loginContext.login();
             loggedIn.set(true);
             LOGGER.debug("Successful login for {}", new Object[]{principal});
         } catch (LoginException le) {
-            throw new LoginException("Unable to login with " + principal + " and " + keytabFile + " due to: " + le.getMessage());
+            throw new LoginException("Unable to login with " + principal + " due to: " + le.getMessage());
         }
     }
+
+    protected abstract LoginContext createLoginContext(final Subject subject) throws LoginException;
 
     /**
      * Performs a logout of the current user.
@@ -242,14 +233,6 @@ public class StandardKeytabUser implements KeytabUser {
     @Override
     public String getPrincipal() {
         return principal;
-    }
-
-    /**
-     * @return the keytab file for this user
-     */
-    @Override
-    public String getKeytabFile() {
-        return keytabFile;
     }
 
     // Visible for testing

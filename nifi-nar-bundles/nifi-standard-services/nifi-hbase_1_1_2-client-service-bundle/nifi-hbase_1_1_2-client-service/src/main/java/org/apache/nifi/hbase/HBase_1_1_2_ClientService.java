@@ -52,6 +52,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
@@ -59,6 +60,7 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.hbase.validate.ConfigFilesValidator;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -100,6 +102,51 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         .required(false)
         .build();
 
+    static final PropertyDescriptor HADOOP_CONF_FILES = new PropertyDescriptor.Builder()
+        .name("Hadoop Configuration Files")
+        .description("Comma-separated list of Hadoop Configuration files," +
+            " such as hbase-site.xml and core-site.xml for kerberos, " +
+            "including full paths to the files.")
+        .addValidator(new ConfigFilesValidator())
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
+        .name("ZooKeeper Quorum")
+        .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
+        .name("ZooKeeper Client Port")
+        .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
+        .name("ZooKeeper ZNode Parent")
+        .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
+        .name("HBase Client Retries")
+        .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("1")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor PHOENIX_CLIENT_JAR_LOCATION = new PropertyDescriptor.Builder()
+        .name("Phoenix Client JAR Location")
+        .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
+        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .dynamicallyModifiesClasspath(true)
+        .build();
 
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";

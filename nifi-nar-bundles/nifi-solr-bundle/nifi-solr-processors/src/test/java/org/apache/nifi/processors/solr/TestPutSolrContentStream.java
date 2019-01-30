@@ -21,7 +21,8 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.krb.KeytabUser;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -451,10 +452,10 @@ public class TestPutSolrContentStream {
         runner.assertValid();
 
         proc.onScheduled(runner.getProcessContext());
-        final KeytabUser keytabUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(keytabUser);
-        Assert.assertEquals(principal, keytabUser.getPrincipal());
-        Assert.assertEquals(keytab, keytabUser.getKeytabFile());
+        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();;
+        Assert.assertNotNull(kerberosUser);
+        Assert.assertEquals(principal, kerberosUser.getPrincipal());
+        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
@@ -462,20 +463,20 @@ public class TestPutSolrContentStream {
         final String principal = "nifi@FOO.COM";
         final String keytab = "src/test/resources/foo.keytab";
 
-        // Setup a mock KeytabUser that will still execute the privileged action
-        final KeytabUser keytabUser = Mockito.mock(KeytabUser.class);
-        when(keytabUser.getPrincipal()).thenReturn(principal);
-        when(keytabUser.getKeytabFile()).thenReturn(keytab);
-        when(keytabUser.doAs(any(PrivilegedAction.class))).thenAnswer((invocation -> {
+        // Setup a mock KerberosUser that will still execute the privileged action
+        final KerberosKeytabUser kerberosUser = Mockito.mock(KerberosKeytabUser.class);
+        when(kerberosUser.getPrincipal()).thenReturn(principal);
+        when(kerberosUser.getKeytabFile()).thenReturn(keytab);
+        when(kerberosUser.doAs(any(PrivilegedAction.class))).thenAnswer((invocation -> {
                     final PrivilegedAction action = (PrivilegedAction) invocation.getArguments()[0];
                     action.run();
                     return null;
                 })
         );
 
-        // Configure the processor with the mock KeytabUser and with a credentials service
+        // Configure the processor with the mock KerberosUser and with a credentials service
         final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient, keytabUser);
+        final TestableProcessor proc = new TestableProcessor(solrClient, kerberosUser);
         final TestRunner runner = createDefaultTestRunner(proc);
 
         final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
@@ -499,9 +500,9 @@ public class TestPutSolrContentStream {
         }
 
         // Verify that during the update the user was logged in, TGT was checked, and the action was executed
-        verify(keytabUser, times(1)).login();
-        verify(keytabUser, times(1)).checkTGTAndRelogin();
-        verify(keytabUser, times(1)).doAs(any(PrivilegedAction.class));
+        verify(kerberosUser, times(1)).login();
+        verify(kerberosUser, times(1)).checkTGTAndRelogin();
+        verify(kerberosUser, times(1)).doAs(any(PrivilegedAction.class));
     }
 
 
@@ -647,15 +648,15 @@ public class TestPutSolrContentStream {
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends PutSolrContentStream {
         private SolrClient solrClient;
-        private KeytabUser keytabUser;
+        private KerberosUser kerberosUser;
 
         public TestableProcessor(SolrClient solrClient) {
             this.solrClient = solrClient;
         }
 
-        public TestableProcessor(SolrClient solrClient, KeytabUser keytabUser) {
+        public TestableProcessor(SolrClient solrClient, KerberosUser kerberosUser) {
             this.solrClient = solrClient;
-            this.keytabUser = keytabUser;
+            this.kerberosUser = kerberosUser;
         }
 
         @Override
@@ -664,15 +665,15 @@ public class TestPutSolrContentStream {
         }
 
         @Override
-        protected KeytabUser createKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
-            if (keytabUser != null) {
-                return keytabUser;
+        protected KerberosUser createKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
+            if (kerberosUser != null) {
+                return kerberosUser;
             } else {
                 return super.createKeytabUser(kerberosCredentialsService);
             }
         }
 
-        public KeytabUser getMockKerberosKeytabUser() {
+        public KerberosUser getMockKerberosKeytabUser() {
             return super.getKerberosKeytabUser();
         }
     }

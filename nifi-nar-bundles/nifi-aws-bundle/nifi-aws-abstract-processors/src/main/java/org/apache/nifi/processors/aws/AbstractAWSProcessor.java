@@ -37,6 +37,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
@@ -283,10 +285,40 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         // (per Amazon docs this should only be configured at client creation)
         if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
+
             if (!urlstr.isEmpty()) {
                 getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
-                this.client.setEndpoint(urlstr, this.client.getServiceName(), this.region.getName());
+
+                if (urlstr.endsWith(".vpce.amazonaws.com")) {
+                    String region = parseRegionForVPCE(urlstr);
+                    this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
+                } else {
+                    this.client.setEndpoint(urlstr);
+                }
             }
+        }
+    }
+
+    /*
+    Note to developer(s):
+        When setting an endpoint for an AWS Client i.e. client.setEndpoint(endpointUrl),
+        AWS Java SDK fails to parse the region correctly when the provided endpoint
+        is an AWS PrivateLink so this method does the job of parsing the region name and
+        returning it.
+
+        Refer NIFI-5456 & NIFI-5893
+     */
+    private String parseRegionForVPCE(String url) {
+        int index = url.length() - ".vpce.amazonaws.com".length();
+
+        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+        Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
+
+        if (matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            getLogger().warn("Unable to get a match with the VPCE endpoint pattern; defaulting the region to us-east-1...");
+            return "us-east-1";
         }
     }
 

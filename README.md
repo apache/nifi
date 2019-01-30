@@ -171,12 +171,11 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
-java cryptography libraries for SSL, SSH, and the protection
+Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
+Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
 http://bouncycastle.org/about.html
-http://www.jasypt.org/faq.html
-http://jcraft.com/c-info.html
+http://www.jcraft.com/c-info.html
 http://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.
 

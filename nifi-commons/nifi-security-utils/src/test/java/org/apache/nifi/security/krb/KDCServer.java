@@ -67,8 +67,11 @@ public class KDCServer {
         return kdc.getRealm();
     }
 
-    public void createKeytabFile(final File keytabFile, final String... names) throws Exception {
+    public void createKeytabPrincipal(final File keytabFile, final String... names) throws Exception {
         kdc.createPrincipal(keytabFile, names);
     }
 
+    public void createPasswordPrincipal(final String principal, final String password) throws Exception {
+        kdc.createPrincipal(principal, password);
+    }
 }

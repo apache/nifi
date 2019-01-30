@@ -27,6 +27,8 @@ import org.junit.Test;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_INDEX;
+import static org.apache.nifi.processors.standard.SplitContent.SEGMENT_ORIGINAL_FILENAME;
 
 public class TestSplitContent {
 
@@ -370,5 +372,32 @@ public class TestSplitContent {
 
         final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
         packed.get(0).assertContentEquals(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
+    }
+
+    @Test
+    public void testNoSplitterInString() {
+
+        String content = "UVAT";
+
+        final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
+        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.getValue());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE, ",");
+        runner.setProperty(SplitContent.KEEP_SEQUENCE, "false");
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
+
+        runner.enqueue(content.getBytes());
+        runner.run();
+
+        runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
+        MockFlowFile splitResult = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS).get(0);
+        splitResult.assertAttributeExists(FRAGMENT_ID);
+        splitResult.assertAttributeExists(SEGMENT_ORIGINAL_FILENAME);
+        splitResult.assertAttributeEquals(FRAGMENT_COUNT, "1");
+        splitResult.assertAttributeEquals(FRAGMENT_INDEX, "1");
+        runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+
+        runner.assertQueueEmpty();
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        splits.get(0).assertContentEquals(content);
     }
 }

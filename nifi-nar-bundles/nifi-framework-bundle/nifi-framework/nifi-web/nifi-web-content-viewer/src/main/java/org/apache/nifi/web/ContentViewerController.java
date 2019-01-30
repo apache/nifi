@@ -57,6 +57,7 @@ public class ContentViewerController extends HttpServlet {
 
     private static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
     private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+    private static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
   /**
      * Gets the content and defers to registered viewers to generate the markup.
@@ -311,7 +312,7 @@ public class ContentViewerController extends HttpServlet {
         refUriBuilder.scheme(request.getScheme());
 
         // If there is path context from a proxy, remove it since this request will be used inside the cluster
-        final String proxyContextPath = getFirstHeaderValue(request, PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER);
+        final String proxyContextPath = getFirstHeaderValue(request, PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, FORWARDED_PREFIX_HTTP_HEADER);
         if (StringUtils.isNotBlank(proxyContextPath)) {
             refUriBuilder.replacePath(StringUtils.substringAfter(UriBuilder.fromUri(ref).build().getPath(), proxyContextPath));
         }

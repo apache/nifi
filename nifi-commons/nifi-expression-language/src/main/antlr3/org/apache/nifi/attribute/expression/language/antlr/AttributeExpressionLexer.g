@@ -107,6 +107,7 @@ IP	: 'ip';
 UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
+THREAD : 'thread';
 
 
 // 0 arg functions
@@ -232,7 +233,7 @@ ESC
 			|	'\\'	{ setText("\\\\"); }
 			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')
 				{
-					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\\\").appendCodePoint(nextChar); setText(lBuf.toString());
+					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\").appendCodePoint(nextChar); setText(lBuf.toString());
 				}
 		)
 	;

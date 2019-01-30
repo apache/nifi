@@ -2267,7 +2267,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final StandardRepositoryRecord record = getRecord(source);
 
         try {
-            ensureNotAppending(record.getCurrentClaim());
+            final ContentClaim currentClaim = record.getCurrentClaim();
+            ensureNotAppending(currentClaim);
+            claimCache.flush(currentClaim);
         } catch (final IOException e) {
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }

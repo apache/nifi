@@ -223,27 +223,37 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         break;
                     case DATE:
                         Date d = record.getAsDate(fieldName, field.getDataType().getFormat());
-                        org.apache.hadoop.hive.common.type.Date hiveDate = new org.apache.hadoop.hive.common.type.Date();
-                        hiveDate.setTimeInMillis(d.getTime());
-                        val = hiveDate;
+                        if(d != null) {
+                            org.apache.hadoop.hive.common.type.Date hiveDate = new org.apache.hadoop.hive.common.type.Date();
+                            hiveDate.setTimeInMillis(d.getTime());
+                            val = hiveDate;
+                        } else {
+                            val = null;
+                        }
                         break;
                     // ORC doesn't currently handle TIMESTAMPLOCALTZ
                     case TIMESTAMP:
                         Timestamp ts = DataTypeUtils.toTimestamp(record.getValue(fieldName), () -> DataTypeUtils.getDateFormat(field.getDataType().getFormat()), fieldName);
-                        // Convert to Hive's Timestamp type
-                        org.apache.hadoop.hive.common.type.Timestamp hivetimestamp = new org.apache.hadoop.hive.common.type.Timestamp();
-                        hivetimestamp.setTimeInMillis(ts.getTime(), ts.getNanos());
-                        val = hivetimestamp;
+                        if(ts != null) {
+                            // Convert to Hive's Timestamp type
+                            org.apache.hadoop.hive.common.type.Timestamp hivetimestamp = new org.apache.hadoop.hive.common.type.Timestamp();
+                            hivetimestamp.setTimeInMillis(ts.getTime(), ts.getNanos());
+                            val = hivetimestamp;
+                        } else {
+                            val = null;
+                        }
                         break;
                     case DECIMAL:
-                        val = HiveDecimal.create(record.getAsDouble(fieldName));
+                        Double value = record.getAsDouble(fieldName);
+                        val = value == null ? null : HiveDecimal.create(value);
                         break;
                     default:
                         throw new IllegalArgumentException("Field " + fieldName + " cannot be converted to type: " + primitiveCategory.name());
                 }
                 break;
             case LIST:
-                val = Arrays.asList(record.getAsArray(fieldName));
+                Object[] value = record.getAsArray(fieldName);
+                val = value == null ? null : Arrays.asList(value);
                 break;
             case MAP:
                 val = record.getValue(fieldName);

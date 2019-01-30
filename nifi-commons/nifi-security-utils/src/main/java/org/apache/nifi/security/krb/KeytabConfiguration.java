@@ -28,10 +28,6 @@ import java.util.Map;
  */
 public class KeytabConfiguration extends Configuration {
 
-    static final boolean IS_IBM = System.getProperty("java.vendor", "").contains("IBM");
-    static final String IBM_KRB5_LOGIN_MODULE = "com.ibm.security.auth.module.Krb5LoginModule";
-    static final String SUN_KRB5_LOGIN_MODULE = "com.sun.security.auth.module.Krb5LoginModule";
-
     private final String principal;
     private final String keytabFile;
 
@@ -53,7 +49,7 @@ public class KeytabConfiguration extends Configuration {
         options.put("principal", principal);
         options.put("refreshKrb5Config", "true");
 
-        if (IS_IBM) {
+        if (ConfigurationUtil.IS_IBM) {
             options.put("useKeytab", keytabFile);
             options.put("credsType", "both");
         } else {
@@ -64,7 +60,8 @@ public class KeytabConfiguration extends Configuration {
             options.put("storeKey", "true");
         }
 
-        final String krbLoginModuleName = IS_IBM ? IBM_KRB5_LOGIN_MODULE : SUN_KRB5_LOGIN_MODULE;
+        final String krbLoginModuleName = ConfigurationUtil.IS_IBM
+                ? ConfigurationUtil.IBM_KRB5_LOGIN_MODULE : ConfigurationUtil.SUN_KRB5_LOGIN_MODULE;
 
         this.kerberosKeytabConfigEntry = new AppConfigurationEntry(
                 krbLoginModuleName, AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options);

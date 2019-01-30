@@ -251,7 +251,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
             hdfsResources.set(new HdfsResources(null, null, null));
             throw ex;
@@ -267,7 +267,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             try {
                 interruptStatisticsThread(fileSystem);
             } catch (Exception e) {
-                getLogger().warn("Error stopping FileSystem statistics thread: " + e.getMessage(), e);
+                getLogger().warn("Error stopping FileSystem statistics thread: " + e.getMessage());
+                getLogger().debug("", e);
             } finally {
                 if (fileSystem != null) {
                     try {
@@ -283,7 +284,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
             // Clean-up the reference to the InstanceClassLoader that was put into Configuration
             final Configuration configuration = resources.getConfiguration();
-            configuration.setClassLoader(null);
+            if (configuration != null) {
+                configuration.setClassLoader(null);
+            }
 
             // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
             final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();

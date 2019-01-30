@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -65,6 +66,27 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
 
+    private static AllowableValue TRANSACTION_READ_COMMITTED = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_READ_COMMITTED),
+            "TRANSACTION_READ_COMMITTED"
+    );
+    private static AllowableValue TRANSACTION_READ_UNCOMMITTED = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_READ_UNCOMMITTED),
+            "TRANSACTION_READ_UNCOMMITTED"
+    );
+    private static AllowableValue TRANSACTION_REPEATABLE_READ = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_REPEATABLE_READ),
+            "TRANSACTION_REPEATABLE_READ"
+    );
+    private static AllowableValue TRANSACTION_NONE =  new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_NONE),
+            "TRANSACTION_NONE"
+    );
+    private static AllowableValue TRANSACTION_SERIALIZABLE = new AllowableValue(
+            String.valueOf(Connection.TRANSACTION_SERIALIZABLE),
+            "TRANSACTION_SERIALIZABLE"
+    );
+
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
@@ -110,6 +132,14 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor TRANS_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
+            .name("transaction-isolation-level")
+            .displayName("Transaction Isolation Level")
+            .description("This setting will set the transaction isolation level for the database connection for drivers that support this setting")
+            .required(false)
+            .allowableValues(TRANSACTION_NONE,TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
             .build();
 
     @Override
@@ -170,7 +200,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
                 ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
                 : 0;
-
+        final Integer transIsolationLevel = context.getProperty(TRANS_ISOLATION_LEVEL).isSet()
+                ? context.getProperty(TRANS_ISOLATION_LEVEL).asInteger()
+                : null;
 
         SqlWriter sqlWriter = configureSqlWriter(session, context);
 
@@ -225,6 +257,10 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     // Not all drivers support this, just log the error (at debug level) and move on
                     logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
                 }
+            }
+
+            if (transIsolationLevel != null) {
+                con.setTransactionIsolation(transIsolationLevel);
             }
 
             String jdbcURL = "DBCPService";

@@ -1138,8 +1138,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
+
         try {
-            narAutoLoader.stop();
+            if (narAutoLoader != null) {
+                narAutoLoader.stop();
+            }
         } catch (Exception e) {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
