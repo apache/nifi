@@ -586,14 +586,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        ArrayList<Class<? extends Filter>> filters = new ArrayList<>();
-        filters.add(XFrameOptionsFilter.class);
-        filters.add(ContentSecurityPolicyFilter.class);
+        // add HTTP security headers to all responses
+        final String ALL_PATHS = "/*";
+        ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
         if(props.isHTTPSConfigured()) {
             filters.add(StrictTransportSecurityFilter.class);
         }
-        filters.add(XSSProtectionFilter.class);
-        filters.forEach( (filter) -> addFilters(filter, "/*", webappContext));
+        filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
