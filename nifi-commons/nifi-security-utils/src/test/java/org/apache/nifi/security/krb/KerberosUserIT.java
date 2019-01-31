@@ -29,7 +29,7 @@ import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.security.Principal;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -174,7 +174,7 @@ public class KerberosUserIT {
         final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
 
         final AtomicReference<String> resultHolder = new AtomicReference<>(null);
-        final PrivilegedAction privilegedAction = () -> {
+        final PrivilegedExceptionAction<Void> privilegedAction = () -> {
             resultHolder.set("SUCCESS");
             return null;
         };
@@ -183,7 +183,7 @@ public class KerberosUserIT {
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
 
         // create the action to test and execute it
-        final KerberosAction kerberosAction = new KerberosAction(user1, privilegedAction, context, logger);
+        final KerberosAction kerberosAction = new KerberosAction<>(user1, privilegedAction, logger);
         kerberosAction.execute();
 
         // if the result holder has the string success then we know the action executed
