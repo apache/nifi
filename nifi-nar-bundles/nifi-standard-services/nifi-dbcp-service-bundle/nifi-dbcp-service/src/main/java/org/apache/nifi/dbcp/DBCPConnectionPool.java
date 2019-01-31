@@ -32,12 +32,16 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import javax.security.auth.login.LoginException;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -263,6 +267,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -270,6 +282,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DATABASE_URL);
         props.add(DB_DRIVERNAME);
         props.add(DB_DRIVER_LOCATION);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
@@ -286,6 +299,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     }
 
     private volatile BasicDataSource dataSource;
+    private volatile KerberosKeytabUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -333,6 +347,16 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD));
         final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
         final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME));
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null) {
+            kerberosUser = new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
+            try {
+                kerberosUser.login();
+            } catch (LoginException e) {
+                throw new InitializationException("Unable to authenticate Kerberos principal", e);
+            }
+        }
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
@@ -410,20 +434,41 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     /**
      * Shutdown pool, close all open connections.
+     * If a principal is authenticated with a KDC, that principal is logged out.
+     *
+     * If a @{@link LoginException} occurs while attempting to log out the @{@link org.apache.nifi.security.krb.KerberosUser},
+     * an attempt will still be made to shut down the pool and close open connections.
+     *
+     * @throws SQLException if there is an error while closing open connections
+     * @throws LoginException if there is an error during the principal log out, and will only be thrown if there was
+     * no exception while closing open connections
      */
     @OnDisabled
-    public void shutdown() {
+    public void shutdown() throws SQLException, LoginException {
         try {
-            dataSource.close();
-        } catch (final SQLException e) {
-            throw new ProcessException(e);
+            if (kerberosUser != null) {
+                kerberosUser.logout();
+            }
+        } finally {
+            kerberosUser = null;
+            try {
+                dataSource.close();
+            } finally {
+                dataSource = null;
+            }
         }
     }
 
     @Override
     public Connection getConnection() throws ProcessException {
         try {
-            final Connection con = dataSource.getConnection();
+            final Connection con;
+            if (kerberosUser != null) {
+                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, () -> dataSource.getConnection(), getLogger());
+                con = kerberosAction.execute();
+            } else {
+                con = dataSource.getConnection();
+            }
             return con;
         } catch (final SQLException e) {
             throw new ProcessException(e);
