@@ -24,6 +24,8 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import com.google.common.base.Throwables;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -33,14 +35,21 @@ public abstract class AvroRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        GenericRecord record = nextAvroRecord();
-        if (record == null) {
-            return null;
+        try {
+            GenericRecord record = nextAvroRecord();
+            if (record == null) {
+                return null;
+            }
+
+            final RecordSchema schema = getSchema();
+            final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema);
+            return new MapRecord(schema, values);
+        } catch (IOException e) {
+            throw e;
+        } catch (MalformedRecordException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MalformedRecordException("Error while getting next record. Root cause: " + Throwables.getRootCause(e), e);
         }
-
-        final RecordSchema schema = getSchema();
-        final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema);
-        return new MapRecord(schema, values);
     }
-
 }
