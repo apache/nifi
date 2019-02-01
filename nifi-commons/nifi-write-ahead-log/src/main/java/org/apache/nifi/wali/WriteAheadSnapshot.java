@@ -19,9 +19,12 @@ package org.apache.nifi.wali;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 
 public interface WriteAheadSnapshot<T> {
     SnapshotCapture<T> prepareSnapshot(long maxTransactionId);
+
+    SnapshotCapture<T> prepareSnapshot(long maxTransactionId, Set<String> swapLocations);
 
     void writeSnapshot(SnapshotCapture<T> snapshot) throws IOException;
 

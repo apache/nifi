@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +66,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
     private final File journalsDirectory;
     private final SerDeFactory<T> serdeFactory;
     private final SyncListener syncListener;
+    private final Set<String> recoveredSwapLocations = new HashSet<>();
 
     private final ReadWriteLock journalRWLock = new ReentrantReadWriteLock();
     private final Lock journalReadLock = journalRWLock.readLock();
@@ -144,6 +146,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         final long recoverStart = System.nanoTime();
         recovered = true;
         snapshotRecovery = snapshot.recover();
+        this.recoveredSwapLocations.addAll(snapshotRecovery.getRecoveredSwapLocations());
 
         final long snapshotRecoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - recoverStart);
 
@@ -212,7 +215,9 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         final long recoveryMillis = TimeUnit.MILLISECONDS.convert(recoverNanos, TimeUnit.NANOSECONDS);
         logger.info("Successfully recovered {} records in {} milliseconds. Now checkpointing to ensure that Write-Ahead Log is in a consistent state", recoveredRecords.size(), recoveryMillis);
 
-        checkpoint();
+        this.recoveredSwapLocations.addAll(swapLocations);
+
+        checkpoint(this.recoveredSwapLocations);
 
         return recoveredRecords.values();
     }
@@ -238,11 +243,15 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             throw new IllegalStateException("Cannot retrieve the Recovered Swap Locations until record recovery has been performed");
         }
 
-        return snapshotRecovery.getRecoveredSwapLocations();
+        return Collections.unmodifiableSet(this.recoveredSwapLocations);
     }
 
     @Override
     public int checkpoint() throws IOException {
+        return checkpoint(null);
+    }
+
+    private int checkpoint(final Set<String> swapLocations) throws IOException {
         final SnapshotCapture<T> snapshotCapture;
 
         final long startNanos = System.nanoTime();
@@ -276,7 +285,12 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             final File[] existingFiles = journalsDirectory.listFiles(this::isJournalFile);
             existingJournals = (existingFiles == null) ? new File[0] : existingFiles;
 
-            snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1);
+            if (swapLocations == null) {
+                snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1);
+            } else {
+                snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1, swapLocations);
+            }
+
 
             // Create a new journal. We name the journal file <next transaction id>.journal but it is possible
             // that we could have an empty journal file already created. If this happens, we don't want to create

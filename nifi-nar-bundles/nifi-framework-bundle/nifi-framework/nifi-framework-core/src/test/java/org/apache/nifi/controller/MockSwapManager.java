@@ -17,16 +17,6 @@
 
 package org.apache.nifi.controller;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -39,6 +29,16 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 public class MockSwapManager implements FlowFileSwapManager {
     public final Map<String, List<FlowFileRecord>> swappedOut = new HashMap<>();
     public int swapOutCalledCount = 0;
@@ -49,8 +49,20 @@ public class MockSwapManager implements FlowFileSwapManager {
     public int failSwapInAfterN = -1;
     public Throwable failSwapInFailure = null;
 
+    private int failSwapOutAfterN = -1;
+    private IOException failSwapOutFailure = null;
+
     public void setSwapInFailure(final Throwable t) {
         this.failSwapInFailure = t;
+    }
+
+    public void setSwapOutFailureOnNthIteration(final int n) {
+        setSwapOutFailureOnNthIteration(n, null);
+    }
+
+    public void setSwapOutFailureOnNthIteration(final int n, final IOException failureException) {
+        this.failSwapOutAfterN = n;
+        this.failSwapOutFailure = failureException;
     }
 
     @Override
@@ -65,6 +77,12 @@ public class MockSwapManager implements FlowFileSwapManager {
     @Override
     public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
         swapOutCalledCount++;
+
+        if (failSwapOutAfterN > -1 && swapOutCalledCount >= failSwapOutAfterN) {
+            final IOException ioe = failSwapOutFailure == null ? new IOException("Intentional Unit Test IOException on swap out call number " + swapOutCalledCount) : failSwapOutFailure;
+            throw ioe;
+        }
+
         final String location = UUID.randomUUID().toString() + "." + partitionName;
         swappedOut.put(location, new ArrayList<>(flowFiles));
         return location;

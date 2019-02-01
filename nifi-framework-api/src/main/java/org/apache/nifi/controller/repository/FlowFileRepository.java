@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 /**
  * Implementations must be thread safe
@@ -128,4 +128,24 @@ public interface FlowFileRepository extends Closeable {
      * @throws IOException if swap fails
      */
     void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue flowFileQueue) throws IOException;
+
+    /**
+     * <p>
+     * Determines whether or not the given swap location suffix is a valid, known location according to this FlowFileRepository. Note that while
+     * the {@link #swapFlowFilesIn(String, List, FlowFileQueue)} and {@link #swapFlowFilesOut(List, FlowFileQueue, String)} methods expect
+     * a full "swap location" this method expects only the "suffix" of a swap location. For example, if the location points to a file, this method
+     * would expect only the filename, not the full path.
+     * </p>
+     *
+     * <p>
+     * This method differs from the others because the other methods want to store the swap location or recover from a given location. However,
+     * this method is used to verify that the location is known. If for any reason, NiFi is stopped, its FlowFile Repository relocated to a new
+     * location (for example, a different disk partition), and restarted, the swap location would not match if we used the full location. Therefore,
+     * by using only the "suffix" (i.e. the filename for a file-based implementation), we can avoid worrying about relocation.
+     * </p>
+     *
+     * @param swapLocationSuffix the suffix of the location to check
+     * @return <code>true</code> if the swap location is known and valid, <code>false</code> otherwise
+     */
+    boolean isValidSwapLocationSuffix(String swapLocationSuffix);
 }

@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>
@@ -137,4 +137,8 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) throws IOException {
     }
 
+    @Override
+    public boolean isValidSwapLocationSuffix(final String swapLocationSuffix) {
+        return false;
+    }
 }

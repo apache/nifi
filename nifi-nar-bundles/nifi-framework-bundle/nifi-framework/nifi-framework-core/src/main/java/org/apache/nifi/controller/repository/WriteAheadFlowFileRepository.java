@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.MinimalLockingWriteAheadLog;
+import org.wali.SyncListener;
+import org.wali.WriteAheadRepository;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,19 +54,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.MinimalLockingWriteAheadLog;
-import org.wali.SyncListener;
-import org.wali.WriteAheadRepository;
 
 /**
  * <p>
@@ -101,6 +101,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final int numPartitions;
     private final ScheduledExecutorService checkpointExecutor;
 
+    private final Set<String> swapLocationSuffixes = new HashSet<>(); // guraded by synchronizing on object itself
+
     // effectively final
     private WriteAheadRepository<RepositoryRecord> wal;
     private RepositoryRecordSerdeFactory serdeFactory;
@@ -134,7 +136,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
      */
     public WriteAheadFlowFileRepository() {
         alwaysSync = false;
-        checkpointDelayMillis = 0l;
+        checkpointDelayMillis = 0L;
         numPartitions = 0;
         checkpointExecutor = null;
         walImplementation = null;
@@ -278,6 +280,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         return !resourceClaim.isInUse();
     }
 
+    @Override
+    public boolean isValidSwapLocationSuffix(final String swapLocationSuffix) {
+        synchronized (swapLocationSuffixes) {
+            return swapLocationSuffixes.contains(swapLocationSuffix);
+        }
+    }
+
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
         for (final RepositoryRecord record : records) {
             if (record.getType() != RepositoryRecordType.DELETE && record.getType() != RepositoryRecordType.CONTENTMISSING
@@ -308,6 +317,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // This does not, however, cause problems, as ContentRepository should handle this
         // This does indicate that some refactoring should probably be performed, though, as this is not a very clean interface.
         final Set<ResourceClaim> claimsToAdd = new HashSet<>();
+
+        final Set<String> swapLocationsAdded = new HashSet<>();
+        final Set<String> swapLocationsRemoved = new HashSet<>();
+
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if claim is destructible, mark it so
@@ -324,6 +337,14 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && isDestructable(record.getOriginalClaim())) {
                     claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
                 }
+            } else if (record.getType() == RepositoryRecordType.SWAP_OUT) {
+                final String swapLocation = record.getSwapLocation();
+                swapLocationsAdded.add(swapLocation);
+                swapLocationsRemoved.remove(swapLocation);
+            } else if (record.getType() == RepositoryRecordType.SWAP_IN) {
+                final String swapLocation = record.getSwapLocation();
+                swapLocationsRemoved.add(swapLocation);
+                swapLocationsAdded.remove(swapLocation);
             }
 
             final List<ContentClaim> transientClaims = record.getTransientClaims();
@@ -333,6 +354,14 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                         claimsToAdd.add(transientClaim.getResourceClaim());
                     }
                 }
+            }
+        }
+
+        // If we have swapped files in or out, we need to ensure that we update our swapLocationSuffixes.
+        if (!swapLocationsAdded.isEmpty() || !swapLocationsRemoved.isEmpty()) {
+            synchronized (swapLocationSuffixes) {
+                swapLocationsRemoved.forEach(loc -> swapLocationSuffixes.remove(getLocationSuffix(loc)));
+                swapLocationsAdded.forEach(loc -> swapLocationSuffixes.add(getLocationSuffix(loc)));
             }
         }
 
@@ -350,6 +379,20 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             claimQueue.addAll(claimsToAdd);
         }
+    }
+
+    protected static String getLocationSuffix(final String swapLocation) {
+        if (swapLocation == null) {
+            return null;
+        }
+
+        final String withoutTrailing = (swapLocation.endsWith("/") && swapLocation.length() > 1) ? swapLocation.substring(0, swapLocation.length() - 1) : swapLocation;
+        final int lastIndex = withoutTrailing.lastIndexOf("/");
+        if (lastIndex < 0 || lastIndex >= withoutTrailing.length() - 1) {
+            return withoutTrailing;
+        }
+
+        return withoutTrailing.substring(lastIndex + 1);
     }
 
     @Override
@@ -407,6 +450,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // update WALI to indicate that the records were swapped out.
         wal.update(repoRecords, true);
 
+        synchronized (this.swapLocationSuffixes) {
+            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+        }
+
         logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[]{swappedOut.size(), queue, swapLocation});
     }
 
@@ -423,6 +470,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
         updateRepository(repoRecords, true);
+
+        synchronized (this.swapLocationSuffixes) {
+            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+        }
+
         logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
     }
 
@@ -544,6 +596,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // Repo was written using that impl, that we properly recover from the implementation.
         Collection<RepositoryRecord> recordList = wal.recoverRecords();
 
+        final Set<String> recoveredSwapLocations = wal.getRecoveredSwapLocations();
+        synchronized (this.swapLocationSuffixes) {
+            recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(getLocationSuffix(loc)));
+            logger.debug("Recovered {} Swap Files: {}", swapLocationSuffixes.size(), swapLocationSuffixes);
+        }
+
         // If we didn't recover any records from our write-ahead log, attempt to recover records from the other implementation
         // of the write-ahead log. We do this in case the user changed the "nifi.flowfile.repository.wal.impl" property.
         // In such a case, we still want to recover the records from the previous FlowFile Repository and write them into the new one.
@@ -591,7 +649,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // Set the AtomicLong to 1 more than the max ID so that calls to #getNextFlowFileSequence() will
         // return the appropriate number.
         flowFileSequenceGenerator.set(maxId + 1);
-        logger.info("Successfully restored {} FlowFiles", recordList.size() - numFlowFilesMissingQueue);
+        logger.info("Successfully restored {} FlowFiles and {} Swap Files", recordList.size() - numFlowFilesMissingQueue, recoveredSwapLocations.size());
         if (numFlowFilesMissingQueue > 0) {
             logger.warn("On recovery, found {} FlowFiles whose queue no longer exists. These FlowFiles will be dropped.", numFlowFilesMissingQueue);
         }

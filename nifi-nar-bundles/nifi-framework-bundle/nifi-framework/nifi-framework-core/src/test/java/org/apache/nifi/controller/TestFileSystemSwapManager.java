@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -36,8 +24,29 @@ import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyCollection;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 public class TestFileSystemSwapManager {
 
@@ -48,7 +57,7 @@ public class TestFileSystemSwapManager {
                 final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-            Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+            when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
             final FileSystemSwapManager swapManager = createSwapManager();
             final SwapContents swapContents = swapManager.peek("src/test/resources/old-swap-file.swap", flowFileQueue);
@@ -63,11 +72,49 @@ public class TestFileSystemSwapManager {
         }
     }
 
+    @Test
+    public void testFailureOnRepoSwapOut() throws IOException {
+        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-    private FileSystemSwapManager createSwapManager() {
-        final FileSystemSwapManager swapManager = new FileSystemSwapManager();
+        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+        Mockito.doThrow(new IOException("Intentional IOException for unit test"))
+            .when(flowFileRepo).updateRepository(anyCollection());
+
+        final FileSystemSwapManager swapManager = createSwapManager();
+
+        final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
+        for (int i=0; i < 10000; i++) {
+            flowFileRecords.add(new MockFlowFileRecord(i));
+        }
+
+        try {
+            swapManager.swapOut(flowFileRecords, flowFileQueue, "partition-1");
+            Assert.fail("Expected IOException");
+        } catch (final IOException ioe) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testSwapFileUnknownToRepoNotSwappedIn() throws IOException {
+        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        when(flowFileQueue.getIdentifier()).thenReturn("");
+
+        final File targetDir = new File("target/swap");
+        targetDir.mkdirs();
+
+        final File targetFile = new File(targetDir, "444-old-swap-file.swap");
+        final File originalSwapFile = new File("src/test/resources/swap/444-old-swap-file.swap");
+        try (final OutputStream fos = new FileOutputStream(targetFile);
+             final InputStream fis = new FileInputStream(originalSwapFile)) {
+            StreamUtils.copy(fis, fos);
+        }
+
+        final FileSystemSwapManager swapManager = new FileSystemSwapManager(Paths.get("target"));
         final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
-        final FlowFileRepository flowfileRepo = Mockito.mock(FlowFileRepository.class);
+        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+
         swapManager.initialize(new SwapManagerInitializationContext() {
             @Override
             public ResourceClaimManager getResourceClaimManager() {
@@ -76,7 +123,46 @@ public class TestFileSystemSwapManager {
 
             @Override
             public FlowFileRepository getFlowFileRepository() {
-                return flowfileRepo;
+                return flowFileRepo;
+            }
+
+            @Override
+            public EventReporter getEventReporter() {
+                return EventReporter.NO_OP;
+            }
+        });
+
+        when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(false);
+        final List<String> recoveredLocations = swapManager.recoverSwapLocations(flowFileQueue, null);
+        assertEquals(1, recoveredLocations.size());
+
+        final String firstLocation = recoveredLocations.get(0);
+        final SwapContents emptyContents = swapManager.swapIn(firstLocation, flowFileQueue);
+        assertEquals(0, emptyContents.getFlowFiles().size());
+
+        when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(true);
+        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        final SwapContents contents = swapManager.swapIn(firstLocation, flowFileQueue);
+        assertEquals(10000, contents.getFlowFiles().size());
+    }
+
+    private FileSystemSwapManager createSwapManager() {
+        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+        return createSwapManager(flowFileRepo);
+    }
+
+    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) {
+        final FileSystemSwapManager swapManager = new FileSystemSwapManager();
+        final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
+        swapManager.initialize(new SwapManagerInitializationContext() {
+            @Override
+            public ResourceClaimManager getResourceClaimManager() {
+                return resourceClaimManager;
+            }
+
+            @Override
+            public FlowFileRepository getFlowFileRepository() {
+                return flowFileRepo;
             }
 
             @Override
