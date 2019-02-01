@@ -601,7 +601,11 @@ public final class DtoFactory {
         final FlowFileSummaryDTO dto = new FlowFileSummaryDTO();
         dto.setUuid(summary.getUuid());
         dto.setFilename(summary.getFilename());
+
         dto.setPenalized(summary.isPenalized());
+        final long penaltyExpiration = summary.getPenaltyExpirationMillis() - now.getTime();
+        dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+
         dto.setPosition(summary.getPosition());
         dto.setSize(summary.getSize());
 
@@ -625,7 +629,11 @@ public final class DtoFactory {
         final FlowFileDTO dto = new FlowFileDTO();
         dto.setUuid(record.getAttribute(CoreAttributes.UUID.key()));
         dto.setFilename(record.getAttribute(CoreAttributes.FILENAME.key()));
+
         dto.setPenalized(record.isPenalized());
+        final long penaltyExpiration = record.getPenaltyExpirationMillis() - now.getTime();
+        dto.setPenaltyExpiresIn(penaltyExpiration>=0?penaltyExpiration:0);
+
         dto.setSize(record.getSize());
         dto.setAttributes(record.getAttributes());
 
