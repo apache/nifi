@@ -583,6 +583,32 @@ public class GetMongoIT {
     }
 
     @Test
+    public void testBadDatabaseNameRoutesToError() {
+        runner.setProperty(GetMongo.DATABASE_NAME, "${badname}");
+        runner.setIncomingConnection(true);
+        runner.enqueue("{}", new HashMap<String, String>(){{
+            put("badname", "Q$^%&$%q24");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testBadCollectionNameRoutesToError() {
+        runner.setProperty(GetMongo.DATABASE_NAME, "${badname}");
+        runner.setIncomingConnection(true);
+        runner.enqueue("{}", new HashMap<String, String>(){{
+            put("badname", "Q$^%&$%q24");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+    }
+
+    @Test
     public void testClientService() throws Exception {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);

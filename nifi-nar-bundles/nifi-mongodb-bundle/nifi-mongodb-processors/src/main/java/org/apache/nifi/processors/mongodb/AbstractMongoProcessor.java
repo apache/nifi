@@ -55,6 +55,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
+import org.apache.nifi.processors.mongodb.util.CollectionNameValidator;
+import org.apache.nifi.processors.mongodb.util.DatabaseNameValidator;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
 
@@ -96,7 +99,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .description("The name of the database to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(DatabaseNameValidator.getInstance())
         .build();
 
     static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
@@ -104,7 +107,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .description("The name of the collection to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(CollectionNameValidator.getInstance())
         .build();
 
     protected static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()

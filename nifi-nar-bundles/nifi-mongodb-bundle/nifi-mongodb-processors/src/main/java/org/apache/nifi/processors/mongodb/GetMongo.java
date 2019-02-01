@@ -268,7 +268,11 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                 empty = session.putAllAttributes(empty, attributes);
                 session.transfer(empty, REL_SUCCESS);
             }
+        } catch (Exception ex) {
+            getLogger().error("", ex);
+            if (input != null) {
+                session.transfer(input, REL_FAILURE);
+            }
         }
-
     }
 }
