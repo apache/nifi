@@ -239,6 +239,7 @@
                         <exclude>src/test/resources/bye.txt</exclude>
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
+                        <exclude>src/test/resources/swap/444-old-swap-file.swap</exclude>
                     </excludes>
                 </configuration>
             </plugin>

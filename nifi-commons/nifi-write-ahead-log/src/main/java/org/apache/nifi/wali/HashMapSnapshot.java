@@ -17,6 +17,12 @@
 
 package org.apache.nifi.wali;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.SerDe;
+import org.wali.SerDeFactory;
+import org.wali.UpdateType;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -36,12 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.SerDe;
-import org.wali.SerDeFactory;
-import org.wali.UpdateType;
 
 public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T> {
     private static final Logger logger = LoggerFactory.getLogger(HashMapSnapshot.class);
@@ -216,10 +216,14 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         return recordMap.get(recordId);
     }
 
-
     @Override
     public SnapshotCapture<T> prepareSnapshot(final long maxTransactionId) {
-        return new Snapshot(new HashMap<>(recordMap), new HashSet<>(swapLocations), maxTransactionId);
+        return prepareSnapshot(maxTransactionId, this.swapLocations);
+    }
+
+    @Override
+    public SnapshotCapture<T> prepareSnapshot(final long maxTransactionId, final Set<String> swapFileLocations) {
+        return new Snapshot(new HashMap<>(recordMap), new HashSet<>(swapFileLocations), maxTransactionId);
     }
 
     private int getVersion() {

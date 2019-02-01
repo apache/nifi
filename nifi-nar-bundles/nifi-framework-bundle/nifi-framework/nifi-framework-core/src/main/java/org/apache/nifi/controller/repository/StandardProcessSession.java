@@ -161,7 +161,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     // so that we are able to aggregate many into a single Fork Event.
     private final Map<FlowFile, ProvenanceEventBuilder> forkEventBuilders = new HashMap<>();
 
-    private Checkpoint checkpoint = new Checkpoint();
+    private Checkpoint checkpoint = null;
     private final ContentClaimWriteCache claimCache;
 
     public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination) {
@@ -1489,7 +1489,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void registerDequeuedRecord(final FlowFileRecord flowFile, final Connection connection) {
         final StandardRepositoryRecord record = new StandardRepositoryRecord(connection.getFlowFileQueue(), flowFile);
-        records.put(flowFile.getId(), record);
+
+        // Ensure that the checkpoint does not have a FlowFile with the same ID already. This should not occur,
+        // but this is a safety check just to make sure, because if it were to occur, and we did process the FlowFile,
+        // we would have a lot of problems, since the map is keyed off of the FlowFile ID.
+        if (this.checkpoint != null) {
+            final StandardRepositoryRecord checkpointedRecord = this.checkpoint.getRecord(flowFile);
+            handleConflictingId(flowFile, connection, checkpointedRecord);
+        }
+
+        final StandardRepositoryRecord existingRecord = records.putIfAbsent(flowFile.getId(), record);
+        handleConflictingId(flowFile, connection, existingRecord); // Ensure that we have no conflicts
+
         flowFilesIn++;
         contentSizeIn += flowFile.getSize();
 
@@ -1501,6 +1512,21 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         set.add(flowFile);
 
         incrementConnectionOutputCounts(connection, flowFile);
+    }
+
+    private void handleConflictingId(final FlowFileRecord flowFile, final Connection connection, final StandardRepositoryRecord conflict) {
+        if (conflict == null) {
+            // No conflict
+            return;
+        }
+
+        LOG.error("Attempted to pull {} from {} but the Session already has a FlowFile with the same ID ({}): {}, which was pulled from {}. This means that the system has two FlowFiles with the" +
+            " same ID, which should not happen.", flowFile, connection, flowFile.getId(), conflict.getCurrent(), conflict.getOriginalQueue());
+        connection.getFlowFileQueue().put(flowFile);
+
+        rollback(true, false);
+        throw new FlowFileAccessException("Attempted to pull a FlowFile with ID " + flowFile.getId() + " from Connection "
+            + connection + " but a FlowFile with that ID already exists in the session");
     }
 
     @Override

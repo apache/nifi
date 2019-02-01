@@ -180,19 +180,23 @@ public class SwappablePriorityQueue {
         int flowFilesSwappedOut = 0;
         final List<String> swapLocations = new ArrayList<>(numSwapFiles);
         for (int i = 0; i < numSwapFiles; i++) {
+            long bytesSwappedThisIteration = 0L;
+
             // Create a new swap file for the next SWAP_RECORD_POLL_SIZE records
             final List<FlowFileRecord> toSwap = new ArrayList<>(SWAP_RECORD_POLL_SIZE);
             for (int j = 0; j < SWAP_RECORD_POLL_SIZE; j++) {
                 final FlowFileRecord flowFile = tempQueue.poll();
                 toSwap.add(flowFile);
-                bytesSwappedOut += flowFile.getSize();
-                flowFilesSwappedOut++;
+                bytesSwappedThisIteration += flowFile.getSize();
             }
 
             try {
                 Collections.reverse(toSwap); // currently ordered in reverse priority order based on the ordering of the temp queue.
                 final String swapLocation = swapManager.swapOut(toSwap, flowFileQueue, swapPartitionName);
                 swapLocations.add(swapLocation);
+
+                bytesSwappedOut += bytesSwappedThisIteration;
+                flowFilesSwappedOut += toSwap.size();
             } catch (final IOException ioe) {
                 tempQueue.addAll(toSwap); // if we failed, we must add the FlowFiles back to the queue.
 
