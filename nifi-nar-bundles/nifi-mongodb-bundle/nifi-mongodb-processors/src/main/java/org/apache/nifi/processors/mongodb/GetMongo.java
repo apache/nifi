@@ -149,10 +149,16 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             }
         }
 
-        final Document query = getQuery(context, session, input );
+        final Document query;
+        try {
+            query = getQuery(context, session, input);
+        } catch (Exception ex) {
+            getLogger().error("Error parsing query.", ex);
+            if (input != null) {
+                session.transfer(input, REL_FAILURE);
+            }
 
-        if (query == null) {
-            return;
+            return; //We need to stop immediately.
         }
 
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
