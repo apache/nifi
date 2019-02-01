@@ -121,12 +121,7 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
                 query = Document.parse(new String(out.toByteArray()));
             } catch (Exception ex) {
                 getLogger().error("Error reading FlowFile : ", ex);
-                if (input != null) { //Likely culprit is a bad query
-                    session.transfer(input, REL_FAILURE);
-                    session.commit();
-                } else {
-                    throw new ProcessException(ex);
-                }
+                throw new ProcessException(ex);
             }
         }
 
