@@ -581,6 +581,7 @@ public class GetMongoIT {
         Assert.assertTrue(format.matcher((String) result.get("date_field")).matches());
     }
 
+    @Test
     public void testClientService() throws Exception {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
@@ -593,5 +594,61 @@ public class GetMongoIT {
         runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testInvalidQueryGoesToFailure() {
+        //Test variable registry mode
+        runner.setVariable("badattribute", "<<?>>");
+        runner.setProperty(GetMongo.QUERY, "${badattribute}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test that it doesn't blow up with variable registry values holding a proper value
+        runner.setVariable("badattribute", "{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test a bad flowfile attribute
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.QUERY, "${badfromff}");
+        runner.enqueue("<<?>>", new HashMap<String, String>(){{
+            put("badfromff", "{\"prop\":}");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test for regression on a good query from a flowfile attribute
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.QUERY, "${badfromff}");
+        runner.enqueue("<<?>>", new HashMap<String, String>(){{
+            put("badfromff", "{}");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+
+        runner.clearTransferState();
+        runner.removeProperty(GetMongo.QUERY);
+
+        //Test for regression against the body w/out any EL involved.
+        runner.enqueue("<<?>>");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
     }
 }
