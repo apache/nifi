@@ -29,6 +29,8 @@
     
     <properties>
     	<oozie.version>4.3.1</oozie.version>
+
+        <!-- should match version in nifi-hadoop-libraries to ensure consistency across hadoop processors -->
     	<hadoop.version>3.0.0</hadoop.version>
     </properties>
 
