@@ -1810,6 +1810,11 @@ public class TestQuery {
         verifyEquals("${literal(true):ifElse(false, 'b')}", attributes, "false");
     }
 
+    @Test
+    public void testThread() {
+        final Map<String, String> attributes = new HashMap<>();
+        verifyEquals("${thread()}", attributes, "main");
+    }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, expectedResult);
