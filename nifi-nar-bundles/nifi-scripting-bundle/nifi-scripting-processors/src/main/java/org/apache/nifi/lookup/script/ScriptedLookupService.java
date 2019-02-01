@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
@@ -53,12 +54,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
  */
 @Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
-@CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from an incoming flow file.")
+@CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from " +
+        "an incoming flow file. Please note, that due to a bug in Jython that remains unresolved, it is not possible to use " +
+        "Jython to write a script for this service in Python.")
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -116,7 +120,19 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
             }
         }
         List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        supportedPropertyDescriptors.addAll(scriptingComponentHelper.getDescriptors());
+        List<PropertyDescriptor> _temp = new ArrayList<>();
+        _temp.addAll(scriptingComponentHelper.getDescriptors());
+        _temp.remove(scriptingComponentHelper.SCRIPT_ENGINE);
+
+        PropertyDescriptor.Builder jythonLessEngineProp = new PropertyDescriptor
+            .Builder().fromPropertyDescriptor(scriptingComponentHelper.SCRIPT_ENGINE);
+        List<AllowableValue> filtered = scriptingComponentHelper.getScriptEngineAllowableValues()
+            .stream().filter(allowableValue -> !allowableValue.getValue().contains("ython"))
+            .collect(Collectors.toList());
+        jythonLessEngineProp.allowableValues(filtered.toArray(new AllowableValue[filtered.size()]));
+
+        supportedPropertyDescriptors.add(jythonLessEngineProp.build());
+        supportedPropertyDescriptors.addAll(_temp);
 
         final ConfigurableComponent instance = lookupService.get();
         if (instance != null) {
