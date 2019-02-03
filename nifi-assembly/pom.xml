@@ -399,8 +399,26 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-neo4j-nar</artifactId>
-            <version>1.8.0-SNAPSHOT</version>
+            <artifactId>nifi-graph-client-service-api-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-neo4j-cypher-service-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-other-graph-services-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-graph-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
