@@ -27,6 +27,13 @@
         <source.skip>true</source.skip>
     </properties>
     <dependencies>
+        <!-- The Jetty Bundle doesn't contain any code that actually depends on nifi-api, but the NAR Maven plugin writes a
+             descriptor for each NAR which contains the version of the system API, so we need to make the version available by
+             having this provided dependency here. -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
