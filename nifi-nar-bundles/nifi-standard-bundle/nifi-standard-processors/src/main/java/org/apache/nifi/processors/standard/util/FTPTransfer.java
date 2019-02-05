@@ -296,7 +296,7 @@ public class FTPTransfer implements FileTransfer {
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
-	    
+
         final long lastModifiedTime  = (file.getTimestamp() != null) ? file.getTimestamp().getTimeInMillis() : 0L;
      
         FileInfo.Builder builder = new FileInfo.Builder()
