@@ -585,7 +585,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
-    public long loadFlowFiles(final QueueProvider queueProvider, final long minimumSequenceNumber) throws IOException {
+    public long loadFlowFiles(final QueueProvider queueProvider) throws IOException {
         final Map<String, FlowFileQueue> queueMap = new HashMap<>();
         for (final FlowFileQueue queue : queueProvider.getAllQueues()) {
             queueMap.put(queue.getIdentifier(), queue);
@@ -630,7 +630,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         // Determine the next sequence number for FlowFiles
         int numFlowFilesMissingQueue = 0;
-        long maxId = minimumSequenceNumber;
+        long maxId = 0;
         for (final RepositoryRecord record : recordList) {
             final long recordId = serdeFactory.getRecordIdentifier(record);
             if (recordId > maxId) {
@@ -673,6 +673,21 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointFuture = checkpointExecutor.scheduleWithFixedDelay(checkpointRunnable, checkpointDelayMillis, checkpointDelayMillis, TimeUnit.MILLISECONDS);
 
         return maxId;
+    }
+
+    @Override
+    public void updateMaxFlowFileIdentifier(final long maxId) {
+        while (true) {
+            final long currentId = flowFileSequenceGenerator.get();
+            if (currentId >= maxId) {
+                return;
+            }
+
+            final boolean updated = flowFileSequenceGenerator.compareAndSet(currentId, maxId);
+            if (updated) {
+                return;
+            }
+        }
     }
 
     @Override

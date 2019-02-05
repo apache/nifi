@@ -2105,6 +2105,10 @@ public class TestStandardProcessSession {
         }
 
         @Override
+        public void updateMaxFlowFileIdentifier(final long maxId) {
+        }
+
+        @Override
         public void updateRepository(Collection<RepositoryRecord> records) throws IOException {
             if (failOnUpdate) {
                 throw new IOException("FlowFile Repository told to fail on update for unit test");
@@ -2137,7 +2141,7 @@ public class TestStandardProcessSession {
         }
 
         @Override
-        public long loadFlowFiles(QueueProvider queueProvider, long minimumSequenceNumber) throws IOException {
+        public long loadFlowFiles(QueueProvider queueProvider) throws IOException {
             return 0;
         }
 

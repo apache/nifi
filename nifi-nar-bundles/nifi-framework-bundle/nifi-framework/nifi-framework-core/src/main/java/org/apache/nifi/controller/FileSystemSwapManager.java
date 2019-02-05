@@ -298,6 +298,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                     }
                 }
 
+                final boolean validLocation = flowFileRepository.isValidSwapLocationSuffix(swapFile.getName());
+                if (!validLocation) {
+                    logger.warn("Encountered unknown Swap File {}; will ignore this Swap File. This file should be cleaned up manually", swapFile);
+                    continue;
+                }
+
                 swapLocations.add(swapFile.getAbsolutePath());
                 continue;
             }

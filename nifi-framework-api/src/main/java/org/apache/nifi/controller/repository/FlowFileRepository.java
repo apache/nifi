@@ -78,13 +78,11 @@ public interface FlowFileRepository extends Closeable {
      *
      * @param queueProvider the provider of FlowFile Queues into which the
      * FlowFiles should be enqueued
-     * @param minimumSequenceNumber specifies the minimum value that should be
-     * returned by a call to {@link #getNextFlowFileSequence()}
      *
      * @return index of highest flow file identifier
      * @throws IOException if load fails
      */
-    long loadFlowFiles(QueueProvider queueProvider, long minimumSequenceNumber) throws IOException;
+    long loadFlowFiles(QueueProvider queueProvider) throws IOException;
 
     /**
      * @return <code>true</code> if the Repository is volatile (i.e., its data
@@ -103,6 +101,13 @@ public interface FlowFileRepository extends Closeable {
      * @throws IOException if computing max identifier fails
      */
     long getMaxFlowFileIdentifier() throws IOException;
+
+    /**
+     * Notifies the FlowFile Repository that the given identifier has been identified as the maximum value that
+     * has been encountered for an 'external' (swapped out) FlowFile.
+     * @param maxId the max id of any FlowFile encountered
+     */
+    void updateMaxFlowFileIdentifier(long maxId);
 
     /**
      * Updates the Repository to indicate that the given FlowFileRecords were
