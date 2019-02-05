@@ -114,9 +114,23 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public long loadFlowFiles(final QueueProvider queueProvider, final long minimumSequenceNumber) throws IOException {
-        idGenerator.set(minimumSequenceNumber);
+    public long loadFlowFiles(final QueueProvider queueProvider) throws IOException {
         return 0;
+    }
+
+    @Override
+    public void updateMaxFlowFileIdentifier(final long maxId) {
+        while (true) {
+            final long currentId = idGenerator.get();
+            if (currentId >= maxId) {
+                return;
+            }
+
+            final boolean updated = idGenerator.compareAndSet(currentId, maxId);
+            if (updated) {
+                return;
+            }
+        }
     }
 
     @Override

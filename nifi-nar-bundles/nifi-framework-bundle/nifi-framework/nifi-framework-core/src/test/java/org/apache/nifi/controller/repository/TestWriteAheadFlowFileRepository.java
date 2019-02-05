@@ -422,7 +422,7 @@ public class TestWriteAheadFlowFileRepository {
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
-        repo.loadFlowFiles(queueProvider, 0L);
+        repo.loadFlowFiles(queueProvider);
 
         final Connection connection = Mockito.mock(Connection.class);
         when(connection.getIdentifier()).thenReturn("1234");
@@ -449,7 +449,7 @@ public class TestWriteAheadFlowFileRepository {
         // restore
         final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
         repo2.initialize(new StandardResourceClaimManager());
-        repo2.loadFlowFiles(queueProvider, 0L);
+        repo2.loadFlowFiles(queueProvider);
         assertTrue(repo2.isValidSwapLocationSuffix("swap123"));
         assertFalse(repo2.isValidSwapLocationSuffix("other"));
         repo2.close();
@@ -466,7 +466,7 @@ public class TestWriteAheadFlowFileRepository {
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
-        repo.loadFlowFiles(queueProvider, 0L);
+        repo.loadFlowFiles(queueProvider);
 
         final Connection connection = Mockito.mock(Connection.class);
         when(connection.getIdentifier()).thenReturn("1234");
@@ -519,7 +519,7 @@ public class TestWriteAheadFlowFileRepository {
         // resource claims' counts should be updated for both the swapped out FlowFile and the non-swapped out FlowFile
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
             repo.initialize(claimManager);
-            repo.loadFlowFiles(queueProvider, -1L);
+            repo.loadFlowFiles(queueProvider);
 
             // Create a Repository Record that indicates that a FlowFile was created
             final FlowFileRecord flowFile1 = new StandardFlowFileRecord.Builder()
@@ -554,7 +554,7 @@ public class TestWriteAheadFlowFileRepository {
         final ResourceClaimManager recoveryClaimManager = new StandardResourceClaimManager();
         try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
             repo.initialize(recoveryClaimManager);
-            final long largestId = repo.loadFlowFiles(queueProvider, 0L);
+            final long largestId = repo.loadFlowFiles(queueProvider);
 
             // largest ID known is 1 because this doesn't take into account the FlowFiles that have been swapped out
             assertEquals(1, largestId);
@@ -587,7 +587,7 @@ public class TestWriteAheadFlowFileRepository {
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
-        repo.loadFlowFiles(queueProvider, 0L);
+        repo.loadFlowFiles(queueProvider);
 
         final List<FlowFileRecord> flowFileCollection = new ArrayList<>();
 
@@ -639,7 +639,7 @@ public class TestWriteAheadFlowFileRepository {
         // restore
         final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
         repo2.initialize(new StandardResourceClaimManager());
-        repo2.loadFlowFiles(queueProvider, 0L);
+        repo2.loadFlowFiles(queueProvider);
 
         assertEquals(1, flowFileCollection.size());
         final FlowFileRecord flowFile = flowFileCollection.get(0);
