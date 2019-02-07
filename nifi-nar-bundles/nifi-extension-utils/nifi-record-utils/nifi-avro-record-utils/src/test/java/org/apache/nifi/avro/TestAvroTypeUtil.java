@@ -17,10 +17,27 @@
 
 package org.apache.nifi.avro;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
+import org.apache.avro.Schema.Type;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Record;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericFixed;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -34,27 +51,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.avro.Conversions;
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
-import org.apache.avro.Schema.Type;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericFixed;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.generic.GenericRecordBuilder;
-import org.apache.avro.generic.GenericData.Record;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestAvroTypeUtil {
 
@@ -449,5 +451,41 @@ public class TestAvroTypeUtil {
         Object o = AvroTypeUtil.convertToAvroObject("Hello".getBytes(charset), Schema.create(Type.STRING), charset);
         assertTrue(o instanceof String);
         assertEquals("Hello", o);
+    }
+
+    @Test
+    public void testAliasCreatedForInvalidField() {
+       final List<RecordField> fields = new ArrayList<>();
+       fields.add(new RecordField("valid", RecordFieldType.STRING.getDataType()));
+       fields.add(new RecordField("$invalid2", RecordFieldType.STRING.getDataType()));
+       fields.add(new RecordField("3invalid3", RecordFieldType.STRING.getDataType()));
+       fields.add(new RecordField("  __ Another ONE!!", RecordFieldType.STRING.getDataType()));
+
+       final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+       final Schema avroSchema = AvroTypeUtil.extractAvroSchema(recordSchema);
+       assertNotNull(avroSchema.getField("valid"));
+
+       assertNull(avroSchema.getField("$invalid"));
+       final Field field2 = avroSchema.getField("_invalid2");
+       assertNotNull(field2);
+       assertEquals("_invalid2", field2.name());
+       assertEquals(1, field2.aliases().size());
+       assertTrue(field2.aliases().contains("$invalid2"));
+
+        assertNull(avroSchema.getField("$invalid3"));
+        final Field field3 = avroSchema.getField("_invalid3");
+        assertNotNull(field3);
+        assertEquals("_invalid3", field3.name());
+        assertEquals(1, field3.aliases().size());
+        assertTrue(field3.aliases().contains("3invalid3"));
+
+        assertNull(avroSchema.getField("  __ Another ONE!!"));
+        final Field field4 = avroSchema.getField("_____Another_ONE__");
+        assertNotNull(field4);
+        assertEquals("_____Another_ONE__", field4.name());
+        assertEquals(1, field4.aliases().size());
+        assertTrue(field4.aliases().contains("  __ Another ONE!!"));
+
     }
 }
