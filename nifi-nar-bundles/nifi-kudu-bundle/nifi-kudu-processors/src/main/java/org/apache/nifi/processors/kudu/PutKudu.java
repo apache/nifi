@@ -54,11 +54,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
 
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -189,6 +193,7 @@ public class PutKudu extends AbstractProcessor {
 
     protected KuduClient kuduClient;
     protected KuduTable kuduTable;
+    private volatile KerberosUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -216,7 +221,7 @@ public class PutKudu extends AbstractProcessor {
 
 
     @OnScheduled
-    public void OnScheduled(final ProcessContext context) throws IOException {
+    public void OnScheduled(final ProcessContext context) throws IOException, LoginException {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
@@ -231,31 +236,35 @@ public class PutKudu extends AbstractProcessor {
         getLogger().debug("Kudu connection successfully initialized");
     }
 
-    protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) throws IOException {
+    protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) throws LoginException {
+        final KuduClient.KuduClientBuilder builder = new KuduClient.KuduClientBuilder(masters);
         if (credentialsService == null) {
-            return new KuduClient.KuduClientBuilder(masters).build();
+            builder.build();
         }
 
         final String keytab = credentialsService.getKeytab();
         final String principal = credentialsService.getPrincipal();
 
-        // We do not have any Hadoop Configuration to use for this Processor. However, if we call UserGroupInformation.loginUserFromKeytab() it will return
-        // immediately without logging in via keytab, as it initializes via the empty Configuration object, which has 'hadoop.security.authentication' set to "simple".
-        // So, in order for the login to happen from a keytab, we have to create a Configuration object to explicitly set authentication to Kerberos and then set
-        // that on the UserGroupInformation and use that to login.
-        final Configuration hadoopConfig = new Configuration();
-        hadoopConfig.set("hadoop.security.authentication", "kerberos");
-        UserGroupInformation.setConfiguration(hadoopConfig);
-        UserGroupInformation.loginUserFromKeytab(principal, keytab);
-        return UserGroupInformation.getLoginUser().doAs((PrivilegedAction<KuduClient>) () -> new KuduClient.KuduClientBuilder(masters).build());
+        kerberosUser = new KerberosKeytabUser(principal, keytab);
+        kerberosUser.login();
+
+        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, builder::build, getLogger());
+        return kerberosAction.execute();
     }
 
     @OnStopped
-    public final void closeClient() throws KuduException {
-        if (kuduClient != null) {
-            getLogger().debug("Closing KuduClient");
-            kuduClient.close();
-            kuduClient = null;
+    public final void closeClient() throws KuduException, LoginException {
+        try {
+            if (kuduClient != null) {
+                getLogger().debug("Closing KuduClient");
+                kuduClient.close();
+                kuduClient = null;
+            }
+        } finally {
+            if (kerberosUser != null) {
+                kerberosUser.logout();
+                kerberosUser = null;
+            }
         }
     }
 
