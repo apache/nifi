@@ -131,15 +131,11 @@ public class ContentClaimInputStream extends InputStream {
             throw new IOException("Stream has not been marked");
         }
 
-        try {
-            if (currentOffset != markOffset) {
-                delegate.close();
-                formDelegate();
-                StreamUtils.skip(delegate, markOffset - claimOffset);
-                currentOffset = markOffset;
-            }
-        } finally {
-            markOffset = -1;
+        if (currentOffset != markOffset) {
+            delegate.close();
+            formDelegate();
+            StreamUtils.skip(delegate, markOffset - claimOffset);
+            currentOffset = markOffset;
         }
     }
 

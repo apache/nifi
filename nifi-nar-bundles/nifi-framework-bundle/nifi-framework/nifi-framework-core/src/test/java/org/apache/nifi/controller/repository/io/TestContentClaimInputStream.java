@@ -130,6 +130,37 @@ public class TestContentClaimInputStream {
 
 
     @Test
+    public void testMultipleResetCallsAfterMark() throws IOException {
+        final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 0L);
+
+        final byte[] buff = new byte[5];
+
+        final int invocations = 10;
+        in.mark(5);
+
+        for (int i=0; i < invocations; i++) {
+            StreamUtils.fillBuffer(in, buff, true);
+
+            final String contentRead = new String(buff);
+            assertEquals("hello", contentRead);
+
+            assertEquals(5 * (i+1), in.getBytesConsumed());
+            assertEquals(5, in.getCurrentOffset());
+            assertEquals(-1, in.read());
+
+            in.reset();
+        }
+
+        Mockito.verify(repo, Mockito.times(invocations + 1)).read(contentClaim); // Will call reset() 'invocations' times plus the initial read
+        Mockito.verifyNoMoreInteractions(repo);
+
+        // Ensure that underlying stream is closed
+        in.close();
+        assertTrue(closed.get());
+    }
+
+
+    @Test
     public void testRereadWithOffset() throws IOException {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 3L);
 
@@ -158,5 +189,4 @@ public class TestContentClaimInputStream {
         in.close();
         assertTrue(closed.get());
     }
-
 }
