@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
@@ -185,7 +186,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
-                        setProperty(entry.getKey(), CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue()));
+                        final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
+                        setProperty(entry.getKey(), updatedValue, this.properties::get);
                     }
                 }
 
@@ -210,16 +212,16 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     // Keep setProperty/removeProperty private so that all calls go through setProperties
-    private void setProperty(final String name, final String value) {
+    private void setProperty(final String name, final String value, final Function<PropertyDescriptor, String> valueToCompareFunction) {
         if (null == name || null == value) {
             throw new IllegalArgumentException("Name or Value can not be null");
         }
 
         final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(name);
-
+        final String propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
         final String oldValue = properties.put(descriptor, value);
-        if (!value.equals(oldValue)) {
 
+        if (!value.equals(oldValue)) {
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (oldValue != null) {
                     final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldValue);
@@ -233,7 +235,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     newNode.addReference(this);
                 }
             }
+        }
 
+        // In the case of a component "reload", we want to call onPropertyModified when the value is changed from the descriptor's default.
+        // However, we do not want to update any controller service references because those are tied to the ComponentNode. We only want to
+        // allow the newly created component's internal state to be updated.
+        if (!value.equals(propertyModComparisonValue)) {
             try {
                 onPropertyModified(descriptor, oldValue, value);
             } catch (final Exception e) {
@@ -309,10 +316,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public void refreshProperties() {
-        // use setProperty instead of setProperties so we can bypass the class loading logic
+        // use setProperty instead of setProperties so we can bypass the class loading logic.
+        // Consider value changed if it is different than the PropertyDescriptor's default value because we need to call the #onPropertiesModified
+        // method on the component if the current value is not the default value, since the component itself is being reloaded.
         getProperties().entrySet().stream()
                 .filter(e -> e.getKey() != null && e.getValue() != null)
-                .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
+                .forEach(e -> setProperty(e.getKey().getName(), e.getValue(), PropertyDescriptor::getDefaultValue));
     }
 
     /**
