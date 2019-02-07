@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.dbcp.hive;
 
-import java.io.File;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.conf.Configuration;
@@ -32,7 +31,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
@@ -165,8 +163,6 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
 
     private volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     private volatile UserGroupInformation ugi;
-    private volatile File kerberosConfigFile = null;
-    private volatile KerberosProperties kerberosProperties;
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
@@ -180,10 +176,6 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
         props.add(VALIDATION_QUERY);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
 
-        kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosProperties = new KerberosProperties(kerberosConfigFile);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
         properties = props;
     }
 
@@ -199,41 +191,20 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (confFileProvided) {
-            final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-            final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
             final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
             final String resolvedPrincipal;
             final String resolvedKeytab;
             if (credentialsService == null) {
-                resolvedPrincipal = explicitPrincipal;
-                resolvedKeytab = explicitKeytab;
+                resolvedPrincipal = null;
+                resolvedKeytab = null;
             } else {
                 resolvedPrincipal = credentialsService.getPrincipal();
                 resolvedKeytab = credentialsService.getKeytab();
             }
 
-
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
             problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, validationResourceHolder, getLogger()));
-
-            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
-                problems.add(new ValidationResult.Builder()
-                    .subject("Kerberos Credentials")
-                    .valid(false)
-                    .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
-                    .build());
-            }
-
-            final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-            if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
-                problems.add(new ValidationResult.Builder()
-                    .subject("Kerberos Credentials")
-                    .valid(false)
-                    .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
-                        + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
-                    .build());
-            }
         }
 
         return problems;
@@ -291,15 +262,13 @@ public class Hive_1_1ConnectionPool extends AbstractControllerService implements
 
         final String drv = HiveDriver.class.getName();
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
-            final String explicitPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-            final String explicitKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
             final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
             final String resolvedPrincipal;
             final String resolvedKeytab;
             if (credentialsService == null) {
-                resolvedPrincipal = explicitPrincipal;
-                resolvedKeytab = explicitKeytab;
+                resolvedPrincipal = null;
+                resolvedKeytab = null;
             } else {
                 resolvedPrincipal = credentialsService.getPrincipal();
                 resolvedKeytab = credentialsService.getKeytab();

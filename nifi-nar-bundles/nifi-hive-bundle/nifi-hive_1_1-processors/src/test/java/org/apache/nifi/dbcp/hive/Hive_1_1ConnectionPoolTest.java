@@ -35,11 +35,9 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -53,7 +51,6 @@ public class Hive_1_1ConnectionPoolTest {
     private Hive_1_1ConnectionPool hiveConnectionPool;
     private BasicDataSource basicDataSource;
     private ComponentLog componentLog;
-    private KerberosProperties kerberosProperties;
     private File krb5conf = new File("src/test/resources/krb5.conf");
 
     @Before
@@ -66,7 +63,6 @@ public class Hive_1_1ConnectionPoolTest {
         userGroupInformation = mock(UserGroupInformation.class);
         basicDataSource = mock(BasicDataSource.class);
         componentLog = mock(ComponentLog.class);
-        kerberosProperties = mock(KerberosProperties.class);
 
         when(userGroupInformation.doAs(isA(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {
             try {
@@ -77,18 +73,6 @@ public class Hive_1_1ConnectionPoolTest {
                 throw new UndeclaredThrowableException(e);
             }
         });
-
-        when(kerberosProperties.getKerberosKeytab()).thenReturn(new PropertyDescriptor.Builder()
-                .name("Kerberos Principal")
-                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-                .build());
-
-        when(kerberosProperties.getKerberosPrincipal()).thenReturn(new PropertyDescriptor.Builder()
-                .name("Kerberos Keytab")
-                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-                .build());
 
         initPool();
     }
@@ -107,10 +91,6 @@ public class Hive_1_1ConnectionPoolTest {
         Field componentLogField = AbstractControllerService.class.getDeclaredField("logger");
         componentLogField.setAccessible(true);
         componentLogField.set(hiveConnectionPool, componentLog);
-
-        Field kerberosPropertiesField = Hive_1_1ConnectionPool.class.getDeclaredField("kerberosProperties");
-        kerberosPropertiesField.setAccessible(true);
-        kerberosPropertiesField.set(hiveConnectionPool, kerberosProperties);
     }
 
     @Test(expected = ProcessException.class)
