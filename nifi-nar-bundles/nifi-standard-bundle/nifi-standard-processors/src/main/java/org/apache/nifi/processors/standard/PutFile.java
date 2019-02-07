@@ -44,6 +44,7 @@ import org.apache.nifi.util.StopWatch;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipalLookupService;
@@ -57,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @EventDriven
@@ -81,6 +83,9 @@ public class PutFile extends AbstractProcessor {
 
     public static final String FILE_MODIFY_DATE_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    
+    public static final Pattern RWX_PATTERN = Pattern.compile("^([r-][w-])([x-])([r-][w-])([x-])([r-][w-])([x-])$");
+    public static final Pattern NUM_PATTERN = Pattern.compile("//d+");
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
@@ -206,9 +211,58 @@ public class PutFile extends AbstractProcessor {
             final Path tempCopyFile = rootDirPath.resolve("." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
             final Path copyFile = rootDirPath.resolve(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
 
+            final String permissions = context.getProperty(CHANGE_PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
+            final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
+            final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
             if (!Files.exists(rootDirPath)) {
                 if (context.getProperty(CREATE_DIRS).asBoolean()) {
-                    Files.createDirectories(rootDirPath);
+                    Path existing = rootDirPath;
+                    while (!Files.exists(existing)) {
+                        existing = existing.getParent();
+                    }
+                    if (permissions != null && !permissions.trim().isEmpty()) {
+                        try {
+                            String perms = stringPermissions(permissions, true);
+                            if (!perms.isEmpty()) {
+                                Files.createDirectories(rootDirPath, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(perms)));
+                            } else {
+                                Files.createDirectories(rootDirPath);
+                            }
+                        } catch (Exception e) {
+                            flowFile = session.penalize(flowFile);
+                            session.transfer(flowFile, REL_FAILURE);
+                            logger.error("Could not set create directory with permissions {} because {}", new Object[]{permissions, e});
+                            return;
+                        }
+                    } else {
+                        Files.createDirectories(rootDirPath);
+                    }
+
+                    boolean chOwner = owner != null && !owner.trim().isEmpty();
+                    boolean chGroup = group != null && !group.trim().isEmpty();
+                    if (chOwner || chGroup) {
+                        Path currentPath = rootDirPath;
+                        while (!currentPath.equals(existing)) {
+                        	if (chOwner) {
+	                            try {
+	                                UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
+	                                Files.setOwner(currentPath, lookupService.lookupPrincipalByName(owner));
+	                            } catch (Exception e) {
+	                                logger.warn("Could not set directory owner to {} because {}", new Object[]{owner, e});
+	                            }
+                        	}
+                        	if (chGroup) {
+	                            try {
+	                                UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
+	                                PosixFileAttributeView view = Files.getFileAttributeView(currentPath, PosixFileAttributeView.class);
+	                                view.setGroup(lookupService.lookupPrincipalByGroupName(group));
+	                            } catch (Exception e) {
+	                                logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+	                            }
+                        	}
+                            currentPath = currentPath.getParent();
+                        }
+                    }
                 } else {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -268,10 +322,9 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            final String permissions = context.getProperty(CHANGE_PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
             if (permissions != null && !permissions.trim().isEmpty()) {
                 try {
-                    String perms = stringPermissions(permissions);
+                    String perms = stringPermissions(permissions, false);
                     if (!perms.isEmpty()) {
                         Files.setPosixFilePermissions(dotCopyFile, PosixFilePermissions.fromString(perms));
                     }
@@ -280,7 +333,6 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
             if (owner != null && !owner.trim().isEmpty()) {
                 try {
                     UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
@@ -290,7 +342,6 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
             if (group != null && !group.trim().isEmpty()) {
                 try {
                     UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
@@ -336,13 +387,24 @@ public class PutFile extends AbstractProcessor {
         }
     }
 
-    protected String stringPermissions(String perms) {
+    protected String stringPermissions(String perms, boolean directory) {
         String permissions = "";
-        final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
-        final Pattern numPattern = Pattern.compile("\\d+");
-        if (rwxPattern.matcher(perms).matches()) {
-            permissions = perms;
-        } else if (numPattern.matcher(perms).matches()) {
+        Matcher rwx = RWX_PATTERN.matcher(perms);
+        if (rwx.matches()) {
+            if (directory) {
+                // To read or write, directory access will be required
+                StringBuilder permBuilder = new StringBuilder();
+                permBuilder.append("$1");
+                permBuilder.append(rwx.group(1).equals("--") ? "$2" : "x");
+                permBuilder.append("$3");
+                permBuilder.append(rwx.group(3).equals("--") ? "$4" : "x");
+                permBuilder.append("$5");
+                permBuilder.append(rwx.group(5).equals("--") ? "$6" : "x");
+                permissions = rwx.replaceAll(permBuilder.toString());
+            } else {
+                permissions = perms;
+            }
+        } else if (NUM_PATTERN.matcher(perms).matches()) {
             try {
                 int number = Integer.parseInt(perms, 8);
                 StringBuilder permBuilder = new StringBuilder();
@@ -356,7 +418,7 @@ public class PutFile extends AbstractProcessor {
                 } else {
                     permBuilder.append('-');
                 }
-                if ((number & 0x40) > 0) {
+                if (directory || (number & 0x40) > 0) {
                     permBuilder.append('x');
                 } else {
                     permBuilder.append('-');
@@ -374,7 +436,12 @@ public class PutFile extends AbstractProcessor {
                 if ((number & 0x8) > 0) {
                     permBuilder.append('x');
                 } else {
-                    permBuilder.append('-');
+                    if (directory && (number & 0x30) > 0) {
+                        // To read or write, directory access will be required
+                        permBuilder.append('x');
+                    } else {
+                        permBuilder.append('-');
+                    }
                 }
                 if ((number & 0x4) > 0) {
                     permBuilder.append('r');
@@ -386,15 +453,21 @@ public class PutFile extends AbstractProcessor {
                 } else {
                     permBuilder.append('-');
                 }
-                if ((number & 0x8) > 0) {
+                if ((number & 0x1) > 0) {
                     permBuilder.append('x');
                 } else {
-                    permBuilder.append('-');
+                    if (directory && (number & 0x6) > 0) {
+                        // To read or write, directory access will be required
+                        permBuilder.append('x');
+                    } else {
+                        permBuilder.append('-');
+                    }
                 }
                 permissions = permBuilder.toString();
             } catch (NumberFormatException ignore) {
             }
         }
+        
         return permissions;
     }
 }
