@@ -161,12 +161,13 @@ public interface HBaseClientService extends ControllerService {
      * @param timerangeMax the maximum timestamp of cells to return, passed to the HBase scanner timeRange
      * @param limitRows the maximum number of rows to be returned by scanner
      * @param isReversed whether this scan is a reversed one.
+     * @param blockCache set to use the block cache option of hbase scan.
      * @param columns optional columns to return, if not specified all columns are returned
      * @param authorizations optional list of visibility labels that the user should be able to see when communicating with HBase
      * @param handler a handler to process rows of the result
      */
     void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
-            Boolean isReversed, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
+            Boolean isReversed, Boolean blockCache, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
 
     /**
      * Converts the given boolean to it's byte representation.
