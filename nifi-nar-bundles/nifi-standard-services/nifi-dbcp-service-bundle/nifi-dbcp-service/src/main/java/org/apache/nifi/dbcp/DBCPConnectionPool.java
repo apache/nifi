@@ -434,21 +434,22 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     /**
      * Shutdown pool, close all open connections.
+     * If a principal is authenticated with a KDC, that principal is logged out.
      */
     @OnDisabled
     public void shutdown() {
+        try {
+            dataSource.close();
+        } catch (final SQLException e) {
+            throw new ProcessException(e);
+        }
+
         try {
             if (kerberosUser != null) {
                 kerberosUser.logout();
                 kerberosUser = null;
             }
         } catch (LoginException e) {
-            throw new ProcessException(e);
-        }
-
-        try {
-            dataSource.close();
-        } catch (final SQLException e) {
             throw new ProcessException(e);
         }
     }
