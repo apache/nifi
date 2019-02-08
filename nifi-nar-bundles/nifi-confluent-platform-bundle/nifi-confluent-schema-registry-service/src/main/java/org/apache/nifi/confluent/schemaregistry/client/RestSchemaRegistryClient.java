@@ -82,13 +82,19 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     @Override
     public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
-        final String pathSuffix = getSubjectPath(schemaName);
+        final String pathSuffix = getSubjectPath(schemaName, null);
         final JsonNode responseJson = fetchJsonResponse(pathSuffix, "name " + schemaName);
 
-        final RecordSchema recordSchema = createRecordSchema(responseJson);
-        return recordSchema;
+        return createRecordSchema(responseJson);
     }
 
+    @Override
+    public RecordSchema getSchema(final String schemaName, final int schemaVersion) throws IOException, SchemaNotFoundException {
+        final String pathSuffix = getSubjectPath(schemaName, schemaVersion);
+        final JsonNode responseJson = fetchJsonResponse(pathSuffix, "name " + schemaName);
+
+        return createRecordSchema(responseJson);
+    }
 
     @Override
     public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
@@ -121,8 +127,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             throw new SchemaNotFoundException("could not get schema with id: " + schemaId);
         }
 
-        final RecordSchema recordSchema = createRecordSchema(completeSchema);
-        return recordSchema;
+        return createRecordSchema(completeSchema);
     }
 
     private RecordSchema createRecordSchema(final JsonNode schemaNode) throws SchemaNotFoundException {
@@ -133,18 +138,18 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);
-            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id(Long.valueOf(id)).version(version).build();
+            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id((long) id).version(version).build();
 
-            final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
-            return recordSchema;
+            return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
         } catch (final SchemaParseException spe) {
             throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + subject
                 + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
         }
     }
 
-    private String getSubjectPath(final String schemaName) throws UnsupportedEncodingException {
-        return "/subjects/" + URLEncoder.encode(schemaName, "UTF-8") + "/versions/latest";
+    private String getSubjectPath(final String schemaName, final Integer schemaVersion) throws UnsupportedEncodingException {
+        return "/subjects/" + URLEncoder.encode(schemaName, "UTF-8") + "/versions/" +
+                (schemaVersion == null ? "latest" : URLEncoder.encode(String.valueOf(schemaVersion), "UTF-8"));
     }
 
     private String getSchemaPath(final int schemaId) throws UnsupportedEncodingException {
@@ -166,8 +171,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             }
 
             if(responseCode == Response.Status.OK.getStatusCode()) {
-                final JsonNode responseJson = response.readEntity(JsonNode.class);
-                return responseJson;
+                return response.readEntity(JsonNode.class);
             }
         }
 
@@ -187,8 +191,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final int responseCode = response.getStatus();
 
             if (responseCode == Response.Status.OK.getStatusCode()) {
-                final JsonNode responseJson = response.readEntity(JsonNode.class);
-                return responseJson;
+                return response.readEntity(JsonNode.class);
             }
 
             if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {

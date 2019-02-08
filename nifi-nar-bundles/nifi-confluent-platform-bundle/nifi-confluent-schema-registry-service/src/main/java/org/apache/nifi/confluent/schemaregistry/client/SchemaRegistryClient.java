@@ -26,5 +26,7 @@ public interface SchemaRegistryClient {
 
     RecordSchema getSchema(String schemaName) throws IOException, SchemaNotFoundException;
 
+    RecordSchema getSchema(String schemaName, int version) throws IOException, SchemaNotFoundException;
+
     RecordSchema getSchema(int schemaId) throws IOException, SchemaNotFoundException;
 }
