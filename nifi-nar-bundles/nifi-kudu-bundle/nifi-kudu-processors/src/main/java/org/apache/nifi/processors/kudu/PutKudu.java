@@ -142,6 +142,7 @@ public class PutKudu extends AbstractProcessor {
 
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")
+        .displayName("Max Records per Batch")
         .description("The maximum number of Records to process in a single Kudu-client batch, between 1 - 100000. " +
             "Depending on your memory size, and data size per row set an appropriate batch size. " +
             "Gradually increase this number to find out the best one for best performances.")
