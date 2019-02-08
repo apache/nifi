@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.dbcp
 
+import org.apache.commons.dbcp2.BasicDataSource
 import org.apache.nifi.reporting.InitializationException
+import org.apache.nifi.security.krb.KerberosKeytabUser
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
 import org.junit.BeforeClass
 import org.junit.Test
 
+import javax.security.auth.login.LoginException
 import java.sql.Connection
 import java.sql.SQLException
 
@@ -71,5 +74,60 @@ class GroovyDBCPServiceTest {
             Assert.assertNotNull(connection)
             connection.close() // will return connection to pool
         }
+    }
+
+    @Test(expected = LoginException)
+    void testDatasourceCloseSuccessWithKerberosUserLogoutException() {
+        final DBCPConnectionPool dbcpConnectionPoolService = new DBCPConnectionPool()
+
+        def basicDataSource = [close: { -> }] as BasicDataSource
+        dbcpConnectionPoolService.dataSource = basicDataSource
+        def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
+            @Override
+            void logout() throws LoginException {
+                throw new LoginException("fake logout exception")
+            }
+        }
+        dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
+
+        dbcpConnectionPoolService.shutdown()
+
+    }
+
+    @Test(expected = SQLException)
+    void testDatasourceCloseExceptionWithKerberosUserLogoutSuccess() {
+        final DBCPConnectionPool dbcpConnectionPoolService = new DBCPConnectionPool()
+
+        def basicDataSource = [
+                close: { -> throw new SQLException("fake sql exception")
+                }] as BasicDataSource
+        dbcpConnectionPoolService.dataSource = basicDataSource
+        def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
+            @Override
+            void logout() throws LoginException {
+            }
+        }
+        dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
+
+        dbcpConnectionPoolService.shutdown()
+    }
+
+    @Test(expected = SQLException)
+    void testDatasourceCloseExceptionWithKerberosUserLogoutException() {
+        final DBCPConnectionPool dbcpConnectionPoolService = new DBCPConnectionPool()
+
+        def basicDataSource = [
+                close: { -> throw new SQLException("fake sql exception")
+        }] as BasicDataSource
+        dbcpConnectionPoolService.dataSource = basicDataSource
+        def kerberosKeytabUser = new KerberosKeytabUser("bad@PRINCIPAL.COM", "fake.keytab") {
+            @Override
+            void logout() throws LoginException {
+                throw new LoginException("fake logout exception")
+            }
+        }
+        dbcpConnectionPoolService.kerberosUser = kerberosKeytabUser
+
+        dbcpConnectionPoolService.shutdown()
     }
 }
