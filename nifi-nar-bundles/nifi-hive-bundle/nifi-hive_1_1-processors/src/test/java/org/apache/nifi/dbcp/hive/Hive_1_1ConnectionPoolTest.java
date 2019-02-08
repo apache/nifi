@@ -30,17 +30,19 @@ import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -154,23 +156,25 @@ public class Hive_1_1ConnectionPoolTest {
         final String conf = "src/test/resources/hive-site-security.xml";
         final String ktab = "src/test/resources/fake.keytab";
         final String kprinc = "bad@PRINCIPAL.COM";
-
-        KerberosProperties kerbProperties = new KerberosProperties(krb5conf);
+        final String kerberosCredentialsServiceId = UUID.randomUUID().toString();
 
         Map<PropertyDescriptor, String> props = new HashMap<PropertyDescriptor, String>() {{
             put(Hive_1_1ConnectionPool.DATABASE_URL, "${url}");
             put(Hive_1_1ConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${conf}");
-            put(kerbProperties.getKerberosKeytab(), "${ktab}");
-            put(kerbProperties.getKerberosPrincipal(), "${kprinc}");
+            put(Hive_1_1ConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsServiceId);
         }};
 
         MockVariableRegistry registry = new MockVariableRegistry();
         registry.setVariable(new VariableDescriptor("url"), URL);
         registry.setVariable(new VariableDescriptor("conf"), conf);
-        registry.setVariable(new VariableDescriptor("ktab"), ktab);
-        registry.setVariable(new VariableDescriptor("kprinc"), kprinc);
 
-        MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
+        MockControllerServiceLookup mockControllerServiceLookup = new MockControllerServiceLookup() {};
+        KerberosCredentialsService kerberosCredentialsService = mock(KerberosCredentialsService.class);
+        when(kerberosCredentialsService.getKeytab()).thenReturn(ktab);
+        when(kerberosCredentialsService.getPrincipal()).thenReturn(kprinc);
+        mockControllerServiceLookup.addControllerService(kerberosCredentialsService, kerberosCredentialsServiceId);
+
+        MockConfigurationContext context = new MockConfigurationContext(props, mockControllerServiceLookup, registry);
         hiveConnectionPool.onConfigured(context);
     }
 }

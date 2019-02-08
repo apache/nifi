@@ -65,8 +65,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive 1.1.x. Connections can be asked from pool and returned after usage.")
 public class Hive_1_1ConnectionPool extends AbstractControllerService implements Hive_1_1DBCPService {
-    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
-
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
             .displayName("Database Connection URL")
