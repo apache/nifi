@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -57,6 +58,9 @@ import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"record", "duplicate", "map", "cache", "detect"})
+@CapabilityDescription("This processor detects duplicate records using a configured distributed map cache service" +
+        " to check a record path statement against a cache data store. It also provides the ability to write new " +
+        "entries to the cache in order to keep it updated with new entries.")
 public class DetectDuplicateRecords extends AbstractProcessor {
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("ddr-record-reader")
