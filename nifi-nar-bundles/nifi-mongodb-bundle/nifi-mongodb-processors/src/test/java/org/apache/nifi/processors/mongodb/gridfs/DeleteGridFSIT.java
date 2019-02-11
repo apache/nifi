@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DeleteGridFSIT extends ITTestBase {
+public class DeleteGridFSIT extends GridFSITTestBase {
     private TestRunner runner;
     private static final String BUCKET = "delete_test_bucket";
 

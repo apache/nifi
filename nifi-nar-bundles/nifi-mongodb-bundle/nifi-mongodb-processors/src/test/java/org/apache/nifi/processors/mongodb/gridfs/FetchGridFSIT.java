@@ -35,14 +35,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GetGridFSIT extends ITTestBase {
+public class FetchGridFSIT extends GridFSITTestBase {
     TestRunner runner;
 
     static final String BUCKET = "get_test_bucket";
 
     @Before
     public void setup() throws Exception {
-        runner = TestRunners.newTestRunner(GetGridFS.class);
+        runner = TestRunners.newTestRunner(FetchGridFS.class);
         super.setup(runner, BUCKET, false);
     }
 
@@ -61,22 +61,22 @@ public class GetGridFSIT extends ITTestBase {
         String query = String.format("{\"filename\": \"%s\"}", fileName);
         runner.enqueue(query);
         runner.run();
-        runner.assertTransferCount(GetGridFS.REL_FAILURE, 0);
-        runner.assertTransferCount(GetGridFS.REL_ORIGINAL, 1);
-        runner.assertTransferCount(GetGridFS.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetGridFS.REL_SUCCESS);
+        runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, 1);
+        runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS);
         byte[] rawData = runner.getContentAsByteArray(flowFiles.get(0));
         Assert.assertEquals("Data did not match for the file", new String(rawData), content);
 
         runner.clearTransferState();
-        runner.setProperty(GetGridFS.QUERY, query);
+        runner.setProperty(FetchGridFS.QUERY, query);
         runner.enqueue("test");
         runner.run();
 
-        runner.assertTransferCount(GetGridFS.REL_FAILURE, 0);
-        runner.assertTransferCount(GetGridFS.REL_ORIGINAL, 1);
-        runner.assertTransferCount(GetGridFS.REL_SUCCESS, 1);
-        flowFiles = runner.getFlowFilesForRelationship(GetGridFS.REL_SUCCESS);
+        runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, 1);
+        runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
+        flowFiles = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS);
         rawData = runner.getContentAsByteArray(flowFiles.get(0));
         Assert.assertEquals("Data did not match for the file", new String(rawData), content);
     }
@@ -94,13 +94,13 @@ public class GetGridFSIT extends ITTestBase {
 
         for (AllowableValue value : values) {
             String query = "{}";
-            runner.setProperty(GetGridFS.OPERATION_MODE, value);
+            runner.setProperty(FetchGridFS.OPERATION_MODE, value);
             runner.enqueue(query);
             runner.run();
 
-            runner.assertTransferCount(GetGridFS.REL_FAILURE, 0);
-            runner.assertTransferCount(GetGridFS.REL_ORIGINAL, 1);
-            runner.assertTransferCount(GetGridFS.REL_SUCCESS, 5);
+            runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
+            runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, 1);
+            runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 5);
             runner.clearTransferState();
         }
     }
@@ -115,15 +115,15 @@ public class GetGridFSIT extends ITTestBase {
         final String queryAttr = "gridfs.query.used";
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
-        runner.setProperty(GetGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
-        runner.setProperty(GetGridFS.QUERY_ATTRIBUTE, queryAttr);
+        runner.setProperty(FetchGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
+        runner.setProperty(FetchGridFS.QUERY_ATTRIBUTE, queryAttr);
         runner.enqueue(content, attrs);
         runner.run();
 
-        runner.assertTransferCount(GetGridFS.REL_FAILURE, 0);
-        runner.assertTransferCount(GetGridFS.REL_ORIGINAL, 1);
-        runner.assertTransferCount(GetGridFS.REL_SUCCESS, 1);
-        MockFlowFile mff = runner.getFlowFilesForRelationship(GetGridFS.REL_SUCCESS).get(0);
+        runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, 1);
+        runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
+        MockFlowFile mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         String attr = mff.getAttribute(queryAttr);
         Assert.assertNotNull("Query attribute was null.", attr);
         Assert.assertTrue("Wrong content.", attr.contains("filename"));
@@ -137,14 +137,14 @@ public class GetGridFSIT extends ITTestBase {
 
         String query = "{ \"metadata\": { \"lookupKey\": \"xyz\" }}";
 
-        runner.removeProperty(GetGridFS.FILE_NAME);
-        runner.setProperty(GetGridFS.QUERY, query);
+        runner.removeProperty(FetchGridFS.FILE_NAME);
+        runner.setProperty(FetchGridFS.QUERY, query);
         runner.enqueue(content, attrs);
         runner.run();
-        runner.assertTransferCount(GetGridFS.REL_FAILURE, 0);
-        runner.assertTransferCount(GetGridFS.REL_ORIGINAL, 1);
-        runner.assertTransferCount(GetGridFS.REL_SUCCESS, 1);
-        mff = runner.getFlowFilesForRelationship(GetGridFS.REL_SUCCESS).get(0);
+        runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
+        runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, 1);
+        runner.assertTransferCount(FetchGridFS.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(FetchGridFS.REL_SUCCESS).get(0);
         attr = mff.getAttribute(queryAttr);
         Assert.assertNotNull("Query attribute was null.", attr);
         Assert.assertTrue("Wrong content.", attr.contains("metadata"));
@@ -158,7 +158,7 @@ public class GetGridFSIT extends ITTestBase {
 
     @Test
     public void testGetQueryFromQueryParam() {
-        runner.setProperty(GetGridFS.QUERY, "{}");
+        runner.setProperty(FetchGridFS.QUERY, "{}");
         runner.enqueue("");
         testQueryFromSource(0, 1, 1);
     }
@@ -167,7 +167,7 @@ public class GetGridFSIT extends ITTestBase {
     public void testGetQueryFromFileNameParam() {
         Map<String, String> attr = new HashMap<>();
         attr.put(CoreAttributes.FILENAME.key(), "get_by_name.txt");
-        runner.setProperty(GetGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
+        runner.setProperty(FetchGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
         runner.enqueue("test", attr);
         testQueryFromSource(0, 1, 1);
     }
@@ -179,8 +179,8 @@ public class GetGridFSIT extends ITTestBase {
         Assert.assertNotNull(id);
 
         runner.run();
-        runner.assertTransferCount(GetGridFS.REL_FAILURE, failure);
-        runner.assertTransferCount(GetGridFS.REL_ORIGINAL, original);
-        runner.assertTransferCount(GetGridFS.REL_SUCCESS, success);
+        runner.assertTransferCount(FetchGridFS.REL_FAILURE, failure);
+        runner.assertTransferCount(FetchGridFS.REL_ORIGINAL, original);
+        runner.assertTransferCount(FetchGridFS.REL_SUCCESS, success);
     }
 }

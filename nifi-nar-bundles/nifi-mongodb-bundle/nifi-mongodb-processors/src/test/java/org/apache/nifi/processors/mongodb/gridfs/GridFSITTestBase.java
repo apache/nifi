@@ -34,7 +34,7 @@ import org.bson.types.ObjectId;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 
-public class ITTestBase {
+public class GridFSITTestBase {
     static final String URI = "mongodb://localhost:27017";
     static final String DB  = "gridfs_test_database";
     MongoClient client;

@@ -55,9 +55,9 @@ import java.util.Set;
 @WritesAttributes(
     @WritesAttribute(attribute = "gridfs.file.metadata", description = "The custom metadata stored with a file is attached to this property if it exists.")
 )
-@Tags({"get", "gridfs", "mongodb"})
+@Tags({"fetch", "gridfs", "mongo"})
 @CapabilityDescription("Retrieves one or more files from a GridFS bucket by file name or by a user-defined query.")
-public class GetGridFS extends AbstractGridFSProcessor implements QueryHelper {
+public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper {
 
     static final String METADATA_ATTRIBUTE = "gridfs.file.metadata";
 

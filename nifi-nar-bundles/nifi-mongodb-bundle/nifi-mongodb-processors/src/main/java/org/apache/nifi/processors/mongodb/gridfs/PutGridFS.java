@@ -51,12 +51,12 @@ import java.util.Map;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"mongo", "grids", "put", "file", "store"})
+@Tags({"mongo", "gridfs", "put", "file", "store"})
 @CapabilityDescription("Writes a file to a GridFS bucket.")
 public class PutGridFS extends AbstractGridFSProcessor {
 
     static final PropertyDescriptor PROPERTIES_PREFIX = new PropertyDescriptor.Builder()
-        .name("putgridfs-PARENT_PROPERTIES-prefix")
+        .name("putgridfs-properties-prefix")
         .displayName("File Properties Prefix")
         .description("Attributes that have this prefix will be added to the file stored in GridFS as metadata.")
         .required(false)

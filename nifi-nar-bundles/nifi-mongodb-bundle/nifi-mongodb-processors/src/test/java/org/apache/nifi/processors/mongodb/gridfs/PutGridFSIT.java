@@ -34,7 +34,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PutGridFSIT extends ITTestBase {
+public class PutGridFSIT extends GridFSITTestBase {
     TestRunner runner;
 
     static final String BUCKET = "put_test_bucket";

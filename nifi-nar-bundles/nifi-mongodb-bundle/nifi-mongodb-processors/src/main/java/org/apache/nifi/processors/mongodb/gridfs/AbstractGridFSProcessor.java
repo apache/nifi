@@ -50,7 +50,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
-        .name("Mongo Database Name")
+        .name("gridfs-database-name")
         .displayName("Mongo Database Name")
         .description("The name of the database to use")
         .required(true)
