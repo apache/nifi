@@ -1714,14 +1714,14 @@ public class TestStandardProcessSession {
     @Test
     public void testBatchQueuedHaveSameQueuedTime() throws InterruptedException {
         for (int i = 0; i < 100; i++) {
+            if (i == 99) {
+                Thread.sleep(10);
+            }
+
             final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
                     .id(i)
                     .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
                     .build();
-
-            if (i == 99) {
-                Thread.sleep(10);
-            }
 
             this.flowFileQueue.put(flowFile);
         }
