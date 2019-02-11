@@ -122,7 +122,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         // Ensure that if we are deriving schema from header that we always treat the first line as a header,
         // regardless of the 'First Line is Header' property
         final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
-        if (headerDerivedAllowableValue.getValue().equals(accessStrategy)) {
+        if (headerDerivedAllowableValue.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
             this.csvFormat = this.csvFormat.withFirstRecordAsHeader();
             this.firstLineIsHeader = true;
         }
