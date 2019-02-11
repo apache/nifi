@@ -18,8 +18,6 @@
 package org.apache.nifi.processors.kudu;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -66,7 +64,7 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -221,7 +219,7 @@ public class PutKudu extends AbstractProcessor {
 
 
     @OnScheduled
-    public void OnScheduled(final ProcessContext context) throws IOException, LoginException {
+    public void onScheduled(final ProcessContext context) throws IOException, LoginException {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
@@ -237,19 +235,26 @@ public class PutKudu extends AbstractProcessor {
     }
 
     protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) throws LoginException {
-        final KuduClient.KuduClientBuilder builder = new KuduClient.KuduClientBuilder(masters);
         if (credentialsService == null) {
-            builder.build();
+            return buildClient(masters);
         }
 
         final String keytab = credentialsService.getKeytab();
         final String principal = credentialsService.getPrincipal();
+        kerberosUser = loginKerberosUser(principal, keytab);
 
-        kerberosUser = new KerberosKeytabUser(principal, keytab);
-        kerberosUser.login();
-
-        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, builder::build, getLogger());
+        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(masters), getLogger());
         return kerberosAction.execute();
+    }
+
+    protected KuduClient buildClient(final String masters) {
+        return new KuduClient.KuduClientBuilder(masters).build();
+    }
+
+    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
+        kerberosUser.login();
+        return kerberosUser;
     }
 
     @OnStopped
@@ -275,6 +280,22 @@ public class PutKudu extends AbstractProcessor {
             return;
         }
 
+        final KerberosUser user = kerberosUser;
+        if (user == null) {
+            trigger(context, session, flowFiles);
+            return;
+        }
+
+        final PrivilegedExceptionAction<Void> privelegedAction = () -> {
+            trigger(context, session, flowFiles);
+            return null;
+        };
+
+        final KerberosAction<Void> action = new KerberosAction<>(user, privelegedAction, getLogger());
+        action.execute();
+    }
+
+    private void trigger(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles) throws ProcessException {
         final KuduSession kuduSession = getKuduSession(kuduClient);
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
@@ -397,13 +418,13 @@ public class PutKudu extends AbstractProcessor {
 
 
 
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
+    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
         Upsert upsert = kuduTable.newUpsert();
         this.buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames);
         return upsert;
     }
 
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
+    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
         Insert insert = kuduTable.newInsert();
         this.buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames);
         return insert;
