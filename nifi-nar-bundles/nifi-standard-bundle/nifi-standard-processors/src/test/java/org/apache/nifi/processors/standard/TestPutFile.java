@@ -23,9 +23,14 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -60,7 +65,7 @@ public class TestPutFile {
     
     @After
     public void tearDown() throws IOException {
-//        emptyTestDirectory();
+        emptyTestDirectory();
     }
 
     @Test
@@ -80,6 +85,33 @@ public class TestPutFile {
         Path newFile = newDirectory.resolve("testfile.txt");
         Assert.assertTrue("New directory not created.", newDirectory.toAbsolutePath().toFile().exists());
         Assert.assertTrue("New File not created.", newFile.toAbsolutePath().toFile().exists());
+        
+        PosixFileAttributeView filePosixAttributeView = Files.getFileAttributeView(newFile.toAbsolutePath(), PosixFileAttributeView.class);
+        Assert.assertEquals(System.getProperty("user.name"), filePosixAttributeView.getOwner().getName());
+        Set<PosixFilePermission> filePermissions = filePosixAttributeView.readAttributes().permissions();
+        Assert.assertTrue(filePermissions.contains(PosixFilePermission.OWNER_READ));
+        Assert.assertTrue(filePermissions.contains(PosixFilePermission.OWNER_WRITE));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OWNER_EXECUTE));
+        Assert.assertTrue(filePermissions.contains(PosixFilePermission.GROUP_READ));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.GROUP_WRITE));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.GROUP_EXECUTE));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_READ));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_WRITE));
+        Assert.assertFalse(filePermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+        
+        PosixFileAttributeView dirPosixAttributeView = Files.getFileAttributeView(newDirectory.toAbsolutePath(), PosixFileAttributeView.class);
+        Assert.assertEquals(System.getProperty("user.name"), dirPosixAttributeView.getOwner().getName());
+        Set<PosixFilePermission> dirPermissions = dirPosixAttributeView.readAttributes().permissions();
+        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_READ));
+        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_WRITE));
+        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.OWNER_EXECUTE));
+        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_READ));
+        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.GROUP_WRITE));
+        Assert.assertTrue(dirPermissions.contains(PosixFilePermission.GROUP_EXECUTE));
+        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_READ));
+        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_WRITE));
+        Assert.assertFalse(dirPermissions.contains(PosixFilePermission.OTHERS_EXECUTE));
+        
         putFileRunner.clearTransferState();
     }
 
