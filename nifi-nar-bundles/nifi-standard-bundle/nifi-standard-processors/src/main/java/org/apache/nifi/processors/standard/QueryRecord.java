@@ -493,10 +493,6 @@ public class QueryRecord extends AbstractProcessor {
 
     private SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
         final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-        // TODO: Document how to use RPATH functions in additionalDetails.html!
-        // TODO: Be sure to explain how/when to use each. For example, can just use RPATH when SELECTing the value but if using in a LIKE expression,
-        //       need a String so use RPATH_STRING
-        // TODO: Probably worth writing a blog post
         rootSchema.add("RPATH", ScalarFunctionImpl.create(ObjectRecordPath.class, "eval"));
         rootSchema.add("RPATH_STRING", ScalarFunctionImpl.create(StringRecordPath.class, "eval"));
         rootSchema.add("RPATH_INT", ScalarFunctionImpl.create(IntegerRecordPath.class, "eval"));
@@ -633,7 +629,6 @@ public class QueryRecord extends AbstractProcessor {
                 .toArray();
         }
 
-        // TODO: Test this
         private Object eval(final Record[] records, final String recordPath) {
             final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
 
