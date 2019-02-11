@@ -55,6 +55,8 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleDateFormatValidator;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
@@ -72,6 +74,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -119,6 +122,31 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
+            .build();
+
+    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("put-es-record-record-writer")
+            .displayName("Record Writer")
+            .description("After sending a batch of records, Elasticsearch will report if individual records failed to insert. As an example, this can happen if the record doesn't match the mapping" +
+                    "for the index it is being inserted into. This property specifies the Controller Service to use for writing out those individual records sent to 'failure'. If this is not set, " +
+                    "then the whole FlowFile will be routed to failure (including any records which may have been inserted successfully). Note that this will only be used if Elasticsearch reports " +
+                    "that individual records failed and that in the event that the entire FlowFile fails (e.g. in the event ES is down), the FF will be routed to failure without being interpreted " +
+                    "by this record writer. If there is an error while attempting to route the failures, the entire FlowFile will be routed to Failure. Also if every record failed individually, " +
+                    "the entire FlowFile will be routed to Failure without being parsed by the writer.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor LOG_ALL_ERRORS = new PropertyDescriptor.Builder()
+            .name("put-es-record-log-all-errors")
+            .displayName("Log all errors in batch")
+            .description("After sending a batch of records, Elasticsearch will report if individual records failed to insert. As an example, this can happen if the record doesn't match the mapping " +
+                    "for the index it is being inserted into. If this is set to true, the processor will log the failure reason for the every failed record. When set to false only the first error " +
+                    "in the batch will be logged.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
             .build();
 
     static final PropertyDescriptor ID_RECORD_PATH = new PropertyDescriptor.Builder()
@@ -222,6 +250,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
+    private volatile Boolean logAllErrors;
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -232,6 +261,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(RECORD_READER);
+        descriptors.add(RECORD_WRITER);
+        descriptors.add(LOG_ALL_ERRORS);
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -299,6 +330,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         if (this.timestampFormat == null) {
             this.timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
         }
+
+        logAllErrors = context.getProperty(LOG_ALL_ERRORS).asBoolean();
     }
 
     @Override
@@ -310,6 +343,13 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         }
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final Optional<RecordSetWriterFactory> writerFactoryOptional;
+
+        if (context.getProperty(RECORD_WRITER).isSet()) {
+            writerFactoryOptional = Optional.of(context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class));
+        } else {
+            writerFactoryOptional = Optional.empty();
+        }
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -429,14 +469,14 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         }
         final int statusCode = getResponse.code();
 
+        final Set<Integer> failures = new HashSet<>();
+
         if (isSuccess(statusCode)) {
-            ResponseBody responseBody = getResponse.body();
-            try {
+            try (ResponseBody responseBody = getResponse.body()) {
                 final byte[] bodyBytes = responseBody.bytes();
 
                 JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
                 boolean errors = responseJson.get("errors").asBoolean(false);
-                int failureCount = 0;
                 // ES has no rollback, so if errors occur, log them and route the whole flow file to failure
                 if (errors) {
                     ArrayNode itemNodeArray = (ArrayNode) responseJson.get("items");
@@ -450,7 +490,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                                 JsonNode itemNode = itemNodeArray.get(i);
                                 int status = itemNode.findPath("status").asInt();
                                 if (!isSuccess(status)) {
-                                    if (errorReason == null) {
+                                    if (errorReason == null || logAllErrors) {
                                         // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
                                         String reason = itemNode.findPath("result").asText();
                                         if (StringUtils.isEmpty(reason)) {
@@ -458,20 +498,21 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                                             reason = itemNode.findPath("reason").asText();
                                         }
                                         errorReason = reason;
-                                        logger.error("Failed to process {} due to {}, transferring to failure",
-                                                new Object[]{flowFile, errorReason});
+
+                                        logger.error("Failed to process record {} in FlowFile {} due to {}, transferring to failure",
+                                                new Object[]{i, flowFile, errorReason});
                                     }
-                                    failureCount++;
+                                    failures.add(i);
                                 }
                             }
                         }
                     }
-                    flowFile = session.putAttribute(flowFile, "failure.count", Integer.toString(failureCount));
-                    session.transfer(flowFile, REL_FAILURE);
                 } else {
+                    // Everything succeeded, route FF and end
                     flowFile = session.putAttribute(flowFile, "record.count", Integer.toString(recordCount));
                     session.transfer(flowFile, REL_SUCCESS);
                     session.getProvenanceReporter().send(flowFile, url.toString());
+                    return;
                 }
 
             } catch (IOException ioe) {
@@ -479,6 +520,9 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 logger.error("Error parsing Bulk API response: {}", new Object[]{ioe.getMessage()}, ioe);
                 session.transfer(flowFile, REL_FAILURE);
                 context.yield();
+                return;
+            } finally {
+                getResponse.close();
             }
         } else if (statusCode / 100 == 5) {
             // 5xx -> RETRY, but a server error might last a while, so yield
@@ -486,11 +530,76 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     new Object[]{statusCode, getResponse.message()});
             session.transfer(flowFile, REL_RETRY);
             context.yield();
+            return;
         } else {  // 1xx, 3xx, 4xx, etc. -> NO RETRY
             logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", new Object[]{statusCode, getResponse.message()});
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
-        getResponse.close();
+
+        // If everything failed or we don't have a writer factory, route the entire original FF to failure.
+        if ((!failures.isEmpty() && failures.size() == recordCount ) || !writerFactoryOptional.isPresent()) {
+            flowFile = session.putAttribute(flowFile, "failure.count", Integer.toString(failures.size()));
+            session.transfer(flowFile, REL_FAILURE);
+
+        } else if (!failures.isEmpty()) {
+            // Some of the records failed and we have a writer, handle the failures individually.
+            final RecordSetWriterFactory writerFactory = writerFactoryOptional.get();
+
+            // We know there are a mixture of successes and failures, create FFs for each and rename input FF to avoid confusion.
+            final FlowFile inputFlowFile = flowFile;
+            final FlowFile successFlowFile = session.create(inputFlowFile);
+            final FlowFile failedFlowFile = session.create(inputFlowFile);
+
+            // Set up the reader and writers
+            try (final OutputStream successOut = session.write(successFlowFile);
+                 final OutputStream failedOut = session.write(failedFlowFile);
+                 final InputStream in = session.read(inputFlowFile);
+                 final RecordReader reader = readerFactory.createRecordReader(inputFlowFile, in, getLogger())) {
+
+                final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
+
+                try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut);
+                     final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut)) {
+
+                    successWriter.beginRecordSet();
+                    failedWriter.beginRecordSet();
+
+                    // For each record, if it's in the failure set write it to the failure FF, otherwise it succeeded.
+                    Record record;
+                    int i = 0;
+                    while ((record = reader.nextRecord(false, false)) != null) {
+                        if (failures.contains(i)) {
+                            failedWriter.write(record);
+                        } else {
+                            successWriter.write(record);
+                        }
+                        i++;
+                    }
+                }
+
+                session.putAttribute(successFlowFile, "record.count", Integer.toString(recordCount - failures.size()));
+
+                // Normal behavior is to output with record.count. In order to not break backwards compatibility, set both here.
+                session.putAttribute(failedFlowFile, "record.count", Integer.toString(failures.size()));
+                session.putAttribute(failedFlowFile, "failure.count", Integer.toString(failures.size()));
+
+                session.transfer(successFlowFile, REL_SUCCESS);
+                session.transfer(failedFlowFile, REL_FAILURE);
+                session.remove(inputFlowFile);
+
+            } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
+                // We failed while handling individual failures. Not much else we can do other than log, and route the whole thing to failure.
+                getLogger().error("Failed to process {} during individual record failure handling; route whole FF to failure", new Object[] {flowFile, e});
+                session.transfer(inputFlowFile, REL_FAILURE);
+                if (successFlowFile != null) {
+                    session.remove(successFlowFile);
+                }
+                if (failedFlowFile != null) {
+                    session.remove(failedFlowFile);
+                }
+            }
+        }
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator)
