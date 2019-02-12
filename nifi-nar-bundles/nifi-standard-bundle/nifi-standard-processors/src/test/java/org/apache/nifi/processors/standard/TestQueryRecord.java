@@ -331,6 +331,41 @@ public class TestQueryRecord {
     }
 
 
+    @Test
+    public void testRecordPathWithMap() throws InitializationException {
+        final Record record = createHierarchicalRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT RPATH(favoriteThings, '.[''sport'']') AS sport," +
+                " RPATH_STRING(person, '/name') AS nameObj" +
+                " FROM FLOWFILE" +
+                " WHERE RPATH(favoriteThings, '.[''color'']') = 'green'");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("basketball", output.getValue("sport"));
+        assertEquals("John Doe", output.getValue("nameObj"));
+    }
 
     /**
      * Returns a Record that, if written in JSON, would look like:
@@ -339,7 +374,7 @@ public class TestQueryRecord {
      *    "person": {
      *        "name": "John Doe",
      *        "age": 30,
-     *        "favoriteColors": [ "red", "green" },
+     *        "favoriteColors": [ "red", "green" ],
      *        "dob": 598741575825,
      *        "dobTimestamp": 598741575825,
      *        "joinTimestamp": "2018-02-04 10:20:55.802",
@@ -371,9 +406,16 @@ public class TestQueryRecord {
 
         final List<RecordField> outerSchemaFields = new ArrayList<>();
         outerSchemaFields.add(new RecordField("person", RecordFieldType.RECORD.getRecordDataType(personSchema)));
+        outerSchemaFields.add(new RecordField("favoriteThings", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType())));
         final RecordSchema recordSchema = new SimpleRecordSchema(outerSchemaFields);
 
         final Record mother = new MapRecord(namedPersonSchema, Collections.singletonMap("name", "Jane Doe"));
+
+        final Map<String, String> favorites = new HashMap<>();
+        favorites.put("sport", "basketball");
+        favorites.put("color", "green");
+        favorites.put("roses", "raindrops");
+        favorites.put("kittens", "whiskers");
 
         final long ts = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * 30);
         final Map<String, Object> map = new HashMap<>();
@@ -387,7 +429,11 @@ public class TestQueryRecord {
         map.put("mother", mother);
         final Record person = new MapRecord(personSchema, map);
 
-        final Record record = new MapRecord(recordSchema, Collections.singletonMap("person", person));
+        final Map<String, Object> personValues = new HashMap<>();
+        personValues.put("person", person);
+        personValues.put("favoriteThings", favorites);
+
+        final Record record = new MapRecord(recordSchema, personValues);
         return record;
     }
 
