@@ -244,6 +244,7 @@ public class NiFiOrcUtils {
             case DOUBLE:
             case FLOAT:
             case STRING:
+            case NULL:
                 return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
 
             case UNION:
@@ -335,6 +336,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return TypeInfoFactory.getPrimitiveTypeInfo("bigint");
             case BOOLEAN:
+            case NULL: // ORC has no null type, so just pick the smallest. All values are necessarily null.
                 return TypeInfoFactory.getPrimitiveTypeInfo("boolean");
             case BYTES:
                 return TypeInfoFactory.getPrimitiveTypeInfo("binary");
@@ -362,6 +364,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return "BIGINT";
             case BOOLEAN:
+            case NULL: // Hive has no null type, we picked boolean as the ORC type so use it for Hive DDL too. All values are necessarily null.
                 return "BOOLEAN";
             case BYTES:
                 return "BINARY";
