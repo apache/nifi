@@ -365,14 +365,23 @@
                     nfControllerService.init(nfControllerServices, nfReportingTask);
                     nfReportingTask.init(nfSettings);
                     nfPolicyManagement.init();
-                    nfProcessorConfiguration.init();
+                    nfProcessorConfiguration.init({
+                      canvasSync : {bulletins : true, threads : true},
+                      nfCanvasUtils : nfCanvasUtils,
+                      nfActions : nfActions
+                    });
                     // initialize the PG config and invert control of the controllerServices
                     nfProcessGroupConfiguration.init(nfControllerServices);
                     nfRemoteProcessGroupConfiguration.init();
                     nfRemoteProcessGroupPorts.init();
                     nfPortConfiguration.init();
                     nfLabelConfiguration.init();
-                    nfProcessorDetails.init(true);
+                    nfProcessorDetails.init({
+                        supportsGoTo : true,
+                        canvasSync : {bulletins : true, threads : true},
+                        nfCanvasUtils : nfCanvasUtils,
+                        nfActions : nfActions
+                    });
                     nfPortDetails.init();
                     nfConnectionDetails.init();
                     nfRemoteProcessGroupDetails.init();

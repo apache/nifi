@@ -85,6 +85,64 @@
     text-overflow: ellipsis;
 }
 
+.dialog-header-bulletins-content,
+.dialog-header-bulletins:not(.active),
+.dialog-header-threads:not(.active) {
+    display : none;
+}
+
+.dialog-header-bulletins.active {
+    position : absolute;
+    right : 0;
+    display : inline-block;
+    padding : 10px 8px 5px 8px;
+    background-color : #ba544a;
+    color : #ffffff;
+    font-size : 15px;
+    cursor : pointer;
+}
+
+.dialog-header-bulletins.active:hover .dialog-header-bulletins-content {
+    position : fixed;
+    display : block;
+    float : right;
+    margin-left : 22px;
+    margin-top : 5px;
+    background-color : rgba(36,36,36,0.75);
+    font-family: Arial;
+    font-weight : bold;
+    font-size : 12px;
+    padding  : 10px 10px 10px 20px;
+    width : auto;
+}
+
+.dialog-header-bulletins-content ul {
+   list-style-type : disc !important;
+}
+
+.dialog-header-threads.active {
+    position : relative;
+    display : inline-block;
+    height : 100%;
+    float : right;
+    margin-right : 20px;
+}
+
+.dialog-header-threads a {
+    display : block;
+    margin-top : 95%;
+    padding-top : 95%;
+}
+
+.dialog-header-threads text,
+.dialog-header-threads span {
+    display : inline-block;
+    font-size : 12px;
+    color : #ffffff;
+    cursor : pointer;
+    margin-bottom : 5px;
+}
+
 .dialog-content {
     position: absolute;
     top: 76px;

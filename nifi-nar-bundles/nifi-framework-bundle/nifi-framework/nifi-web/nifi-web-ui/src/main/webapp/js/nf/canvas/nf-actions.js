@@ -701,8 +701,9 @@
          * Stops the components in the specified selection.
          *
          * @argument {selection} selection      The selection
+         * @argument {cb} callback              The function to call when request is processed
          */
-        stop: function (selection) {
+        stop: function (selection,cb) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -753,9 +754,29 @@
                     if (stopRequests.length > 0) {
                         $.when.apply(window, stopRequests).always(function () {
                             nfNgBridge.digest();
+                            if(typeof cb == 'function'){
+                                cb();
+                            }
                         });
                     }
                 }
+            }
+        },
+
+        /**
+         * Stops the component and displays the processor configuration dialog
+         *
+         * @argument {selection} selection      The selection
+         * @argument {cb} callback              The function to call when complete
+         */
+        stopAndConfigure: function (selection,cb) {
+            if(selection.size() === 1 &&
+                nfCanvasUtils.isProcessor(selection) &&
+                nfCanvasUtils.canModify(selection)){
+
+                nfActions.stop(selection,function(){
+                    nfProcessorConfiguration.showConfiguration(selection,cb);
+                });
             }
         },
 
@@ -871,7 +892,11 @@
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessor(selection)) {
-                    nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
+                    if(!nfCanvasUtils.isStoppable(selection) && nfCanvasUtils.canModify(selection)){
+                        nfProcessorConfiguration.showConfiguration(selection);
+                    } else {
+                        nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
+                    }
                 } else if (nfCanvasUtils.isProcessGroup(selection)) {
                     nfProcessGroupConfiguration.showConfiguration(selectionData.id);
                 } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {

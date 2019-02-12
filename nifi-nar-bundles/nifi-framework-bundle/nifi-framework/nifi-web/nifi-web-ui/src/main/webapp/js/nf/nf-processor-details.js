@@ -25,11 +25,9 @@
                 'nf.Dialog',
                 'nf.ErrorHandler',
                 'nf.CustomUi',
-                'nf.ClusterSummary',
-                'nf.Processor',
-                'nf.ProcessorConfiguration'],
-            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration) {
-                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration));
+                'nf.ClusterSummary'],
+            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
+                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorDetails =
@@ -39,9 +37,7 @@
                 require('nf.Dialog'),
                 require('nf.ErrorHandler'),
                 require('nf.CustomUi'),
-                require('nf.ClusterSummary'),
-                require('nf.Processor'),
-                require('nf.ProcessorConfiguration')));
+                require('nf.ClusterSummary')));
     } else {
         nf.ProcessorDetails = factory(root.$,
             root.nf.Common,
@@ -49,12 +45,15 @@
             root.nf.Dialog,
             root.nf.ErrorHandler,
             root.nf.CustomUi,
-            root.nf.ClusterSummary,
-            root.nf.Processor,
-            root.nf.ProcessorConfiguration);
+            root.nf.ClusterSummary);
     }
-}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary,nfProcessor,nfProcessorConfiguration) {
+}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
     'use strict';
+
+    /**
+     * Configuration option variable for the nfProcessorDetails dialog
+     */
+    var config;
 
     /**
      * Creates an option for the specified relationship name.
@@ -79,11 +78,27 @@
         return relationshipContainerElement;
     };
 
+    /**
+     * Releases the synchronization listener to the components canvas element
+     */
+    var stopCanvasSync = function(){
+        if(nfCommon.isDefinedAndNotNull(config.canvasSync) &&
+            nfCommon.isDefinedAndNotNull(config.listener)){
+            clearTimeout(config.listener);
+        }
+    };
+
     return {
+
         /**
          * Initializes the processor details dialog.
+         *
+         * @param {options}   The configuration options object for the dialog
          */
-        init: function (supportsGoTo) {
+        init: function (options) {
+
+            //set the dialog window configuration options.
+            config = options;
 
             // initialize the properties tabs
             $('#processor-details-tabs').tabbs({
@@ -123,9 +138,14 @@
             // configure the processor details dialog
             $('#processor-details').modal({
                 headerText: 'Processor Details',
+                headerBulletinsCtrl : nfCommon.getKeyValue(config,'canvasSync.bulletins'),
+                headerThreadsCtrl : nfCommon.getKeyValue(config,'canvasSync.threads'),
                 scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
+                        //stop any synchronization
+                        stopCanvasSync();
+
                         // empty the relationship list
                         $('#read-only-auto-terminate-relationship-names').css('border-width', '0').empty();
 
@@ -158,7 +178,7 @@
 
             // initialize the properties
             $('#read-only-processor-properties').propertytable({
-                supportsGoTo: supportsGoTo,
+                supportsGoTo: config.supportsGoTo,
                 readOnly: true
             });
         },
@@ -261,6 +281,7 @@
                 var processor = processorResponse.component;
                 var historyResponse = historyResult[0];
                 var history = historyResponse.componentHistory;
+                var selection;
 
                 // load the properties
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
@@ -279,82 +300,6 @@
                         }
                     }
                 }];
-
-                // determine if we should show the Stop & Configure  button
-                if (top === window &&
-                        nfCommon.isDefinedAndNotNull(processor.state) &&
-                        nfCommon.isDefinedAndNotNull(processorResponse.uri) &&
-                        nfCommon.isDefinedAndNotNull(nfProcessor) &&
-                        nfCommon.isDefinedAndNotNull(nfProcessorConfiguration) ) {
-
-                    //Add in the Stop & Configure button
-                    buttons.splice(1,0,{
-                         buttonText: ' Stop & Configure',
-                         clazz: 'fa fa-stop button-icon auto-width',
-                         color: {
-                             base: '#E3E8EB',
-                             hover: '#C7D2D7',
-                             text: '#813131'
-                         },
-                         disabled : function(){
-                           return !( processor.state == "RUNNING" &&
-                                     (processorResponse.permissions.canWrite ||
-                                         processorResponse.operatePermissions.canWrite) );
-                         },
-                         handler: {
-                             click: function () {
-
-                                $(this).find('.fa-stop').addClass('disabled-button'); //disable the Stop & Configure button
-
-                                var showConfig = function(data) {
-                                    nfProcessorConfiguration.showConfiguration({
-                                        datum : function(){return data},
-                                        classed : function(t){return (t=='processor')}
-                                    });
-                                    setTimeout(function(){$('#processor-details').modal('hide');},100);
-                                }
-
-                                $.ajax({
-                                  type: 'PUT',
-                                  url: processorResponse.uri + '/run-status',
-                                  data: JSON.stringify({
-                                         'revision': processorResponse.revision,
-                                         'state': 'STOPPED'
-                                  }),
-                                  dataType: 'json',
-                                  contentType: 'application/json'
-                                }).done(function (data) {
-
-                                    nfProcessor.set(data);
-                                    if(data.status.aggregateSnapshot.activeThreadCount > 0) {
-                                        nfDialog.showYesNoDialog({
-                                            headerText: 'Terminate active threads?',
-                                            dialogContent: 'There are currently active threads '+
-                                                'present for this processor, do you wish to terminate them?',
-                                            noHandler: function () {
-                                                //close the dialog
-                                            },
-                                            yesHandler: function () {
-
-                                                //send the terminate call
-                                                $.ajax({
-                                                      type: 'DELETE',
-                                                      url: data.uri + '/threads',
-                                                      dataType: 'json',
-                                                      contentType: 'application/json'
-                                                 }).done(function (data) {
-                                                    showConfig(data);
-                                                 }).fail(nfErrorHandler.handleAjaxError);
-                                            }
-                                        });
-                                    } else {
-                                        showConfig(data);
-                                    }
-                                }).fail(nfErrorHandler.handleAjaxError);
-                             }
-                         }
-                     });
-                }
 
                 // determine if we should show the advanced button
                 if (top === window && nfCommon.isDefinedAndNotNull(nfCustomUi) && nfCommon.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
@@ -376,6 +321,62 @@
                             }
                         }
                     });
+                }
+
+                if (nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+                    selection = config.nfCanvasUtils.getSelectionById(processor.id);
+
+                    // Add the stop button if appropriate
+                    if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
+                        config.nfCanvasUtils.isProcessor(selection) &&
+                        config.nfCanvasUtils.canModify(selection)){
+
+                        buttons.push({
+                            buttonText: 'Stop & Configure',
+                            clazz: 'fa fa-pencil-square button-icon auto-width stop-button',
+                            disabled : function() {
+                                return !config.nfCanvasUtils.isStoppable(selection);
+                            },
+                            handler: {
+                                click: function() {
+
+                                    //Assign a callback when the ProcessorConfiguration window is ready
+                                    var cb = function(){
+                                        var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
+                                        $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
+                                        $('#processor-details').modal('hide');
+                                    };
+
+                                    $(this).find('.stop-button').addClass('disabled-button');
+                                    config.nfActions.stopAndConfigure(selection,cb);
+                                }
+                            }
+                         });
+                    }
+
+                    //if canvas synchronization is enabled, monitor the latest bullets/threads from the component canvas element
+                    if(config.canvasSync){
+                        var sync = function(id){
+                            var d = config.nfCanvasUtils.getSelectionById(id),
+                                bulletins = nfCommon.getKeyValue(d,'datum.bulletins'),
+                                threads = nfCommon.getKeyValue(d,'datum.status.aggregateSnapshot.activeThreadCount');
+
+                            //update bulletins
+                            if(config.canvasSync.bulletins && nfCommon.isDefinedAndNotNull(bulletins)){
+                                $('#processor-details').modal('setBulletins',bulletins);
+                            }
+
+                            //update thread count
+                            if(config.canvasSync.threads && nfCommon.isDefinedAndNotNull(threads)){
+                                $('#processor-details').modal('setThreads',threads);
+                            }
+
+                            config.listener = setTimeout(function(){sync(id)},2500);
+                        };
+
+                        //initialize
+                        sync(processor.id);
+                    }
                 }
 
                 // show the dialog

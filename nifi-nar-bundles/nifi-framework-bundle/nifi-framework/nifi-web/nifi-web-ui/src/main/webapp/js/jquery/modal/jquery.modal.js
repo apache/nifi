@@ -28,6 +28,8 @@
  *   header: true,
  *   footer: true,
  *   headerText: 'Dialog Header',
+ *   headerBulletinsCtrl : false,
+ *   headerThreadsCtrl : false,
  *   scrollableContentStyle: 'scrollable',
  *   buttons: [{
  *      buttonText: 'Cancel',
@@ -184,12 +186,31 @@
                 // determine if dialog needs a header
                 if (!isDefinedAndNotNull(nfDialogData.header) || nfDialogData.header) {
                     var dialogHeaderText = $('<span class="dialog-header-text"></span>');
+
+                    var dialogHeaderBulletinsContent = $('<div class="dialog-header-bulletins-content">/div>');
+                    var dialogHeaderBulletins = $('<div class="dialog-header-bulletins fa fa-sticky-note-o"></div>').prepend(dialogHeaderBulletinsContent);
+
+                    var dialogHeaderThreadsContent = $('<a title=""><text class="active-thread-count-icon">\ue83f</text><span>&nbsp;0</span></a>');
+                    var dialogHeaderThreads = $('<div class="dialog-header-threads" ></div>').prepend(dialogHeaderThreadsContent);
+
                     var dialogHeader = $('<div class="dialog-header"></div>').prepend(dialogHeaderText);
 
                     // determine if the specified header text is null
                     if (!isBlank(nfDialogData.headerText)) {
                         dialogHeaderText.text(nfDialogData.headerText);
                     }
+
+                    // determine if the header bulletin option was enabled
+                    if (nfDialogData.headerThreadsCtrl) {
+                        dialogHeader.append(dialogHeaderThreads);
+                    }
+
+                    // determine if the header bulletin option was enabled
+                    if (nfDialogData.headerBulletinsCtrl) {
+                        dialogHeader.append(dialogHeaderBulletins);
+                    }
+
+
 
                     dialog.prepend(dialogHeader);
                 }
@@ -311,6 +332,53 @@
         setHeaderText: function (text) {
             return this.each(function () {
                 $(this).find('span.dialog-header-text').text(text);
+            });
+        },
+
+        /**
+         * Sets the content of the bulletin control.
+         *
+         * @param {bulletins} Array - Array of bulletins of the component
+         */
+        setBulletins: function (bulletins) {
+            return this.each(function () {
+                if(isDefinedAndNotNull(bulletins) && Array.isArray(bulletins) && bulletins.length > 0) {
+                    var bulletinList = $("<ul></ul>");
+                    $.each(bulletins, function(i,item){
+                        if(item.canRead){
+                           bulletinList.append($('<li>'+item.bulletin.timestamp+' '+item.bulletin.level+'<br/>'+item.bulletin.message+'<br>&nbsp;</li>'));
+                        }
+                    });
+                    if(bulletinList.find('li').length > 0){
+                        $(this).find('.dialog-header-bulletins-content').html(bulletinList);
+                        $(this).find('.dialog-header-bulletins').addClass('active');
+                    } else {
+                        $(this).find('.dialog-header-bulletins-content').html('');
+                        $(this).find('.dialog-header-bulletins').removeClass('active');
+                    }
+                } else {
+                    $(this).find('div.dialog-header-bulletins-content').html('');
+                    $(this).find('.dialog-header-bulletins').removeClass('active');
+                }
+            });
+        },
+
+        /**
+         * Sets the content of the threads control.
+         *
+         * @param {count} int - number of active threads of the component
+         */
+        setThreads : function (count) {
+            return this.each(function () {
+                if(isDefinedAndNotNull(count) && (typeof count == 'number') && count > 0 ){
+                    $(this).find('.dialog-header-threads > a').attr('title',count+' active threads');
+                    $(this).find('.dialog-header-threads > a > span').html('&nbsp;'+count);
+                    $(this).find('.dialog-header-threads').addClass('active');
+                } else {
+                    $(this).find('.dialog-header-threads > a').attr('title','');
+                    $(this).find('.dialog-header-threads > a > span').text('');
+                    $(this).find('.dialog-header-threads').removeClass('active');
+                }
             });
         },
 

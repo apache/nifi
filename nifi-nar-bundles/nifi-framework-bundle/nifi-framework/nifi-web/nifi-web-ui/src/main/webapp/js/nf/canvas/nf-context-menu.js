@@ -164,6 +164,22 @@
     };
 
     /**
+     * Determines whether the component(s) in the specified selection can be stopped and configured.
+     *
+     * @param {selection} selection         The selection of currently selected component(s)
+     */
+    var canStopAndConfigure = function(selection){
+        var stopAndConfigure = false;
+        if (selection.size() === 1 &&
+            isStoppable(selection) &&
+            nfCanvasUtils.isProcessor(selection) &&
+            nfCanvasUtils.canModify(selection) ) {
+            stopAndConfigure = true;
+        }
+        return stopAndConfigure;
+    };
+
+    /**
      * Determines whether the components in the specified selection can be terminated.
      *
      * @param {selection} selection         The selections of currently selected components
@@ -795,6 +811,7 @@
         {separator: true},
         {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {id: 'stop-configure-menu-item', condition: canStopAndConfigure , menuItem: {clazz: 'fa fa-pencil-square', text: 'Stop & Configure', action: 'stopAndConfigure'}},
         {id: 'terminate-menu-item', condition: canTerminate, menuItem: {clazz: 'fa fa-hourglass-end', text: 'Terminate', action: 'terminate'}},
         {id: 'enable-menu-item', condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
         {id: 'disable-menu-item', condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
