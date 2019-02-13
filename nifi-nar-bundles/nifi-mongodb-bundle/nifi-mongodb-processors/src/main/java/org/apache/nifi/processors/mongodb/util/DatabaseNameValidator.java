@@ -55,7 +55,7 @@ public class DatabaseNameValidator implements Validator {
             builder
                 .valid(false)
                 .explanation("Found an illegal character in the name.");
-        } else if (input.length() > 64) {
+        } else if (input.length() >= 64) {
             builder
                 .valid(false)
                 .explanation("Name cannot be longer than 64 characters.");
