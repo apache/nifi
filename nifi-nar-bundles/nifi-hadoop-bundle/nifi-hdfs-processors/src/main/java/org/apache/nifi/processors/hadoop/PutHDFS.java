@@ -19,7 +19,6 @@ package org.apache.nifi.processors.hadoop;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
@@ -149,8 +148,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
     public static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
             .name("Permissions umask")
             .description(
-                   "A umask represented as an octal number which determines the permissions of files written to HDFS. "
-                   + "If this property is empty, processor uses fs.permission.umask-mode. If fs.permission.umask-mode is undefined, processor honors FsPermission.DEFAULT_UMASK.")
+                   "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
+                           "This overrides the Hadoop property \"fs.permission.umask-mode\".  " +
+                           "If this property and \"fs.permission.umask-mode\" are undefined, the Hadoop default \"022\" will be used.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
@@ -224,7 +224,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         final FileSystem hdfs = getFileSystem();
         final Configuration configuration = getConfiguration();
-
         final UserGroupInformation ugi = getUserGroupInformation();
 
         if (configuration == null || hdfs == null || ugi == null) {
