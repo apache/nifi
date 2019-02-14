@@ -291,7 +291,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
         try {
             // build the token request
-            final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant, getScope());
+            final TokenRequest request = new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(), clientAuthentication, authorizationGrant);
             final HTTPRequest tokenHttpRequest = request.toHTTPRequest();
             tokenHttpRequest.setConnectTimeout(oidcConnectTimeout);
             tokenHttpRequest.setReadTimeout(oidcReadTimeout);
