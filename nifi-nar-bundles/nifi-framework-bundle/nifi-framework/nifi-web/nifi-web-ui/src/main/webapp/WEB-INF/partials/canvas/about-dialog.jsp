@@ -21,7 +21,7 @@
     </div>
     <div class="dialog-content">
         <div id="nf-about-content">
-            <span id="nf-version"></span>
+            <p id="nf-about-hdf-version-number">Cloudera Flow Management (CFM) <span id="cfm-version"></span></p>
             <div id="nf-version-detail">
                 <p id="nf-version-detail-timestamp">
                     <span id="nf-about-build-timestamp"></span>
@@ -33,12 +33,16 @@
                     From <span id="nf-about-build-revision"></span> on branch <span id="nf-about-build-branch"></span>
                 </p>
             </div>
-            <p>
-                Apache NiFi is a framework to support highly scalable and flexible dataflows.
-                It can be run on laptops up through clusters of enterprise class servers.
-                Instead of dictating a particular dataflow or behavior it empowers you to design your own
-                optimal dataflow tailored to your specific environment.
-            </p>
+            <div id="nf-about-description-container">
+                <img id="nf-about-nifi-drop" src="images/nifi-drop.svg">
+                <div id="nf-version"></div>
+                <div id="nf-about-description">
+                    Apache NiFi is a framework to support highly scalable and flexible dataflows.
+                    It can be run on laptops up through clusters of enterprise class servers.
+                    Instead of dictating a particular dataflow or behavior it empowers you to design your own
+                    optimal dataflow tailored to your specific environment.
+                </div>
+            </div>
         </div>
     </div>
 </div>

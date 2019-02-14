@@ -16,34 +16,47 @@
  */
 #nf-about {
     overflow: hidden;
-    width: 500px;
-    height: 500px;
-    max-height: 450px;
+    width: 600px;
+    height: 557px;
+    max-height: 543px;
+    border-radius: 8px;
+}
+
+#nf-about .dialog-header {
+    background-color: #ffffff;
+}
+
+#nf-about .dialog-header-text {
+    color: #828282;
+    font-weight: normal;
 }
 
 #nf-about-pic {
-    height: 60%;
-    background: url(../images/nifi-logo-about.svg) #000000 no-repeat center center;
-    top: 20%;
+    height: 35%;
+    background: url(../images/cloudera-logo.svg) transparent no-repeat center center;
+    top: 30%;
     position: relative;
 }
 
 #nf-about-pic-container {
-    height: 40%;
-    background: #000000;
+    height: 200px;
+    background: repeating-linear-gradient(135deg, #333E47, #333E47 2px, #273038 2px, #273038 4px)
 }
 
 #nf-version {
     font-weight:500;
     font-size: 13px;
-    cursor: pointer;
+    padding: 0px;
 }
 
 #nf-about-content p {
-    padding-top: 9px;
+    padding-top: 15px;
     padding-bottom: 9px;
     font-size: 15px;
     line-height: 15px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 #nf-about-content span.link {
@@ -52,8 +65,40 @@
     font-weight:900;
 }
 
+#nf-about-description-container {
+    margin-top: 25px;
+}
+
+#nf-about-description-container div {
+    margin-left: 68px;
+    margin-bottom: 5px;
+    font-size: 14px;
+    white-space: normal !important;
+    line-height: normal;
+}
+
+#nf-about-description-container {
+    position: relative;
+    color: #828282;
+}
+
+#nf-about-nifi-drop {
+    position: absolute;
+    top: 3px;
+    left: 0px;
+    width: 48px;
+    height: 80px;
+}
+
+#nf-about-hdf-version-number {
+    font-weight: 400;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0px;
+    color: #828282;
+}
+
 #nf-version-detail {
-    padding: 5px 0 0 5px;
     display: none;
 }
 
@@ -68,4 +113,9 @@
 #nf-about-content #nf-version-detail p {
     font-size: 12px;
     padding: 0;
+}
+
+#nf-about .button {
+    top: -25px;
+    right: 20px;
 }
