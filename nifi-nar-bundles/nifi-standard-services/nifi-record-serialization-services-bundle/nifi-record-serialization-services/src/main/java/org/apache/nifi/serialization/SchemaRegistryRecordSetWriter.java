@@ -135,8 +135,10 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         this.configurationContext = context;
 
         final String strategy = context.getProperty(getSchemaWriteStrategyDescriptor()).getValue();
-        final RecordSchemaCacheService recordSchemaCacheService = context.getProperty(SCHEMA_CACHE).asControllerService(RecordSchemaCacheService.class);
-        this.schemaAccessWriter = createSchemaWriteStrategy(strategy, recordSchemaCacheService);
+        if (strategy != null) {
+            final RecordSchemaCacheService recordSchemaCacheService = context.getProperty(SCHEMA_CACHE).asControllerService(RecordSchemaCacheService.class);
+            this.schemaAccessWriter = createSchemaWriteStrategy(strategy, recordSchemaCacheService);
+        }
     }
 
     @Override

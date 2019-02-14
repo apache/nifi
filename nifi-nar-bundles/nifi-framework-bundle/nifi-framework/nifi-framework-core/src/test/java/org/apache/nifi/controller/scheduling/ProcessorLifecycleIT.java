@@ -485,21 +485,6 @@ public class ProcessorLifecycleIT {
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
     }
 
-    /**
-     * Validate that processor will not be validated on failing
-     * PropertyDescriptor validation.
-     */
-    @Test(expected = IllegalStateException.class)
-    public void validateStartFailsOnInvalidProcessorWithMissingProperty() throws Exception {
-        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        flowManager = fcsb.getFlowManager();
-
-        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
-        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-        processScheduler.startProcessor(testProcNode, true);
-        fail();
-    }
 
     /**
      * Validate that processor will not be validated on failing
@@ -525,41 +510,6 @@ public class ProcessorLifecycleIT {
 
         processScheduler.startProcessor(testProcNode, true);
         fail();
-    }
-
-    /**
-     * The successful processor start with ControllerService dependency.
-     */
-    @Test
-    public void validateStartSucceedsOnProcessorWithEnabledService() throws Exception {
-        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        flowManager = fcsb.getFlowManager();
-
-        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
-
-        ControllerServiceNode testServiceNode = flowManager.createControllerService(TestService.class.getName(), "foo",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true, true);
-        testGroup.addControllerService(testServiceNode);
-
-        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-        testGroup.addProcessor(testProcNode);
-
-        properties.put("S", testServiceNode.getIdentifier());
-        testProcNode.setProperties(properties);
-
-        TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
-        testProcessor.withService = true;
-        this.noop(testProcessor);
-
-        testServiceNode.performValidation();
-        processScheduler.enableControllerService(testServiceNode);
-
-        testProcNode.performValidation();
-        processScheduler.startProcessor(testProcNode, true);
-
-        Thread.sleep(500);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
     }
 
 

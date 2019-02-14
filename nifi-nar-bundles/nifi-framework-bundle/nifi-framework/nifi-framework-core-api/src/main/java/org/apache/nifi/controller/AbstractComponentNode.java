@@ -204,8 +204,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
 
-            logger.debug("Resetting Validation State of {} due to setting properties", this);
-            resetValidationState();
+            if (isTriggerValidation()) {
+                logger.debug("Resetting Validation State of {} due to setting properties", this);
+                resetValidationState();
+            } else {
+                logger.debug("Properties set for {} but not resettingn validation state because validation is paused", this);
+            }
         } finally {
             lock.unlock();
         }
@@ -642,13 +646,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public void resumeValidationTrigger() {
         triggerValidation = true;
 
-        final ValidationStatus validationStatus = getValidationStatus();
-        if (validationStatus == ValidationStatus.VALIDATING) {
-            logger.debug("Resuming Triggering of Validation State for {}; status is VALIDATING so will trigger async validation now", this);
-            validationTrigger.triggerAsync(this);
-        } else {
-            logger.debug("Resuming Triggering of Validation State for {}; status is {} so will not trigger async validation now", this, validationStatus);
-        }
+        logger.debug("Resuming Triggering of Validation State for {}; Resetting validation state", this);
+        resetValidationState();
     }
 
     private boolean isTriggerValidation() {

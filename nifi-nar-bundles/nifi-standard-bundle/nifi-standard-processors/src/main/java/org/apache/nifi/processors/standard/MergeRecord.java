@@ -314,7 +314,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
         final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
         final boolean block;
-        if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
+        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             block = true;
         } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
             block = true;
@@ -378,12 +378,12 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
     protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final RecordSchema schema, final ProcessSession session) {
         final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
-        if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
+        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             return flowFile.getAttribute(FRAGMENT_ID_ATTRIBUTE);
         }
 
         final Optional<String> optionalText = schema.getSchemaText();
-        final String schemaText = optionalText.isPresent() ? optionalText.get() : AvroTypeUtil.extractAvroSchema(schema).toString();
+        final String schemaText = optionalText.orElseGet(() -> AvroTypeUtil.extractAvroSchema(schema).toString());
 
         final String groupId;
         final String correlationshipAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME).getValue();

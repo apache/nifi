@@ -307,7 +307,7 @@ public class LoadBalancedQueueIT {
         }
     }
 
-    @Test(timeout = 60_000)
+    @Test(timeout = 90_000)
     public void testFailover() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -371,7 +371,7 @@ public class LoadBalancedQueueIT {
                 final int expectedFlowFileReceiveCount = flowFilesPerNode + flowFilesPerNode / 2;
 
                 // Wait up to 10 seconds for the server's FlowFile Repository to be updated
-                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+                final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60L);
                 while (serverRepoRecords.size() < expectedFlowFileReceiveCount && System.currentTimeMillis() < endTime) {
                     Thread.sleep(10L);
                 }
