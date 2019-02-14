@@ -2173,8 +2173,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
             if (allowCachingOfStream && readRecursionSet.isEmpty() && writeRecursionSet.isEmpty()) {
                 if (currentReadClaim == claim) {
-                    if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= offset) {
-                        final long bytesToSkip = offset - currentReadClaimStream.getBytesConsumed();
+                    if (currentReadClaimStream != null && currentReadClaimStream.getCurrentOffset() <= offset) {
+                        final long bytesToSkip = offset - currentReadClaimStream.getCurrentOffset();
                         if (bytesToSkip > 0) {
                             StreamUtils.skip(currentReadClaimStream, bytesToSkip);
                         }

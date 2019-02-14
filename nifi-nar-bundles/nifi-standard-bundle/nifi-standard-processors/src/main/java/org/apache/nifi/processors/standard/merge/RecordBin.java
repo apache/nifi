@@ -46,8 +46,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class RecordBin {
-    public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
-    public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
 
     private final ComponentLog logger;
     private final ProcessSession session;
@@ -69,6 +67,8 @@ public class RecordBin {
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private final long id = idGenerator.getAndIncrement();
+
+    private volatile int requiredRecordCount = -1;
 
 
     public RecordBin(final ProcessContext context, final ProcessSession session, final ComponentLog logger, final RecordBinThresholds thresholds) {
@@ -95,7 +95,6 @@ public class RecordBin {
     }
 
     public boolean offer(final FlowFile flowFile, final RecordReader recordReader, final ProcessSession flowFileSession, final boolean block) throws IOException {
-
         if (isComplete()) {
             logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
             return false;
@@ -147,6 +146,12 @@ public class RecordBin {
             flowFileSession.migrate(this.session, Collections.singleton(flowFile));
             flowFileMigrated = true;
             this.flowFiles.add(flowFile);
+
+            if (recordCount >= getMinimumRecordCount()) {
+                // If we have met our minimum record count, we need to flush so that when we reach the desired number of bytes
+                // the bin is considered 'full enough'.
+                recordWriter.flush();
+            }
 
             if (isFull()) {
                 logger.debug(this + " is now full. Completing bin.");
@@ -232,6 +237,29 @@ public class RecordBin {
         }
     }
 
+    private int getMinimumRecordCount() {
+        final int currentCount = requiredRecordCount;
+        if (currentCount > -1) {
+            return currentCount;
+        }
+
+        int requiredCount;
+        final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
+        if (recordCountAttribute.isPresent()) {
+            final String recordCountValue = flowFiles.get(0).getAttribute(recordCountAttribute.get());
+            try {
+                requiredCount = Integer.parseInt(recordCountValue);
+            } catch (final NumberFormatException e) {
+                requiredCount = 1;
+            }
+        } else {
+            requiredCount = thresholds.getMinRecords();
+        }
+
+        this.requiredRecordCount = requiredCount;
+        return requiredCount;
+    }
+
     public boolean isFullEnough() {
         readLock.lock();
         try {
@@ -239,19 +267,7 @@ public class RecordBin {
                 return false;
             }
 
-            int requiredRecordCount;
-            final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
-            if (recordCountAttribute.isPresent()) {
-                final String recordCountValue = flowFiles.get(0).getAttribute(recordCountAttribute.get());
-                try {
-                    requiredRecordCount = Integer.parseInt(recordCountValue);
-                } catch (final NumberFormatException e) {
-                    requiredRecordCount = 1;
-                }
-            } else {
-                requiredRecordCount = thresholds.getMinRecords();
-            }
-
+            final int requiredRecordCount = getMinimumRecordCount();
             return (recordCount >= requiredRecordCount && out.getBytesWritten() >= thresholds.getMinBytes());
         } finally {
             readLock.unlock();
@@ -386,11 +402,11 @@ public class RecordBin {
             attributes.putAll(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordWriter.getMimeType());
-            attributes.put(MERGE_COUNT_ATTRIBUTE, Integer.toString(flowFiles.size()));
-            attributes.put(MERGE_BIN_AGE_ATTRIBUTE, Long.toString(getBinAge()));
+            attributes.put(MergeRecord.MERGE_COUNT_ATTRIBUTE, Integer.toString(flowFiles.size()));
+            attributes.put(MergeRecord.MERGE_BIN_AGE_ATTRIBUTE, Long.toString(getBinAge()));
 
             merged = session.putAllAttributes(merged, attributes);
-            flowFiles.stream().forEach(ff -> session.putAttribute(ff, "merge.uuid", merged.getAttribute(CoreAttributes.UUID.key())));
+            flowFiles.forEach(ff -> session.putAttribute(ff, MergeRecord.MERGE_UUID_ATTRIBUTE, merged.getAttribute(CoreAttributes.UUID.key())));
 
             session.getProvenanceReporter().join(flowFiles, merged, "Records Merged due to: " + completionReason);
             session.transfer(merged, MergeRecord.REL_MERGED);

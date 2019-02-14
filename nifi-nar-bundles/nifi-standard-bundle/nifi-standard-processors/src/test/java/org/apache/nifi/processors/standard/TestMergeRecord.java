@@ -44,7 +44,7 @@ public class TestMergeRecord {
         runner = TestRunners.newTestRunner(new MergeRecord());
 
         readerService = new CommaSeparatedRecordReader();
-        writerService = new MockRecordWriter("header", false);
+        writerService = new MockRecordWriter("header", false, true);
 
         runner.addControllerService("reader", readerService);
 
@@ -55,6 +55,25 @@ public class TestMergeRecord {
 
         runner.setProperty(MergeRecord.RECORD_READER, "reader");
         runner.setProperty(MergeRecord.RECORD_WRITER, "writer");
+    }
+
+    @Test
+    public void testSmallOutputIsFlushed() {
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "1");
+
+        runner.enqueue("Name, Age\nJohn, 35\nJane, 34");
+
+        runner.run(1);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 1);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "2");
+        mff.assertContentEquals("header\nJohn,35\nJane,34\n");
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
+            ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
@@ -73,7 +92,7 @@ public class TestMergeRecord {
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
 
-        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).stream().forEach(
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
                 ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 

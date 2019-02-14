@@ -17,11 +17,6 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -30,27 +25,43 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Collections;
+import java.util.Map;
+
 public class MockRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
     private final String header;
     private final int failAfterN;
     private final boolean quoteValues;
+    private final boolean bufferOutput;
 
     public MockRecordWriter() {
         this(null);
     }
 
     public MockRecordWriter(final String header) {
-        this(header, true, -1);
+        this(header, true, -1, false);
     }
 
     public MockRecordWriter(final String header, final boolean quoteValues) {
-        this(header, quoteValues, -1);
+        this(header, quoteValues, false);
     }
 
     public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN) {
+        this(header, quoteValues, failAfterN, false);
+    }
+
+    public MockRecordWriter(final String header, final boolean quoteValues, final boolean bufferOutput) {
+        this(header, quoteValues, -1, bufferOutput);
+    }
+
+    public MockRecordWriter(final String header, final boolean quoteValues, final int failAfterN, final boolean bufferOutput) {
         this.header = header;
         this.quoteValues = quoteValues;
         this.failAfterN = failAfterN;
+        this.bufferOutput = bufferOutput;
     }
 
     @Override
@@ -59,7 +70,9 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream rawOut) {
+        final OutputStream out = bufferOutput ? new BufferedOutputStream(rawOut) : rawOut;
+
         return new RecordSetWriter() {
             private int recordCount = 0;
             private boolean headerWritten = false;
