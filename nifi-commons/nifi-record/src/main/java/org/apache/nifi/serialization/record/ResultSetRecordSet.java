@@ -197,17 +197,20 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 }
 
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
-                Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                if (dataType.isPresent()) {
-                    return dataType.get();
+
+                if (readerSchema != null) {
+                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    if (dataType.isPresent()) {
+                        return dataType.get();
+                    }
                 }
 
                 final Object obj = rs.getObject(columnIndex);
-                if (obj == null || !(obj instanceof Record)) {
+                if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
                         RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
                         RecordFieldType.TIMESTAMP)
-                    .map(recordFieldType -> recordFieldType.getDataType())
+                    .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
 
                     return RecordFieldType.CHOICE.getChoiceDataType(dataTypes);
@@ -219,9 +222,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
             default: {
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
-                Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                if (dataType.isPresent()) {
-                    return dataType.get();
+
+                if (readerSchema != null) {
+                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    if (dataType.isPresent()) {
+                        return dataType.get();
+                    }
                 }
 
                 return getFieldType(sqlType, rs.getMetaData().getColumnClassName(columnIndex)).getDataType();
