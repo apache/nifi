@@ -146,6 +146,7 @@ public class SocketChannelDispatcher<E extends Event<SocketChannel>> implements 
                             // Handle new connections coming in
                             final ServerSocketChannel channel = (ServerSocketChannel) key.channel();
                             final SocketChannel socketChannel = channel.accept();
+                            socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
                             // Check for available connections
                             if (currentConnections.incrementAndGet() > maxConnections){
                                 currentConnections.decrementAndGet();
