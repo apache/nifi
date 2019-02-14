@@ -18,6 +18,7 @@
 package org.apache.nifi.mongodb;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,7 +33,15 @@ public class TestLookupServiceProcessor extends AbstractProcessor {
             .name("Client Service")
             .description("MongoDBLookupService")
             .identifiesControllerService(MongoDBLookupService.class)
-            .required(true)
+            .addValidator(Validator.VALID)
+            .required(false)
+            .build();
+    static final PropertyDescriptor CLIENT_SERVICE_STR = new PropertyDescriptor.Builder()
+            .name("Client Service Str")
+            .description("MongoDBStringLookupService")
+            .identifiesControllerService(MongoDBStringLookupService.class)
+            .addValidator(Validator.VALID)
+            .required(false)
             .build();
 
     @Override
@@ -43,6 +52,7 @@ public class TestLookupServiceProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(CLIENT_SERVICE);
+        propDescs.add(CLIENT_SERVICE_STR);
         return propDescs;
     }
 }

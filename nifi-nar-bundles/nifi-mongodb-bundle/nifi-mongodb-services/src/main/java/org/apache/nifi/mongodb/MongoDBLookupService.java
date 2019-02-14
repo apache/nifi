@@ -26,11 +26,9 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.JsonValidator;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -66,33 +64,10 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
     "The query is limited to the first result (findOne in the Mongo documentation). If no \"Lookup Value Field\" is specified " +
     "then the entire MongoDB result document minus the _id field will be returned as a record."
 )
-public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
+public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object>, MongoDBLookupServiceConfiguration {
     private volatile String databaseName;
     private volatile String collection;
 
-    public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
-        .name("mongo-lookup-client-service")
-        .displayName("Client Service")
-        .description("A MongoDB controller service to use with this lookup service.")
-        .required(true)
-        .identifiesControllerService(MongoDBClientService.class)
-        .build();
-    public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
-        .name("mongo-db-name")
-        .displayName("Mongo Database Name")
-        .description("The name of the database to use")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-    public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
-        .name("mongo-collection-name")
-        .displayName("Mongo Collection Name")
-        .description("The name of the collection to use")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
         .name("mongo-lookup-value-field")
         .displayName("Lookup Value Field")
