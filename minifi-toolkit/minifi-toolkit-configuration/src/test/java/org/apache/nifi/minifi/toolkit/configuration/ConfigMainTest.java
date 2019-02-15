@@ -168,6 +168,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTripTemplateNoEncodingVersion() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("NoTemplateEncodingVersion");
+    }
+
+    @Test
     public void testTransformRoundTrip15RPGHandling() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("1.5_RPG_Handling");
     }

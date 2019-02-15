@@ -59,15 +59,21 @@ public class FlowSnippetDTOEnricher {
             final Set<RemoteProcessGroupPortDTO> rpgInputPortDtos = nullToEmpty(contents.getInputPorts());
             final Set<RemoteProcessGroupPortDTO> rpgOutputPortDtos = nullToEmpty(contents.getOutputPorts());
 
-            switch (encodingVersion) {
-                case "1.2":
-                    // Map all port DTOs to their respective targetIds
-                    rpgIdToTargetIdMap.putAll(
-                            Stream.concat(rpgInputPortDtos.stream(), rpgOutputPortDtos.stream())
-                                    .collect(Collectors.toMap(RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getTargetId)));
-                    break;
-                default:
-                    break;
+            /*
+             *  Templates created prior to version 1.0 of NiFi did not have an encoding-version specified
+             *   There are no material changes to the flow representation that affect MiNiFi prior to the 1.2 encoding-version introduced in NiFi 1.5, so we avoid evaluating
+             */
+            if (encodingVersion != null) {
+                switch (encodingVersion) {
+                    case "1.2":
+                        // Map all port DTOs to their respective targetIds
+                        rpgIdToTargetIdMap.putAll(
+                                Stream.concat(rpgInputPortDtos.stream(), rpgOutputPortDtos.stream())
+                                        .collect(Collectors.toMap(RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getTargetId)));
+                        break;
+                    default:
+                        break;
+                }
             }
 
             addConnectables(connectableNameMap, rpgInputPortDtos, RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getId);
