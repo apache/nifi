@@ -66,7 +66,6 @@ public class TestListHDFS {
 
     private TestRunner runner;
     private ListHDFSWithMockedFileSystem proc;
-    private MockCacheClient service;
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
 
@@ -79,13 +78,8 @@ public class TestListHDFS {
         proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
         runner = TestRunners.newTestRunner(proc);
 
-        service = new MockCacheClient();
-        runner.addControllerService("service", service);
-        runner.enableControllerService(service);
-
         runner.setProperty(ListHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
         runner.setProperty(ListHDFS.DIRECTORY, "/test");
-        runner.setProperty(ListHDFS.DISTRIBUTED_CACHE_SERVICE, "service");
     }
 
     @Test
@@ -374,9 +368,6 @@ public class TestListHDFS {
         // add new file to pull
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 2000L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
 
-        // cause calls to service to fail
-        service.failOnCalls = true;
-
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
 
         // Should fail to perform @OnScheduled methods.
@@ -397,7 +388,6 @@ public class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
 
-        service.failOnCalls = false;
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, false);
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
 
