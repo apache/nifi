@@ -99,7 +99,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     @Deprecated
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("This property is ignored.  State will be stored at the " + Scope.LOCAL + " or " + Scope.CLUSTER + " scope by the State Manager based on NiFi's configuration.")
+        .description("This property is ignored.  State will be stored in the " + Scope.LOCAL + " or " + Scope.CLUSTER + " scope by the State Manager based on NiFi's configuration.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
