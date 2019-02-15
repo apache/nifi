@@ -53,6 +53,7 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import java.security.Security
 
+@SuppressWarnings("deprecation")
 @RunWith(JUnit4.class)
 class TestPostHTTPGroovy extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TestPostHTTPGroovy.class)
@@ -178,7 +179,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         ] as HostnameVerifier
 
         // Configure the test runner
-        TestRunner runner = TestRunners.newTestRunner(PostHTTP.class)
+        TestRunner runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.PostHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
@@ -186,9 +187,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
-        runner.setProperty(PostHTTP.URL, POST_URL)
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, POST_URL)
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false")
 
         runner
     }
@@ -355,7 +356,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -383,7 +384,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1)
         runner.clearTransferState()
         logger.expected("Unable to connect")
 
@@ -394,7 +395,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -422,7 +423,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1)
             runner.clearTransferState()
             logger.expected("Unable to connect")
         }
@@ -433,7 +434,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1)
         runner.clearTransferState()
         logger.info("Ran successfully")
     }
