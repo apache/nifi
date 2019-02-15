@@ -28,21 +28,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.junit.After;
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class TestPostHTTP {
     private TestServer server;
     private TestRunner runner;
@@ -64,7 +64,7 @@ public class TestPostHTTP {
         server.startServer();
 
         servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
-        runner = TestRunners.newTestRunner(PostHTTP.class);
+        runner = TestRunners.newTestRunner(org.apache.nifi.processors.standard.PostHTTP.class);
     }
 
     @After
@@ -91,14 +91,14 @@ public class TestPostHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         runner.enqueue("Hello world".getBytes());
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1);
     }
 
     @Test
@@ -123,14 +123,14 @@ public class TestPostHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         runner.enqueue("Hello world".getBytes());
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 1);
     }
 
     @Test
@@ -152,21 +152,21 @@ public class TestPostHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         runner.enqueue("Hello world".getBytes());
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_FAILURE, 1);
     }
 
     @Test
     public void testSendAsFlowFile() throws Exception {
         setup(null);
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "true");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("abc", "cba");
@@ -177,7 +177,7 @@ public class TestPostHTTP {
         runner.enqueue("World".getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         final byte[] lastPost = servlet.getLastPost();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -225,9 +225,9 @@ public class TestPostHTTP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, JKS_TYPE);
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.URL, server.getSecureUrl());
-        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "true");
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getSecureUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("abc", "cba");
@@ -238,7 +238,7 @@ public class TestPostHTTP {
         runner.enqueue("World".getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         final byte[] lastPost = servlet.getLastPost();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -266,38 +266,38 @@ public class TestPostHTTP {
     @Test
     public void testSendWithMimeType() throws Exception {
         setup(null);
-        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
 
         final Map<String, String> attrs = new HashMap<>();
 
         final String suppliedMimeType = "text/plain";
         attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
         runner.enqueue("Camping is great!".getBytes(), attrs);
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertEquals("17",lastPostHeaders.get("Content-Length"));
     }
 
     @Test
     public void testSendWithEmptyELExpression() throws Exception {
         setup(null);
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "");
         runner.enqueue("The wilderness.".getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(org.apache.nifi.processors.standard.PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
     }
 
     @Test
@@ -305,19 +305,19 @@ public class TestPostHTTP {
         setup(null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
         runner.enqueue("Sending with content type property.".getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
     }
 
     @Test
@@ -325,9 +325,9 @@ public class TestPostHTTP {
         setup(null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "9");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "9");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -335,12 +335,12 @@ public class TestPostHTTP {
         runner.enqueue(StringUtils.repeat("Lines of sample text.", 100).getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that a 'Content-Encoding' header was set with a 'gzip' value
-        Assert.assertEquals(PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
+        Assert.assertEquals(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
         Assert.assertNull(lastPostHeaders.get("Content-Length"));
     }
 
@@ -349,10 +349,10 @@ public class TestPostHTTP {
         setup(null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "0");
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "0");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -360,12 +360,12 @@ public class TestPostHTTP {
         runner.enqueue(StringUtils.repeat("Lines of sample text.", 100).getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
-        Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
+        Assert.assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
         Assert.assertEquals("2100",lastPostHeaders.get("Content-Length"));
     }
 
@@ -375,9 +375,9 @@ public class TestPostHTTP {
 
         final String suppliedMimeType = "text/plain";
         // Specify a property to the URL to have the CaptureServlet specify it doesn't accept gzip
-        runner.setProperty(PostHTTP.URL, server.getUrl()+"?acceptGzip=false");
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.COMPRESSION_LEVEL, "9");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl()+"?acceptGzip=false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.COMPRESSION_LEVEL, "9");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -385,12 +385,12 @@ public class TestPostHTTP {
         runner.enqueue(StringUtils.repeat("Lines of sample text.", 100).getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
-        Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
+        Assert.assertNull(lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_ENCODING_HEADER));
     }
 
     @Test
@@ -398,9 +398,9 @@ public class TestPostHTTP {
         setup(null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "true");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "true");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -408,13 +408,13 @@ public class TestPostHTTP {
         runner.enqueue(StringUtils.repeat("Lines of sample text.", 100).getBytes(), attrs);
 
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         byte[] postValue = servlet.getLastPost();
         Assert.assertArrayEquals(StringUtils.repeat("Lines of sample text.", 100).getBytes(),postValue);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertNull(lastPostHeaders.get("Content-Length"));
         Assert.assertEquals("chunked",lastPostHeaders.get("Transfer-Encoding"));
     }
@@ -424,10 +424,10 @@ public class TestPostHTTP {
         setup(null);
 
         final String suppliedMimeType = "text/plain";
-        runner.setProperty(PostHTTP.URL, server.getUrl());
-        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false");
-        runner.setProperty(PostHTTP.MAX_DATA_RATE, "10kb");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, server.getUrl());
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.CHUNKED_ENCODING, "false");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.MAX_DATA_RATE, "10kb");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -436,20 +436,20 @@ public class TestPostHTTP {
 
         boolean stopOnFinish = true;
         runner.run(1, stopOnFinish);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
 
         byte[] postValue = servlet.getLastPost();
         Assert.assertArrayEquals(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(),postValue);
 
         Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
-        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
+        Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(org.apache.nifi.processors.standard.PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertEquals("4700",lastPostHeaders.get("Content-Length"));
     }
 
     @Test
     public void testDefaultUserAgent() throws Exception {
         setup(null);
-        Assert.assertTrue(runner.getProcessContext().getProperty(PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
+        Assert.assertTrue(runner.getProcessContext().getProperty(org.apache.nifi.processors.standard.PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
     }
 
     @Test
@@ -474,9 +474,9 @@ public class TestPostHTTP {
             servletB = (CaptureServlet) handler.getServlets()[0].getServlet();
         }
 
-        runner.setProperty(PostHTTP.URL, "${url}"); // use EL for the URL
-        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "true");
-        runner.setProperty(PostHTTP.MAX_BATCH_SIZE, "10 b");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.URL, "${url}"); // use EL for the URL
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.SEND_AS_FLOWFILE, "true");
+        runner.setProperty(org.apache.nifi.processors.standard.PostHTTP.MAX_BATCH_SIZE, "10 b");
 
         Set<String> expectedContentA = new HashSet<>();
         Set<String> expectedContentB = new HashSet<>();
@@ -496,8 +496,8 @@ public class TestPostHTTP {
         // MAX_BATCH_SIZE is 10 bytes, each file is 2 bytes, so 18 files should produce 4 batches
         for (int i = 0; i < 4; i++) {
             runner.run(1);
-            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
-            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(PostHTTP.REL_SUCCESS);
+            runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
+            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
             assertFalse(successFiles.isEmpty());
 
             MockFlowFile mff = successFiles.get(0);
@@ -517,7 +517,7 @@ public class TestPostHTTP {
 
         // make sure everything transferred, nothing more to do
         runner.run(1);
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 0);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, 0);
     }
 
     private void enqueueWithURL(String data, String url) {
@@ -531,11 +531,11 @@ public class TestPostHTTP {
         Set<String> actualFFContent = new HashSet<>();
         Set<String> actualPostContent = new HashSet<>();
 
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, expectedCount);
+        runner.assertAllFlowFilesTransferred(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS, expectedCount);
 
         // confirm that all FlowFiles transferred to 'success' have the same URL
         // also accumulate content to verify later
-        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PostHTTP.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(org.apache.nifi.processors.standard.PostHTTP.REL_SUCCESS);
         for (int i = 0; i < expectedCount; i++) {
             MockFlowFile mff = successFlowFiles.get(i);
             mff.assertAttributeEquals("url", server.getUrl());
