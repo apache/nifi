@@ -44,7 +44,8 @@ import org.nifi.oraclecdcservice.api.OracleClassLoaderService;
 
 @Tags({ "dbcp", "jdbc", "database", "cdc", "oracle", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service for oracle CDC connection."
-        + " Needs OCI native connection")
+        + " Needs OCI native connection. Add the location to the native libraries using -Djava.library.path"
+        + "to the jvm argurmets in nifi bootstrap.conf")
 
 public class StandardOracleCDCService extends AbstractControllerService implements OracleCDCService {
 
