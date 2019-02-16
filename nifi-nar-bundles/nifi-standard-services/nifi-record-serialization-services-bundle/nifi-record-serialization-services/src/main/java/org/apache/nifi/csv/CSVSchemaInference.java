@@ -19,8 +19,8 @@ package org.apache.nifi.csv;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.schema.inference.FieldTypeInference;
-import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.RecordSource;
+import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecord> {
+public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFieldNames> {
 
     private final TimeValueInference timeValueInference;
 
@@ -45,30 +45,29 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecord> {
 
 
     @Override
-    public RecordSchema inferSchema(final RecordSource<CSVRecord> recordSource) throws IOException {
+    public RecordSchema inferSchema(final RecordSource<CSVRecordAndFieldNames> recordSource) throws IOException {
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
         while (true) {
-            final CSVRecord rawRecord = recordSource.next();
-            if (rawRecord == null) {
+            final CSVRecordAndFieldNames recordAndFieldNames = recordSource.next();
+            if (recordAndFieldNames == null) {
                 break;
             }
 
-            inferSchema(rawRecord, typeMap);
+            inferSchema(recordAndFieldNames, typeMap);
         }
 
         return createSchema(typeMap);
     }
 
 
-    private void inferSchema(final CSVRecord csvRecord, final Map<String, FieldTypeInference> typeMap) {
-        final Map<String, String> values = csvRecord.toMap();
-        for (final Map.Entry<String, String> entry : values.entrySet()) {
-            final String value = entry.getValue();
+    private void inferSchema(final CSVRecordAndFieldNames recordAndFieldNames, final Map<String, FieldTypeInference> typeMap) {
+        final CSVRecord csvRecord = recordAndFieldNames.getRecord();
+        for (final String fieldName : recordAndFieldNames.getFieldNames()) {
+            final String value = csvRecord.get(fieldName);
             if (value == null) {
                 return;
             }
 
-            final String fieldName = entry.getKey();
             final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
             final String trimmed = trim(value);
             final DataType dataType = getDataType(trimmed);

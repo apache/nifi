@@ -48,6 +48,7 @@ class TestJsonInferenceSchemaRegistryService {
         def schema = service.getSchema([:], json, null)
 
         Assert.assertNotNull(schema)
+        Assert.assertEquals(Arrays.asList("name", "age", "contact"), schema.getFieldNames());
         def name = schema.getField("name")
         def age  = schema.getField("age")
         def contact = schema.getField("contact")
