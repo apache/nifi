@@ -32,7 +32,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -74,5 +76,10 @@ public class TestCSVSchemaInference {
 
         assertSame(RecordFieldType.INT, schema.getDataType("parentIds").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("numeric string").get().getFieldType());
+
+        final List<String> fieldNames = schema.getFieldNames();
+        assertEquals(Arrays.asList("eventId", "eventOrdinal", "eventType", "timestampMillis", "timestamp", "eventDate", "eventTime", "maybeTime", "maybeDate", "durationMillis", "lineageStart",
+            "componentId", "componentType", "componentName", "processGroupId", "processGroupName", "entityId", "entityType", "entitySize", "previousEntitySize", "updatedAttributes", "actorHostname",
+                "contentURI", "previousContentURI", "parentIds", "childIds", "platform", "application", "extra field", "numeric string"), fieldNames);
     }
 }

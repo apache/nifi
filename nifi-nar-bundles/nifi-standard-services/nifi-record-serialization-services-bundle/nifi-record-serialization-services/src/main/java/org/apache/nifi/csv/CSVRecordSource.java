@@ -29,10 +29,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
-public class CSVRecordSource implements RecordSource<CSVRecord> {
+public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
     private final Iterator<CSVRecord> csvRecordIterator;
+    private final List<String> fieldNames;
 
     public CSVRecordSource(final InputStream in, final PropertyContext context) throws IOException {
         final String charset = context.getProperty(CSVUtils.CHARSET).getValue();
@@ -46,14 +50,16 @@ public class CSVRecordSource implements RecordSource<CSVRecord> {
 
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader().withTrim();
         final CSVParser csvParser = new CSVParser(reader, csvFormat);
+        fieldNames = Collections.unmodifiableList(new ArrayList<>(csvParser.getHeaderMap().keySet()));
+
         csvRecordIterator = csvParser.iterator();
     }
 
     @Override
-    public CSVRecord next() {
+    public CSVRecordAndFieldNames next() {
         if (csvRecordIterator.hasNext()) {
             final CSVRecord record = csvRecordIterator.next();
-            return record;
+            return new CSVRecordAndFieldNames(record, fieldNames);
         }
 
         return null;
