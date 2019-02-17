@@ -74,7 +74,7 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
-        <tag>HEAD</tag>
+        <tag>nifi-1.9.0-RC2</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>
