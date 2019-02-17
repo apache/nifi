@@ -19,7 +19,7 @@
 	<parent>
 		<groupId>org.apache.nifi</groupId>
 		<artifactId>nifi-network-bundle</artifactId>
-		<version>1.9.0-SNAPSHOT</version>
+		<version>1.9.0</version>
 	</parent>
 
 	<artifactId>nifi-network-processors</artifactId>
@@ -33,12 +33,12 @@
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-utils</artifactId>
-			<version>1.9.0-SNAPSHOT</version>
+			<version>1.9.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-network-utils</artifactId>
-			<version>1.9.0-SNAPSHOT</version>
+			<version>1.9.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-mock</artifactId>
-			<version>1.9.0-SNAPSHOT</version>
+			<version>1.9.0</version>
 			<scope>test</scope>
 		</dependency>
 
