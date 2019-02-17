@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-cassandra-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.9.0</version>
+        <version>1.10.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,13 +29,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -53,25 +53,25 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.9.0</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
