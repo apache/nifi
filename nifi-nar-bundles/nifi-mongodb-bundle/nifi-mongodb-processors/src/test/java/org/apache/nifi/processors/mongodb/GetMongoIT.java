@@ -609,6 +609,21 @@ public class GetMongoIT {
     }
 
     @Test
+    public void testRouteToFailureAfterExpressionLanguageResolvesToInvalidNames() {
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.DATABASE_NAME, "${bad_db}");
+        runner.setProperty(GetMongo.COLLECTION_NAME, "${bad_col}");
+        runner.enqueue("{}", new HashMap<String, String>() {{
+            put("bad_db", "test$db");
+            put("bad_col", "test$collection");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+    }
+
+    @Test
     public void testClientService() throws Exception {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
