@@ -32,6 +32,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.internal.tls.OkHostnameVerifier;
 import okio.BufferedSink;
+import okio.ByteString;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -68,6 +69,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -292,6 +294,14 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(false)
             .build();
 
+    public static final PropertyDescriptor PROP_BODY_CONTENT = new PropertyDescriptor.Builder()
+            .name("Body Content To Use")
+            .description("If set, the request body is determined by evaluating value of this property (otherwise, the body is taken from the " +
+                    "original FlowFile). Has no effect if 'Send Message Body' property is false.")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
     // base64-user-pass = userid ":" password
@@ -442,6 +452,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
+            PROP_BODY_CONTENT,
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY,
             PROP_USE_ETAG,
@@ -991,25 +1002,47 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
-        if(context.getProperty(PROP_SEND_BODY).asBoolean()) {
-            return new RequestBody() {
-                @Override
-                public MediaType contentType() {
-                    String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
-                    contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
-                    return MediaType.parse(contentType);
-                }
+        if (context.getProperty(PROP_SEND_BODY).asBoolean()) {
+            String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
+            contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
+            final MediaType mediaType = MediaType.parse(contentType);
+            if (context.getProperty(PROP_BODY_CONTENT).isSet()) {
+                final ByteString utf8 = ByteString.encodeUtf8(context.getProperty(PROP_BODY_CONTENT).evaluateAttributeExpressions(requestFlowFile).getValue());
+                return new RequestBody() {
+                    @Nullable
+                    @Override
+                    public MediaType contentType() {
+                        return mediaType;
+                    }
 
-                @Override
-                public void writeTo(BufferedSink sink) throws IOException {
-                    session.exportTo(requestFlowFile, sink.outputStream());
-                }
+                    @Override
+                    public void writeTo(BufferedSink sink) throws IOException {
+                        sink.write(utf8);
+                    }
 
-                @Override
-                public long contentLength(){
-                    return useChunked ? -1 : requestFlowFile.getSize();
-                }
-            };
+                    @Override
+                    public long contentLength(){
+                        return useChunked ? -1 : utf8.size();
+                    }
+                };
+            } else {
+                return new RequestBody() {
+                    @Override
+                    public MediaType contentType() {
+                        return mediaType;
+                    }
+
+                    @Override
+                    public void writeTo(BufferedSink sink) throws IOException {
+                        session.exportTo(requestFlowFile, sink.outputStream());
+                    }
+
+                    @Override
+                    public long contentLength(){
+                        return useChunked ? -1 : requestFlowFile.getSize();
+                    }
+                };
+            }
         } else {
             return RequestBody.create(null, new byte[0]);
         }

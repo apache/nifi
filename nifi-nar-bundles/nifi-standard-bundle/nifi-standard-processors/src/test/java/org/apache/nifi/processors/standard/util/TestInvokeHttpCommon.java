@@ -1013,6 +1013,25 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testPostWithBodyEL() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_BODY_CONTENT, "${body.attribute}");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        attrs.put("body.attribute", "Hello");
+        runner.enqueue("".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+    @Test
     public void testPutWithMimeType() throws Exception {
         final String suppliedMimeType = "text/plain";
         addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
@@ -1064,6 +1083,25 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
     }
 
+    @Test
+    public void testPutWithBodyEL() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PUT, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PUT");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_BODY_CONTENT, "${body.attribute}");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        attrs.put("body.attribute", "Hello");
+        runner.enqueue("".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
     @Test
     public void testPut() throws Exception {
         addHandler(new MutativeMethodHandler(MutativeMethod.PUT));
@@ -1186,6 +1224,25 @@ public abstract class TestInvokeHttpCommon {
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
     }
 
+    @Test
+    public void testPatchWithBodyEL() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PATCH");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_BODY_CONTENT, "${body.attribute}");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        attrs.put("body.attribute", "Hello");
+        runner.enqueue("".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
     @Test
     public void testDelete() throws Exception {
         addHandler(new DeleteHandler());
