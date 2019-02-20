@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -41,13 +49,6 @@ import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.util.FileUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -72,6 +73,7 @@ public final class NarUnpacker {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
+            File unpackedJetty = null;
             File unpackedFramework = null;
             final Set<File> unpackedExtensions = new HashSet<>();
             final List<File> narFiles = new ArrayList<>();
@@ -119,13 +121,19 @@ public final class NarUnpacker {
 
                             // unpack the framework nar
                             unpackedFramework = unpackNar(narFile, frameworkWorkingDir);
+                        } else if (NarClassLoaders.JETTY_NAR_ID.equals(narId)) {
+                            if (unpackedJetty != null) {
+                                throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted.");
+                            }
+
+                            // unpack and record the Jetty nar
+                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir);
+                            unpackedNars.put(unpackedJetty, new BundleCoordinate(groupId, narId, version));
+                            unpackedExtensions.add(unpackedJetty);
                         } else {
+                            // unpack and record the extension nar
                             final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir);
-
-                            // record the current bundle
                             unpackedNars.put(unpackedExtension, new BundleCoordinate(groupId, narId, version));
-
-                            // unpack the extension nar
                             unpackedExtensions.add(unpackedExtension);
                         }
                     }
@@ -136,6 +144,13 @@ public final class NarUnpacker {
                     throw new IllegalStateException("No framework NAR found.");
                 } else if (!unpackedFramework.canRead()) {
                     throw new IllegalStateException("Framework NAR cannot be read.");
+                }
+
+                // ensure we've found the jetty nar
+                if (unpackedJetty == null) {
+                    throw new IllegalStateException("No Jetty NAR found.");
+                } else if (!unpackedJetty.canRead()) {
+                    throw new IllegalStateException("Jetty NAR cannot be read.");
                 }
 
                 // Determine if any nars no longer exist and delete their working directories. This happens
