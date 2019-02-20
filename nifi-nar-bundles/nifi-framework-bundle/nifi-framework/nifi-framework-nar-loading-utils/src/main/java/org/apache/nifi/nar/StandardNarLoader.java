@@ -141,7 +141,12 @@ public class StandardNarLoader implements NarLoader {
             final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
 
             if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(narId)) {
-                LOGGER.error("Found a framework NAR, will not load {}", new Object[]{narFile.getAbsolutePath()});
+                LOGGER.error("Found a framework NAR, will not auto-load {}", new Object[]{narFile.getAbsolutePath()});
+                return null;
+            }
+
+            if (NarClassLoaders.JETTY_NAR_ID.equals(narId)) {
+                LOGGER.error("Found a Jetty NAR, will not auto-load {}", new Object[]{narFile.getAbsolutePath()});
                 return null;
             }
 
