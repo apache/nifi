@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PostSlack</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            The PostSlack processor sends messages on <a href="https://www.slack.com">Slack</a>,
+            a team-oriented messaging service. The message can be a simple text message
+            or the FlowFile content (e.g. an image) can be uploaded and attached to the message too.
+        </p>
+        <p>
+            This processor uses <a href="https://api.slack.com/web">Slack Web API</a> methods
+            to post messages to a specific channel. Before using PostSlack, you need to create
+            a <a href="https://api.slack.com/apps">Slack App</a>, to add
+            a <a href="https://api.slack.com/bot-users">Bot User</a> to the app, and to install
+            the app in your Slack workspace. After the app installed, you can get the Bot User's
+            OAuth Access Token that will be needed to authenticate and authorize your PostSlack
+            processor to Slack.
+        </p>
+        <p>
+            PostSlack provides 2 main functions / modes:
+        </p>
+        <ul>
+            <li>sending text message without FlowFile upload</li>
+            <li>sending text message with FlowFile upload</li>
+        </ul>
+        <p>
+            These 2 functions / modes use different Slack Web API methods which have different parameters
+            (for further info you can see <a href="https://api.slack.com/methods/chat.postMessage">chat.postMessage</a>
+            and <a href="https://api.slack.com/methods/files.upload">files.upload</a>).
+            Due to this reason, each mode has its own processor properties beyond the common ones. Filling in
+            the not applicable properties for a function will not cause any problems, they will just not have any effect.
+            You can switch between the 2 modes by setting the 'Upload FlowFile' property to Yes/No.
+        </p>
+        <p>
+            PostSlack properties used when 'Upload FlowFile' has been set to 'No' (default):
+        </p>
+        <ul>
+            <li><i>Post Message URL</i></li>
+            <li>Access Token</li>
+            <li>Channel</li>
+            <li>Text</li>
+            <li><i>Username</i></li>
+            <li><i>Icon Emoji</i></li>
+            <li><i>Icon URL</i></li>
+            <li><i>Dynamic Properties (see below)</i></li>
+        </ul>
+        <p>
+            PostSlack properties used when 'Upload FlowFile' has been set to 'Yes':
+        </p>
+        <ul>
+            <li><i>File Upload URL</i></li>
+            <li>Access Token</li>
+            <li>Channel</li>
+            <li>Text</li>
+            <li><i>File Title</i></li>
+            <li><i>File Name</i></li>
+            <li><i>File Mime Type</i></li>
+        </ul>
+        <p>
+            <a href="https://api.slack.com/docs/message-attachments">Slack content and link attachments</a> can also be
+            added to the message. Please note that this kind of Slack message attachments does not involve the file
+            upload itself, but rather contain links to external resources or internal resources already uploaded
+            to Slack. Please also note that this functionality does not work together with file upload
+            (so it can only be used when 'Upload FlowFile' has been set to 'No').
+            The Dynamic Properties can be used to specify these Slack message "attachments" as JSON snippets.
+            Each property value will be converted to JSON and will be added to the array of attachments in the JSON
+            payload being sent to Slack.
+        </p>
+    </body>
+</html>
