@@ -23,7 +23,6 @@ import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.ProcessContext;
@@ -233,7 +232,7 @@ public class AbstractCassandraProcessorTest {
         assertNotNull(processor.getCluster());
     }
 
-    @Test(expected = ProviderCreationException.class)
+    @Test(expected = IllegalStateException.class)
     public void testConnectToCassandraWithSSLBadClientAuth() throws Exception {
         SSLContextService sslService = mock(SSLContextService.class);
         when(sslService.getIdentifier()).thenReturn("ssl-context");
