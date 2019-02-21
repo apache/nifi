@@ -151,6 +151,11 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
         String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
 
         dataSource.setMaxWait(maxWaitMillis);
+        // This should ensure no connections are pooled and is created when
+        // getting a connection
+        // from the datasource and closes the connection when close on
+        // datasource is called.
+        dataSource.setMaxIdle(0);
         dataSource.setMaxActive(maxTotal);
 
         if (validationQuery != null && !validationQuery.isEmpty()) {
