@@ -614,7 +614,7 @@ public class FingerprintFactory {
 
         // relationships
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");
-        final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getConnectionRelationshipsComparator());
+        final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getElementTextComparator());
         for (final Element relationshipElem : sortedRelationshipElems) {
             builder.append(getValue(relationshipElem, NO_VALUE));
         }
@@ -766,36 +766,7 @@ public class FingerprintFactory {
             }
         };
     }
-
-    private Comparator<Element> getConnectionRelationshipsComparator() {
-        return getSingleChildComparator("relationship");
-    }
-
-    private Comparator<Element> getSingleChildComparator(final String childElementName) {
-        return new Comparator<Element>() {
-            @Override
-            public int compare(final Element e1, final Element e2) {
-                if (e2 == null) {
-                    return -1;
-                } else if (e1 == null) {
-                    return 1;
-                }
-
-                // compare using processor ids
-                final String e1Id = getFirstValue(DomUtils.getChildNodesByTagName(e1, childElementName));
-                if (e1Id == null) {
-                    return 1;
-                }
-                final String e2Id = getFirstValue(DomUtils.getChildNodesByTagName(e2, childElementName));
-                if (e2Id == null) {
-                    return -1;
-                }
-
-                return e1Id.compareTo(e2Id);
-            }
-        };
-    }
-
+    
     private Comparator<Element> getElementTextComparator() {
         return new Comparator<Element>() {
             @Override
