@@ -1801,6 +1801,8 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.0.1 - http://jax-rs-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) WebSocket server API (javax.websocker:javax.websocket-api:jar:110 - http://websocket-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Tyrus Standalone Client (org.glassfish.tyrus.bundles:tyrus-standalone-client:jar:1.13 - https://tyrus-project.github.io/index.html)
 
 
 ************************

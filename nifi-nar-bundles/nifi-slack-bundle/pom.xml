@@ -30,6 +30,10 @@
     <modules>
         <module>nifi-slack-processors</module>
         <module>nifi-slack-nar</module>
+        <module>nifi-slack-services-api</module>
+        <module>nifi-slack-services-api-nar</module>
+        <module>nifi-slack-services-rtm</module>
+        <module>nifi-slack-services-rtm-nar</module>
     </modules>
 
 </project>
