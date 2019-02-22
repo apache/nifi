@@ -57,14 +57,14 @@ public class TestStandardRootGroupPort {
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
         return new StandardRootGroupPort("id", "name", processGroup,
-                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
-                processScheduler, true, nifiProperties);
+            TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
+            processScheduler, true, nifiProperties);
     }
 
     @Test
     public void testCheckUserAuthorizationByDn() {
-
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
+        doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
@@ -89,6 +89,7 @@ public class TestStandardRootGroupPort {
         final String mapValue = "$1@$2";
         doReturn(mapPattern).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey));
         doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
+        doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
@@ -116,6 +117,7 @@ public class TestStandardRootGroupPort {
         doReturn(mapPattern).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey));
         doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
         doReturn(mapTransform).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey));
+        doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
         final RootGroupPort port = createRootGroupPort(nifiProperties);
 
