@@ -23,6 +23,12 @@ prop_replace () {
   sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}
 }
 
+uncomment() {
+	target_file=${2}
+	echo "Uncommenting ${target_file}"
+	sed -i -e "s|^\#$1|$1|" ${target_file}
+}
+
 # NIFI_HOME is defined by an ENV command in the backing Dockerfile
 export nifi_bootstrap_file=${NIFI_HOME}/conf/bootstrap.conf
 export nifi_props_file=${NIFI_HOME}/conf/nifi.properties
