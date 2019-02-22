@@ -189,17 +189,17 @@ public class RecordBinManager {
 
         final PropertyValue maxMillisValue = context.getProperty(MergeRecord.MAX_BIN_AGE);
         final String maxBinAge = maxMillisValue.getValue();
-        final long maxBinMillis = maxMillisValue.isSet() ? maxMillisValue.asTimePeriod(TimeUnit.MILLISECONDS).longValue() : Long.MAX_VALUE;
+        final long maxBinMillis = maxMillisValue.isSet() ? maxMillisValue.asTimePeriod(TimeUnit.MILLISECONDS) : Long.MAX_VALUE;
 
-        final String recordCountAttribute;
+        final String fragmentCountAttribute;
         final String mergeStrategy = context.getProperty(MergeRecord.MERGE_STRATEGY).getValue();
         if (MergeRecord.MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
-            recordCountAttribute = MergeContent.FRAGMENT_COUNT_ATTRIBUTE;
+            fragmentCountAttribute = MergeContent.FRAGMENT_COUNT_ATTRIBUTE;
         } else {
-            recordCountAttribute = null;
+            fragmentCountAttribute = null;
         }
 
-        return new RecordBinThresholds(minRecords, maxRecords, minBytes, maxBytes, maxBinMillis, maxBinAge, recordCountAttribute);
+        return new RecordBinThresholds(minRecords, maxRecords, minBytes, maxBytes, maxBinMillis, maxBinAge, fragmentCountAttribute);
     }
 
 
