@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.connectable;
 
-import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.connectable.Connection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -35,6 +25,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Provides a mechanism by which <code>FlowFile</code>s can be transferred into and out of a <code>ProcessGroup</code> to and/or from another <code>ProcessGroup</code> within the same instance of
@@ -73,9 +71,25 @@ public class LocalPort extends AbstractPort {
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         readLock.lock();
         try {
-            final List<FlowFile> flowFiles = session.get(100);
-            if (!flowFiles.isEmpty()) {
+            Set<Relationship> available = context.getAvailableRelationships();
+            int iterations = 0;
+            while (!available.isEmpty()) {
+                final List<FlowFile> flowFiles = session.get(1000);
+                if (flowFiles.isEmpty()) {
+                    break;
+                }
+
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
+                session.commit();
+
+                // If there are fewer than 1,000 FlowFiles available to transfer, or if we
+                // have hit a cap of 10,000 FlowFiles, we want to stop. This prevents us from
+                // holding the Timer-Driven Thread for an excessive amount of time.
+                if (flowFiles.size() < 1000 || ++iterations >= 10) {
+                    break;
+                }
+
+                available = context.getAvailableRelationships();
             }
         } finally {
             readLock.unlock();

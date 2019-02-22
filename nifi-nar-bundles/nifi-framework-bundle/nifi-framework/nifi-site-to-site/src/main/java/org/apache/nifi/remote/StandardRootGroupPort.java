@@ -110,7 +110,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
         this.identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
         this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
-        setYieldPeriod("100 millis");
+        setYieldPeriod(nifiProperties.getBoredYieldDuration());
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
 
@@ -142,12 +142,13 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         final FlowFileRequest flowFileRequest;
         try {
-            flowFileRequest = requestQueue.poll(100, TimeUnit.MILLISECONDS);
+            flowFileRequest = requestQueue.poll(1, TimeUnit.MILLISECONDS);
         } catch (final InterruptedException ie) {
             return;
         }
 
         if (flowFileRequest == null) {
+            context.yield();
             return;
         }
 
