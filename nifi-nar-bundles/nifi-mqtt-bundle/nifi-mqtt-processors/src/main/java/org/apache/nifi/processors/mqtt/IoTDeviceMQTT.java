@@ -19,9 +19,10 @@ package org.apache.nifi.processors.mqtt;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -39,17 +41,26 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StopWatch;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_0;
+import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_1;
+import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_2;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,31 +69,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_DUPLICATE_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_RETAINED_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.ConsumeMQTT.QOS_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.ConsumeMQTT.TOPIC_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_0;
-import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_1;
-import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_2;
-
-
-@Tags({"subscribe", "MQTT", "IOT", "consume", "listen"})
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@TriggerSerially
-@CapabilityDescription("Subscribes to a topic and receives messages from an MQTT broker")
-@SeeAlso({PublishMQTT.class})
-@WritesAttributes({
-    @WritesAttribute(attribute=BROKER_ATTRIBUTE_KEY, description="MQTT broker that was the message source"),
-    @WritesAttribute(attribute=TOPIC_ATTRIBUTE_KEY, description="MQTT topic on which message was received"),
-    @WritesAttribute(attribute=QOS_ATTRIBUTE_KEY, description="The quality of service for this message."),
-    @WritesAttribute(attribute=IS_DUPLICATE_ATTRIBUTE_KEY, description="Whether or not this message might be a duplicate of one which has already been received."),
-    @WritesAttribute(attribute=IS_RETAINED_ATTRIBUTE_KEY, description="Whether or not this message was from a current publisher, or was \"retained\" by the server as the last message published " +
-            "on the topic.")})
-public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
+@InputRequirement(Requirement.INPUT_ALLOWED)
+@TriggerWhenEmpty
+@Tags({"MQTT", "IOT"})
+@CapabilityDescription("Instantiate a MQTT client to both publish and receive data in a IoT device deployment model")
+@SeeAlso({ConsumeMQTT.class, PublishMQTT.class})
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
+public class IoTDeviceMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     public final static String BROKER_ATTRIBUTE_KEY =  "mqtt.broker";
     public final static String TOPIC_ATTRIBUTE_KEY =  "mqtt.topic";
@@ -90,23 +86,30 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     public final static String IS_DUPLICATE_ATTRIBUTE_KEY =  "mqtt.isDuplicate";
     public final static String IS_RETAINED_ATTRIBUTE_KEY =  "mqtt.isRetained";
 
-    public static final PropertyDescriptor PROP_TOPIC_FILTER = new PropertyDescriptor.Builder()
-            .name("Topic Filter")
-            .description("The MQTT topic filter to designate the topics to subscribe to.")
+    public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()
+            .name("Publish Topic")
+            .description("The topic to publish the incoming FlowFiles to.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
-            .name("Quality of Service(QoS)")
-            .description("The Quality of Service(QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
+            .name("Publish Quality of Service (QoS)")
+            .description("The Quality of Service (QoS) to send the message with. Accepts three values '0', '1' and '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'. " +
+                    "Expression language is allowed in order to support publishing messages with different QoS but the end value of the property must be either '0', '1' or '2'. ")
             .required(true)
-            .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
-            .allowableValues(
-                    ALLOWABLE_VALUE_QOS_0,
-                    ALLOWABLE_VALUE_QOS_1,
-                    ALLOWABLE_VALUE_QOS_2)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(QOS_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_RETAIN = new PropertyDescriptor.Builder()
+            .name("Retain Message")
+            .description("Whether or not the retain flag should be set on the MQTT message.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(RETAIN_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_MAX_QUEUE_SIZE = new PropertyDescriptor.Builder()
@@ -117,74 +120,62 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROP_TOPIC_FILTER = new PropertyDescriptor.Builder()
+            .name("Subscribe Topics")
+            .description("Comma-separated list of MQTT topics to designate the topics to subscribe. It can also be a filter containing wildcards if the broker allows it.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
-    private volatile long maxQueueSize;
+    public static final PropertyDescriptor PROP_CONSUME_QOS = new PropertyDescriptor.Builder()
+            .name("Consume Quality of Service (QoS)")
+            .description("The Quality of Service (QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
+            .required(true)
+            .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
+            .allowableValues(
+                    ALLOWABLE_VALUE_QOS_0,
+                    ALLOWABLE_VALUE_QOS_1,
+                    ALLOWABLE_VALUE_QOS_2)
+            .build();
 
-    private volatile int qos;
-    private volatile String topicFilter;
-    private final AtomicBoolean scheduled = new AtomicBoolean(false);
-
-    private volatile LinkedBlockingQueue<MQTTQueueMessage> mqttQueue;
-
-    public static final Relationship REL_MESSAGE = new Relationship.Builder()
-            .name("Message")
-            .description("The MQTT message output")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that are sent successfully to the destination are transferred to this relationship.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles that failed to send to the destination are transferred to this relationship.")
+            .build();
+    public static final Relationship REL_RECEIVED = new Relationship.Builder()
+            .name("received")
+            .description("MQTT messages received for the topics the client subscribed to.")
             .build();
 
     private static final List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
 
-    static{
+    private volatile long maxQueueSize;
+    private volatile int[] qosConsume;
+    private volatile String[] topics;
+    private final AtomicBoolean scheduled = new AtomicBoolean(false);
+    private volatile LinkedBlockingQueue<MQTTQueueMessage> mqttQueue;
+
+    static {
         final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
-        innerDescriptorsList.add(PROP_TOPIC_FILTER);
+        innerDescriptorsList.add(PROP_TOPIC);
         innerDescriptorsList.add(PROP_QOS);
+        innerDescriptorsList.add(PROP_RETAIN);
         innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
+        innerDescriptorsList.add(PROP_TOPIC_FILTER);
+        innerDescriptorsList.add(PROP_CONSUME_QOS);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
-        final Set<Relationship> innerRelationshipsSet = new HashSet<Relationship>();
-        innerRelationshipsSet.add(REL_MESSAGE);
+        final Set<Relationship> innerRelationshipsSet = new HashSet<>();
+        innerRelationshipsSet.add(REL_SUCCESS);
+        innerRelationshipsSet.add(REL_FAILURE);
+        innerRelationshipsSet.add(REL_RECEIVED);
         relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
-
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        // resize the receive buffer, but preserve data
-        if (descriptor == PROP_MAX_QUEUE_SIZE) {
-            // it's a mandatory integer, never null
-            int newSize = Integer.valueOf(newValue);
-            if (mqttQueue != null) {
-                int msgPending = mqttQueue.size();
-                if (msgPending > newSize) {
-                    logger.warn("New receive buffer size ({}) is smaller than the number of messages pending ({}), ignoring resize request. Processor will be invalid.",
-                            new Object[]{newSize, msgPending});
-                    return;
-                }
-                LinkedBlockingQueue<MQTTQueueMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
-                mqttQueue.drainTo(newBuffer);
-                mqttQueue = newBuffer;
-            }
-
-        }
-    }
-
-    @Override
-    public Collection<ValidationResult> customValidate(ValidationContext context) {
-        final Collection<ValidationResult> results = super.customValidate(context);
-        int newSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger();
-        if (mqttQueue == null) {
-            mqttQueue = new LinkedBlockingQueue<>(context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger());
-        }
-        int msgPending = mqttQueue.size();
-        if (msgPending > newSize) {
-            results.add(new ValidationResult.Builder()
-                    .valid(false)
-                    .subject("ConsumeMQTT Configuration")
-                    .explanation(String.format("%s (%d) is smaller than the number of messages pending (%d).",
-                            PROP_MAX_QUEUE_SIZE.getDisplayName(), newSize, msgPending))
-                    .build());
-        }
-
-        return results;
     }
 
     @Override
@@ -205,9 +196,11 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
-        qos = context.getProperty(PROP_QOS).asInteger();
+        int qos = context.getProperty(PROP_CONSUME_QOS).asInteger();
         maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
-        topicFilter = context.getProperty(PROP_TOPIC_FILTER).getValue();
+        topics = context.getProperty(PROP_TOPIC_FILTER).getValue().split(",");
+        qosConsume = new int[topics.length];
+        Arrays.fill(qosConsume, qos);
         scheduled.set(true);
     }
 
@@ -219,9 +212,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         }
     }
 
-
     @OnStopped
-    public void onStopped(final ProcessContext context) throws IOException {
+    public void onStopped(final ProcessContext context) {
         if(mqttQueue != null && !mqttQueue.isEmpty() && processSessionFactory != null) {
             logger.info("Finishing processing leftover messages");
             ProcessSession session = processSessionFactory.createSession();
@@ -236,7 +228,49 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
     }
 
     @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        // resize the receive buffer, but preserve data
+        if (descriptor == PROP_MAX_QUEUE_SIZE) {
+            // it's a mandatory integer, never null
+            int newSize = Integer.valueOf(newValue);
+            if (mqttQueue != null) {
+                int msgPending = mqttQueue.size();
+                if (msgPending > newSize) {
+                    logger.warn("New receive buffer size ({}) is smaller than the number of messages pending ({}), ignoring resize request. Processor will be invalid.",
+                            new Object[]{newSize, msgPending});
+                    return;
+                }
+                LinkedBlockingQueue<MQTTQueueMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
+                mqttQueue.drainTo(newBuffer);
+                mqttQueue = newBuffer;
+            }
+        }
+    }
+
+    @Override
+    public Collection<ValidationResult> customValidate(ValidationContext context) {
+        final Collection<ValidationResult> results = super.customValidate(context);
+        int newSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger();
+
+        if (mqttQueue == null) {
+            mqttQueue = new LinkedBlockingQueue<>(context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger());
+        }
+
+        int msgPending = mqttQueue.size();
+        if (msgPending > newSize) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("IoTDeviceMQTT Configuration")
+                    .explanation(String.format("%s (%d) is smaller than the number of messages pending (%d).", PROP_MAX_QUEUE_SIZE.getDisplayName(), newSize, msgPending))
+                    .build());
+        }
+
+        return results;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
         final boolean isScheduled = scheduled.get();
         if (!isConnected() && isScheduled){
             synchronized (this) {
@@ -248,11 +282,57 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
         refreshConnection();
 
-        if (mqttQueue.isEmpty()) {
+        if (!mqttQueue.isEmpty()) {
+            transferQueue(session);
+        }
+
+        FlowFile flowfile = session.get();
+        if (flowfile == null) {
+            if(mqttQueue.isEmpty()) {
+                context.yield();
+            }
             return;
         }
 
-        transferQueue(session);
+        // get the MQTT topic
+        String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
+
+        if (topic == null || topic.isEmpty()) {
+            logger.warn("Evaluation of the topic property returned null or evaluated to be empty, routing to failure");
+            session.transfer(flowfile, REL_FAILURE);
+            return;
+        }
+
+        // do the read
+        final byte[] messageContent = new byte[(int) flowfile.getSize()];
+        session.read(flowfile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                StreamUtils.fillBuffer(in, messageContent, true);
+            }
+        });
+
+        int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
+        final MqttMessage mqttMessage = new MqttMessage(messageContent);
+        mqttMessage.setQos(qos);
+        mqttMessage.setPayload(messageContent);
+        mqttMessage.setRetained(context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean());
+
+        try {
+            final StopWatch stopWatch = new StopWatch(true);
+            /*
+             * Underlying method waits for the message to publish (according to set QoS), so it executes synchronously:
+             *     MqttClient.java:361 aClient.publish(topic, message, null, null).waitForCompletion(getTimeToWait());
+             */
+            mqttClient.publish(topic, mqttMessage);
+
+            session.getProvenanceReporter().send(flowfile, broker, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowfile, REL_SUCCESS);
+        } catch(MqttException me) {
+            logger.error("Failed to publish message.", me);
+            session.transfer(flowfile, REL_FAILURE);
+        }
+
     }
 
     private void initializeClient(ProcessContext context) {
@@ -268,7 +348,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
             if (!mqttClient.isConnected()) {
                 logger.debug("Connecting client");
                 mqttClient.connect(connOpts);
-                mqttClient.subscribe(topicFilter, qos);
+                mqttClient.subscribe(topics, qosConsume);
             }
         } catch (MqttException e) {
             logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{broker}, e);
@@ -299,12 +379,13 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
             String transitUri = new StringBuilder(broker).append(mqttMessage.getTopic()).toString();
             session.getProvenanceReporter().receive(messageFlowfile, transitUri);
-            session.transfer(messageFlowfile, REL_MESSAGE);
+            session.transfer(messageFlowfile, REL_RECEIVED);
             session.commit();
+
             if (!mqttQueue.remove(mqttMessage) && logger.isWarnEnabled()) {
                 logger.warn(new StringBuilder("FlowFile ")
                         .append(messageFlowfile.getAttribute(CoreAttributes.UUID.key()))
-                        .append(" for Mqtt message ")
+                        .append(" for MQTT message ")
                         .append(mqttMessage)
                         .append(" had already been removed from queue, possible duplication of flow files")
                         .toString());
@@ -338,7 +419,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
-        logger.warn("Received MQTT 'delivery complete' message to subscriber: " + token);
+        logger.trace("Received 'delivery complete' message from broker for:" + token.toString());
     }
 
 }

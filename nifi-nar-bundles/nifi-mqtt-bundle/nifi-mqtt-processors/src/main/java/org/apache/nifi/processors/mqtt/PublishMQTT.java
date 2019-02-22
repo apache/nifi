@@ -156,6 +156,8 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
             }
         }
 
+        refreshConnection();
+
         // get the MQTT topic
         String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
 

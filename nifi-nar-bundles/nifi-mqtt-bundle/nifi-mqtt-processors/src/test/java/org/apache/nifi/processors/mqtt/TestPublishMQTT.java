@@ -78,8 +78,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         final File folder =  new File("./target");
         final File[] files = folder.listFiles( new FilenameFilter() {
             @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
+            public boolean accept( final File dir, final String name ) {
                 return name.matches( "moquette_store.mapdb.*" );
             }
         } );

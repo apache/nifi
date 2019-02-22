@@ -37,7 +37,7 @@
         <module>nifi-dbcp-service-bundle</module>
         <module>nifi-hbase-client-service-api</module>
         <module>nifi-hbase_1_1_2-client-service-bundle</module>
-	<module>nifi-hbase_2-client-service-bundle</module>
+        <module>nifi-hbase_2-client-service-bundle</module>
         <module>nifi-schema-registry-service-api</module>
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
@@ -46,5 +46,6 @@
         <module>nifi-kerberos-credentials-service-bundle</module>
         <module>nifi-proxy-configuration-api</module>
         <module>nifi-proxy-configuration-bundle</module>
+        <module>nifi-mqtt-client-service-api</module>
     </modules>
 </project>

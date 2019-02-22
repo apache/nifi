@@ -47,7 +47,6 @@ public class MqttTestClient implements IMqttClient {
     public String subscribedTopic;
     public int subscribedQos;
 
-
     public MqttTestClient(String serverURI, String clientId, ConnectType type) throws MqttException {
         this.serverURI = serverURI;
         this.clientId = clientId;
@@ -113,7 +112,8 @@ public class MqttTestClient implements IMqttClient {
 
     @Override
     public void subscribe(String[] topicFilters, int[] qos) throws MqttException {
-        throw new UnsupportedOperationException("Multiple topic filters is not supported");
+        subscribedTopic = topicFilters[0];
+        subscribedQos = qos[0];
     }
 
     @Override
@@ -208,6 +208,21 @@ public class MqttTestClient implements IMqttClient {
 
     @Override
     public void publish(String topic, MqttMessage message) throws MqttException, MqttPersistenceException {
+        switch (type) {
+            case Publisher:
+                publishedMessage = new MQTTQueueMessage(topic, message);
+                break;
+            case Subscriber:
+                try {
+                    mqttCallback.messageArrived(topic, message);
+                } catch (Exception e) {
+                    throw new MqttException(e);
+                }
+                break;
+        }
+    }
+
+    public void publish(String topic, MqttMessage message, ConnectType type) throws MqttException, MqttPersistenceException {
         switch (type) {
             case Publisher:
                 publishedMessage = new MQTTQueueMessage(topic, message);

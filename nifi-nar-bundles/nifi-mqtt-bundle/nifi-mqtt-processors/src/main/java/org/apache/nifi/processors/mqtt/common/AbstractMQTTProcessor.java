@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mqtt.services.MQTTAuthenticationService;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -62,6 +63,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     protected volatile String broker;
     protected volatile String clientID;
     protected MqttConnectOptions connOpts;
+    protected MQTTAuthenticationService mqttAuthNService;
     protected MemoryPersistence persistence = new MemoryPersistence();
 
     public ProcessSessionFactory processSessionFactory;
@@ -119,12 +121,19 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .addValidator(BROKER_VALIDATOR)
             .build();
 
-
     public static final PropertyDescriptor PROP_CLIENTID = new PropertyDescriptor.Builder()
             .name("Client ID")
             .description("MQTT client ID to use")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_AUTHN_SERVICE = new PropertyDescriptor.Builder()
+            .name("mqtt-authn-service")
+            .displayName("Authentication Service")
+            .description("Controller service to define authentication parameters to be used. If set, the properties username, password and SSL context service will be ignored.")
+            .required(false) // TODO - with major update, make it required and remove deprecated properties
+            .identifiesControllerService(MQTTAuthenticationService.class)
             .build();
 
     public static final PropertyDescriptor PROP_USERNAME = new PropertyDescriptor.Builder()
@@ -148,7 +157,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
-
 
     public static final PropertyDescriptor PROP_LAST_WILL_TOPIC = new PropertyDescriptor.Builder()
             .name("Last Will Topic")
@@ -230,6 +238,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(PROP_BROKER_URI);
         descriptors.add(PROP_CLIENTID);
+        descriptors.add(PROP_AUTHN_SERVICE);
         descriptors.add(PROP_USERNAME);
         descriptors.add(PROP_PASSWORD);
         descriptors.add(PROP_SSL_CONTEXT_SERVICE);
@@ -272,7 +281,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         try {
             URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).getValue());
-            if (brokerURI.getScheme().equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
+            if (brokerURI.getScheme().equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()
+                    && !validationContext.getProperty(PROP_AUTHN_SERVICE).isSet()) {
                 results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false).explanation("if the 'ssl' scheme is used in " +
                         "the broker URI, the SSL Context Service must be set.").build());
             }
@@ -305,12 +315,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         connOpts.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
         connOpts.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());
 
-        PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
-        if (sslProp.isSet()) {
-            Properties sslProps = transformSSLContextService((SSLContextService) sslProp.asControllerService());
-            connOpts.setSSLProperties(sslProps);
-        }
-
         PropertyValue lastWillTopicProp = context.getProperty(PROP_LAST_WILL_TOPIC);
         if (lastWillTopicProp.isSet()){
             String lastWillMessage = context.getProperty(PROP_LAST_WILL_MESSAGE).getValue();
@@ -319,35 +323,52 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             connOpts.setWill(lastWillTopicProp.getValue(), lastWillMessage.getBytes(), lastWillQOS, lastWillRetain.isSet() ? lastWillRetain.asBoolean() : false);
         }
 
+        if(context.getProperty(PROP_AUTHN_SERVICE).isSet()) {
+            mqttAuthNService = context.getProperty(PROP_AUTHN_SERVICE).asControllerService(MQTTAuthenticationService.class);
+            mqttAuthNService.setMqttConnectOptions(connOpts);
+        } else {
+            PropertyValue sslProp = context.getProperty(PROP_SSL_CONTEXT_SERVICE);
+            if (sslProp.isSet()) {
+                Properties sslProps = transformSSLContextService((SSLContextService) sslProp.asControllerService());
+                connOpts.setSSLProperties(sslProps);
+            }
 
-        PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
-        if(usernameProp.isSet()) {
-            connOpts.setUserName(usernameProp.getValue());
-            connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
+            PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
+            if(usernameProp.isSet()) {
+                connOpts.setUserName(usernameProp.getValue());
+                connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
+            }
         }
     }
 
     protected void onStopped() {
-        try {
-            logger.info("Disconnecting client");
-            mqttClient.disconnect(DISCONNECT_TIMEOUT);
-        } catch(MqttException me) {
-            logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
-        }
+        if(mqttClient != null) {
+            try {
+                logger.info("Disconnecting client");
+                mqttClient.disconnect(DISCONNECT_TIMEOUT);
+            } catch(MqttException me) {
+                logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            }
 
-        try {
-            logger.info("Closing client");
-            mqttClient.close();
-            mqttClient = null;
-        } catch (MqttException me) {
-            logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            try {
+                logger.info("Closing client");
+                mqttClient.close();
+                mqttClient = null;
+            } catch (MqttException me) {
+                logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            }
         }
     }
 
-    protected IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+    public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
         return new MqttClient(broker, clientID, persistence);
     }
 
+    protected void refreshConnection() {
+        if(mqttAuthNService != null) {
+            mqttAuthNService.refreshConnectOptions(connOpts);
+        }
+    }
 
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
