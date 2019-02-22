@@ -93,7 +93,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
                         .setMaxAttempts(retryCount)
                         .build());
 
-        if (!projectId.isEmpty()) {
+        if (projectId != null && !projectId.isEmpty()) {
             storageOptionsBuilder.setProjectId(projectId);
         }
 
