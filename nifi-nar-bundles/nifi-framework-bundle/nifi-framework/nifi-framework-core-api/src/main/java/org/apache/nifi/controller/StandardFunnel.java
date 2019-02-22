@@ -370,14 +370,23 @@ public class StandardFunnel implements Funnel {
         readLock.lock();
         try {
             Set<Relationship> available = context.getAvailableRelationships();
+            int iterations = 0;
             while (!available.isEmpty()) {
-                final List<FlowFile> flowFiles = session.get(100);
+                final List<FlowFile> flowFiles = session.get(1000);
                 if (flowFiles.isEmpty()) {
                     break;
                 }
 
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
                 session.commit();
+
+                // If there are fewer than 1,000 FlowFiles available to transfer, or if we
+                // have hit a cap of 10,000 FlowFiles, we want to stop. This prevents us from
+                // holding the Timer-Driven Thread for an excessive amount of time.
+                if (flowFiles.size() < 1000 || ++iterations >= 10) {
+                    break;
+                }
+
                 available = context.getAvailableRelationships();
             }
         } finally {
