@@ -188,11 +188,13 @@ can be published to the host.
 | HTTP Port                | nifi.web.http.port            | 8080  |
 | HTTPS Port               | nifi.web.https.port           | 8443  |
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
+| JVM Debugger             | java.arg.debug                | 8000  |
 
 The Variable Registry can be configured for the docker image using the `NIFI_VARIABLE_REGISTRY_PROPERTIES` environment variable.
 
 The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP_INIT` and `NIFI_JVM_HEAP_MAX` environment variables. These use values acceptable to the JVM `Xmx` and `Xms` parameters such as `1g` or `512m`.
 
+The JVM Debugger can be enabled by setting the environment variable NIFI_JVM_DEBUGGER to any value.
 
 =======  
 **NOTE**: If NiFi is proxied at context paths other than the root path of the proxy, the paths need to be set in the 
