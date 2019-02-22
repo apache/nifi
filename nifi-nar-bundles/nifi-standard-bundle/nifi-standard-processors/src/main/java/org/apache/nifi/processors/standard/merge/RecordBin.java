@@ -215,6 +215,22 @@ public class RecordBin {
                 return true;
             }
 
+            Optional<String> fragmentCountAttribute = thresholds.getFragmentCountAttribute();
+            if(fragmentCountAttribute != null && fragmentCountAttribute.isPresent()) {
+                final Optional<String> fragmentCountValue = flowFiles.stream()
+                        .filter(ff -> ff.getAttribute(fragmentCountAttribute.get()) != null)
+                        .map(ff -> ff.getAttribute(fragmentCountAttribute.get()))
+                        .findFirst();
+                if (fragmentCountValue.isPresent()) {
+                    try {
+                        int expectedFragments = Integer.parseInt(fragmentCountValue.get());
+                        if (this.fragmentCount == expectedFragments)
+                            return true;
+                    } catch (NumberFormatException nfe) {
+                        this.logger.error(nfe.getMessage(), nfe);
+                    }
+                }
+            }
             return false;
         } finally {
             readLock.unlock();
