@@ -31,9 +31,13 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -551,7 +555,28 @@ public class DataTypeUtils {
             return list.toArray();
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
+        try {
+            if (value instanceof Blob) {
+                Blob blob = (Blob) value;
+                long rawBlobLength = blob.length();
+                if(rawBlobLength > Integer.MAX_VALUE) {
+                    throw new IllegalTypeConversionException("Value of type " + value.getClass() + " too large to convert to Object Array for field " + fieldName);
+                }
+                int blobLength = (int) rawBlobLength;
+                byte[] src = blob.getBytes(1, blobLength);
+                Byte[] dest = new Byte[blobLength];
+                for (int i = 0; i < src.length; i++) {
+                    dest[i] = src[i];
+                }
+                return dest;
+            } else {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
+            }
+        } catch (IllegalTypeConversionException itce) {
+            throw itce;
+        } catch (Exception e) {
+            throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName, e);
+        }
     }
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
@@ -746,6 +771,20 @@ public class DataTypeUtils {
                 return ""; // Empty array = empty string
             }
         }
+        if (value instanceof Clob) {
+            Clob clob = (Clob) value;
+            StringBuilder sb = new StringBuilder();
+            char[] buffer = new char[32 * 1024]; // 32K default buffer
+            try (Reader reader = clob.getCharacterStream()) {
+                int charsRead;
+                while ((charsRead = reader.read(buffer)) != -1) {
+                    sb.append(buffer, 0, charsRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
 
         return value.toString();
     }
@@ -787,6 +826,34 @@ public class DataTypeUtils {
         }
         if (value instanceof java.util.Date) {
             return getDateFormat(format).format((java.util.Date) value);
+        }
+        if (value instanceof Blob) {
+            Blob blob = (Blob) value;
+            StringBuilder sb = new StringBuilder();
+            byte[] buffer = new byte[32 * 1024]; // 32K default buffer
+            try (InputStream inStream = blob.getBinaryStream()) {
+                int bytesRead;
+                while ((bytesRead = inStream.read(buffer)) != -1) {
+                    sb.append(new String(buffer, charset), 0, bytesRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
+        if (value instanceof Clob) {
+            Clob clob = (Clob) value;
+            StringBuilder sb = new StringBuilder();
+            char[] buffer = new char[32 * 1024]; // 32K default buffer
+            try (Reader reader = clob.getCharacterStream()) {
+                int charsRead;
+                while ((charsRead = reader.read(buffer)) != -1) {
+                    sb.append(buffer, 0, charsRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
         }
 
         if (value instanceof Object[]) {

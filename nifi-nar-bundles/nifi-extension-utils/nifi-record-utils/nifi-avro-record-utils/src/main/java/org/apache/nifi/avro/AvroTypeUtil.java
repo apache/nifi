@@ -30,6 +30,7 @@ import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -55,6 +56,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -726,8 +728,18 @@ public class AvroTypeUtil {
                 }
                 if (rawValue instanceof Object[]) {
                     return AvroTypeUtil.convertByteArray((Object[]) rawValue);
-                } else {
-                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
+                }
+                try {
+                    if (rawValue instanceof Blob) {
+                        Blob blob = (Blob) rawValue;
+                        return ByteBuffer.wrap(IOUtils.toByteArray(blob.getBinaryStream()));
+                    } else {
+                        throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
+                    }
+                } catch (IllegalTypeConversionException itce) {
+                    throw itce;
+                } catch (Exception e) {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer", e);
                 }
             case MAP:
                 if (rawValue instanceof Record) {
