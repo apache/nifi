@@ -816,6 +816,15 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+          <id>assemble-minifi-jni</id>
+          <activation>
+                <jdk>1.8</jdk>
+          </activation>
+          <modules>
+                <module>nifi-minifi-jni-assembly</module>
+          </modules>
+        </profile>
+        <profile>
             <id>rpm</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
