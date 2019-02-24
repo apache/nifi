@@ -37,6 +37,7 @@ public class PropertyDescriptorDTO {
     private Boolean sensitive;
     private Boolean dynamic;
     private Boolean supportsEl;
+    private Boolean forceEl;
     private String expressionLanguageScope;
     private String identifiesControllerService;
     private BundleDTO identifiesControllerServiceBundle;
@@ -165,6 +166,20 @@ public class PropertyDescriptorDTO {
 
     public void setSupportsEl(Boolean supportsEl) {
         this.supportsEl = supportsEl;
+    }
+
+    /**
+     * @return specifies whether or not this property forcelly support expression language
+     */
+    @ApiModelProperty(
+            value = "Whether the property forcelly supports expression language."
+    )
+    public Boolean getForceEl() {
+        return forceEl;
+    }
+
+    public void setForceEl(Boolean forceEl) {
+        this.forceEl = forceEl;
     }
 
     /**

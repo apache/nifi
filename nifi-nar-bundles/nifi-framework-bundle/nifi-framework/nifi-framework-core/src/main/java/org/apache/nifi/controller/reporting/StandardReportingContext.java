@@ -123,7 +123,10 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
         }
 
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
+        if( property.isExpressionLanguageForced() )
+            return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry).evaluateAttributeExpressions();
+        else
+            return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

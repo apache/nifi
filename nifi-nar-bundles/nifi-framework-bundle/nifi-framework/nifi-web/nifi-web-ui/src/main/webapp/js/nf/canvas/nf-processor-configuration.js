@@ -348,10 +348,17 @@
 
         // properties
         var properties = $('#processor-properties').propertytable('marshalProperties');
+        // descriptors
+        var descriptors = $('#processor-properties').propertytable('marshalDescriptors');
 
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             processorConfigDto['properties'] = properties;
+        }
+
+        // set the descriptors
+        if ($.isEmptyObject(descriptors) === false) {
+            processorConfigDto['descriptors'] = descriptors;
         }
 
         // create the processor dto

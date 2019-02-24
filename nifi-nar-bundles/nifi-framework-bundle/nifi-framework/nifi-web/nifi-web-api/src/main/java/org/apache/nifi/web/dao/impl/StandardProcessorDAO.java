@@ -42,6 +42,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.quartz.CronExpression;
@@ -133,6 +134,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final String annotationData = config.getAnnotationData();
             final Integer maxTasks = config.getConcurrentlySchedulableTaskCount();
             final Map<String, String> configProperties = config.getProperties();
+            final Map<String, PropertyDescriptorDTO> configDescriptors = config.getDescriptors();
             final String schedulingPeriod = config.getSchedulingPeriod();
             final String penaltyDuration = config.getPenaltyDuration();
             final String yieldDuration = config.getYieldDuration();
@@ -179,6 +181,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 }
                 if (isNotNull(configProperties)) {
                     processor.setProperties(configProperties);
+                }
+                if (isNotNull(configDescriptors)) {
+                    for (final Map.Entry<String, PropertyDescriptorDTO> entry : configDescriptors.entrySet()) {
+                        processor.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+                    }
                 }
 
                 if (isNotNull(undefinedRelationshipsToTerminate)) {
@@ -395,6 +402,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getConcurrentlySchedulableTaskCount(),
                     configDTO.getPenaltyDuration(),
                     configDTO.getProperties(),
+                    configDTO.getDescriptors(),
                     configDTO.getSchedulingPeriod(),
                     configDTO.getSchedulingStrategy(),
                     configDTO.getExecutionNode(),

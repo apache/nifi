@@ -530,6 +530,11 @@ public class TestStandardProcessorNode {
                     }
 
                     @Override
+                    public boolean isExpressionLanguageForced(String propertyName) {
+                        return false;
+                    }
+
+                    @Override
                     public String getProcessGroupIdentifier() {
                         return groupId;
                     }

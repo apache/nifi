@@ -89,7 +89,10 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
         final String setPropertyValue = properties.get(descriptor);
         if (setPropertyValue != null) {
-            return new StandardPropertyValue(setPropertyValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry());
+            if( descriptor.isExpressionLanguageForced() )
+                return new StandardPropertyValue(setPropertyValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry()).evaluateAttributeExpressions();
+            else
+                return new StandardPropertyValue(setPropertyValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry());
         }
 
         // Get the "canonical" Property Descriptor from the Processor
@@ -116,7 +119,10 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
-        return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        if( descriptor.isExpressionLanguageForced() )
+            return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry()).evaluateAttributeExpressions();
+        else
+            return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry());
     }
 
     @Override

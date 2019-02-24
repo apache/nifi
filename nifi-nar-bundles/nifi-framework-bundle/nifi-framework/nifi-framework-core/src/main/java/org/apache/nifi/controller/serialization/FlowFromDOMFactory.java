@@ -37,6 +37,7 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -114,6 +115,7 @@ public class FlowFromDOMFactory {
         dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
 
         dto.setProperties(getProperties(element, encryptor));
+        dto.setDescriptors(getDescriptors(element, encryptor));
         dto.setAnnotationData(getString(element, "annotationData"));
 
         return dto;
@@ -132,6 +134,7 @@ public class FlowFromDOMFactory {
         dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
 
         dto.setProperties(getProperties(element, encryptor));
+        dto.setDescriptors(getDescriptors(element, encryptor));
         dto.setAnnotationData(getString(element, "annotationData"));
 
         return dto;
@@ -461,6 +464,7 @@ public class FlowFromDOMFactory {
         }
 
         configDto.setProperties(getProperties(element, encryptor));
+        configDto.setDescriptors(getDescriptors(element, encryptor));
         configDto.setAnnotationData(getString(element, "annotationData"));
 
         final Set<String> autoTerminatedRelationships = new HashSet<>();
@@ -484,6 +488,18 @@ public class FlowFromDOMFactory {
             properties.put(name, value);
         }
         return properties;
+    }
+
+    private static LinkedHashMap<String, PropertyDescriptorDTO> getDescriptors(final Element element, final StringEncryptor encryptor) {
+        final LinkedHashMap<String, PropertyDescriptorDTO> descriptors = new LinkedHashMap<>();
+        final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
+        for (final Element propertyElement : propertyNodeList) {
+            final PropertyDescriptorDTO descriptor = new PropertyDescriptorDTO();
+            descriptor.setName(getString(propertyElement, "name"));
+            descriptor.setForceEl(getBoolean(propertyElement, "forceEl"));
+            descriptors.put(descriptor.getName(), descriptor);
+        }
+        return descriptors;
     }
 
     private static String getString(final Element element, final String childElementName) {

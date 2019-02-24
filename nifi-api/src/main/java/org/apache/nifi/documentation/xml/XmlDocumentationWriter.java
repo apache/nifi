@@ -148,6 +148,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeBooleanElement("required", property.isRequired());
         writeBooleanElement("sensitive", property.isSensitive());
         writeBooleanElement("expressionLanguageSupported", property.isExpressionLanguageSupported());
+        writeBooleanElement("expressionLanguageForced", property.isExpressionLanguageForced());
         writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope() == null ? null : property.getExpressionLanguageScope().name());
         writeBooleanElement("dynamicallyModifiesClasspath", property.isDynamicClasspathModifier());
         writeBooleanElement("dynamic", property.isDynamic());
@@ -167,6 +168,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("value", property.value());
         writeTextElement("description", property.description());
         writeBooleanElement("expressionLanguageSupported", property.supportsExpressionLanguage());
+        writeBooleanElement("expressionLanguageForced", property.forcedExpressionLanguage());
         writeTextElement("expressionLanguageScope", property.expressionLanguageScope() == null ? null : property.expressionLanguageScope().name());
 
         writeEndElement();

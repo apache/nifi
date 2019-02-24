@@ -60,6 +60,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -244,6 +245,9 @@ public class StandardFlowSnippet implements FlowSnippet {
                 final String serviceId = controllerServiceDTO.getId();
                 final ControllerServiceNode serviceNode = flowManager.getControllerServiceNode(serviceId);
                 serviceNode.setProperties(controllerServiceDTO.getProperties());
+                for (final Map.Entry<String, PropertyDescriptorDTO> entry : controllerServiceDTO.getDescriptors().entrySet()) {
+                    serviceNode.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+                }
             }
         } finally {
             serviceNodes.forEach(ControllerServiceNode::resumeValidationTrigger);
@@ -389,6 +393,12 @@ public class StandardFlowSnippet implements FlowSnippet {
 
                 if (config.getProperties() != null) {
                     procNode.setProperties(config.getProperties());
+                }
+
+                if (config.getDescriptors() != null) {
+                    for (final Map.Entry<String, PropertyDescriptorDTO> entry : config.getDescriptors().entrySet()) {
+                        procNode.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+                    }
                 }
 
                 group.addProcessor(procNode);

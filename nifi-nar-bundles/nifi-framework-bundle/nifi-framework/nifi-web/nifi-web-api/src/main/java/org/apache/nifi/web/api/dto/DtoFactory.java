@@ -3719,6 +3719,7 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
+        dto.setForceEl(propertyDescriptor.isExpressionLanguageForced());
 
         // to support legacy/deprecated method .expressionLanguageSupported(true)
         String description = propertyDescriptor.isExpressionLanguageSupported()

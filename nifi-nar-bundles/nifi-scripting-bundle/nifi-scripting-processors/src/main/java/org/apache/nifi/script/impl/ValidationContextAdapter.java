@@ -90,6 +90,11 @@ public abstract class ValidationContextAdapter implements ValidationContext {
     }
 
     @Override
+    public boolean isExpressionLanguageForced(String propertyName) {
+        return innerValidationContext.isExpressionLanguageForced(propertyName);
+    }
+
+    @Override
     public String getProcessGroupIdentifier() {
         return innerValidationContext.getProcessGroupIdentifier();
     }

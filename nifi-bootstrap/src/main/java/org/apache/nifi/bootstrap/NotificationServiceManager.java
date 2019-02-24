@@ -256,7 +256,10 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(configuredValue, null, variableRegistry);
+                if( descriptor.isExpressionLanguageForced() )
+                    return new StandardPropertyValue(configuredValue, null, variableRegistry).evaluateAttributeExpressions();
+                else
+                    return new StandardPropertyValue(configuredValue, null, variableRegistry);
             }
 
             @Override

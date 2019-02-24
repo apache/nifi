@@ -1317,6 +1317,19 @@
                 markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
             }
 
+            if (!nfCommon.isBlank(propertyDescriptor.forceEl)) {
+                // It's available only for text fields without NFEL support
+                if ( (!propertyDescriptor.supportsEl || propertyDescriptor.forceEl) && !propertyDescriptor.allowableValues ) {
+                    var forceElDiv = $('<div title="Force enable Expression Language" class="force-el fa"/>')
+                        .addClass(dataContext.forceEl ? 'fa-check-square-o' : 'fa-square-o');
+                    if( options.readOnly )
+                        forceElDiv.css({'color':'#777'});
+                    else
+                        forceElDiv.addClass('pointer');
+                    markup += $('<div/>').append(forceElDiv).html();
+                }
+            }
+
             return markup;
         };
         propertyColumns.push(
@@ -1475,6 +1488,13 @@
                             });
                         }
                     }
+                } else if (target.hasClass('force-el') && target.hasClass('pointer')) {
+                    var prop = table.data('descriptors')[property.property];
+                    var val = !property.forceEl;
+                    property.forceEl = prop.forceEl = val;
+                    prop.supportsEl = val;
+                    prop.expressionLanguageScope = val ? "Variable Registry" : "Not Supported";
+                    propertyGrid.updateRow(args.row);
                 }
             }
         });
@@ -1598,6 +1618,8 @@
                         type = 'optional';
                     }
 
+                    forceEl = descriptor.forceEl === true;
+
                     // use the display name if possible
                     displayName = descriptor.displayName;
 
@@ -1615,6 +1637,8 @@
                     displayName: displayName,
                     previousValue: value,
                     value: value,
+                    previousForceEl: forceEl,
+                    forceEl: forceEl,
                     type: type
                 });
             });
@@ -1959,7 +1983,8 @@
 
                 // determine if any of the properties have changed
                 $.each(propertyData.getItems(), function () {
-                    if (this.value !== this.previousValue) {
+                    if (this.value !== this.previousValue ||
+                        this.supportedElForce !== this.previousSupportedElForce) {
                         isSaveRequired = true;
                         return false;
                     }
@@ -1997,6 +2022,35 @@
             });
 
             return properties;
+        },
+
+        /**
+         * Marshalls the properties descriptors
+         */
+        marshalDescriptors: function () {
+            var descriptors = {};
+
+            this.each(function () {
+                // get the property grid data
+                var table = $(this).find('div.property-table');
+                var propertyGrid = table.data('gridInstance');
+                var propertyData = propertyGrid.getData();
+                $.each(propertyData.getItems(), function () {
+                    if (this.hidden === true) {
+                        // hidden properties were removed by the user, clear the value
+                        descriptors[this.property] = null;
+                    } else if (this.forceEl !== this.previousForceEl) {
+                        // the value has changed
+                        descriptors[this.property] = {
+                            forceEl: this.forceEl,
+                        };
+                    }
+                });
+
+                return false;
+            });
+
+            return descriptors;
         },
 
         /**

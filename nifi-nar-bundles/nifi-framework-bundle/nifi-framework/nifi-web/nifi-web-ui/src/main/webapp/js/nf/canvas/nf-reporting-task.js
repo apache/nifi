@@ -158,6 +158,7 @@
     var marshalDetails = function () {
         // properties
         var properties = $('#reporting-task-properties').propertytable('marshalProperties');
+        var descriptors = $('#reporting-task-properties').propertytable('marshalDescriptors');
 
         // get the scheduling strategy
         var schedulingStrategy = $('#reporting-task-scheduling-strategy-combo').combo('getSelectedOption').value;
@@ -188,6 +189,11 @@
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             reportingTaskDto['properties'] = properties;
+        }
+
+        // set the descriptors
+        if ($.isEmptyObject(descriptors) === false) {
+            reportingTaskDto['descriptors'] = descriptors;
         }
 
         // create the reporting task entity

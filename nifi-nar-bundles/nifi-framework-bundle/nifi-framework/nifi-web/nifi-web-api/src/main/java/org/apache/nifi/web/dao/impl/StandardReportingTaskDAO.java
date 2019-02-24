@@ -36,6 +36,7 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.quartz.CronExpression;
@@ -283,6 +284,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 reportingTaskDTO.getSchedulingPeriod(),
                 reportingTaskDTO.getAnnotationData(),
                 reportingTaskDTO.getProperties(),
+                reportingTaskDTO.getDescriptors(),
                 reportingTaskDTO.getBundle())) {
             modificationRequest = true;
 
@@ -316,6 +318,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final String annotationData = reportingTaskDTO.getAnnotationData();
         final String comments = reportingTaskDTO.getComments();
         final Map<String, String> properties = reportingTaskDTO.getProperties();
+        final Map<String, PropertyDescriptorDTO> descriptors = reportingTaskDTO.getDescriptors();
 
         reportingTask.pauseValidationTrigger(); // avoid triggering validation multiple times
         try {
@@ -338,6 +341,11 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             }
             if (isNotNull(properties)) {
                 reportingTask.setProperties(properties);
+            }
+            if (isNotNull(descriptors)) {
+                for (final Map.Entry<String, PropertyDescriptorDTO> entry : descriptors.entrySet()) {
+                    reportingTask.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+                }
             }
         } finally {
             reportingTask.resumeValidationTrigger();

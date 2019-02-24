@@ -84,12 +84,19 @@ public class StandardConfigurationContext implements ConfigurationContext {
             return new StandardPropertyValue(resolvedDescriptor.getDefaultValue(), serviceLookup, preparedQueries.get(property), variableRegistry);
         }
 
-        return new StandardPropertyValue(resolvedValue, serviceLookup, preparedQueries.get(property), variableRegistry);
+        if( property.isExpressionLanguageForced() )
+            return new StandardPropertyValue(resolvedValue, serviceLookup, preparedQueries.get(property), variableRegistry).evaluateAttributeExpressions();
+        else
+            return new StandardPropertyValue(resolvedValue, serviceLookup, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return component.getProperties();
+        final Map<PropertyDescriptor, String> props = new HashMap<>();
+        for (final PropertyDescriptor descriptor : component.getProperties().keySet()) {
+            props.put(descriptor, getProperty(descriptor).getValue());
+        }
+        return props;
     }
 
     @Override

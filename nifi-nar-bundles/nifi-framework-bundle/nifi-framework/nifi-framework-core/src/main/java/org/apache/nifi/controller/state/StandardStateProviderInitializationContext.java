@@ -58,7 +58,10 @@ public class StandardStateProviderInitializationContext implements StateProvider
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        return properties.get(property);
+        if( property.isExpressionLanguageForced() )
+            return properties.get(property).evaluateAttributeExpressions();
+        else
+            return properties.get(property);
     }
 
     @Override

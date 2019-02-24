@@ -21,11 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 
 public class ControllerServiceConfiguration {
-
     private final ControllerService service;
     private final AtomicBoolean enabled = new AtomicBoolean(false);
     private String annotationData;
@@ -56,7 +56,10 @@ public class ControllerServiceConfiguration {
         if (value == null) {
             return descriptor.getDefaultValue();
         } else {
-            return value;
+            if( descriptor.isExpressionLanguageForced() )
+                return new StandardPropertyValue(value, null, null).evaluateAttributeExpressions().getValue();
+            else
+                return value;
         }
     }
 
@@ -69,6 +72,10 @@ public class ControllerServiceConfiguration {
     }
 
     public Map<PropertyDescriptor, String> getProperties() {
-        return Collections.unmodifiableMap(properties);
+        final Map<PropertyDescriptor, String> props = new HashMap<>();
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            props.put(descriptor, getProperty(descriptor));
+        }
+        return Collections.unmodifiableMap(props);
     }
 }

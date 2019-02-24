@@ -36,6 +36,7 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 
@@ -306,6 +307,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 controllerServiceDTO.getAnnotationData(),
                 controllerServiceDTO.getComments(),
                 controllerServiceDTO.getProperties(),
+                controllerServiceDTO.getDescriptors(),
                 controllerServiceDTO.getBundle())) {
             modificationRequest = true;
 
@@ -336,6 +338,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final String annotationData = controllerServiceDTO.getAnnotationData();
         final String comments = controllerServiceDTO.getComments();
         final Map<String, String> properties = controllerServiceDTO.getProperties();
+        final Map<String, PropertyDescriptorDTO> descriptors = controllerServiceDTO.getDescriptors();
 
         controllerService.pauseValidationTrigger(); // avoid causing validation to be triggered multiple times
         try {
@@ -350,6 +353,11 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
             if (isNotNull(properties)) {
                 controllerService.setProperties(properties);
+            }
+            if (isNotNull(descriptors)) {
+                for (final Map.Entry<String, PropertyDescriptorDTO> entry : descriptors.entrySet()) {
+                    controllerService.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+                }
             }
         } finally {
             controllerService.resumeValidationTrigger();

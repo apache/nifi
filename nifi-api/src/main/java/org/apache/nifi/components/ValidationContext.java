@@ -88,6 +88,14 @@ public interface ValidationContext extends PropertyContext {
     boolean isExpressionLanguageSupported(String propertyName);
 
     /**
+     * @param propertyName to test whether expression language is forced
+     * @return <code>true</code> if the property with the given name forced
+     * the NiFi Expression Language, <code>false</code> if the property does not
+     * forced the Expression Language or is not a valid property name
+     */
+    boolean isExpressionLanguageForced(String propertyName);
+
+    /**
      * Returns the identifier of the ProcessGroup that the component being validated lives in
      *
      * @return the identifier of the ProcessGroup that the component being validated lives in

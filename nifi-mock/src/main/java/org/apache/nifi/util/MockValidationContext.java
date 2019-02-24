@@ -39,6 +39,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
+    private final Map<String, Boolean> expressionLanguageForced;
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
 
@@ -55,6 +56,10 @@ public class MockValidationContext extends MockControllerServiceLookup implement
         expressionLanguageSupported = new HashMap<>(properties.size());
         for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
+        }
+        expressionLanguageForced = new HashMap<>(properties.size());
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            expressionLanguageForced.put(descriptor.getName(), descriptor.isExpressionLanguageForced());
         }
     }
 
@@ -153,6 +158,12 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
+    }
+
+    @Override
+    public boolean isExpressionLanguageForced(final String propertyName) {
+        final Boolean forced = expressionLanguageForced.get(propertyName);
+        return Boolean.TRUE.equals(forced);
     }
 
     @Override

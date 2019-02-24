@@ -1043,7 +1043,7 @@
          */
         supportsEl: function (propertyDescriptor) {
             if (nfCommon.isDefinedAndNotNull(propertyDescriptor)) {
-                return propertyDescriptor.supportsEl === true;
+                return propertyDescriptor.supportsEl === true || propertyDescriptor.forceEl === true;
             } else {
                 return false;
             }

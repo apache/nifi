@@ -36,6 +36,7 @@ import org.apache.nifi.registry.VariableRegistry;
 public class NotificationValidationContext implements ValidationContext {
     private final NotificationContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
+    private final Map<String, Boolean> expressionLanguageForced;
     private final VariableRegistry variableRegistry;
 
     public NotificationValidationContext(final NotificationContext processContext, VariableRegistry variableRegistry) {
@@ -45,6 +46,10 @@ public class NotificationValidationContext implements ValidationContext {
         expressionLanguageSupported = new HashMap<>(properties.size());
         for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
+        }
+        expressionLanguageForced = new HashMap<>(properties.size());
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            expressionLanguageForced.put(descriptor.getName(), descriptor.isExpressionLanguageForced());
         }
         this.variableRegistry = variableRegistry;
     }
@@ -68,12 +73,19 @@ public class NotificationValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        return context.getProperty(property);
+        if( property.isExpressionLanguageForced() )
+            return context.getProperty(property).evaluateAttributeExpressions();
+        else
+            return context.getProperty(property);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return context.getProperties();
+        final Map<PropertyDescriptor, String> props = new HashMap<>();
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            props.put(descriptor, getProperty(descriptor).getValue());
+        }
+        return props;
     }
 
     @Override
@@ -114,6 +126,12 @@ public class NotificationValidationContext implements ValidationContext {
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
+    }
+
+    @Override
+    public boolean isExpressionLanguageForced(final String propertyName) {
+        final Boolean forced = expressionLanguageForced.get(propertyName);
+        return Boolean.TRUE.equals(forced);
     }
 
     @Override

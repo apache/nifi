@@ -82,6 +82,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     @Deprecated
     private final boolean expressionLanguageSupported;
     /**
+     * indicates whether or not this property forcelly supports the Attribute Expression
+     * Language
+     */
+    private boolean expressionLanguageForced;
+    /**
      * indicates whether or nor this property will evaluate expression language
      * against the flow file attributes
      */
@@ -116,6 +121,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.dynamic = builder.dynamic;
         this.dynamicallyModifiesClasspath = builder.dynamicallyModifiesClasspath;
         this.expressionLanguageSupported = builder.expressionLanguageSupported;
+        this.expressionLanguageForced = builder.expressionLanguageForced;
         this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
         this.validators = new ArrayList<>(builder.validators);
@@ -140,6 +146,10 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      */
     public ValidationResult validate(final String input, final ValidationContext context) {
         ValidationResult lastResult = Validator.INVALID.validate(this.name, input, context);
+
+        if (context.isExpressionLanguageForced(this.name) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(this.name).input(input).explanation("Expression Language Present").valid(true).build();
+        }
 
         if (allowableValues != null && !allowableValues.isEmpty()) {
             final ConstrainedSetValidator csValidator = new ConstrainedSetValidator(allowableValues);
@@ -191,6 +201,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         @Deprecated
         private boolean expressionLanguageSupported = false;
+        private boolean expressionLanguageForced = false;
 
         private ExpressionLanguageScope expressionLanguageScope = ExpressionLanguageScope.NONE;
         private boolean dynamic = false;
@@ -209,6 +220,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.dynamic = specDescriptor.dynamic;
             this.dynamicallyModifiesClasspath = specDescriptor.dynamicallyModifiesClasspath;
             this.expressionLanguageSupported = specDescriptor.expressionLanguageSupported;
+            this.expressionLanguageForced = specDescriptor.expressionLanguageForced;
             this.expressionLanguageScope = specDescriptor.expressionLanguageScope;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
@@ -257,6 +269,18 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         @Deprecated
         public Builder expressionLanguageSupported(final boolean supported) {
             this.expressionLanguageSupported = supported;
+            return this;
+        }
+
+        /**
+         * Sets the value indicating whether or not this Property will forcelly
+         * support the Attribute Expression Language.
+         *
+         * @param forced true if yes; false otherwise
+         * @return the builder
+         */
+        public Builder expressionLanguageForced(final boolean forced) {
+            this.expressionLanguageForced = forced;
             return this;
         }
 
@@ -482,11 +506,19 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     }
 
     public boolean isExpressionLanguageSupported() {
-        return expressionLanguageSupported || !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
+        return expressionLanguageForced || expressionLanguageSupported || !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
+    }
+
+    public boolean isExpressionLanguageForced() {
+        return expressionLanguageForced;
+    }
+
+    public void setExpressionLanguageForced(final Boolean forcedEl) {
+        expressionLanguageForced = forcedEl;
     }
 
     public ExpressionLanguageScope getExpressionLanguageScope() {
-        return expressionLanguageScope;
+        return expressionLanguageForced ? ExpressionLanguageScope.VARIABLE_REGISTRY : expressionLanguageScope;
     }
 
     public boolean isDynamicClasspathModifier() {

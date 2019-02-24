@@ -41,6 +41,7 @@ public @interface DynamicProperty {
 
     @Deprecated
     boolean supportsExpressionLanguage() default false;
+    boolean forcedExpressionLanguage() default false;
 
     String value();
 

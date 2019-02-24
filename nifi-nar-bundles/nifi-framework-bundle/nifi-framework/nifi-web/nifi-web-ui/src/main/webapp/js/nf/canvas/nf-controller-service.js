@@ -130,6 +130,8 @@
     var marshalDetails = function () {
         // properties
         var properties = $('#controller-service-properties').propertytable('marshalProperties');
+        // descriptors
+        var descriptors = $('#controller-service-properties').propertytable('marshalDescriptors');
 
         // create the controller service dto
         var controllerServiceDto = {};
@@ -140,6 +142,11 @@
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             controllerServiceDto['properties'] = properties;
+        }
+
+        // set the descriptors
+        if ($.isEmptyObject(descriptors) === false) {
+            controllerServiceDto['descriptors'] = descriptors;
         }
 
         // create the controller service entity

@@ -86,6 +86,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
@@ -664,6 +665,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             reportingTask.setAnnotationData(dto.getAnnotationData());
             reportingTask.setProperties(dto.getProperties());
+            for (final Map.Entry<String, PropertyDescriptorDTO> entry : dto.getDescriptors().entrySet()) {
+                reportingTask.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+            }
             return reportingTask;
         } else {
             // otherwise return the existing reporting task node
@@ -1162,6 +1166,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             procNode.setProperties(config.getProperties());
+            for (final Map.Entry<String, PropertyDescriptorDTO> entry : config.getDescriptors().entrySet()) {
+                procNode.getPropertyDescriptor(entry.getKey()).setExpressionLanguageForced(entry.getValue().getForceEl());
+            }
 
             final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
             if (ScheduledState.RUNNING.equals(scheduledState)) {

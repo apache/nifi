@@ -47,6 +47,7 @@ public class StandardValidationContext implements ValidationContext {
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<String, Boolean> expressionLanguageSupported;
+    private final Map<String, Boolean> expressionLanguageForced;
     private final String annotationData;
     private final VariableRegistry variableRegistry;
     private final String groupId;
@@ -88,6 +89,10 @@ public class StandardValidationContext implements ValidationContext {
         for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
         }
+        expressionLanguageForced = new HashMap<>(properties.size());
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            expressionLanguageForced.put(descriptor.getName(), descriptor.isExpressionLanguageForced());
+        }
     }
 
     @Override
@@ -111,12 +116,19 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property), variableRegistry);
+        if( property.isExpressionLanguageForced() )
+            return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property), variableRegistry).evaluateAttributeExpressions();
+        else
+            return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return Collections.unmodifiableMap(properties);
+        final Map<PropertyDescriptor, String> props = new HashMap<>();
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
+            props.put(descriptor, getProperty(descriptor).getValue());
+        }
+        return Collections.unmodifiableMap(props);
     }
 
     @Override
@@ -163,6 +175,12 @@ public class StandardValidationContext implements ValidationContext {
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
+    }
+
+    @Override
+    public boolean isExpressionLanguageForced(final String propertyName) {
+        final Boolean forced = expressionLanguageForced.get(propertyName);
+        return Boolean.TRUE.equals(forced);
     }
 
     @Override
