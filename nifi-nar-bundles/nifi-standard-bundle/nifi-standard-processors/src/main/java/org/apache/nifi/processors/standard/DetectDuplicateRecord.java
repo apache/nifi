@@ -68,31 +68,26 @@ import static org.apache.commons.lang3.StringUtils.*;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY,
-        description = "Caches records from each incoming FlowFile and determines if the cached record has " +
-                "already been seen. The name of user-defined properties determines the RecordPath values used to " +
-                "determine if a record is unique. If no user-defined properties are present, the entire record is " +
-                "used as the input to determine uniqueness. All duplicate records are routed to 'duplicate'. " +
-                "If the record is not determined to be a duplicate, the Processor routes the record to 'non-duplicate'.")
+    description = "The HashSet filter type will grow proportionate to the number of unique records processed. " +
+        "The BloomFilter type memory usage will remain constant regardless to the number of records processed.")
 @Tags({"text", "record", "update", "change", "replace", "modify", "distinct", "unique",
-        "filter", "hash", "dupe", "duplicate", "dedupe"})
-@CapabilityDescription("Caches records from each incoming FlowFile and determines if the cached record has " +
-        "already been seen. The name of user-defined properties determines the RecordPath values used to " +
-        "determine if a record is unique. If no user-defined properties are present, the entire record is " +
-        "used as the input to determine uniqueness. All duplicate records are routed to 'duplicate'. " +
-        "If the record is not determined to be a duplicate, the Processor routes the record to 'non-duplicate'."
+    "filter", "hash", "dupe", "duplicate", "dedupe"})
+@CapabilityDescription("Caches records from each incoming FlowFile and determines if the cached " +
+    "value has already been seen. If so, routes the FlowFile to 'duplicate'. If the record is " +
+    "not determined to be a duplicate, it is routed to 'non-duplicate'."
 )
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
 @WritesAttributes({
-        @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
+    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
 })
 @DynamicProperty(
-        name = "RecordPath",
-        value = "User-defined property values are ignored",
-        description = "The name of each user-defined property must be a valid RecordPath.")
+    name = "RecordPath",
+    value = "User-defined property values are ignored",
+    description = "The name of each user-defined property must be a valid RecordPath.")
 @SeeAlso(classNames = {
-        "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService",
-        "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
-        "org.apache.nifi.processors.standard.DetectDuplicate"
+    "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService",
+    "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+    "org.apache.nifi.processors.standard.DetectDuplicate"
 })
 public class DetectDuplicateRecord extends AbstractProcessor {
 
@@ -101,6 +96,8 @@ public class DetectDuplicateRecord extends AbstractProcessor {
 
     // VALUES
 
+    static final AllowableValue NONE_ALGORITHM_VALUE = new AllowableValue("none", "None",
+            "Do not use a hashing algorithm.");
     static final AllowableValue MD5_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.MD5, "MD5",
             "The MD5 message-digest algorithm.");
     static final AllowableValue SHA1_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_1, "SHA-1",
@@ -109,13 +106,6 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             "The SHA-256 cryptographic hash algorithm.");
     static final AllowableValue SHA512_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA3_512, "SHA-512",
             "The SHA-512 cryptographic hash algorithm.");
-
-//    static final AllowableValue ENTIRE_RECORD_VALUE = new AllowableValue("entire-record", "Entire Record",
-//            "All field values of a record are used in the order they are listed in the incoming FlowFile to determine if two records are equal.");
-//    static final AllowableValue RECORD_PATH_VALUE = new AllowableValue("entire-record", "Entire Record",
-//            "The user-defined RecordPath properties are used in the specified order to determine whether two records are equal. " +
-//                    "If the value of a RecordPath is modified or the ordering of the user-defined RecordPath properties change " +
-//                    "after processing one or more FlowFiles, duplicate detection is effectively reset.");
 
     static final AllowableValue HASH_SET_VALUE = new AllowableValue("hash-set", "HashSet",
             "Exactly matches records seen before with 100% accuracy at the expense of more memory usage. " +
@@ -156,7 +146,8 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CACHE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("Cache The Entry Identifier")
+            .name("cache-the-entry-identifier")
+            .displayName("Cache The Entry Identifier")
             .description("When true this cause the processor to check for duplicates and cache the Entry Identifier. When false, "
                     + "the processor would only check for duplicates and not cache the Entry Identifier, requiring another "
                     + "processor to add identifiers to the distributed cache.")
@@ -166,14 +157,16 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("Distributed Cache Service")
+            .name("distributed-cache-service")
+            .displayName("Distributed Cache Service")
             .description("The Controller Service that is used to cache unique records, used to determine duplicates")
             .required(false)
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
     static final PropertyDescriptor CACHE_ENTRY_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("Cache Entry Identifier")
+            .name("cache-entry-identifier")
+            .displayName("Cache Entry Identifier")
             .description(
                     "A FlowFile attribute, or the results of an Attribute Expression Language statement, which will be evaluated " +
                             "against a FlowFile in order to determine the cached filter type value used to identify duplicates.")
@@ -184,7 +177,8 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor AGE_OFF_DURATION = new PropertyDescriptor.Builder()
-            .name("Age Off Duration")
+            .name("age-off-duration")
+            .displayName("Age Off Duration")
             .description("Time interval to age off cached filters. When the cache expires, the entire filter and its values " +
                     "are destroyed. Leaving this value empty will cause the cached entries to never expire.")
             .required(false)
@@ -192,9 +186,11 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RECORD_HASHING_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("Record Hashing Algorithm")
-            .description("The algorithm used to hash the combined result of RecordPath values in the cache.")
+            .name("record-hashing-algorithm")
+            .displayName("Record Hashing Algorithm")
+            .description("The algorithm used to hash the combined set of resolved RecordPath values for cache storage.")
             .allowableValues(
+                    NONE_ALGORITHM_VALUE,
                     MD5_ALGORITHM_VALUE,
                     SHA1_ALGORITHM_VALUE,
                     SHA256_ALGORITHM_VALUE,
@@ -206,7 +202,8 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FILTER_TYPE = new PropertyDescriptor.Builder()
-            .name("Filter Type")
+            .name("filter-type")
+            .displayName("Filter Type")
             .description("The filter used to determine whether a record has been seen before based on the matching RecordPath criteria.")
             .allowableValues(
                     HASH_SET_VALUE,
@@ -215,11 +212,12 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .defaultValue(HASH_SET_VALUE.getValue())
             .required(true)
             .build();
-
+// TODO: BloomFilter capacity resizing could cause problems on subsequent runs. Figure this out.
     static final PropertyDescriptor FILTER_CAPACITY_HINT = new PropertyDescriptor.Builder()
-            .name("Filter Capacity Hint")
+            .name("filter-capacity-hint")
+            .displayName("Filter Capacity Hint")
             .description("An estimation of the total number of unique records to be processed. " +
-                    "The more accurate this number is leads to less resizing operations on a HashSet filter and fewer false negatives on a BloomFilter. " +
+                    "The more accurate this number is will lead to less resizing operations on a HashSet filter and fewer false negatives on a BloomFilter. " +
                     "Using the CountText processor block first and then using the ${text.line.count} attribute may be ideal for more dynamic estimates.")
             .defaultValue("25000")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -228,11 +226,10 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor BLOOM_FILTER_FPP = new PropertyDescriptor.Builder()
-            .name("BloomFilter Probability")
+            .name("bloom-filter-certainty")
+            .displayName("Bloom Filter Certainty")
             .description("The desired false positive probability when using the BloomFilter filter type. " +
-                    "Using a value of .05 for example, means we can be 95% certain that the element is in the filter, " +
-                    "and there is a five-percent probability that the result is a false positive. " +
-                    "When the filter returns false, we can be 100% certain that the element is not present.")
+                    "Using a value of .05 for example, guarantees a five-percent probability that the result is a false positive.")
             .defaultValue("0.10")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NUMBER_VALIDATOR)
@@ -418,7 +415,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             final FilterWrapper filter = FilterWrapper.create(serializableFilter);
 
             final String recordHashingAlgorithm = context.getProperty(RECORD_HASHING_ALGORITHM).getValue();
-            final MessageDigest messageDigest = DigestUtils.getDigest(recordHashingAlgorithm);
+            final MessageDigest messageDigest = recordHashingAlgorithm.equals(NONE_ALGORITHM_VALUE.getValue())
+                    ? null
+                    : DigestUtils.getDigest(recordHashingAlgorithm);
             final Boolean matchWholeRecord = context.getProperties().keySet().stream().noneMatch(p -> p.isDynamic());
 
             final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
@@ -454,7 +453,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                     recordValue = Joiner.on('~').join(fieldValues);
                 }
 
-                final String recordHash = Hex.encodeHexString(messageDigest.digest(getBytesUtf8(recordValue)));
+                final String recordHash = messageDigest != null
+                        ? Hex.encodeHexString(messageDigest.digest(getBytesUtf8(recordValue)))
+                        : recordValue;
 
                 if(filter.contains(recordHash)) {
                     duplicatesWriter.write(record);
