@@ -31,6 +31,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -76,21 +77,21 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
         }, record -> {
             assertEquals(2, record.get("id"));
-            assertEquals("ræc2", record.get("name"));
+            assertEquals("reç2", record.get("name"));
             assertEquals(102, record.get("code"));
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
         }, record -> {
             assertEquals(3, record.get("id"));
-            assertEquals("rèc3", record.get("name"));
+            assertEquals("reç3", record.get("name"));
             assertEquals(103, record.get("code"));
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
         }, record -> {
             assertEquals(4, record.get("id"));
-            assertEquals("rëc4", record.get("name"));
+            assertEquals("reç4", record.get("name"));
             assertEquals(104, record.get("code"));
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
@@ -397,11 +398,76 @@ public class TestPutElasticsearchHttpRecord {
         assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
     }
 
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriter() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(true)); // simulate failures
+        generateTestData(1);
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("failure.count", "1");
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriterMultipleRecords() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(2)); // simulate failures
+        generateTestData();
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        flowFileSuccess.assertAttributeEquals("record.count", "2");
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("record.count", "2");
+        flowFileFailure.assertAttributeEquals("failure.count", "2");
+
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriterMultipleRecordsLogging() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(2)); // simulate failures
+        generateTestData();
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.LOG_ALL_ERRORS, "true");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        flowFileSuccess.assertAttributeEquals("record.count", "2");
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("record.count", "2");
+        flowFileFailure.assertAttributeEquals("failure.count", "2");
+
+        assertEquals(2, runner.getLogger().getErrorMessages().size());
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
     private static class PutElasticsearchHttpRecordTestProcessor extends PutElasticsearchHttpRecord {
-        boolean responseHasFailures = false;
+        int numResponseFailures = 0;
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
@@ -409,7 +475,11 @@ public class TestPutElasticsearchHttpRecord {
         Consumer<Map>[] recordChecks;
 
         PutElasticsearchHttpRecordTestProcessor(boolean responseHasFailures) {
-            this.responseHasFailures = responseHasFailures;
+            this.numResponseFailures = responseHasFailures ? 1 : 0;
+        }
+
+        PutElasticsearchHttpRecordTestProcessor(int numResponseFailures) {
+            this.numResponseFailures = numResponseFailures;
         }
 
         void setStatus(int code, String message) {
@@ -454,9 +524,9 @@ public class TestPutElasticsearchHttpRecord {
                         }
                     }
                     StringBuilder sb = new StringBuilder("{\"took\": 1, \"errors\": \"");
-                    sb.append(responseHasFailures);
+                    sb.append(numResponseFailures > 0);
                     sb.append("\", \"items\": [");
-                    if (responseHasFailures) {
+                    for (int i = 0; i < numResponseFailures; i ++) {
                         // This case is for a status code of 200 for the bulk response itself, but with an error (of 400) inside
                         sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":\"400\",");
                         sb.append("\"error\":{\"type\":\"mapper_parsing_exception\",\"reason\":\"failed to parse [gender]\",");
@@ -569,6 +639,10 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     private void generateTestData() throws IOException {
+        generateTestData(4);
+    }
+
+    private void generateTestData(int numRecords) throws IOException {
 
         final MockRecordParser parser = new MockRecordParser();
         try {
@@ -586,9 +660,19 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("time", RecordFieldType.TIME);
         parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
 
-        parser.addRecord(1, "reç1", 101, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
-        parser.addRecord(2, "ræc2", 102, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
-        parser.addRecord(3, "rèc3", 103, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
-        parser.addRecord(4, "rëc4", 104, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+        for(int i=1; i<=numRecords; i++) {
+            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+        }
+    }
+
+    private void generateWriter() throws IOException {
+        final MockRecordWriter writer = new MockRecordWriter();
+        try {
+            runner.addControllerService("writer", writer);
+        } catch (InitializationException e) {
+            throw new IOException(e);
+        }
+        runner.enableControllerService(writer);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_WRITER, "writer");
     }
 }
