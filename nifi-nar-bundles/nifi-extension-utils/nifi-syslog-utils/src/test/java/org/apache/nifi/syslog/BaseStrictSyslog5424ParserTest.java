@@ -149,7 +149,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
     public void testVariety() {
         final List<String> messages = new ArrayList<>();
 
-        // supported examples from RFC 5424
+        // supported examples from RFC 5424 including structured data with no message
         messages.add("<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
                 "ID47 - BOM'su root' failed for lonvick on /dev/pts/8");
         messages.add("<165>1 2003-08-24T05:14:15.000003-07:00 192.0.2.1 myproc " +
@@ -158,6 +158,10 @@ public abstract class BaseStrictSyslog5424ParserTest {
                 + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
                 + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
                 + " [exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance");
+        messages.add("<14>1 2015-07-20T09:30:07+00:00 fooservice"
+            + " d0602076-b14a-4c55-852a-981e7afood38 DEA MSG-02"
+            + " [exampleSDID@32473 iut=\"5\" eventSource=\"Application\" eventID=\"1013\"]"
+            + " [exampleSDID@32480 iut=\"6\" eventSource=\"Other Application\" eventID=\"2024\"]");
 
         for (final String message : messages) {
             final byte[] bytes = message.getBytes(CHARSET);
