@@ -56,8 +56,8 @@
     var PREVIEW_NAME_LENGTH = 30;
 
     var dimensions = {
-        width: 380,
-        height: 158
+        width: 384,
+        height: 176
     };
 
     // --------------------------------------------
@@ -433,7 +433,7 @@
                     details.append('text')
                         .attrs({
                             'x': 10,
-                            'y': 150,
+                            'y': 168,
                             'class': 'remote-process-group-last-refresh'
                         });
 

@@ -58,8 +58,8 @@
     var PREVIEW_NAME_LENGTH = 30;
 
     var dimensions = {
-        width: 380,
-        height: 172
+        width: 384,
+        height: 176
     };
 
     // ----------------------------
