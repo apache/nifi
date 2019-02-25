@@ -551,11 +551,10 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             final FlowFile successFlowFile = session.create(inputFlowFile);
             final FlowFile failedFlowFile = session.create(inputFlowFile);
 
-            final OutputStream successOut = session.write(successFlowFile);
-            final OutputStream failedOut = session.write(failedFlowFile);
-
             // Set up the reader and writers
-            try (final InputStream in = session.read(inputFlowFile);
+            try (final OutputStream successOut = session.write(successFlowFile);
+                 final OutputStream failedOut = session.write(failedFlowFile);
+                 final InputStream in = session.read(inputFlowFile);
                  final RecordReader reader = readerFactory.createRecordReader(inputFlowFile, in, getLogger())) {
 
                 final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
