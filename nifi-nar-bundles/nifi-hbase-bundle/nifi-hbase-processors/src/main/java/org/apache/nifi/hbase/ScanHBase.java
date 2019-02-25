@@ -210,7 +210,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             .build();
 
     static final PropertyDescriptor BLOCK_CACHE = new PropertyDescriptor.Builder()
-            .displayName("Block Cache Set")
+            .displayName("Block Cache")
             .name("block-cache")
             .description("The Block Cache to enable/disable block cache on HBase scan.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
