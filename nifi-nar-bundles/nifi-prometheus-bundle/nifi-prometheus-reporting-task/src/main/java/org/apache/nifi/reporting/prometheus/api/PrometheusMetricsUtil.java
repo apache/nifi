@@ -19,7 +19,6 @@ package org.apache.nifi.reporting.prometheus.api;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -29,33 +28,62 @@ import com.yammer.metrics.core.VirtualMachineMetrics;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 
-public class PrometheusMetricsFactory {
+public class PrometheusMetricsUtil {
     private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
 
-    private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build().name("process_group_amount_flowfiles_total").help("Total number of FlowFiles in ProcessGroup")
-            .labelNames("status", "application", "process_group").register(NIFI_REGISTRY);
-
-    private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build().name("process_group_amount_bytes_total").help("Total number of Bytes in ProcessGroup")
-            .labelNames("status", "application", "process_group").register(NIFI_REGISTRY);
-
-    private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build().name("process_group_amount_threads_total").help("Total amount of threads in ProcessGroup")
-            .labelNames("status", "application", "process_group").register(NIFI_REGISTRY);
-
-    private static final Gauge SIZE_CONTENT_TOTAL = Gauge.build().name("process_group_size_content_total").help("Total size of content in ProcessGroup")
-            .labelNames("status", "application", "process_group").register(NIFI_REGISTRY);
-
-    private static final Gauge AMOUNT_ITEMS = Gauge.build().name("process_group_amount_items").help("Total amount of items in ProcessGroup").labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
+            .name("process_group_amount_flowfiles_total")
+            .help("Total number of FlowFiles in ProcessGroup")
+            .labelNames("status", "application", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge PROCESSOR_COUNTERS = Gauge.build().name("processor_counters").help("Counters exposed by Processors").labelNames("processor_name", "counter_name", "processor_id")
+    private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
+            .name("process_group_amount_bytes_total")
+            .help("Total number of Bytes in ProcessGroup")
+            .labelNames("status", "application", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge JVM_HEAP = Gauge.build().name("jvm_heap_stats").help("The JVM heap stats").labelNames("status").register(JVM_REGISTRY);
+    private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
+            .name("process_group_amount_threads_total")
+            .help("Total amount of threads in ProcessGroup")
+            .labelNames("status", "application", "process_group")
+            .register(NIFI_REGISTRY);
 
-    private static final Gauge JVM_THREAD = Gauge.build().name("jvm_thread_stats").help("The JVM thread stats").labelNames("status").register(JVM_REGISTRY);
+    private static final Gauge SIZE_CONTENT_TOTAL = Gauge.build()
+            .name("process_group_size_content_total")
+            .help("Total size of content in ProcessGroup")
+            .labelNames("status", "application", "process_group")
+            .register(NIFI_REGISTRY);
 
-    private static final Gauge JVM_STATUS = Gauge.build().name("jvm_general_stats").help("The JVM general stats").labelNames("status").register(JVM_REGISTRY);
+    private static final Gauge AMOUNT_ITEMS = Gauge.build()
+            .name("process_group_amount_items")
+            .help("Total amount of items in ProcessGroup")
+            .labelNames("status", "application", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge PROCESSOR_COUNTERS = Gauge.build()
+            .name("processor_counters")
+            .help("Counters exposed by Processors")
+            .labelNames("processor_name", "counter_name", "processor_id")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge JVM_HEAP = Gauge.build()
+            .name("jvm_heap_stats")
+            .help("The JVM heap stats")
+            .labelNames("status")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_THREAD = Gauge.build()
+            .name("jvm_thread_stats").help("The JVM thread stats")
+            .labelNames("status")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_STATUS = Gauge.build()
+            .name("jvm_general_stats")
+            .help("The JVM general stats")
+            .labelNames("status")
+            .register(JVM_REGISTRY);
 
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String applicationId) {
 
@@ -83,10 +111,9 @@ public class PrometheusMetricsFactory {
 
         for (ProcessorStatus pstatus : processorStatus) {
             Map<String, Long> counters = pstatus.getCounters();
-            Set<String> counterNames = counters.keySet();
 
-
-            counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS.labels(pstatus.getName(), entry.getKey(), pstatus.getId()).set(entry.getValue()));
+            counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
+                    .labels(pstatus.getName(), entry.getKey(), pstatus.getId()).set(entry.getValue()));
         }
         return NIFI_REGISTRY;
 

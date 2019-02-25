@@ -37,55 +37,74 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.eclipse.jetty.server.Server;
 
 @Tags({ "reporting", "prometheus", "metrics" })
-@CapabilityDescription("")
-@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 sec")
+@CapabilityDescription("Reports metrics in Prometheus Format by creating /metrics http endpoint which be used for external monitoring of the application."
+        + " Metrics reported include JVM Metrics (optional) and NiFi statistics")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
 
 public class PrometheusReportingTask extends AbstractReportingTask {
 
     private PrometheusServer prometheusServer;
 
-    static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder().name("Prometheus Metrics Endpoint Port").description("The Port where prometheus metrics can be accessed")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("9092").addValidator(StandardValidators.INTEGER_VALIDATOR).build();
+    public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
+            .name("Prometheus Metrics Endpoint Port")
+            .description("The Port where prometheus metrics can be accessed")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("9092")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
 
-    static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder().name("Application ID").description("The Application ID to be included in the metrics sent to Prometheus")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("nifi").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    public static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
+            .name("Application ID")
+            .description("The Application ID to be included in the metrics sent to Prometheus")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("nifi")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder().name("Instance ID").description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
-            .required(true).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
+            .name("Instance ID")
+            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus").required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("${hostname(true)}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("Send JVM-metrics").description("Send JVM-metrics in addition to the Nifi-metrics")
-            .allowableValues("true", "false").defaultValue("false").required(true).build();
+    public static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder()
+            .name("Send JVM-metrics")
+            .description("Send JVM-metrics in addition to the Nifi-metrics")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(METRICS_ENDPOINT_PORT);
         properties.add(APPLICATION_ID);
         properties.add(INSTANCE_ID);
         properties.add(SEND_JVM_METRICS);
-
         return properties;
     }
 
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
-
         final String metricsEndpointPort = context.getProperty(METRICS_ENDPOINT_PORT).getValue();
 
         try {
             this.prometheusServer = new PrometheusServer(new InetSocketAddress(Integer.parseInt(metricsEndpointPort)), getLogger());
+            this.prometheusServer.setApplicationId(context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue());
+            this.prometheusServer.setSendJvmMetrics(context.getProperty(SEND_JVM_METRICS).asBoolean());
             getLogger().info("Started JETTY server");
         } catch (Exception e) {
-            getLogger().error("Error: " + e);
-            e.printStackTrace();
+            getLogger().error("Failed to start Jetty server", e);
         }
-
     }
 
     @OnStopped
     public void OnStopped() throws Exception {
-        Server server = prometheusServer.getServer();
+        Server server = this.prometheusServer.getServer();
         server.stop();
     }
 
@@ -97,9 +116,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     @Override
     public void onTrigger(final ReportingContext context) {
-
-        PrometheusServer.context = context;
-        PrometheusServer.applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
-        PrometheusServer.sendJvmMetrics = context.getProperty(SEND_JVM_METRICS).asBoolean();
+        this.prometheusServer.setReportingContext(context);
     }
 }

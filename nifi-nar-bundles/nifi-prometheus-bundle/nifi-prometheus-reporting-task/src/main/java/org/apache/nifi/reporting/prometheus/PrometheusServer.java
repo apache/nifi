@@ -31,7 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsFactory;
+import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -45,31 +45,26 @@ public class PrometheusServer {
     private static ComponentLog logger;
     private Server server;
     private ServletContextHandler handler;
+    private ReportingContext context;
+    private boolean sendJvmMetrics;
+    private String applicationId;
 
-    public static ReportingContext context;
-    public static boolean sendJvmMetrics;
-    public static String applicationId;
-
-    // set context, SEND_JVM_METRICS, applicationId values are set in onTrigger
-
-    static class MetricsServlet extends HttpServlet {
+    class MetricsServlet extends HttpServlet {
         private CollectorRegistry nifiRegistry, jvmRegistry;
         private ProcessGroupStatus rootGroupStatus;
 
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-            logger.info("Do get called");
+            logger.info("PrometheusServer Do get called");
 
-            rootGroupStatus = context.getEventAccess().getControllerStatus();
+            rootGroupStatus = PrometheusServer.this.context.getEventAccess().getControllerStatus();
             ServletOutputStream response = resp.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(response);
-
-            nifiRegistry = PrometheusMetricsFactory.createNifiMetrics(rootGroupStatus, applicationId);
-
+            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.applicationId);
             TextFormat.write004(osw, nifiRegistry.metricFamilySamples());
 
-            if (sendJvmMetrics == true) {
-                jvmRegistry = PrometheusMetricsFactory.createJvmMetrics(VirtualMachineMetrics.getInstance());
+            if (PrometheusServer.this.sendJvmMetrics == true) {
+                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(VirtualMachineMetrics.getInstance());
                 TextFormat.write004(osw, jvmRegistry.metricFamilySamples());
             }
 
@@ -94,6 +89,30 @@ public class PrometheusServer {
 
     public Server getServer() {
         return this.server;
+    }
+
+    public ReportingContext getReportingContext() {
+        return this.context;
+    }
+
+    public boolean getSendJvmMetrics() {
+        return this.sendJvmMetrics;
+    }
+
+    public String getApplicationId() {
+        return this.applicationId;
+    }
+
+    public void setReportingContext(ReportingContext rc) {
+        this.context = rc;
+    }
+
+    public void setSendJvmMetrics(boolean jvm) {
+        this.sendJvmMetrics = jvm;
+    }
+
+    public void setApplicationId(String aid) {
+        this.applicationId = aid;
     }
 
 }

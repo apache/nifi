@@ -21,6 +21,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Collections;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
@@ -47,13 +53,16 @@ public class TestPrometheusReportingTask {
     public void setup() {
         testedReportingTask = new PrometheusReportingTask();
         rootGroupStatus = new ProcessGroupStatus();
-        reportingInitContextStub = new MockReportingInitializationContext(TEST_INIT_CONTEXT_ID, TEST_INIT_CONTEXT_NAME, new MockComponentLog(TEST_TASK_ID, testedReportingTask));
+        reportingInitContextStub = new MockReportingInitializationContext(TEST_INIT_CONTEXT_ID, TEST_INIT_CONTEXT_NAME,
+                new MockComponentLog(TEST_TASK_ID, testedReportingTask));
 
-        reportingContextStub = new MockReportingContext(Collections.emptyMap(), new MockStateManager(testedReportingTask), new MockVariableRegistry());
+        reportingContextStub = new MockReportingContext(Collections.emptyMap(),
+                new MockStateManager(testedReportingTask), new MockVariableRegistry());
 
         reportingContextStub.setProperty(PrometheusReportingTask.INSTANCE_ID.getName(), "localhost");
 
-        configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(), reportingContextStub.getControllerServiceLookup());
+        configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
+                reportingContextStub.getControllerServiceLookup());
 
         rootGroupStatus.setId("1234");
         rootGroupStatus.setFlowFilesReceived(5);
@@ -87,6 +96,16 @@ public class TestPrometheusReportingTask {
         con.setRequestMethod("GET");
         int status = con.getResponseCode();
         Assert.assertEquals(HttpURLConnection.HTTP_OK, status);
+
+        HttpClient client = HttpClientBuilder.create().build();
+        HttpGet request = new HttpGet("http://localhost:9092/metrics");
+        HttpResponse response = client.execute(request);
+        HttpEntity entity = response.getEntity();
+        String content = EntityUtils.toString(entity);
+        System.out.println(content);
+        Assert.assertEquals(true, content.contains(
+                "process_group_amount_threads_total{status=\"nano\",application=\"nifi\",process_group=\"root\",} 5.0"));
+
     }
 
 }
