@@ -149,7 +149,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
     public void testVariety() {
         final List<String> messages = new ArrayList<>();
 
-        // supported examples from RFC 5424
+        // supported examples from RFC 5424 including structured data with no message
         messages.add("<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
                 "ID47 - BOM'su root' failed for lonvick on /dev/pts/8");
         messages.add("<165>1 2003-08-24T05:14:15.000003-07:00 192.0.2.1 myproc " +
@@ -168,6 +168,33 @@ public abstract class BaseStrictSyslog5424ParserTest {
             final Syslog5424Event event = parser.parseEvent(buffer);
             Assert.assertTrue(event.isValid());
         }
+    }
+
+    @Test
+    public void testMessagePartNotRequired() {
+        final List<String> messages = new ArrayList<>();
+
+        messages.add("<14>1 2014-06-20T09:14:07+00:00 loggregator"
+            + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
+            + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]");
+
+        messages.add("<14>1 2014-06-20T09:14:07+00:00 loggregator"
+            + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
+            + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
+            + " [exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"]");
+
+        for (final String message : messages) {
+            final byte[] bytes = message.getBytes(CHARSET);
+            final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+            buffer.clear();
+            buffer.put(bytes);
+
+            final Syslog5424Event event = parser.parseEvent(buffer);
+            Assert.assertTrue(event.isValid());
+            Assert.assertNull(event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY));
+        }
+
+
     }
 
     @Test
