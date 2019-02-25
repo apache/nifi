@@ -217,7 +217,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .defaultValue(HASH_SET_VALUE.getValue())
             .required(true)
             .build();
-
+// TODO: BloomFilter capacity resizing could cause problems on subsequent runs. Figure this out.
     static final PropertyDescriptor FILTER_CAPACITY_HINT = new PropertyDescriptor.Builder()
             .name("filter-capacity-hint")
             .displayName("Filter Capacity Hint")
