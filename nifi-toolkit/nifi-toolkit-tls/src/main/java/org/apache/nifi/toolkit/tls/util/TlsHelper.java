@@ -18,21 +18,29 @@
 package org.apache.nifi.toolkit.tls.util;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -69,6 +77,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemWriter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +153,60 @@ public class TlsHelper {
             }
         }
         return password;
+    }
+
+    public static HashMap<String, Certificate> extractCerts(KeyStore keyStore) throws KeyStoreException {
+        HashMap<String, Certificate> certs = new HashMap<>();
+        Enumeration<String> certAliases = keyStore.aliases();
+        while(certAliases.hasMoreElements()) {
+            String alias = certAliases.nextElement();
+            certs.put(alias, keyStore.getCertificate(alias));
+        }
+        return certs;
+    }
+
+    public static HashMap<String, Key> extractKeys(KeyStore keyStore, char[] privKeyPass) throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
+        HashMap<String, Key> keys = new HashMap<>();
+        Enumeration<String> keyAliases = keyStore.aliases();
+        while(keyAliases.hasMoreElements()) {
+            String alias = keyAliases.nextElement();
+            Key key = keyStore.getKey(alias, privKeyPass);
+            if(key != null) {
+                keys.put(alias, key);
+            } else {
+                logger.warn("Key does not exist: Certificate with alias '" + alias + "' had no private key.");
+            }
+        }
+        return keys;
+    }
+
+    public static void outputCertsAsPem(HashMap<String, Certificate> certs, File directory, String extension) {
+        certs.forEach((String alias, Certificate cert)->{
+            try {
+                TlsHelper.outputAsPem(cert, alias, directory, extension);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public static void outputKeysAsPem(HashMap<String, Key> keys, File directory, String extension) {
+        keys.forEach((String alias, Key key) -> {
+            try {
+                TlsHelper.outputAsPem(key, alias, directory, extension);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private static void outputAsPem(Object pemObj, String filename, File directory, String extension) throws IOException {
+        OutputStream outputStream = new FileOutputStream(new File(directory,  TlsHelper.escapeFilename(filename) + extension));
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter);
+        JcaMiscPEMGenerator pemGen = new JcaMiscPEMGenerator(pemObj);
+        pemWriter.writeObject(pemGen);
+        pemWriter.close();
     }
 
     private static KeyPairGenerator createKeyPairGenerator(String algorithm, int keySize) throws NoSuchAlgorithmException {

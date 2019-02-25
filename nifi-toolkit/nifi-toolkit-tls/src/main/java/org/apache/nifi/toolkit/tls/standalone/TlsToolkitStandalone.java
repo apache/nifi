@@ -18,18 +18,25 @@
 package org.apache.nifi.toolkit.tls.standalone;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -64,6 +71,26 @@ public class TlsToolkitStandalone {
 
     public TlsToolkitStandalone(OutputStreamFactory outputStreamFactory) {
         this.outputStreamFactory = outputStreamFactory;
+    }
+
+    private void splitKeystore(KeyStore keyStore, char[] keyPassphrase, File outputDirectory) throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
+        HashMap<String, Certificate> certificates = TlsHelper.extractCerts(keyStore);
+        HashMap<String, Key> keys = TlsHelper.extractKeys(keyStore, keyPassphrase);
+        TlsHelper.outputCertsAsPem(certificates, outputDirectory, ".crt");
+        TlsHelper.outputKeysAsPem(keys, outputDirectory, ".key");
+    }
+
+    public void splitKeystore(StandaloneConfig standaloneConfig) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        char[] keyStorePassword;
+        if(standaloneConfig.getKeyStorePassword() != null) {
+            keyStorePassword = standaloneConfig.getKeyStorePassword().toCharArray();
+        } else {
+
+        }
+
+        keyStore.load(new FileInputStream(standaloneConfig.getKeyStore()), standaloneConfig.getKeyStorePassword().toCharArray());
+        splitKeystore(keyStore, standaloneConfig.getKeyPassword().toCharArray(), standaloneConfig.getBaseDir());
     }
 
     public void createNifiKeystoresAndTrustStores(StandaloneConfig standaloneConfig) throws GeneralSecurityException, IOException {
@@ -215,6 +242,7 @@ public class TlsToolkitStandalone {
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, new File(hostDir, "nifi.properties"),
                     hostname, instanceDefinition.getNumber()));
             tlsClientManager.write(outputStreamFactory);
+
             if (logger.isInfoEnabled()) {
                 logger.info("Successfully generated TLS configuration for " + hostname + " " + hostIdentifierNumber + " in " + hostDir);
             }

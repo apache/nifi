@@ -27,7 +27,9 @@ import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.stubbing.defaultanswers.ForwardsInvocations;
 
 import java.io.ByteArrayInputStream;
@@ -50,6 +52,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -58,11 +61,15 @@ public class TlsToolkitStandaloneCommandLineTest {
     private SecureRandom secureRandom;
     private TlsToolkitStandaloneCommandLine tlsToolkitStandaloneCommandLine;
 
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
     @Before
     public void setup() {
         secureRandom = mock(SecureRandom.class);
         doAnswer(new ForwardsInvocations(new Random())).when(secureRandom).nextBytes(any(byte[].class));
         tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine(new PasswordUtil(secureRandom));
+
     }
 
     @Test
@@ -444,5 +451,40 @@ public class TlsToolkitStandaloneCommandLineTest {
         Properties properties = new Properties();
         properties.load(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         return properties;
+    }
+
+    @Test
+    public void testSplitKeystore() throws Exception {
+
+        String keyPass = "changeit";
+        String keystorePass = "changeit";
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+        System.out.println(standaloneConfig.getKeyPassword());
+
+        assertTrue(standaloneConfig.isSplitKeystore());
+        assertEquals(keyPass, standaloneConfig.getKeyPassword());
+        assertEquals(keystorePass, standaloneConfig.getKeyStorePassword());
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+
+        assertTrue(folder.listFiles().length > 0);
+        for(File file : folder.listFiles()) {
+            assertTrue(file.length() > 0);
+        }
+    }
+
+    @Test(expected = CommandLineParseException.class)
+    public void testSplitKeystoreMissingPasswords() throws Exception {
+
+        String keyPass = "changeit";
+        String keystorePass = "changeit";
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
     }
 }
