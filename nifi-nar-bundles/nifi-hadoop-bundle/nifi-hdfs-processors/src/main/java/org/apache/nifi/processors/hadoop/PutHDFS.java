@@ -148,7 +148,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
     public static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
             .name("Permissions umask")
             .description(
-                    "A umask represented as an octal number which determines the permissions of files written to HDFS. This overrides the Hadoop Configuration dfs.umaskmode")
+                   "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
+                           "This overrides the Hadoop property \"fs.permission.umask-mode\".  " +
+                           "If this property and \"fs.permission.umask-mode\" are undefined, the Hadoop default \"022\" will be used.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
@@ -208,9 +210,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         if (umaskProp.isSet()) {
             dfsUmask = Short.parseShort(umaskProp.getValue(), 8);
         } else {
-            dfsUmask = FsPermission.DEFAULT_UMASK;
+            dfsUmask = FsPermission.getUMask(config).toShort();
         }
-
         FsPermission.setUMask(config, new FsPermission(dfsUmask));
     }
 

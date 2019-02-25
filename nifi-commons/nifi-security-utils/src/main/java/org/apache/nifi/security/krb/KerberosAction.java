@@ -18,45 +18,40 @@ package org.apache.nifi.security.krb;
 
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import javax.security.auth.login.LoginException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Helper class for processors to perform an action as a KerberosUser.
  */
-public class KerberosAction {
+public class KerberosAction<T> {
 
     private final KerberosUser kerberosUser;
-    private final PrivilegedAction action;
-    private final ProcessContext context;
+    private final PrivilegedExceptionAction<T> action;
     private final ComponentLog logger;
 
     public KerberosAction(final KerberosUser kerberosUser,
-                          final PrivilegedAction action,
-                          final ProcessContext context,
+                          final PrivilegedExceptionAction<T> action,
                           final ComponentLog logger) {
         this.kerberosUser = kerberosUser;
         this.action = action;
-        this.context = context;
         this.logger = logger;
         Validate.notNull(this.kerberosUser);
         Validate.notNull(this.action);
-        Validate.notNull(this.context);
         Validate.notNull(this.logger);
     }
 
-    public void execute() {
+    public T execute() {
+        T result;
         // lazily login the first time the processor executes
         if (!kerberosUser.isLoggedIn()) {
             try {
                 kerberosUser.login();
                 logger.info("Successful login for {}", new Object[]{kerberosUser.getPrincipal()});
             } catch (LoginException e) {
-                // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
-                context.yield();
                 throw new ProcessException("Login failed due to: " + e.getMessage(), e);
             }
         }
@@ -65,14 +60,12 @@ public class KerberosAction {
         try {
             kerberosUser.checkTGTAndRelogin();
         } catch (LoginException e) {
-            // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
-            context.yield();
             throw new ProcessException("Relogin check failed due to: " + e.getMessage(), e);
         }
 
         // attempt to execute the action, if an exception is caught attempt to logout/login and retry
         try {
-            kerberosUser.doAs(action);
+            result = kerberosUser.doAs(action);
         } catch (SecurityException se) {
             logger.info("Privileged action failed, attempting relogin and retrying...");
             logger.debug("", se);
@@ -80,13 +73,15 @@ public class KerberosAction {
             try {
                 kerberosUser.logout();
                 kerberosUser.login();
-                kerberosUser.doAs(action);
+                result = kerberosUser.doAs(action);
             } catch (Exception e) {
-                // make sure to yield so the processor doesn't keep retrying the rolled back flow files immediately
-                context.yield();
                 throw new ProcessException("Retrying privileged action failed due to: " + e.getMessage(), e);
             }
+        } catch (PrivilegedActionException e) {
+            throw new ProcessException("Privileged action failed due to: " + e.getMessage(), e.getException());
         }
+
+        return result;
     }
 
 }

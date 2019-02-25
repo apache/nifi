@@ -24,6 +24,9 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.ArrayListRecordReader;
+import org.apache.nifi.serialization.record.ArrayListRecordWriter;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
@@ -34,7 +37,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -42,9 +44,15 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestQueryRecord {
 
@@ -69,6 +77,444 @@ public class TestQueryRecord {
 
         return runner;
     }
+
+
+    @Test
+    public void testRecordPathFunctions() throws InitializationException {
+        final Record record = createHierarchicalRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT RPATH_STRING(person, '/name') AS name," +
+            " RPATH_INT(person, '/age') AS age," +
+            " RPATH(person, '/name') AS nameObj," +
+            " RPATH(person, '/age') AS ageObj," +
+            " RPATH(person, '/favoriteColors') AS colors," +
+            " RPATH(person, '//name') AS names," +
+            " RPATH_DATE(person, '/dob') AS dob," +
+            " RPATH_LONG(person, '/dobTimestamp') AS dobTimestamp," +
+            " RPATH_DATE(person, 'toDate(/joinTimestamp, \"yyyy-MM-dd\")') AS joinTime, " +
+            " RPATH_DOUBLE(person, '/weight') AS weight" +
+            " FROM FLOWFILE");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("John Doe", output.getValue("nameObj"));
+        assertEquals(30, output.getValue("age"));
+        assertEquals(30, output.getValue("ageObj"));
+        assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
+        assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
+        assertEquals("1517702400000", output.getAsString("joinTime"));
+        assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
+    }
+
+    @Test
+    public void testRecordPathInAggregate() throws InitializationException {
+        final Record record = createHierarchicalRecord();
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        for (int i=0; i < 100; i++) {
+            final Record toAdd = createHierarchicalRecord();
+            final Record person = (Record) toAdd.getValue("person");
+
+            person.setValue("name", "Person " + i);
+            person.setValue("age", i);
+            recordReader.addRecord(toAdd);
+        }
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT RPATH_STRING(person, '/name') AS name FROM FLOWFILE" +
+                " WHERE RPATH_INT(person, '/age') > (" +
+                "   SELECT AVG( RPATH_INT(person, '/age') ) FROM FLOWFILE" +
+                ")");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(50, written.size());
+
+        int i=50;
+        for (final Record writtenRecord : written) {
+            final String name = writtenRecord.getAsString("name");
+            assertEquals("Person " + i, name);
+            i++;
+        }
+    }
+
+
+    @Test
+    public void testRecordPathWithArray() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name" +
+            "    FROM FLOWFILE" +
+            "    WHERE RPATH(addresses, '/state[/label = ''home'']') <>" +
+            "          RPATH(addresses, '/state[/label = ''work'']')");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+    @Test
+    public void testCompareResultsOfTwoRecordPathsAgainstArray() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+
+        // Change the value of the 'state' field of both addresses to NY.
+        // This allows us to use an equals operator to ensure that we do get back the same values,
+        // whereas the unit test above tests <> and that may result in 'false confidence' if the software
+        // were to provide the wrong values but values that were not equal.
+        Record[] addresses = (Record[]) record.getValue("addresses");
+        for (final Record address : addresses) {
+            address.setValue("state", "NY");
+        }
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name" +
+                "    FROM FLOWFILE" +
+                "    WHERE RPATH(addresses, '/state[/label = ''home'']') =" +
+                "          RPATH(addresses, '/state[/label = ''work'']')");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+
+    @Test
+    public void testRecordPathWithArrayAndOnlyOneElementMatchingRPath() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name" +
+                "    FROM FLOWFILE" +
+                "    WHERE RPATH(addresses, '/state[. = ''NY'']') = 'NY'");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+
+    @Test
+    public void testLikeWithRecordPath() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name" +
+                "    FROM FLOWFILE" +
+                "    WHERE RPATH_STRING(addresses, '/state[. = ''NY'']') LIKE 'N%'");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+
+    @Test
+    public void testRecordPathWithMap() throws InitializationException {
+        final Record record = createHierarchicalRecord();
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT RPATH(favoriteThings, '.[''sport'']') AS sport," +
+                " RPATH_STRING(person, '/name') AS nameObj" +
+                " FROM FLOWFILE" +
+                " WHERE RPATH(favoriteThings, '.[''color'']') = 'green'");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("basketball", output.getValue("sport"));
+        assertEquals("John Doe", output.getValue("nameObj"));
+    }
+
+    /**
+     * Returns a Record that, if written in JSON, would look like:
+     * <code><pre>
+     * {
+     *    "person": {
+     *        "name": "John Doe",
+     *        "age": 30,
+     *        "favoriteColors": [ "red", "green" ],
+     *        "dob": 598741575825,
+     *        "dobTimestamp": 598741575825,
+     *        "joinTimestamp": "2018-02-04 10:20:55.802",
+     *        "weight": 180.8,
+     *        "mother": {
+     *          "name": "Jane Doe"
+     *        }
+     *    }
+     * }
+     * </pre></code>
+     *
+     * @return the Record
+     */
+    private Record createHierarchicalRecord() {
+        final List<RecordField> namedPersonFields = new ArrayList<>();
+        namedPersonFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema namedPersonSchema = new SimpleRecordSchema(namedPersonFields);
+
+        final List<RecordField> personFields = new ArrayList<>();
+        personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
+        personFields.add(new RecordField("favoriteColors", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        personFields.add(new RecordField("dob", RecordFieldType.DATE.getDataType()));
+        personFields.add(new RecordField("dobTimestamp", RecordFieldType.LONG.getDataType()));
+        personFields.add(new RecordField("joinTimestamp", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("weight", RecordFieldType.DOUBLE.getDataType()));
+        personFields.add(new RecordField("mother", RecordFieldType.RECORD.getRecordDataType(namedPersonSchema)));
+        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
+
+        final List<RecordField> outerSchemaFields = new ArrayList<>();
+        outerSchemaFields.add(new RecordField("person", RecordFieldType.RECORD.getRecordDataType(personSchema)));
+        outerSchemaFields.add(new RecordField("favoriteThings", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType())));
+        final RecordSchema recordSchema = new SimpleRecordSchema(outerSchemaFields);
+
+        final Record mother = new MapRecord(namedPersonSchema, Collections.singletonMap("name", "Jane Doe"));
+
+        final Map<String, String> favorites = new HashMap<>();
+        favorites.put("sport", "basketball");
+        favorites.put("color", "green");
+        favorites.put("roses", "raindrops");
+        favorites.put("kittens", "whiskers");
+
+        final long ts = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * 30);
+        final Map<String, Object> map = new HashMap<>();
+        map.put("name", "John Doe");
+        map.put("age", 30);
+        map.put("favoriteColors", new String[] { "red", "green" });
+        map.put("dob", new Date(ts));
+        map.put("dobTimestamp", ts);
+        map.put("joinTimestamp", "2018-02-04 10:20:55.802");
+        map.put("weight", 180.8D);
+        map.put("mother", mother);
+        final Record person = new MapRecord(personSchema, map);
+
+        final Map<String, Object> personValues = new HashMap<>();
+        personValues.put("person", person);
+        personValues.put("favoriteThings", favorites);
+
+        final Record record = new MapRecord(recordSchema, personValues);
+        return record;
+    }
+
+
+    /**
+     * Returns a Record that, if written in JSON, would look like:
+     * <code><pre>
+     *          {
+     *               "name": "John Doe",
+     *               "title": "Software Engineer",
+     *               "age": 40,
+     *               "addresses": [{
+     *                   "streetNumber": 4820,
+     *                   "street": "My Street",
+     *                   "apartment": null,
+     *                   "city": "New York",
+     *                   "state": "NY",
+     *                   "country": "USA",
+     *                   "label": "work"
+     *               }, {
+     *                   "streetNumber": 327,
+     *                   "street": "Small Street",
+     *                   "apartment": 309,
+     *                   "city": "Los Angeles",
+     *                   "state": "CA",
+     *                   "country": "USA",
+     *                   "label": "home"
+     *               }]
+     *             }
+     * </pre></code>
+     *
+     * @return the Record
+     */
+    private Record createHierarchicalArrayRecord() {
+        final List<RecordField> addressFields = new ArrayList<>();
+        addressFields.add(new RecordField("streetNumber", RecordFieldType.INT.getDataType()));
+        addressFields.add(new RecordField("street", RecordFieldType.STRING.getDataType()));
+        addressFields.add(new RecordField("apartment", RecordFieldType.INT.getDataType()));
+        addressFields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
+        addressFields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
+        addressFields.add(new RecordField("country", RecordFieldType.STRING.getDataType()));
+        addressFields.add(new RecordField("label", RecordFieldType.STRING.getDataType()));
+        final RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
+
+        final List<RecordField> personFields = new ArrayList<>();
+        personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
+        personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
+        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
+
+        final Map<String, Object> workMap = new HashMap<>();
+        workMap.put("streetNumber", 4820);
+        workMap.put("street", "My Street");
+        workMap.put("apartment", null);
+        workMap.put("city", "New York City");
+        workMap.put("state", "NY");
+        workMap.put("country", "USA");
+        workMap.put("label", "work");
+        final Record workAddress = new MapRecord(addressSchema, workMap);
+
+        final Map<String, Object> homeMap = new HashMap<>();
+        homeMap.put("streetNumber", 327);
+        homeMap.put("street", "Small Street");
+        homeMap.put("apartment", 302);
+        homeMap.put("city", "Los Angeles");
+        homeMap.put("state", "CA");
+        homeMap.put("country", "USA");
+        homeMap.put("label", "home");
+        final Record homeAddress = new MapRecord(addressSchema, homeMap);
+
+        final Map<String, Object> map = new HashMap<>();
+        map.put("name", "John Doe");
+        map.put("age", 30);
+        map.put("title", "Software Engineer");
+        map.put("addresses", new Record[] {homeAddress, workAddress});
+        final Record person = new MapRecord(personSchema, map);
+
+        return person;
+    }
+
 
     @Test
     public void testStreamClosedWhenBadData() throws InitializationException {
@@ -389,14 +835,14 @@ public class TestQueryRecord {
                 @Override
                 public WriteResult write(final RecordSet rs) throws IOException {
                     final int colCount = rs.getSchema().getFieldCount();
-                    Assert.assertEquals(columnNames.size(), colCount);
+                    assertEquals(columnNames.size(), colCount);
 
                     final List<String> colNames = new ArrayList<>(colCount);
                     for (int i = 0; i < colCount; i++) {
                         colNames.add(rs.getSchema().getField(i).getFieldName());
                     }
 
-                    Assert.assertEquals(columnNames, colNames);
+                    assertEquals(columnNames, colNames);
 
                     // Iterate over the rest of the records to ensure that we read the entire stream. If we don't
                     // do this, we won't consume all of the data and as a result we will not close the stream properly

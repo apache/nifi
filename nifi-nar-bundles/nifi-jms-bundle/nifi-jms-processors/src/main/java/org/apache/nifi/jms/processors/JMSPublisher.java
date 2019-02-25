@@ -84,11 +84,14 @@ final class JMSPublisher extends JMSWorker {
             for (Entry<String, String> entry : flowFileAttributesToSend.entrySet()) {
                 try {
                     if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
-                        message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                        message.setJMSExpiration(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setTimeToLive(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
-                        message.setJMSPriority(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setPriority(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.REDELIVERED)) {
                         message.setJMSRedelivered(Boolean.parseBoolean(entry.getValue()));
                     } else if (entry.getKey().equals(JmsHeaders.TIMESTAMP)) {

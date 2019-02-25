@@ -1367,7 +1367,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         if (starting) { // will ensure that the Processor represented by this node can only be started once
-            hasActiveThreads = true;
             initiateStart(taskScheduler, administrativeYieldMillis, timeoutMillis, processContext, schedulingAgentCallback);
         } else {
             final String procName = processorRef.get().toString();
@@ -1395,7 +1394,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
 
         final Map<Long, ThreadInfo> threadInfoMap = Stream.of(infos)
-            .collect(Collectors.toMap(info -> info.getThreadId(), Function.identity(), (a, b) -> a));
+            .collect(Collectors.toMap(ThreadInfo::getThreadId, Function.identity(), (a, b) -> a));
 
         final List<ActiveThreadInfo> threadList = new ArrayList<>(activeThreads.size());
         for (final Map.Entry<Thread, ActiveTask> entry : activeThreads.entrySet()) {
@@ -1509,6 +1508,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
                 try {
+                    hasActiveThreads = true;
+
                     activateThread();
                     try {
                         ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);

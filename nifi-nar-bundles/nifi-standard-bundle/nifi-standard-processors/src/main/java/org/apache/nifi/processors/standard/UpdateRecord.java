@@ -17,15 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -52,8 +43,18 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @EventDriven
@@ -113,8 +114,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final boolean containsDynamic = validationContext.getProperties().keySet().stream()
-            .anyMatch(property -> property.isDynamic());
+        final boolean containsDynamic = validationContext.getProperties().keySet().stream().anyMatch(PropertyDescriptor::isDynamic);
 
         if (containsDynamic) {
             return Collections.emptyList();
@@ -142,12 +142,8 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(Record record, final FlowFile flowFile, final ProcessContext context) {
         final boolean evaluateValueAsRecordPath = context.getProperty(REPLACEMENT_VALUE_STRATEGY).getValue().equals(RECORD_PATH_VALUES.getValue());
-
-        // Incorporate the RecordSchema that we will use for writing records into the Schema that we have
-        // for the record, because it's possible that the updates to the record will not be valid otherwise.
-        record.incorporateSchema(writeSchema);
 
         for (final String recordPathText : recordPaths) {
             final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);
@@ -177,14 +173,16 @@ public class UpdateRecord extends AbstractRecordProcessor {
                         fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
 
                         final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue();
-                        fieldVal.updateValue(evaluatedReplacementVal);
+                        fieldVal.updateValue(evaluatedReplacementVal, RecordFieldType.STRING.getDataType());
                     });
                 } else {
                     final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile).getValue();
-                    result.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(evaluatedReplacementVal));
+                    result.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(evaluatedReplacementVal, RecordFieldType.STRING.getDataType()));
                 }
             }
         }
+
+        record.incorporateInactiveFields();
 
         return record;
     }
@@ -204,7 +202,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             final RecordPathResult replacementResult = replacementRecordPath.evaluate(record, fieldVal);
             final List<FieldValue> selectedFields = replacementResult.getSelectedFields().collect(Collectors.toList());
             final Object replacementObject = getReplacementObject(selectedFields);
-            fieldVal.updateValue(replacementObject);
+            updateFieldValue(fieldVal, replacementObject);
 
             record = updateRecord(destinationFieldValues, selectedFields, record);
         }
@@ -222,19 +220,34 @@ public class UpdateRecord extends AbstractRecordProcessor {
                 return (Record) replacement;
             }
 
+            final FieldValue replacementFieldValue = (FieldValue) replacement;
+            if (replacementFieldValue.getValue() instanceof Record) {
+                return (Record) replacementFieldValue.getValue();
+            }
+
             final List<RecordField> fields = selectedFields.stream().map(FieldValue::getField).collect(Collectors.toList());
             final RecordSchema schema = new SimpleRecordSchema(fields);
             final Record mapRecord = new MapRecord(schema, new HashMap<>());
             for (final FieldValue selectedField : selectedFields) {
-                mapRecord.setValue(selectedField.getField().getFieldName(), selectedField.getValue());
+                mapRecord.setValue(selectedField.getField(), selectedField.getValue());
             }
 
             return mapRecord;
         } else {
             for (final FieldValue fieldVal : destinationFields) {
-                fieldVal.updateValue(getReplacementObject(selectedFields));
+                final Object replacementObject = getReplacementObject(selectedFields);
+                updateFieldValue(fieldVal, replacementObject);
             }
             return record;
+        }
+    }
+
+    private void updateFieldValue(final FieldValue fieldValue, final Object replacement) {
+        if (replacement instanceof FieldValue) {
+            final FieldValue replacementFieldValue = (FieldValue) replacement;
+            fieldValue.updateValue(replacementFieldValue.getValue(), replacementFieldValue.getField().getDataType());
+        } else {
+            fieldValue.updateValue(replacement);
         }
     }
 
@@ -244,7 +257,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             final RecordSchema schema = new SimpleRecordSchema(fields);
             final Record record = new MapRecord(schema, new HashMap<>());
             for (final FieldValue fieldVal : selectedFields) {
-                record.setValue(fieldVal.getField().getFieldName(), fieldVal.getValue());
+                record.setValue(fieldVal.getField(), fieldVal.getValue());
             }
 
             return record;
@@ -253,7 +266,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
         if (selectedFields.isEmpty()) {
             return null;
         } else {
-            return selectedFields.get(0).getValue();
+            return selectedFields.get(0);
         }
     }
 }

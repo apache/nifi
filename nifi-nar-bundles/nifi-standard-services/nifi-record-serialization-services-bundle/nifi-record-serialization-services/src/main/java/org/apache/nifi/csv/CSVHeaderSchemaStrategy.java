@@ -17,6 +17,18 @@
 
 package org.apache.nifi.csv;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.io.input.BOMInputStream;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaField;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -26,30 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.io.input.BOMInputStream;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.schema.access.SchemaAccessStrategy;
-import org.apache.nifi.schema.access.SchemaField;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-
 public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
-    private final ConfigurationContext context;
+    private final PropertyContext context;
 
-    public CSVHeaderSchemaStrategy(final ConfigurationContext context) {
+    public CSVHeaderSchemaStrategy(final PropertyContext context) {
         this.context = context;
-    }
-
-    public CSVHeaderSchemaStrategy(final ValidationContext context) {
-        this.context = null;
     }
 
     @Override

@@ -44,7 +44,8 @@ import javax.net.ssl.SSLContext;
 import javax.security.auth.login.LoginException;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -459,7 +460,7 @@ public class TestPutSolrContentStream {
     }
 
     @Test
-    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException {
+    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException, PrivilegedActionException {
         final String principal = "nifi@FOO.COM";
         final String keytab = "src/test/resources/foo.keytab";
 
@@ -467,8 +468,8 @@ public class TestPutSolrContentStream {
         final KerberosKeytabUser kerberosUser = Mockito.mock(KerberosKeytabUser.class);
         when(kerberosUser.getPrincipal()).thenReturn(principal);
         when(kerberosUser.getKeytabFile()).thenReturn(keytab);
-        when(kerberosUser.doAs(any(PrivilegedAction.class))).thenAnswer((invocation -> {
-                    final PrivilegedAction action = (PrivilegedAction) invocation.getArguments()[0];
+        when(kerberosUser.doAs(any(PrivilegedExceptionAction.class))).thenAnswer((invocation -> {
+                    final PrivilegedExceptionAction action = (PrivilegedExceptionAction) invocation.getArguments()[0];
                     action.run();
                     return null;
                 })
@@ -502,7 +503,7 @@ public class TestPutSolrContentStream {
         // Verify that during the update the user was logged in, TGT was checked, and the action was executed
         verify(kerberosUser, times(1)).login();
         verify(kerberosUser, times(1)).checkTGTAndRelogin();
-        verify(kerberosUser, times(1)).doAs(any(PrivilegedAction.class));
+        verify(kerberosUser, times(1)).doAs(any(PrivilegedExceptionAction.class));
     }
 
 

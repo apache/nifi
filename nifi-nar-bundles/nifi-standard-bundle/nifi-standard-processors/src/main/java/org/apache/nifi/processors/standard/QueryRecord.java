@@ -16,35 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -58,7 +37,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -75,15 +53,54 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.queryrecord.FlowFileTable;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.RecordPathResult;
+import org.apache.nifi.record.path.StandardFieldValue;
+import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @EventDriven
 @SideEffectFree
@@ -141,10 +158,9 @@ public class QueryRecord extends AbstractProcessor {
     static final PropertyDescriptor CACHE_SCHEMA = new PropertyDescriptor.Builder()
         .name("cache-schema")
         .displayName("Cache Schema")
-        .description("Parsing the SQL query and deriving the FlowFile's schema is relatively expensive. If this value is set to true, "
-            + "the Processor will cache these values so that the Processor is much more efficient and much faster. However, if this is done, "
-            + "then the schema that is derived for the first FlowFile processed must apply to all FlowFiles. If all FlowFiles will not have the exact "
-            + "same schema, or if the SQL SELECT statement uses the Expression Language, this value should be set to false.")
+        .description("This property is no longer used. It remains solely for backward compatibility in order to avoid making existing Processors invalid upon upgrade. This property will be" +
+            " removed in future versions. Now, instead of forcing the user to understand the semantics of schema caching, the Processor caches up to 25 schemas and automatically rolls off the" +
+            " old schemas. This provides the same performance when caching was enabled previously and in some cases very significant performance improvements if caching was previously disabled.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -165,7 +181,10 @@ public class QueryRecord extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
     private final Set<Relationship> relationships = Collections.synchronizedSet(new HashSet<>());
 
-    private final Map<String, BlockingQueue<CachedStatement>> statementQueues = new HashMap<>();
+    private final Cache<Tuple<String, RecordSchema>, BlockingQueue<CachedStatement>> statementQueues = Caffeine.newBuilder()
+        .maximumSize(25)
+        .removalListener(this::onCacheEviction)
+        .build();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -215,25 +234,6 @@ public class QueryRecord extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final boolean cache = validationContext.getProperty(CACHE_SCHEMA).asBoolean();
-        if (cache) {
-            for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
-                if (descriptor.isDynamic() && validationContext.isExpressionLanguagePresent(validationContext.getProperty(descriptor).getValue())) {
-                    return Collections.singleton(new ValidationResult.Builder()
-                        .subject("Cache Schema")
-                        .input("true")
-                        .valid(false)
-                        .explanation("Cannot have 'Cache Schema' property set to true if any SQL statement makes use of the Expression Language")
-                        .build());
-                }
-            }
-        }
-
-        return Collections.emptyList();
-    }
-
-    @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
@@ -244,6 +244,26 @@ public class QueryRecord extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new SqlValidator())
             .build();
+    }
+
+    @OnStopped
+    public synchronized void cleanup() {
+        for (final BlockingQueue<CachedStatement> statementQueue : statementQueues.asMap().values()) {
+            clearQueue(statementQueue);
+        }
+
+        statementQueues.invalidateAll();
+    }
+
+    private void onCacheEviction(final Tuple<String, RecordSchema> key, final BlockingQueue<CachedStatement> queue, final RemovalCause cause) {
+        clearQueue(queue);
+    }
+
+    private void clearQueue(final BlockingQueue<CachedStatement> statementQueue) {
+        CachedStatement stmt;
+        while ((stmt = statementQueue.poll()) != null) {
+            closeQuietly(stmt.getStatement(), stmt.getConnection());
+        }
     }
 
     @Override
@@ -262,13 +282,14 @@ public class QueryRecord extends AbstractProcessor {
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
 
         // Determine the Record Reader's schema
+        final RecordSchema writerSchema;
         final RecordSchema readerSchema;
         try (final InputStream rawIn = session.read(original)) {
             final Map<String, String> originalAttributes = original.getAttributes();
             final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
-            final RecordSchema inputSchema = reader.getSchema();
+            readerSchema = reader.getSchema();
 
-            readerSchema = recordSetWriterFactory.getSchema(originalAttributes, inputSchema);
+            writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -296,12 +317,7 @@ public class QueryRecord extends AbstractProcessor {
                 try {
                     final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
                     final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
-                    final QueryResult queryResult;
-                    if (context.getProperty(CACHE_SCHEMA).asBoolean()) {
-                        queryResult = queryWithCache(session, original, sql, context, recordReaderFactory);
-                    } else {
-                        queryResult = query(session, original, sql, context, recordReaderFactory);
-                    }
+                    final QueryResult queryResult = query(session, original, readerSchema, sql, recordReaderFactory);
 
                     final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                     try {
@@ -313,7 +329,7 @@ public class QueryRecord extends AbstractProcessor {
                                 final RecordSchema writeSchema;
 
                                 try {
-                                    recordSet = new ResultSetRecordSet(rs, readerSchema);
+                                    recordSet = new ResultSetRecordSet(rs, writerSchema);
                                     final RecordSchema resultSetSchema = recordSet.getSchema();
                                     writeSchema = recordSetWriterFactory.getSchema(originalAttributes, resultSetSchema);
                                 } catch (final SQLException | SchemaNotFoundException e) {
@@ -389,82 +405,59 @@ public class QueryRecord extends AbstractProcessor {
     }
 
 
-    private synchronized CachedStatement getStatement(final String sql, final Supplier<CalciteConnection> connectionSupplier, final ProcessSession session,
-        final FlowFile flowFile, final RecordReaderFactory recordReaderFactory) throws SQLException {
-
-        final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql);
-        if (statementQueue == null) {
-            return buildCachedStatement(sql, connectionSupplier, session, flowFile, recordReaderFactory);
-        }
+    private synchronized CachedStatement getStatement(final String sql, final RecordSchema schema, final Supplier<CachedStatement> statementBuilder) {
+        final Tuple<String, RecordSchema> tuple = new Tuple<>(sql, schema);
+        final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(tuple, key -> new LinkedBlockingQueue<>());
 
         final CachedStatement cachedStmt = statementQueue.poll();
         if (cachedStmt != null) {
             return cachedStmt;
         }
 
-        return buildCachedStatement(sql, connectionSupplier, session, flowFile, recordReaderFactory);
+        return statementBuilder.get();
     }
 
-    private CachedStatement buildCachedStatement(final String sql, final Supplier<CalciteConnection> connectionSupplier, final ProcessSession session,
-        final FlowFile flowFile, final RecordReaderFactory recordReaderFactory) throws SQLException {
+    private CachedStatement buildCachedStatement(final String sql, final ProcessSession session,  final FlowFile flowFile, final RecordSchema schema,
+                                                 final RecordReaderFactory recordReaderFactory) {
 
-        final CalciteConnection connection = connectionSupplier.get();
-        final SchemaPlus rootSchema = connection.getRootSchema();
+        final CalciteConnection connection = createConnection();
+        final SchemaPlus rootSchema = createRootSchema(connection);
 
-        final FlowFileTable<?, ?> flowFileTable = new FlowFileTable<>(session, flowFile, recordReaderFactory, getLogger());
+        final FlowFileTable flowFileTable = new FlowFileTable(session, flowFile, schema, recordReaderFactory, getLogger());
         rootSchema.add("FLOWFILE", flowFileTable);
         rootSchema.setCacheEnabled(false);
 
-        final PreparedStatement stmt = connection.prepareStatement(sql);
-        return new CachedStatement(stmt, flowFileTable, connection);
-    }
-
-    @OnStopped
-    public synchronized void cleanup() {
-        for (final BlockingQueue<CachedStatement> statementQueue : statementQueues.values()) {
-            CachedStatement stmt;
-            while ((stmt = statementQueue.poll()) != null) {
-                closeQuietly(stmt.getStatement(), stmt.getConnection());
-            }
-        }
-
-        statementQueues.clear();
-    }
-
-    @OnScheduled
-    public synchronized void setupQueues(final ProcessContext context) {
-        // Create a Queue of PreparedStatements for each property that is user-defined. This allows us to easily poll the
-        // queue and add as necessary, knowing that the queue already exists.
-        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
-            if (!descriptor.isDynamic()) {
-                continue;
-            }
-
-            final String sql = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
-            final BlockingQueue<CachedStatement> queue = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
-            statementQueues.put(sql, queue);
+        try {
+            final PreparedStatement stmt = connection.prepareStatement(sql);
+            return new CachedStatement(stmt, flowFileTable, connection);
+        } catch (final SQLException e) {
+            throw new ProcessException(e);
         }
     }
 
-    protected QueryResult queryWithCache(final ProcessSession session, final FlowFile flowFile, final String sql, final ProcessContext context,
-        final RecordReaderFactory recordParserFactory) throws SQLException {
 
-        final Supplier<CalciteConnection> connectionSupplier = () -> {
-            final Properties properties = new Properties();
-            properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
+    private CalciteConnection createConnection() {
+        final Properties properties = new Properties();
+        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
 
-            try {
-                final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
-                final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
-                return calciteConnection;
-            } catch (final Exception e) {
-                throw new ProcessException(e);
-            }
-        };
+        try {
+            final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
+            final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+            return calciteConnection;
+        } catch (final Exception e) {
+            throw new ProcessException(e);
+        }
+    }
 
-        final CachedStatement cachedStatement = getStatement(sql, connectionSupplier, session, flowFile, recordParserFactory);
+
+    protected QueryResult query(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final String sql, final RecordReaderFactory recordReaderFactory)
+                throws SQLException {
+
+        final Supplier<CachedStatement> statementBuilder = () -> buildCachedStatement(sql, session, flowFile, schema, recordReaderFactory);
+
+        final CachedStatement cachedStatement = getStatement(sql, schema, statementBuilder);
         final PreparedStatement stmt = cachedStatement.getStatement();
-        final FlowFileTable<?, ?> table = cachedStatement.getTable();
+        final FlowFileTable table = cachedStatement.getTable();
         table.setFlowFile(session, flowFile);
 
         final ResultSet rs;
@@ -480,7 +473,7 @@ public class QueryRecord extends AbstractProcessor {
             public void close() throws IOException {
                 table.close();
 
-                final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql);
+                final BlockingQueue<CachedStatement> statementQueue = statementQueues.getIfPresent(new Tuple<>(sql, schema));
                 if (statementQueue == null || !statementQueue.offer(cachedStatement)) {
                     try {
                         cachedStatement.getConnection().close();
@@ -503,57 +496,17 @@ public class QueryRecord extends AbstractProcessor {
         };
     }
 
-    protected QueryResult query(final ProcessSession session, final FlowFile flowFile, final String sql, final ProcessContext context,
-        final RecordReaderFactory recordParserFactory) throws SQLException {
+    private SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
+        final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+        rootSchema.add("RPATH", ScalarFunctionImpl.create(ObjectRecordPath.class, "eval"));
+        rootSchema.add("RPATH_STRING", ScalarFunctionImpl.create(StringRecordPath.class, "eval"));
+        rootSchema.add("RPATH_INT", ScalarFunctionImpl.create(IntegerRecordPath.class, "eval"));
+        rootSchema.add("RPATH_LONG", ScalarFunctionImpl.create(LongRecordPath.class, "eval"));
+        rootSchema.add("RPATH_DATE", ScalarFunctionImpl.create(DateRecordPath.class, "eval"));
+        rootSchema.add("RPATH_DOUBLE", ScalarFunctionImpl.create(DoubleRecordPath.class, "eval"));
+        rootSchema.add("RPATH_FLOAT", ScalarFunctionImpl.create(FloatRecordPath.class, "eval"));
 
-        final Properties properties = new Properties();
-        properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
-
-        Connection connection = null;
-        ResultSet resultSet = null;
-        Statement statement = null;
-        try {
-            connection = DriverManager.getConnection("jdbc:calcite:", properties);
-            final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
-            final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-
-            final FlowFileTable<?, ?> flowFileTable = new FlowFileTable<>(session, flowFile, recordParserFactory, getLogger());
-            rootSchema.add("FLOWFILE", flowFileTable);
-            rootSchema.setCacheEnabled(false);
-
-            statement = connection.createStatement();
-
-            try {
-                resultSet = statement.executeQuery(sql);
-            } catch (final Throwable t) {
-                flowFileTable.close();
-                throw t;
-            }
-
-            final ResultSet rs = resultSet;
-            final Statement stmt = statement;
-            final Connection conn = connection;
-
-            return new QueryResult() {
-                @Override
-                public void close() throws IOException {
-                    closeQuietly(rs, stmt, conn);
-                }
-
-                @Override
-                public ResultSet getResultSet() {
-                    return rs;
-                }
-
-                @Override
-                public int getRecordsRead() {
-                    return flowFileTable.getRecordsRead();
-                }
-            };
-        } catch (final Exception e) {
-            closeQuietly(resultSet, statement, connection);
-            throw e;
-        }
+        return rootSchema;
     }
 
     private void closeQuietly(final AutoCloseable... closeables) {
@@ -611,24 +564,24 @@ public class QueryRecord extends AbstractProcessor {
         }
     }
 
-    private static interface QueryResult extends Closeable {
+    private interface QueryResult extends Closeable {
         ResultSet getResultSet();
 
         int getRecordsRead();
     }
 
     private static class CachedStatement {
-        private final FlowFileTable<?, ?> table;
+        private final FlowFileTable table;
         private final PreparedStatement statement;
         private final Connection connection;
 
-        public CachedStatement(final PreparedStatement statement, final FlowFileTable<?, ?> table, final Connection connection) {
+        public CachedStatement(final PreparedStatement statement, final FlowFileTable table, final Connection connection) {
             this.statement = statement;
             this.table = table;
             this.connection = connection;
         }
 
-        public FlowFileTable<?, ?> getTable() {
+        public FlowFileTable getTable() {
             return table;
         }
 
@@ -640,4 +593,262 @@ public class QueryRecord extends AbstractProcessor {
             return connection;
         }
     }
+
+
+    // ------------------------------------------------------------
+    // User-Defined Functions for Calcite
+    // ------------------------------------------------------------
+
+
+    public static class ObjectRecordPath extends RecordPathFunction {
+        private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(Collections.singletonList(ROOT_RECORD_FIELD));
+        private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
+
+
+        public Object eval(Object record, String recordPath) {
+            if (record == null) {
+                return null;
+            }
+
+            if (record instanceof Record) {
+                return eval((Record) record, recordPath);
+            }
+            if (record instanceof Record[]) {
+                return eval((Record[]) record, recordPath);
+            }
+
+            if (record instanceof Map) {
+                return eval((Map<?, ?>) record, recordPath);
+            }
+
+            throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
+        }
+
+        private Object eval(final Map<?, ?> map, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final Record record = new MapRecord(ROOT_RECORD_SCHEMA, Collections.singletonMap("root", map));
+            final FieldValue parentFieldValue = new StandardFieldValue(record, PARENT_RECORD_FIELD, null);
+            final FieldValue fieldValue = new StandardFieldValue(map, ROOT_RECORD_FIELD, parentFieldValue);
+            final RecordPathResult result = compiled.evaluate(record, fieldValue);
+
+            final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            return evalResults(selectedFields);
+        }
+
+        private Object eval(final Record record, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+            final RecordPathResult result = compiled.evaluate(record);
+
+            final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            return evalResults(selectedFields);
+        }
+
+        private Object eval(final Record[] records, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
+            return evalResults(selectedFields);
+        }
+
+        private Object evalResults(final List<FieldValue> selectedFields) {
+            if (selectedFields.isEmpty()) {
+                return null;
+            }
+
+            if (selectedFields.size() == 1) {
+                return selectedFields.get(0).getValue();
+            }
+
+            return selectedFields.stream()
+                .map(FieldValue::getValue)
+                .toArray();
+        }
+
+    }
+
+    public static class StringRecordPath extends RecordPathFunction {
+        public String eval(Object record, String recordPath) {
+            return eval(record, recordPath, Object::toString);
+        }
+    }
+
+    public static class IntegerRecordPath extends RecordPathFunction {
+        public Integer eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).intValue();
+                }
+                if (val instanceof String) {
+                    return Integer.parseInt((String) val);
+                }
+                if (val instanceof Date) {
+                    return (int) ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Integer against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class LongRecordPath extends RecordPathFunction {
+        public Long eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).longValue();
+                }
+                if (val instanceof String) {
+                    return Long.parseLong((String) val);
+                }
+                if (val instanceof Date) {
+                    return ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Long against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class FloatRecordPath extends RecordPathFunction {
+        public Float eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).floatValue();
+                }
+                if (val instanceof String) {
+                    return Float.parseFloat((String) val);
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Float against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class DoubleRecordPath extends RecordPathFunction {
+        public Double eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).doubleValue();
+                }
+                if (val instanceof String) {
+                    return Double.parseDouble((String) val);
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Double against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class DateRecordPath extends RecordPathFunction {
+        // Interestingly, Calcite throws an Exception if the schema indicates a DATE type and we return a java.util.Date. Calcite requires that a Long be returned instead.
+        public Long eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if (val instanceof Number) {
+                    return ((Number) val).longValue();
+                }
+                if (val instanceof String) {
+                    throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record
+                        + " because the value returned is of type String. To parse a String value as a Date, please use the toDate function. For example, " +
+                        "SELECT RPATH_DATE( record, 'toDate( /event/timestamp, \"yyyy-MM-dd\" )' ) AS eventDate FROM FLOWFILE");
+                }
+                if (val instanceof Date) {
+                    return ((Date) val).getTime();
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Date against " + record
+                    + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class RecordRecordPath extends RecordPathFunction {
+        public Record eval(Object record, String recordPath) {
+            return eval(record, recordPath, Record.class::cast);
+        }
+    }
+
+
+    public static class RecordPathFunction {
+        private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(Collections.singletonList(ROOT_RECORD_FIELD));
+        private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
+
+        protected static final RecordPathCache RECORD_PATH_CACHE = new RecordPathCache(100);
+
+        protected <T> T eval(final Object record, final String recordPath, final Function<Object, T> transform) {
+            if (record == null) {
+                return null;
+            }
+
+            if (record instanceof Record) {
+                return eval((Record) record, recordPath, transform);
+            } else if (record instanceof Record[]) {
+                return eval((Record[]) record, recordPath, transform);
+            } else if (record instanceof Map) {
+                return eval((Map<?, ?>) record, recordPath, transform);
+            }
+
+            throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
+        }
+
+        private <T> T eval(final Map<?, ?> map, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final Record record = new MapRecord(ROOT_RECORD_SCHEMA, Collections.singletonMap("root", map));
+            final FieldValue parentFieldValue = new StandardFieldValue(record, PARENT_RECORD_FIELD, null);
+            final FieldValue fieldValue = new StandardFieldValue(map, ROOT_RECORD_FIELD, parentFieldValue);
+            final RecordPathResult result = compiled.evaluate(record, fieldValue);
+
+            return evalResults(result.getSelectedFields(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+
+        private <T> T eval(final Record record, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+            final RecordPathResult result = compiled.evaluate((Record) record);
+
+            return evalResults(result.getSelectedFields(), transform,
+                () -> "RecordPath " + recordPath + " evaluated against " + record + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+        private <T> T eval(final Record[] records, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
+            if (selectedFields.isEmpty()) {
+                return null;
+            }
+
+            return evalResults(selectedFields.stream(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
+        private <T> T evalResults(final Stream<FieldValue> fields, final Function<Object, T> transform, final Supplier<String> multipleReturnValueErrorSupplier) {
+            return fields.map(FieldValue::getValue)
+                .filter(Objects::nonNull)
+                .map(transform)
+                .reduce((a, b) -> {
+                    // Only allow a single value
+                    throw new RuntimeException(multipleReturnValueErrorSupplier.get());
+                })
+                .orElse(null);
+
+        }
+    }
+
+
 }

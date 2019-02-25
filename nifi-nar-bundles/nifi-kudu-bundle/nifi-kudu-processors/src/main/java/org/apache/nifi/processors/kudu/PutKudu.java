@@ -34,6 +34,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import org.apache.kudu.client.Upsert;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,21 +42,29 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
 
+import javax.security.auth.login.LoginException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,8 +74,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+
 @EventDriven
 @SupportsBatching
+@RequiresInstanceClassLoading // Because of calls to UserGroupInformation.setConfiguration
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
@@ -74,23 +86,31 @@ import java.util.stream.Collectors;
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
 public class PutKudu extends AbstractProcessor {
-    protected static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor KUDU_MASTERS = new Builder()
         .name("Kudu Masters")
         .description("List all kudu masters's ip with port (e.g. 7051), comma separated")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
 
-    protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor TABLE_NAME = new Builder()
         .name("Table Name")
         .description("The name of the Kudu Table to put data into")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
 
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials to use for authentication")
+        .required(false)
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .build();
+
+    public static final PropertyDescriptor RECORD_READER = new Builder()
         .name("record-reader")
         .displayName("Record Reader")
         .description("The service for reading records from incoming flow files.")
@@ -98,7 +118,7 @@ public class PutKudu extends AbstractProcessor {
         .required(true)
         .build();
 
-    protected static final PropertyDescriptor SKIP_HEAD_LINE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor SKIP_HEAD_LINE = new Builder()
         .name("Skip head line")
         .description("Deprecated. Used to ignore header lines, but this should be handled by a RecordReader " +
             "(e.g. \"Treat First Line as Header\" property of CSVReader)")
@@ -108,7 +128,7 @@ public class PutKudu extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor INSERT_OPERATION = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .allowableValues(OperationType.values())
@@ -116,7 +136,7 @@ public class PutKudu extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor FLUSH_MODE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor FLUSH_MODE = new Builder()
         .name("Flush Mode")
         .description("Set the new flush mode for a kudu session.\n" +
             "AUTO_FLUSH_SYNC: the call returns when the operation is persisted, else it throws an exception.\n" +
@@ -128,16 +148,30 @@ public class PutKudu extends AbstractProcessor {
         .required(true)
         .build();
 
+    protected static final PropertyDescriptor FLOWFILE_BATCH_SIZE = new PropertyDescriptor.Builder()
+        .name("FlowFiles per Batch")
+        .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
+            "Depending on your memory size, and data size per row set an appropriate batch size " +
+            "for the number of FlowFiles to process per client connection setup." +
+            "Gradually increase this number, only if your FlowFiles typically contain a few records.")
+        .defaultValue("1")
+        .required(true)
+        .addValidator(StandardValidators.createLongValidator(1, 100000, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")
-        .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
+        .displayName("Max Records per Batch")
+        .description("The maximum number of Records to process in a single Kudu-client batch, between 1 - 100000. " +
             "Depending on your memory size, and data size per row set an appropriate batch size. " +
             "Gradually increase this number to find out the best one for best performances.")
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .build();
+
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -153,19 +187,23 @@ public class PutKudu extends AbstractProcessor {
     protected OperationType operationType;
     protected SessionConfiguration.FlushMode flushMode;
     protected int batchSize = 100;
+    protected int ffbatch   = 1;
 
     protected KuduClient kuduClient;
     protected KuduTable kuduTable;
+    private volatile KerberosUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
         properties.add(TABLE_NAME);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
         properties.add(FLUSH_MODE);
+        properties.add(FLOWFILE_BATCH_SIZE);
         properties.add(BATCH_SIZE);
 
         return properties;
@@ -181,39 +219,83 @@ public class PutKudu extends AbstractProcessor {
 
 
     @OnScheduled
-    public void OnScheduled(final ProcessContext context) throws KuduException {
+    public void onScheduled(final ProcessContext context) throws IOException, LoginException {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).getValue());
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
+        ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
 
         getLogger().debug("Setting up Kudu connection...");
-        kuduClient = createClient(kuduMasters);
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        kuduClient = createClient(kuduMasters, credentialsService);
         kuduTable = kuduClient.openTable(tableName);
         getLogger().debug("Kudu connection successfully initialized");
     }
 
-    protected KuduClient createClient(final String masters) {
+    protected KuduClient createClient(final String masters, final KerberosCredentialsService credentialsService) throws LoginException {
+        if (credentialsService == null) {
+            return buildClient(masters);
+        }
+
+        final String keytab = credentialsService.getKeytab();
+        final String principal = credentialsService.getPrincipal();
+        kerberosUser = loginKerberosUser(principal, keytab);
+
+        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(masters), getLogger());
+        return kerberosAction.execute();
+    }
+
+    protected KuduClient buildClient(final String masters) {
         return new KuduClient.KuduClientBuilder(masters).build();
     }
 
+    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+        final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
+        kerberosUser.login();
+        return kerberosUser;
+    }
+
     @OnStopped
-    public final void closeClient() throws KuduException {
-        if (kuduClient != null) {
-            getLogger().debug("Closing KuduClient");
-            kuduClient.close();
-            kuduClient = null;
+    public final void closeClient() throws KuduException, LoginException {
+        try {
+            if (kuduClient != null) {
+                getLogger().debug("Closing KuduClient");
+                kuduClient.close();
+                kuduClient = null;
+            }
+        } finally {
+            if (kerberosUser != null) {
+                kerberosUser.logout();
+                kerberosUser = null;
+            }
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(batchSize);
+        final List<FlowFile> flowFiles = session.get(ffbatch);
         if (flowFiles.isEmpty()) {
             return;
         }
 
+        final KerberosUser user = kerberosUser;
+        if (user == null) {
+            trigger(context, session, flowFiles);
+            return;
+        }
+
+        final PrivilegedExceptionAction<Void> privelegedAction = () -> {
+            trigger(context, session, flowFiles);
+            return null;
+        };
+
+        final KerberosAction<Void> action = new KerberosAction<>(user, privelegedAction, getLogger());
+        action.execute();
+    }
+
+    private void trigger(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles) throws ProcessException {
         final KuduSession kuduSession = getKuduSession(kuduClient);
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
@@ -336,13 +418,13 @@ public class PutKudu extends AbstractProcessor {
 
 
 
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
+    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
         Upsert upsert = kuduTable.newUpsert();
         this.buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames);
         return upsert;
     }
 
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
+    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
         Insert insert = kuduTable.newInsert();
         this.buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames);
         return insert;

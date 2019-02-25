@@ -141,6 +141,7 @@ public class TestQueryElasticsearchHttp {
                 QueryElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         assertEquals("blah", new String(out.toByteArray()));
+        assertEquals("arrays,are,supported,too", out.getAttribute("es.result.tags"));
         assertEquals("Twitter", out.getAttribute("es.result.source"));
     }
 

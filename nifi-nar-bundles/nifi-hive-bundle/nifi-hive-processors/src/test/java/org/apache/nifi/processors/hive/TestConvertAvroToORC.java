@@ -17,10 +17,13 @@
 package org.apache.nifi.processors.hive;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,7 +46,9 @@ import org.apache.nifi.util.orc.TestNiFiOrcUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -77,6 +83,95 @@ public class TestConvertAvroToORC {
     @Test
     public void test_Setup() throws Exception {
 
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_null_type() throws Exception {
+        String testString = "Hello World";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithNull(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS test_record (string STRING, null BOOLEAN) STORED AS ORC",
+                resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_empty_array_type() throws Exception {
+        String testString = "Hello World";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithEmptyArray(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS test_record (string STRING, emptyArray ARRAY<BOOLEAN>) STORED AS ORC",
+                resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+    }
+
+    @Test
+    public void test_onTrigger_routing_to_failure_fixed_type() throws Exception {
+        String testString = "Hello!";
+        GenericData.Record record = TestNiFiOrcUtils.buildAvroRecordWithFixed(testString);
+
+        DatumWriter<GenericData.Record> writer = new GenericDatumWriter<>(record.getSchema());
+        DataFileWriter<GenericData.Record> fileWriter = new DataFileWriter<>(writer);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        fileWriter.create(record.getSchema(), out);
+        fileWriter.append(record);
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test.avro");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_FAILURE, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_FAILURE).get(0);
+        assertEquals("test.avro", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+
+        final InputStream in = new ByteArrayInputStream(resultFlowFile.toByteArray());
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            assertTrue(dataFileReader.hasNext());
+            GenericRecord testedRecord = dataFileReader.next();
+
+            assertNotNull(testedRecord.get("fixed"));
+            assertArrayEquals(testString.getBytes(StandardCharsets.UTF_8), ((GenericData.Fixed) testedRecord.get("fixed")).bytes());
+        }
     }
 
     @Test

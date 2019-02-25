@@ -17,21 +17,26 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.serialization.SchemaValidationException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import org.apache.nifi.serialization.SchemaValidationException;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.type.MapDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public class MapRecord implements Record {
     private RecordSchema schema;
@@ -39,7 +44,7 @@ public class MapRecord implements Record {
     private Optional<SerializedForm> serializedForm;
     private final boolean checkTypes;
     private final boolean dropUnknownFields;
-
+    private Set<RecordField> inactiveFields = null;
 
     public MapRecord(final RecordSchema schema, final Map<String, Object> values) {
         this(schema, values, false, false);
@@ -304,11 +309,33 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public Map<String, Object> toMap() {
+        return Collections.unmodifiableMap(values);
+    }
+
+    @Override
+    public void setValue(final RecordField field, final Object value) {
+        final Optional<RecordField> existingField = setValueAndGetField(field.getFieldName(), value);
+
+        if (!existingField.isPresent()) {
+            if (inactiveFields == null) {
+                inactiveFields = new LinkedHashSet<>();
+            }
+
+            inactiveFields.add(field);
+        }
+    }
+
+    @Override
     public void setValue(final String fieldName, final Object value) {
+        setValueAndGetField(fieldName, value);
+    }
+
+    private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
             if (dropUnknownFields) {
-                return;
+                return field;
             }
 
             final Object previousValue = values.put(fieldName, value);
@@ -316,7 +343,7 @@ public class MapRecord implements Record {
                 serializedForm = Optional.empty();
             }
 
-            return;
+            return field;
         }
 
         final RecordField recordField = field.get();
@@ -325,6 +352,8 @@ public class MapRecord implements Record {
         if (!Objects.equals(coerced, previousValue)) {
             serializedForm = Optional.empty();
         }
+
+        return field;
     }
 
     @Override
@@ -403,6 +432,24 @@ public class MapRecord implements Record {
     @Override
     public void incorporateSchema(RecordSchema other) {
         this.schema = DataTypeUtils.merge(this.schema, other);
+    }
+
+    @Override
+    public void incorporateInactiveFields() {
+        if (inactiveFields == null) {
+            return;
+        }
+
+        final List<RecordField> allFields = new ArrayList<>(schema.getFieldCount() + inactiveFields.size());
+        allFields.addAll(schema.getFields());
+
+        for (final RecordField field : inactiveFields) {
+            if (!allFields.contains(field)) {
+                allFields.add(field);
+            }
+        }
+
+        this.schema = new SimpleRecordSchema(allFields);
     }
 
     @Override

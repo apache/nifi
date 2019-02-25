@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.lookup.RecordLookupService;
@@ -47,6 +36,16 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.junit.Assert.assertTrue;
 
 public class TestLookupRecord {
 
@@ -112,7 +111,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testAllMatch() throws InitializationException {
+    public void testAllMatch() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -129,7 +128,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testAllUnmatched() throws InitializationException {
+    public void testAllUnmatched() {
         runner.enqueue("");
         runner.run();
 
@@ -142,7 +141,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testMixtureOfMatch() throws InitializationException {
+    public void testMixtureOfMatch() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jimmy Doe", "Football");
 
@@ -166,7 +165,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testResultPathNotFound() throws InitializationException {
+    public void testResultPathNotFound() {
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/other");
 
         lookupService.addValue("John Doe", "Soccer");
@@ -181,11 +180,11 @@ public class TestLookupRecord {
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
-        out.assertContentEquals("John Doe,48,\nJane Doe,47,\nJimmy Doe,14,\n");
+        out.assertContentEquals("John Doe,48,,Soccer\nJane Doe,47,,Basketball\nJimmy Doe,14,,Football\n");
     }
 
     @Test
-    public void testLookupPathNotFound() throws InitializationException {
+    public void testLookupPathNotFound() {
         runner.setProperty("lookup", "/other");
 
         runner.enqueue("");
@@ -200,7 +199,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testUnparseableData() throws InitializationException {
+    public void testUnparseableData() {
         recordReader.failAfter(1);
 
         runner.enqueue("");
@@ -213,7 +212,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testNoResultPath() throws InitializationException {
+    public void testNoResultPath() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -233,7 +232,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testMultipleLookupPaths() throws InitializationException {
+    public void testMultipleLookupPaths() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -252,7 +251,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testInvalidUnlessAllRequiredPropertiesAdded() throws InitializationException {
+    public void testInvalidUnlessAllRequiredPropertiesAdded() {
         runner.removeProperty(new PropertyDescriptor.Builder().name("lookup").build());
         runner.setProperty("hello", "/name");
         runner.assertNotValid();
@@ -266,7 +265,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testAddFieldsToExistingRecord() throws InitializationException, IOException {
+    public void testAddFieldsToExistingRecord() throws InitializationException {
         final RecordLookup lookupService = new RecordLookup();
         runner.addControllerService("lookup", lookupService);
         runner.enableControllerService(lookupService);
@@ -275,7 +274,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");
@@ -318,7 +317,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");
@@ -364,7 +363,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");

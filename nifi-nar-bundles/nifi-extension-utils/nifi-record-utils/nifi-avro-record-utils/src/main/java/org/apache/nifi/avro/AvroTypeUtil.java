@@ -59,6 +59,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -119,12 +120,72 @@ public class AvroTypeUtil {
 
     private static Field buildAvroField(final RecordField recordField) {
         final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
-        final Field field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+
+        final Field field;
+        final String recordFieldName = recordField.getFieldName();
+        if (isValidAvroFieldName(recordFieldName)) {
+            field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+        } else {
+            final String validName = createValidAvroFieldName(recordField.getFieldName());
+            field = new Field(validName, schema, null, recordField.getDefaultValue());
+            field.addAlias(recordField.getFieldName());
+        }
+
         for (final String alias : recordField.getAliases()) {
             field.addAlias(alias);
         }
 
         return field;
+    }
+
+    private static boolean isValidAvroFieldName(final String fieldName) {
+        // Avro field names must match the following criteria:
+        // 1. Must be non-empty
+        // 2. Must begin with a letter or an underscore
+        // 3. Must consist only of letters, underscores, and numbers.
+        if (fieldName.isEmpty()) {
+            return false;
+        }
+
+        final char firstChar = fieldName.charAt(0);
+        if (firstChar != '_' && !Character.isLetter(firstChar)) {
+            return false;
+        }
+
+        for (int i=1; i < fieldName.length(); i++) {
+            final char c = fieldName.charAt(i);
+            if (c != '_' && !Character.isLetterOrDigit(c)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static String createValidAvroFieldName(final String fieldName) {
+        if (fieldName.isEmpty()) {
+            return "UNNAMED_FIELD";
+        }
+
+        final StringBuilder sb = new StringBuilder();
+
+        final char firstChar = fieldName.charAt(0);
+        if (firstChar == '_' || Character.isLetter(firstChar)) {
+            sb.append(firstChar);
+        } else {
+            sb.append("_");
+        }
+
+        for (int i=1; i < fieldName.length(); i++) {
+            final char c = fieldName.charAt(i);
+            if (c == '_' || Character.isLetterOrDigit(c)) {
+                sb.append(c);
+            } else {
+                sb.append("_");
+            }
+        }
+
+        return sb.toString();
     }
 
     private static Schema buildAvroSchema(final DataType dataType, final String fieldName, final boolean nullable) {
@@ -462,11 +523,33 @@ public class AvroTypeUtil {
         Field field = avroSchema.getField(fieldName);
         if (field == null) {
             // No straight mapping was found, so check the aliases to see if it can be mapped
-            for(final String alias: recordField.getAliases()) {
+            for (final String alias : recordField.getAliases()) {
                 field = avroSchema.getField(alias);
                 if (field != null) {
                     fieldName = alias;
                     break;
+                }
+            }
+        }
+
+        if (field == null) {
+            for (final Field childField : avroSchema.getFields()) {
+                final Set<String> aliases = childField.aliases();
+                if (aliases.isEmpty()) {
+                    continue;
+                }
+
+                if (aliases.contains(fieldName)) {
+                    field = childField;
+                    break;
+                }
+
+                for (final String alias : recordField.getAliases()) {
+                    if (aliases.contains(alias)) {
+                        field = childField;
+                        fieldName = alias;
+                        break;
+                    }
                 }
             }
         }
@@ -493,7 +576,7 @@ public class AvroTypeUtil {
             }
 
             final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName, charset);
-            rec.put(fieldName, converted);
+            rec.put(field.name(), converted);
         }
 
         // see if the Avro schema has any fields that aren't in the RecordSchema, and if those fields have a default
@@ -672,10 +755,20 @@ public class AvroTypeUtil {
             case RECORD:
                 final GenericData.Record avroRecord = new GenericData.Record(fieldSchema);
 
-                final Record record = (Record) rawValue;
-                for (final RecordField recordField : record.getSchema().getFields()) {
-                    final Object recordFieldValue = record.getValue(recordField);
-                    final String recordFieldName = recordField.getFieldName();
+                final Set<Map.Entry<String, Object>> entries;
+                if (rawValue instanceof Map) {
+                    final Map<String, Object> map = (Map<String, Object>) rawValue;
+                    entries = map.entrySet();
+                } else if (rawValue instanceof Record) {
+                    entries = new HashSet<>();
+                    final Record record = (Record) rawValue;
+                    record.getSchema().getFields().forEach(field -> entries.add(new AbstractMap.SimpleEntry<>(field.getFieldName(), record.getValue(field))));
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a Record");
+                }
+                for (final Map.Entry<String, Object> e : entries) {
+                    final Object recordFieldValue = e.getValue();
+                    final String recordFieldName = e.getKey();
 
                     final Field field = fieldSchema.getField(recordFieldName);
                     if (field == null) {
@@ -689,7 +782,14 @@ public class AvroTypeUtil {
             case UNION:
                 return convertUnionFieldValue(rawValue, fieldSchema, schema -> convertToAvroObject(rawValue, schema, fieldName, charset), fieldName);
             case ARRAY:
-                final Object[] objectArray = (Object[]) rawValue;
+                final Object[] objectArray;
+                if (rawValue instanceof List) {
+                    objectArray = ((List) rawValue).toArray();
+                } else if (rawValue instanceof Object[]) {
+                    objectArray = (Object[]) rawValue;
+                } else {
+                    throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to an Array");
+                }
                 final List<Object> list = new ArrayList<>(objectArray.length);
                 int i = 0;
                 for (final Object o : objectArray) {

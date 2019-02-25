@@ -36,7 +36,7 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
         // implementation, but it's not clear at this point.
         final int index;
         if (partitions.length < 3) {
-            index = hash % partitions.length;
+            index = Math.floorMod(hash, partitions.length);
         } else {
             index = Hashing.consistentHash(hash, partitions.length);
         }

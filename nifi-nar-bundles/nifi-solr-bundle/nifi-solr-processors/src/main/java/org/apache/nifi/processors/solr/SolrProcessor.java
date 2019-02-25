@@ -36,7 +36,7 @@ import org.apache.solr.client.solrj.SolrClient;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -113,14 +113,19 @@ public abstract class SolrProcessor extends AbstractProcessor {
             doOnTrigger(context, session);
         } else {
             // wrap doOnTrigger in a privileged action
-            final PrivilegedAction action = () -> {
+            final PrivilegedExceptionAction<Void> action = () -> {
                 doOnTrigger(context, session);
                 return null;
             };
 
             // execute the privileged action as the given keytab user
-            final KerberosAction kerberosAction = new KerberosAction(kerberosUser, action, context, getLogger());
-            kerberosAction.execute();
+            final KerberosAction kerberosAction = new KerberosAction<>(kerberosUser, action, getLogger());
+            try {
+                kerberosAction.execute();
+            } catch (ProcessException e) {
+                context.yield();
+                throw e;
+            }
         }
     }
 

@@ -32,3 +32,5 @@ org.apache.nifi.syslog.Syslog5424Reader
 
 org.apache.nifi.xml.XMLReader
 org.apache.nifi.xml.XMLRecordSetWriter
+
+org.apache.nifi.schema.inference.VolatileSchemaCache

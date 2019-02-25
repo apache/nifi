@@ -96,10 +96,10 @@ import java.util.regex.Pattern;
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
 
+    @Deprecated
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HDFS so that if a new node "
-                + "begins pulling data, it won't duplicate all of the work that has been done.")
+        .description("This property is ignored.  State will be stored in the " + Scope.LOCAL + " or " + Scope.CLUSTER + " scope by the State Manager based on NiFi's configuration.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
@@ -363,7 +363,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 }
             }
         } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
+            getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
             context.yield();
             return;
         }
