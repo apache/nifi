@@ -17,18 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -41,6 +29,19 @@ import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Command line parser for a StandaloneConfig object and a main entry point to invoke the parser and run the standalone generator
@@ -60,6 +61,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     public static final String NIFI_DN_SUFFIX_ARG = "nifiDnSuffix";
     public static final String SUBJECT_ALTERNATIVE_NAMES_ARG = "subjectAlternativeNames";
     public static final String ADDITIONAL_CA_CERTIFICATE_ARG = "additionalCACertificate";
+    public static final String SPLIT_KEYSTORE_ARG = "splitKeystore";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = calculateDefaultOutputDirectory(Paths.get("."));
 
@@ -86,10 +88,14 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
     private boolean overwrite;
+    private boolean splitKeystore = false;
+    private String splitKeystoreFile;
     private String dnPrefix;
     private String dnSuffix;
     private String domainAlternativeNames;
     private String additionalCACertificatePath;
+    private String keyPassword;
+    private String keyStorePassword;
 
     public TlsToolkitStandaloneCommandLine() {
         this(new PasswordUtil());
@@ -113,6 +119,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         addOptionWithArg(null, NIFI_DN_SUFFIX_ARG, "String to append to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_SUFFIX);
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
         addOptionWithArg(null, ADDITIONAL_CA_CERTIFICATE_ARG, "Path to additional CA certificate (used to sign toolkit CA certificate) in PEM format if necessary");
+        addOptionWithArg(null, SPLIT_KEYSTORE_ARG, "Split out a given keystore into its unencrypted key and certificates. Use -S and -K to specify the keystore and key passwords.");
+
     }
 
     public static void main(String[] args) {
@@ -122,12 +130,24 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         } catch (CommandLineParseException e) {
             System.exit(e.getExitCode().ordinal());
         }
-        try {
-            new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
-        } catch (Exception e) {
-            tlsToolkitStandaloneCommandLine.printUsage("Error generating TLS configuration. (" + e.getMessage() + ")");
-            System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
+
+        if(tlsToolkitStandaloneCommandLine.splitKeystore) {
+            StandaloneConfig conf = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+            try {
+                new TlsToolkitStandalone().splitKeystore(conf);
+            } catch (Exception e) {
+                tlsToolkitStandaloneCommandLine.printUsage("Error splitting keystore. (" + e.getMessage() + ")");
+                System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
+            }
+        } else {
+            try {
+                new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
+            } catch (Exception e) {
+                tlsToolkitStandaloneCommandLine.printUsage("Error generating TLS configuration. (" + e.getMessage() + ")");
+                System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
+            }
         }
+
         System.exit(ExitCode.SUCCESS.ordinal());
     }
 
@@ -167,6 +187,17 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         clientPasswords = Collections.unmodifiableList(getPasswords(CLIENT_CERT_PASSWORD_ARG, commandLine, clientDns.size(), CLIENT_CERT_DN_ARG));
         clientPasswordsGenerated = commandLine.getOptionValues(CLIENT_CERT_PASSWORD_ARG) == null;
         overwrite = commandLine.hasOption(OVERWRITE_ARG);
+
+        if(commandLine.hasOption(SPLIT_KEYSTORE_ARG)) {
+            if(commandLine.hasOption(KEY_STORE_PASSWORD_ARG)) {
+                splitKeystoreFile = commandLine.getOptionValue(SPLIT_KEYSTORE_ARG);
+                keyStorePassword = commandLine.getOptionValue(KEY_STORE_PASSWORD_ARG);
+                keyPassword = commandLine.getOptionValue(KEY_PASSWORD_ARG);
+                splitKeystore = true;
+            } else {
+                printUsageAndThrow("-splitKeystore specified but no keyStorePassword supplied.", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
+            }
+        }
 
         additionalCACertificatePath = commandLine.getOptionValue(ADDITIONAL_CA_CERTIFICATE_ARG);
 
@@ -242,5 +273,16 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         standaloneConfig.initDefaults();
 
         return standaloneConfig;
+    }
+
+    public StandaloneConfig createSplitKeystoreConfig() {
+        StandaloneConfig splitKeystoreConfig = new StandaloneConfig();
+        splitKeystoreConfig.setBaseDir(baseDir);
+        splitKeystoreConfig.setKeyPassword(keyPassword);
+        splitKeystoreConfig.setKeyStorePassword(keyStorePassword);
+        splitKeystoreConfig.setKeyStore(splitKeystoreFile);
+        splitKeystoreConfig.setSplitKeystore(splitKeystore);
+
+        return splitKeystoreConfig;
     }
 }
