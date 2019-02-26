@@ -20,6 +20,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Generates documentation for an instance of a ConfigurableComponent.
@@ -35,8 +36,29 @@ import java.util.Collection;
  */
 public interface ExtensionDocumentationWriter {
 
+    /**
+     * Calls initialize on the component. Must be called before calling any write methods.
+     *
+     * @param component the component to initialize
+     */
+    void initialize(final ConfigurableComponent component);
+
+    /**
+     * Write the documentation for the given component.
+     *
+     * @param component the component to document
+     * @throws IOException if an error occurs writing the documentation
+     */
     void write(ConfigurableComponent component) throws IOException;
 
-    void write(ConfigurableComponent component, Collection<ProvidedServiceAPI> provideServices) throws IOException;
+    /**
+     * Writes the documentation for the given component.
+     *
+     * @param component the component to document
+     * @param provideServices the service APIs implemented by the component
+     * @param propertyServiceAPIs the service APIs required by the property descriptors of the component
+     * @throws IOException if an error occurs writing the documentation
+     */
+    void write(ConfigurableComponent component, Collection<ServiceAPI> provideServices, Map<String,ServiceAPI> propertyServiceAPIs) throws IOException;
 
 }

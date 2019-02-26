@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -67,25 +68,7 @@ import java.util.Set;
 public abstract class AbstractDocumentationWriter implements ExtensionDocumentationWriter {
 
     @Override
-    public final void write(final ConfigurableComponent component) throws IOException {
-        write(component, null);
-    }
-
-    @Override
-    public final void write(final ConfigurableComponent component, final Collection<ProvidedServiceAPI> providedServices) throws IOException {
-        initialize(component);
-
-        writeHeader(component);
-        writeBody(component);
-
-        if (providedServices != null && component instanceof ControllerService) {
-            writeProvidedServices(providedServices);
-        }
-
-        writeFooter(component);
-    }
-
-    private void initialize(final ConfigurableComponent component) {
+    public void initialize(final ConfigurableComponent component) {
         try {
             if (component instanceof Processor) {
                 initialize((Processor) component);
@@ -111,13 +94,30 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         reportingTask.initialize(new DocumentationReportingInitializationContext());
     }
 
-    protected void writeBody(final ConfigurableComponent component) throws IOException {
+    @Override
+    public final void write(final ConfigurableComponent component) throws IOException {
+        write(component, null, null);
+    }
+
+    @Override
+    public final void write(final ConfigurableComponent component, final Collection<ServiceAPI> providedServices, Map<String,ServiceAPI> propertyServices) throws IOException {
+        writeHeader(component);
+        writeBody(component, propertyServices);
+
+        if (providedServices != null && component instanceof ControllerService) {
+            writeProvidedServices(providedServices);
+        }
+
+        writeFooter(component);
+    }
+
+    protected void writeBody(final ConfigurableComponent component, Map<String,ServiceAPI> propertyServices) throws IOException {
         writeExtensionName(component.getClass().getName());
         writeExtensionType(getExtensionType(component));
         writeDeprecationNotice(component.getClass().getAnnotation(DeprecationNotice.class));
         writeDescription(getDescription(component));
         writeTags(getTags(component));
-        writeProperties(component.getPropertyDescriptors());
+        writeProperties(component.getPropertyDescriptors(), propertyServices);
         writeDynamicProperties(getDynamicProperties(component));
 
         if (component instanceof Processor) {
@@ -251,7 +251,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     protected abstract void writeTags(List<String> tags) throws IOException;
 
-    protected abstract void writeProperties(List<PropertyDescriptor> properties) throws IOException;
+    protected abstract void writeProperties(List<PropertyDescriptor> properties, Map<String,ServiceAPI> propertyServices) throws IOException;
 
     protected abstract void writeDynamicProperties(List<DynamicProperty> dynamicProperties) throws IOException;
 
@@ -278,7 +278,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
 
     // ControllerService-specific methods
-    protected abstract void writeProvidedServices(Collection<ProvidedServiceAPI> providedServices) throws IOException;
+    protected abstract void writeProvidedServices(Collection<ServiceAPI> providedServices) throws IOException;
 
 
     protected abstract void writeFooter(ConfigurableComponent component) throws IOException;
