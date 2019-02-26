@@ -95,6 +95,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("5 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(false)
             .build();
 
@@ -105,6 +106,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("100")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(false)
             .build();
 
@@ -115,6 +117,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("60 second")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(false)
             .build();
 
@@ -125,6 +128,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("60 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(false)
             .build();
 
@@ -135,6 +139,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("3600 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(false)
             .build();
 
@@ -197,13 +202,15 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
                     Config.LoadBalancingStrategy.valueOf(loadBalancingStrategyValue));
         }
 
-        configBuilder.withMaxConnectionPoolSize(context.getProperty(MAX_CONNECTION_POOL_SIZE).asInteger());
+        configBuilder.withMaxConnectionPoolSize(context.getProperty(MAX_CONNECTION_POOL_SIZE).evaluateAttributeExpressions().asInteger());
 
-        configBuilder.withConnectionAcquisitionTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
+        configBuilder.withConnectionTimeout(context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
-        configBuilder.withMaxConnectionLifetime(context.getProperty(MAX_CONNECTION_ACQUISITION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
+        configBuilder.withConnectionAcquisitionTimeout(context.getProperty(MAX_CONNECTION_ACQUISITION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
-        configBuilder.withConnectionLivenessCheckTimeout(context.getProperty(IDLE_TIME_BEFORE_CONNECTION_TEST).asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
+        configBuilder.withMaxConnectionLifetime(context.getProperty(MAX_CONNECTION_LIFETIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
+
+        configBuilder.withConnectionLivenessCheckTimeout(context.getProperty(IDLE_TIME_BEFORE_CONNECTION_TEST).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
         if ( context.getProperty(ENCRYPTION).asBoolean() ) {
             configBuilder.withEncryption();
