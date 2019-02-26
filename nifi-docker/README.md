@@ -29,5 +29,5 @@ Apache NiFi supports powerful and scalable directed graphs of data routing, tran
   * Build your own processors and more
   * Enables rapid development and effective testing
 * Secure
-  * SSL, SSH, HTTPS, encrypted content, etc...
+  * SSL, SSH, HTTPS, encrypted content, Kerberos etc...
   * Multi-tenant authorization and internal authorization/policy management
