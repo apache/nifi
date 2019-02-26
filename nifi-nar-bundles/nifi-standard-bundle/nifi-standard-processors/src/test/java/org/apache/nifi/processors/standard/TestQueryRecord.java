@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,7 +106,8 @@ public class TestQueryRecord {
             " RPATH_DATE(person, '/dob') AS dob," +
             " RPATH_LONG(person, '/dobTimestamp') AS dobTimestamp," +
             " RPATH_DATE(person, 'toDate(/joinTimestamp, \"yyyy-MM-dd\")') AS joinTime, " +
-            " RPATH_DOUBLE(person, '/weight') AS weight" +
+            " RPATH_DOUBLE(person, '/weight') AS weight," +
+            " RPATH_DECIMAL(person, '/bal') AS bal" +
             " FROM FLOWFILE");
 
         runner.enqueue(new byte[0]);
@@ -126,6 +128,7 @@ public class TestQueryRecord {
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
         assertEquals("1517702400000", output.getAsString("joinTime"));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
+        assertEquals(new BigDecimal(90).setScale(0), (BigDecimal)output.getValue("bal"));
     }
 
     @Test
@@ -401,6 +404,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("dobTimestamp", RecordFieldType.LONG.getDataType()));
         personFields.add(new RecordField("joinTimestamp", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("weight", RecordFieldType.DOUBLE.getDataType()));
+        personFields.add(new RecordField("bal", RecordFieldType.DECIMAL.getDecimalDataType(9,0)));
         personFields.add(new RecordField("mother", RecordFieldType.RECORD.getRecordDataType(namedPersonSchema)));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
@@ -426,6 +430,7 @@ public class TestQueryRecord {
         map.put("dobTimestamp", ts);
         map.put("joinTimestamp", "2018-02-04 10:20:55.802");
         map.put("weight", 180.8D);
+        map.put("bal", new BigDecimal(90).setScale(0));
         map.put("mother", mother);
         final Record person = new MapRecord(personSchema, map);
 
@@ -680,6 +685,40 @@ public class TestQueryRecord {
     }
 
     @Test
+    public void testTransformCalcDecimal() throws InitializationException, IOException, SQLException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("ID", RecordFieldType.INT);
+        parser.addSchemaField("AMOUNT1", RecordFieldType.DECIMAL);
+        parser.addSchemaField("AMOUNT2", RecordFieldType.DECIMAL);
+        parser.addSchemaField("AMOUNT3", RecordFieldType.DECIMAL);
+
+        parser.addRecord(8, new BigDecimal("10.05").setScale(2), new BigDecimal("15.45").setScale(2),
+                new BigDecimal("89.99").setScale(2));
+        parser.addRecord(100, new BigDecimal("20.25").setScale(2), new BigDecimal("25.25").setScale(2),
+                new BigDecimal("45.25").setScale(2));
+
+        final MockRecordWriter writer = new MockRecordWriter("\"NAME\",\"POINTS\"");
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select ID, AMOUNT1+AMOUNT2+AMOUNT3 as TOTAL from FLOWFILE where ID=100");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+
+        out.assertContentEquals("\"NAME\",\"POINTS\"\n\"100\",\"90.75\"\n");
+    }
+
+    @Test
     public void testHandlingWithInvalidSchema() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
@@ -737,6 +776,35 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         flowFileOut.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"100\"\n\"Jerry\",\"2\"\n");
+    }
+
+    @Test
+    public void testAggregateDecimal() throws InitializationException, IOException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("bal", RecordFieldType.DECIMAL);
+        parser.addRecord("Tom", new BigDecimal("1"));
+        parser.addRecord("Jerry", new BigDecimal("5"));
+        parser.addRecord("Tom", new BigDecimal("99"));
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"bal\"");
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name, sum(bal) as bal from FLOWFILE GROUP BY name");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertContentEquals("\"name\",\"bal\"\n\"Tom\",\"100\"\n\"Jerry\",\"5\"\n");
     }
 
     @Test

@@ -19,7 +19,9 @@ package org.apache.hadoop.hive.ql.io.orc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -45,6 +47,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.orc.MemoryManager;
@@ -52,6 +55,7 @@ import org.apache.orc.OrcConf;
 import org.apache.orc.impl.MemoryManagerImpl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -206,6 +210,9 @@ public class NiFiOrcUtils {
                 });
                 return map;
             }
+            if(o instanceof BigDecimal){
+                return new HiveDecimalWritable(HiveDecimal.create((BigDecimal)o));
+            }
             throw new IllegalArgumentException("Error converting object of type " + o.getClass().getName() + " to ORC type " + typeInfo.getTypeName());
         } else {
             return null;
@@ -340,6 +347,10 @@ public class NiFiOrcUtils {
             }
             return null;
         }
+        if(RecordFieldType.DECIMAL.equals(fieldType)){
+            DecimalDataType decimalDataType = (DecimalDataType)dataType;
+            return TypeInfoFactory.getDecimalTypeInfo(decimalDataType.getPrecision(), decimalDataType.getScale());
+        }
 
         throw new IllegalArgumentException("Did not recognize field type " + fieldType.name());
     }
@@ -456,6 +467,10 @@ public class NiFiOrcUtils {
                 return "STRUCT<" + StringUtils.join(hiveFields, ", ") + ">";
             }
             return null;
+        }
+        if (RecordFieldType.DECIMAL.equals(dataType)){
+            DecimalDataType decimalDataType = (DecimalDataType)rawDataType;
+            return String.format("DECIMAL(%d,%d)", decimalDataType.getPrecision(), decimalDataType.getScale());
         }
 
         throw new IllegalArgumentException("Error converting Avro type " + dataType.name() + " to Hive type");

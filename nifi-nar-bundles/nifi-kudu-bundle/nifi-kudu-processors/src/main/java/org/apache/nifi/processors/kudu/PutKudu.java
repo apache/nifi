@@ -475,7 +475,7 @@ public class PutKudu extends AbstractProcessor {
                     case DECIMAL32:
                     case DECIMAL64:
                     case DECIMAL128:
-                        row.addDecimal(colIdx, new BigDecimal(record.getAsString(colName)));
+                        row.addDecimal(colIdx, (BigDecimal)record.getValue(colName));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));

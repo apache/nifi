@@ -78,6 +78,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -505,6 +506,7 @@ public class QueryRecord extends AbstractProcessor {
         rootSchema.add("RPATH_DATE", ScalarFunctionImpl.create(DateRecordPath.class, "eval"));
         rootSchema.add("RPATH_DOUBLE", ScalarFunctionImpl.create(DoubleRecordPath.class, "eval"));
         rootSchema.add("RPATH_FLOAT", ScalarFunctionImpl.create(FloatRecordPath.class, "eval"));
+        rootSchema.add("RPATH_DECIMAL", ScalarFunctionImpl.create(DecimalRecordPath.class, "eval"));
 
         return rootSchema;
     }
@@ -745,6 +747,25 @@ public class QueryRecord extends AbstractProcessor {
 
                 throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Double against " + record
                     + " because the value returned is of type " + val.getClass());
+            });
+        }
+    }
+
+    public static class DecimalRecordPath extends RecordPathFunction {
+        public BigDecimal eval(Object record, String recordPath) {
+            return eval(record, recordPath, val -> {
+                if(val instanceof BigDecimal){
+                    return (BigDecimal)val;
+                }
+                if (val instanceof Number) {
+                    return new BigDecimal(((Number)val).doubleValue());
+                }
+                if (val instanceof String) {
+                    return new BigDecimal((String)val);
+                }
+
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Decimal against " + record
+                        + " because the value returned is of type " + val.getClass());
             });
         }
     }

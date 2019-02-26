@@ -52,6 +52,7 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -352,6 +353,11 @@ public class PutHBaseRecord extends AbstractPutHBase {
                     break;
                 case LONG:
                     retVal = clientService.toBytes(record.getAsLong(field));
+                    break;
+                case DECIMAL:
+                    BigDecimal decimal = (BigDecimal)record.getValue(field);
+                    retVal = decimal == null ? clientService.toBytes((String)null)
+                            : clientService.toBytes(decimal.toString());
                     break;
                 default:
                     final String value = record.getAsString(field);

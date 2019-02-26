@@ -34,6 +34,7 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -100,6 +101,7 @@ public class TestWriteJsonResult {
         valueMap.put("array", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
+        valueMap.put("decimal", new BigDecimal("45.76"));
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);

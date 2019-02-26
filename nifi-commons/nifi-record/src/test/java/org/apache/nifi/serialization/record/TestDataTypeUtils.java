@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -29,11 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 public class TestDataTypeUtils {
     /**
@@ -286,5 +287,19 @@ public class TestDataTypeUtils {
         Map<String,Object> testMap = new HashMap<>();
         testMap.put("Hello", "World");
         assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    }
+
+    @Test
+    public void testDecimal(){
+        final String[] nonDecimals = new String[] { null, "", "123e2" };
+        for(final String toTest: nonDecimals){
+            assertFalse(toTest + " should not be a valid decimal", DataTypeUtils.isDecimalypeCompatible(toTest));
+        }
+
+        final String[] decimals = new String[] { "-1", "+123.23", "34.7653" };
+        for (final String toTest: decimals  ) {
+            assertTrue(toTest + " should be a valid decimal", DataTypeUtils.isDecimalypeCompatible(toTest));
+            assertEquals(new BigDecimal(toTest), DataTypeUtils.toDecimal(toTest, "amount"));
+        }
     }
 }

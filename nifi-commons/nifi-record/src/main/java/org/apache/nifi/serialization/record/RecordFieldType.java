@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
@@ -91,11 +92,15 @@ public enum RecordFieldType {
      * A char field type. Fields of this type use a {@code char} value.
      */
     CHAR("char"),
+    /**
+     *
+     */
+    DECIMAL("decimal", null, new DecimalDataType(18, 2)),
 
     /**
      * A String field type. Fields of this type use a {@code java.lang.String} value.
      */
-    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP),
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP, DECIMAL),
 
     /**
      * <p>
@@ -263,6 +268,19 @@ public enum RecordFieldType {
 
     public DataType getDataType(final String format) {
         return new DataType(this, format);
+    }
+
+    /**
+     * Returns a Data Type that represents a "Decimal" with given precision
+     * @param precision number of digits to the right of point (.)
+     * @return a DataType that represents a Decimal with given precision or <code>null</code> if this RecordFieldType
+     *      is not a Decimal type.
+     */
+    public DataType getDecimalDataType(int precision, int scale){
+        if(this != DECIMAL){
+            return  null;
+        }
+        return new DecimalDataType(precision, scale);
     }
 
     /**

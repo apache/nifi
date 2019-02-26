@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -113,7 +115,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMillis").get().getFieldType());
             assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMicros").get().getFieldType());
             assertEquals(RecordFieldType.DATE, recordSchema.getDataType("date").get().getFieldType());
-            assertEquals(RecordFieldType.DOUBLE, recordSchema.getDataType("decimal").get().getFieldType());
+            assertEquals(RecordFieldType.DECIMAL, recordSchema.getDataType("decimal").get().getFieldType());
 
             final Record record = reader.nextRecord();
             assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMillis"));
@@ -123,15 +125,19 @@ public class TestAvroReaderWithEmbeddedSchema {
             final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
             noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
             assertEquals(noTimeOfDayDateFormat.format(new java.sql.Date(timeLong)), noTimeOfDayDateFormat.format(record.getValue("date")));
-            assertEquals(bigDecimal.doubleValue(), record.getValue("decimal"));
+            assertEquals(bigDecimal, record.getValue("decimal"));
         }
     }
 
     @Test
     public void testDataTypes() throws IOException, MalformedRecordException, SchemaNotFoundException {
+        Schema moneySchema = Schema.create(Type.BYTES);
+        LogicalTypes.decimal(18,2).addToSchema(moneySchema);
         final List<Field> accountFields = new ArrayList<>();
         accountFields.add(new Field("accountId", Schema.create(Type.LONG), null, (Object) null));
         accountFields.add(new Field("accountName", Schema.create(Type.STRING), null, (Object) null));
+        accountFields.add(new Field("previousBalance", Schema.createUnion(Schema.create(Type.NULL), moneySchema), null, (Object)null));
+        accountFields.add(new Field("currentBalance", moneySchema, null, (Object)null));
         final Schema accountSchema = Schema.createRecord("account", null, null, false);
         accountSchema.setFields(accountFields);
 
@@ -195,8 +201,12 @@ public class TestAvroReaderWithEmbeddedSchema {
             record.put("dreambalance", 10_000_000.00D);
 
             final GenericRecord accountRecord = new GenericData.Record(accountSchema);
+            Conversions.DecimalConversion conversion = new Conversions.DecimalConversion();
+
             accountRecord.put("accountId", 83L);
             accountRecord.put("accountName", "Checking");
+            accountRecord.put("previousBalance", conversion.toBytes(BigDecimal.ZERO.setScale(2), moneySchema, moneySchema.getLogicalType()));
+            accountRecord.put("currentBalance", conversion.toBytes(new BigDecimal("154.34"), moneySchema, moneySchema.getLogicalType()));
             record.put("account", accountRecord);
 
             final GenericRecord catRecord = new GenericData.Record(catSchema);
@@ -251,10 +261,14 @@ public class TestAvroReaderWithEmbeddedSchema {
             final Map<String, Object> accountValues = new HashMap<>();
             accountValues.put("accountName", "Checking");
             accountValues.put("accountId", 83L);
+            accountValues.put("previousBalance", BigDecimal.ZERO.setScale(2));
+            accountValues.put("currentBalance", new BigDecimal("154.34"));
 
             final List<RecordField> accountRecordFields = new ArrayList<>();
             accountRecordFields.add(new RecordField("accountId", RecordFieldType.LONG.getDataType(), false));
             accountRecordFields.add(new RecordField("accountName", RecordFieldType.STRING.getDataType(), false));
+            accountRecordFields.add(new RecordField("previousBalance", RecordFieldType.DECIMAL.getDecimalDataType(18,2)));
+            accountRecordFields.add(new RecordField("currentBalance", RecordFieldType.DECIMAL.getDecimalDataType(18,2), false));
 
             final RecordSchema accountRecordSchema = new SimpleRecordSchema(accountRecordFields);
             final Record mapRecord = new MapRecord(accountRecordSchema, accountValues);

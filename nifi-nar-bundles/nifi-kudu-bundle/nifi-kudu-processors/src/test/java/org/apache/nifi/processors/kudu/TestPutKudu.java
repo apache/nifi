@@ -59,6 +59,7 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -361,14 +362,14 @@ public class TestPutKudu {
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
             new RecordField("updated_at", RecordFieldType.BIGINT.getDataType()),
-            new RecordField("score", RecordFieldType.LONG.getDataType())));
+            new RecordField("score", RecordFieldType.DECIMAL.getDecimalDataType(9, 0))));
 
         Map<String, Object> values = new HashMap<>();
         values.put("id", id);
         values.put("name", name);
         values.put("age", age);
         values.put("updated_at", System.currentTimeMillis() * 1000);
-        values.put("score", 10000L);
+        values.put("score", new BigDecimal(10000L));
         new PutKudu().buildPartialRow(
             kuduSchema,
             kuduSchema.newPartialRow(),

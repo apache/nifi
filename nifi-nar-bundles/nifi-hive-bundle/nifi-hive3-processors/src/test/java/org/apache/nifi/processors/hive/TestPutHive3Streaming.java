@@ -79,6 +79,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -733,7 +734,8 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            //use record field to maintain data type information
+            readerFactory.addSchemaField(new RecordField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable()));
         }
 
         List<String> enumc = Arrays.asList("SPADES", "HEARTS", "DIAMONDS", "CLUBS");
@@ -775,7 +777,7 @@ public class TestPutHive3Streaming {
                     },
                     new java.sql.Date(Calendar.getInstance().getTimeInMillis()),
                     Timestamp.from(Instant.now()),
-                    i*99.0 / 100,
+                    new BigDecimal(i *99.0 / 100),
                     enumc.get(r.nextInt(4)) // {"name": "enumc", "type": {"type": "enum", "name": "Suit", "symbols": ["SPADES","HEARTS","DIAMONDS","CLUBS"]}}
             );
         }

@@ -35,6 +35,7 @@ import org.xmlunit.matchers.CompareMatcher;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
@@ -196,6 +197,7 @@ public class TestWriteXMLResult {
         valueMap.put("array", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
+        valueMap.put("decimal", new BigDecimal("2.45"));
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
@@ -209,7 +211,7 @@ public class TestWriteXMLResult {
         String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><short>8</short>" +
                 "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><date>2017-01-01</date>" +
                 "<time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
-                "<map><height>48</height><width>96</width></map></RECORD></ROOT>";
+                "<map><height>48</height><width>96</width></map><decimal>2.45</decimal></RECORD></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }

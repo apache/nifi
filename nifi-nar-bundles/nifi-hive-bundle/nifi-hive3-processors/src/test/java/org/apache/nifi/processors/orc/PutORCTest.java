@@ -27,6 +27,7 @@ import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.RecordReader;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -64,6 +65,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -123,7 +125,9 @@ public class PutORCTest {
 
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(
+                    new RecordField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable())
+            );
         }
 
         if (recordGenerator == null) {
@@ -200,7 +204,7 @@ public class PutORCTest {
         final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
         final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
         final Date dt = Date.valueOf(nowDate);
-        final double dec = 1234.56;
+        final BigDecimal dec = new BigDecimal("1234.56");
 
         configure(proc, 10, (numUsers, readerFactory) -> {
             for (int i = 0; i < numUsers; i++) {
@@ -234,7 +238,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "10");
         // DDL will be created with field names normalized (lowercased, e.g.) for Hive by default
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DECIMAL(8,2)) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -254,7 +258,7 @@ public class PutORCTest {
                     final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
                     noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
                     assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
-                    assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
+                    assertEquals(dec, ((HiveDecimalWritable) x.get(4)).getHiveDecimal().bigDecimalValue());
                     return null;
                 }
         );

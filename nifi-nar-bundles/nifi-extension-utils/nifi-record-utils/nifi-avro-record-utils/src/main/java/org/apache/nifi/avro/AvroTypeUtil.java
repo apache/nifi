@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -282,6 +283,11 @@ public class AvroTypeUtil {
                 schema = Schema.create(Type.LONG);
                 LogicalTypes.timestampMillis().addToSchema(schema);
                 break;
+            case DECIMAL:
+                schema = Schema.create(Type.BYTES);
+                final DecimalDataType decimalDataType = (DecimalDataType)dataType;
+                LogicalTypes.decimal(decimalDataType.getPrecision(), decimalDataType.getScale()).addToSchema(schema);
+                break;
             default:
                 return null;
         }
@@ -341,7 +347,8 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_DECIMAL:
                     // We convert Decimal to Double.
                     // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
-                    return RecordFieldType.DOUBLE.getDataType();
+                    LogicalTypes.Decimal decimalLogicalType = (LogicalTypes.Decimal)logicalType;
+                    return RecordFieldType.DECIMAL.getDecimalDataType(decimalLogicalType.getPrecision(), decimalLogicalType.getScale());
             }
         }
 

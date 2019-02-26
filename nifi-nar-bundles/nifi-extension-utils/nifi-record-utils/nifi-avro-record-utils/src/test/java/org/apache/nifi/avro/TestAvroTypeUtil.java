@@ -77,6 +77,7 @@ public class TestAvroTypeUtil {
         fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
         fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(18, 2)));
 
         final DataType arrayType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
         fields.add(new RecordField("strings", arrayType));
@@ -116,6 +117,7 @@ public class TestAvroTypeUtil {
         assertEquals(RecordFieldType.TIME.getDataType(), afterConversion.getDataType("time").get());
         assertEquals(RecordFieldType.DATE.getDataType(), afterConversion.getDataType("date").get());
         assertEquals(RecordFieldType.TIMESTAMP.getDataType(), afterConversion.getDataType("timestamp").get());
+        assertEquals(RecordFieldType.DECIMAL.getDataType(), afterConversion.getDataType("decimal").get());
         assertEquals(arrayType, afterConversion.getDataType("strings").get());
         assertEquals(mapType, afterConversion.getDataType("map").get());
         assertEquals(personType, afterConversion.getDataType("person").get());

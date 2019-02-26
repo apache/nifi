@@ -90,8 +90,8 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("timestampMillis", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampMicros", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-        // Avro decimal is represented as double in NiFi type system.
-        fields.add(new RecordField("decimal", RecordFieldType.DOUBLE.getDataType()));
+
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5,2)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final String expectedTime = "2017-04-04 14:20:33.789";
@@ -105,9 +105,9 @@ public abstract class TestWriteAvroResult {
         values.put("timestampMillis", new Timestamp(timeLong));
         values.put("timestampMicros", new Timestamp(timeLong));
         values.put("date", new Date(timeLong));
-        // Avro decimal is represented as double in NiFi type system.
-        final BigDecimal expectedDecimal = new BigDecimal("123.45");
-        values.put("decimal", expectedDecimal.doubleValue());
+
+        final BigDecimal expectedDecimal = new BigDecimal("123.45").setScale(2);
+        values.put("decimal", expectedDecimal);
         final Record record = new MapRecord(recordSchema, values);
 
         try (final RecordSetWriter writer = createWriter(schema, baos)) {

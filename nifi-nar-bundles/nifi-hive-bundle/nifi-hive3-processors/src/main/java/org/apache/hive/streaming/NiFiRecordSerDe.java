@@ -46,6 +46,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -244,7 +245,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         }
                         break;
                     case DECIMAL:
-                        Double value = record.getAsDouble(fieldName);
+                        BigDecimal value = (BigDecimal)record.getValue(fieldName);
                         val = value == null ? null : HiveDecimal.create(value);
                         break;
                     default:

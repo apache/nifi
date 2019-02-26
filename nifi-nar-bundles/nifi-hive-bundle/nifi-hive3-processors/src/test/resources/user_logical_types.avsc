@@ -22,6 +22,6 @@
      {"name": "timeMillis","type": {"type": "int","logicalType": "time-millis"}},
      {"name": "timestampMillis","type": {"type": "long","logicalType": "timestamp-millis"}},
      {"name": "dt","type": {"type": "int","logicalType": "date"}},
-     {"name": "dec","type": {"type": "bytes","logicalType": "decimal", "precision": 4, "scale": 2}}
+     {"name": "dec","type": {"type": "bytes","logicalType": "decimal", "precision": 8, "scale": 2}}
  ]
 }

@@ -33,6 +33,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -42,6 +43,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 
 import java.lang.reflect.Type;
 import java.math.BigInteger;
@@ -223,6 +225,14 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
                 return typeFactory.createJavaType(BigInteger.class);
             case CHOICE:
                 return typeFactory.createJavaType(Object.class);
+            case DECIMAL:{
+                //using typeFactory.createJavaType(BigDecimal.class) cause calcite to throw an Assertion error
+                //when executing a query such as 0.5+0.7 where the values are all decimal because
+                //the scale & precision will be < 0.
+                DecimalDataType dataType = (DecimalDataType)fieldType;
+                RelDataType relDataType = typeFactory.createSqlType(SqlTypeName.DECIMAL, dataType.getPrecision(), dataType.getScale());
+                return  relDataType;
+            }
         }
 
         throw new IllegalArgumentException("Unknown Record Field Type: " + fieldType);

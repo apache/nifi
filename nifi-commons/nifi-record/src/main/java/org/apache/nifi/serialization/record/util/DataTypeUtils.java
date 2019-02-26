@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -87,6 +88,11 @@ public class DataTypeUtils {
 
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
 
+    private static final String decimalRegex = OptionalSign + "((" + Base10Digits + ")|("
+            + Base10Digits + OptionalBase10Decimal + "))";
+
+    private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
+
     private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
 
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
@@ -102,7 +108,7 @@ public class DataTypeUtils {
     }
 
     public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
-        final Supplier<DateFormat> timeFormat, final Supplier<DateFormat> timestampFormat) {
+                                           final Supplier<DateFormat> timeFormat, final Supplier<DateFormat> timestampFormat) {
         switch (fieldType) {
             case DATE:
                 return dateFormat.get();
@@ -121,7 +127,7 @@ public class DataTypeUtils {
     }
 
     public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
-        final Supplier<DateFormat> timestampFormat, final String fieldName, final Charset charset) {
+                                     final Supplier<DateFormat> timestampFormat, final String fieldName, final Charset charset) {
 
         if (value == null) {
             return null;
@@ -172,6 +178,8 @@ public class DataTypeUtils {
 
                 return convertType(value, chosenDataType, fieldName, charset);
             }
+            case DECIMAL:
+                return toDecimal(value, fieldName);
         }
 
         return null;
@@ -218,6 +226,8 @@ public class DataTypeUtils {
                 final DataType chosenDataType = chooseDataType(value, (ChoiceDataType) dataType);
                 return chosenDataType != null;
             }
+            case DECIMAL:
+                return isDecimalypeCompatible(value);
         }
 
         return false;
@@ -389,15 +399,18 @@ public class DataTypeUtils {
             if (value instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
             }
+            if (value instanceof BigDecimal) {
+                return RecordFieldType.DECIMAL.getDataType();
+            }
         }
 
         if (value instanceof Boolean) {
             return RecordFieldType.BOOLEAN.getDataType();
         }
-        if (value instanceof java.sql.Time) {
+        if (value instanceof Time) {
             return RecordFieldType.TIME.getDataType();
         }
-        if (value instanceof java.sql.Timestamp) {
+        if (value instanceof Timestamp) {
             return RecordFieldType.TIMESTAMP.getDataType();
         }
         if (value instanceof java.util.Date) {
@@ -830,13 +843,13 @@ public class DataTypeUtils {
             return String.valueOf(((java.util.Date) value).getTime());
         }
 
-        if (value instanceof java.sql.Date) {
+        if (value instanceof Date) {
             return getDateFormat(format).format((java.util.Date) value);
         }
-        if (value instanceof java.sql.Time) {
+        if (value instanceof Time) {
             return getDateFormat(format).format((java.util.Date) value);
         }
-        if (value instanceof java.sql.Timestamp) {
+        if (value instanceof Timestamp) {
             return getDateFormat(format).format((java.util.Date) value);
         }
         if (value instanceof java.util.Date) {
@@ -886,7 +899,7 @@ public class DataTypeUtils {
         return value != null;
     }
 
-    public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
+    public static Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -1376,6 +1389,54 @@ public class DataTypeUtils {
 
     public static boolean isCharacterTypeCompatible(final Object value) {
         return value != null && (value instanceof Character || (value instanceof CharSequence && ((CharSequence) value).length() > 0));
+    }
+
+    public static BigDecimal toDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof BigDecimal) {
+            return (BigDecimal)value;
+        }
+
+        if (value instanceof String) {
+            return new BigDecimal((String) value);
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Decimal for field " + fieldName);
+    }
+
+    public static boolean isDecimalypeCompatible(final Object value) {
+        if(value == null){
+            return false;
+        }
+        if(value instanceof BigDecimal){
+            return  true;
+        }
+        if(value instanceof String){
+            return isDecimal((String)value);
+        }
+        return false;
+    }
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (!DECIMAL_PATTERN.matcher(value).matches()) {
+            return false;
+        }
+
+        // Just to ensure that the exponents are in range, etc.
+        try {
+            new BigDecimal(value);
+        } catch (final NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
     }
 
     public static RecordSchema merge(final RecordSchema thisSchema, final RecordSchema otherSchema) {
