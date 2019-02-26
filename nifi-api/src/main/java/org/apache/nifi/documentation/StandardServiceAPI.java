@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.documentation;
 
-public class StandardProvidedServiceAPI implements ProvidedServiceAPI {
+public class StandardServiceAPI implements ServiceAPI {
     private final String className;
     private final String groupId;
     private final String artifactId;
     private final String version;
 
-    public StandardProvidedServiceAPI(final String className, final String groupId, final String artifactId, final String version) {
+    public StandardServiceAPI(final String className, final String groupId, final String artifactId, final String version) {
         this.className = className;
         this.groupId = groupId;
         this.artifactId = artifactId;
