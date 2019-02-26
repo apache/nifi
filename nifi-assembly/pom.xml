@@ -381,6 +381,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-prometheus-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-influxdb-nar</artifactId>
             <version>1.10.0-SNAPSHOT</version>
             <type>nar</type>
