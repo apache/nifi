@@ -32,6 +32,7 @@
         <module>nifi-processor-utils</module>
         <module>nifi-reporting-utils</module>
         <module>nifi-syslog-utils</module>
+        <module>nifi-database-utils</module>
     </modules>
 
 </project>

@@ -37,8 +37,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.sql.Connection;

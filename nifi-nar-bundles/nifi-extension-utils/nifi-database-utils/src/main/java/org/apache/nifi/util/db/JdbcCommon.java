@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.util.db;
 
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
@@ -100,12 +100,9 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -114,73 +111,17 @@ import javax.xml.bind.DatatypeConverter;
  */
 public class JdbcCommon {
 
-    private static final int MAX_DIGITS_IN_BIGINT = 19;
-    private static final int MAX_DIGITS_IN_INT = 9;
+    public static final int MAX_DIGITS_IN_BIGINT = 19;
+    public static final int MAX_DIGITS_IN_INT = 9;
     // Derived from MySQL default precision.
-    private static final int DEFAULT_PRECISION_VALUE = 10;
-    private static final int DEFAULT_SCALE_VALUE = 0;
+    public static final int DEFAULT_PRECISION_VALUE = 10;
+    public static final int DEFAULT_SCALE_VALUE = 0;
 
     public static final Pattern LONG_PATTERN = Pattern.compile("^-?\\d{1,19}$");
     public static final Pattern SQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("sql\\.args\\.(\\d+)\\.type");
     public static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
 
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
-
-    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
-            .name("dbf-normalize")
-            .displayName("Normalize Table/Column Names")
-            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
-                    + "will be changed to underscores in order to build a valid Avro record.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor USE_AVRO_LOGICAL_TYPES = new PropertyDescriptor.Builder()
-            .name("dbf-user-logical-types")
-            .displayName("Use Avro Logical Types")
-            .description("Whether to use Avro Logical Types for DECIMAL/NUMBER, DATE, TIME and TIMESTAMP columns. "
-                    + "If disabled, written as string. "
-                    + "If enabled, Logical types are used and written as its underlying type, specifically, "
-                    + "DECIMAL/NUMBER as logical 'decimal': written as bytes with additional precision and scale meta data, "
-                    + "DATE as logical 'date-millis': written as int denoting days since Unix epoch (1970-01-01), "
-                    + "TIME as logical 'time-millis': written as int denoting milliseconds since Unix epoch, "
-                    + "and TIMESTAMP as logical 'timestamp-millis': written as long denoting milliseconds since Unix epoch. "
-                    + "If a reader of written Avro records also knows these logical types, then these values can be deserialized with more context depending on reader implementation.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor DEFAULT_PRECISION = new PropertyDescriptor.Builder()
-            .name("dbf-default-precision")
-            .displayName("Default Decimal Precision")
-            .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
-                    + " a specific 'precision' denoting number of available digits is required."
-                    + " Generally, precision is defined by column data type definition or database engines default."
-                    + " However undefined precision (0) can be returned from some database engines."
-                    + " 'Default Decimal Precision' is used when writing those undefined precision numbers.")
-            .defaultValue(String.valueOf(DEFAULT_PRECISION_VALUE))
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor DEFAULT_SCALE = new PropertyDescriptor.Builder()
-            .name("dbf-default-scale")
-            .displayName("Default Decimal Scale")
-            .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
-                    + " a specific 'scale' denoting number of available decimal digits is required."
-                    + " Generally, scale is defined by column data type definition or database engines default."
-                    + " However when undefined precision (0) is returned, scale can also be uncertain with some database engines."
-                    + " 'Default Decimal Scale' is used when writing those undefined numbers."
-                    + " If a value has more decimals than specified scale, then the value will be rounded-up,"
-                    + " e.g. 1.53 becomes 2 with scale 0, and 1.5 with scale 1.")
-            .defaultValue(String.valueOf(DEFAULT_SCALE_VALUE))
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
 
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
