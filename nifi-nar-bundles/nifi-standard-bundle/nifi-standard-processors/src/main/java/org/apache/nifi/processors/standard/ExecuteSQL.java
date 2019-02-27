@@ -39,13 +39,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
-import org.apache.nifi.processors.standard.util.AvroUtil.CodecType;
+import org.apache.nifi.util.db.JdbcCommon;
 
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_PRECISION;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.DEFAULT_SCALE;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAMES_FOR_AVRO;
-import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
+import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_SCALE;
+import static org.apache.nifi.processors.standard.util.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
+import static org.apache.nifi.processors.standard.util.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
+import static org.apache.nifi.util.db.AvroUtil.CodecType;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_ALLOWED)

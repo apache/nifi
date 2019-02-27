@@ -28,7 +28,6 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.util.TestJdbcHugeStream;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -36,6 +35,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.db.SimpleCommerceDataSet;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -492,7 +492,7 @@ public class TestExecuteSQLRecord {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        TestJdbcHugeStream.loadTestData2Database(con, 100, 200, 100);
+        SimpleCommerceDataSet.loadTestData2Database(con, 100, 200, 100);
         LOGGER.info("test data loaded");
 
         // ResultSet size will be 1x200x100 = 20 000 rows

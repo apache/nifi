@@ -22,8 +22,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.AbstractQueryDatabaseTable;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -32,6 +30,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -40,6 +39,9 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.apache.nifi.util.db.JdbcCommon.AvroConversionOptions;
+import static org.apache.nifi.util.db.JdbcCommon.ResultSetRowCallback;
 
 public class RecordSqlWriter implements SqlWriter {
 
@@ -52,7 +54,7 @@ public class RecordSqlWriter implements SqlWriter {
     private RecordSchema writeSchema;
     private String mimeType;
 
-    public RecordSqlWriter(RecordSetWriterFactory recordSetWriterFactory, JdbcCommon.AvroConversionOptions options, int maxRowsPerFlowFile, Map<String, String> originalAttributes) {
+    public RecordSqlWriter(RecordSetWriterFactory recordSetWriterFactory, AvroConversionOptions options, int maxRowsPerFlowFile, Map<String, String> originalAttributes) {
         this.recordSetWriterFactory = recordSetWriterFactory;
         this.writeResultRef = new AtomicReference<>();
         this.maxRowsPerFlowFile = maxRowsPerFlowFile;
@@ -61,7 +63,7 @@ public class RecordSqlWriter implements SqlWriter {
     }
 
     @Override
-    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, AbstractQueryDatabaseTable.MaxValueResultSetRowCollector callback) throws Exception {
+    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception {
         final RecordSet recordSet;
         try {
             if (fullRecordSet == null) {
@@ -129,9 +131,9 @@ public class RecordSqlWriter implements SqlWriter {
 
     private static class ResultSetRecordSetWithCallback extends ResultSetRecordSet {
 
-        private final AbstractQueryDatabaseTable.MaxValueResultSetRowCollector callback;
+        private final ResultSetRowCallback callback;
 
-        ResultSetRecordSetWithCallback(ResultSet rs, RecordSchema readerSchema, AbstractQueryDatabaseTable.MaxValueResultSetRowCollector callback) throws SQLException {
+        ResultSetRecordSetWithCallback(ResultSet rs, RecordSchema readerSchema, ResultSetRowCallback callback) throws SQLException {
             super(rs, readerSchema);
             this.callback = callback;
         }

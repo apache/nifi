@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.util.db;
 
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
@@ -40,8 +40,6 @@ import static java.sql.Types.INTEGER;
 import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TINYINT;
 import static java.sql.Types.BIGINT;
-import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.convertResultSetToAvroInputStream;
-import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.resultSetReturningMetadata;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -133,12 +131,12 @@ public class TestJdbcCommonConvertToAvro {
         when(metadata.getColumnName(1)).thenReturn("t_int");
         when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = resultSetReturningMetadata(metadata);
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final int ret = 0;
         when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
 
-        final InputStream instream = convertResultSetToAvroInputStream(rs);
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {

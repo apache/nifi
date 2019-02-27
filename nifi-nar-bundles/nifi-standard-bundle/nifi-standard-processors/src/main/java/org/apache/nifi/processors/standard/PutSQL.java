@@ -51,8 +51,8 @@ import org.apache.nifi.processor.util.pattern.PartialFunctions.FlowFileGroup;
 import org.apache.nifi.processor.util.pattern.PutGroup;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.util.db;
 
-import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.convertResultSetToAvroInputStream;
-import static org.apache.nifi.processors.standard.util.JdbcCommonTestUtils.resultSetReturningMetadata;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -427,7 +425,7 @@ public class TestJdbcCommon {
         when(metadata.getPrecision(1)).thenReturn(dbPrecision);
         when(metadata.getScale(1)).thenReturn(expectedScale);
 
-        final ResultSet rs = resultSetReturningMetadata(metadata);
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
 
@@ -580,12 +578,12 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn("t_int");
         when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = resultSetReturningMetadata(metadata);
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final short s = 25;
         when(rs.getObject(Mockito.anyInt())).thenReturn(s);
 
-        final InputStream instream = convertResultSetToAvroInputStream(rs);
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
@@ -608,12 +606,12 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn(mockColumnName);
         when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = resultSetReturningMetadata(metadata);
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final Long ret = 0L;
         when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
 
-        final InputStream instream = convertResultSetToAvroInputStream(rs);
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
@@ -636,12 +634,12 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn(mockColumnName);
         when(metadata.getTableName(1)).thenReturn("table");
 
-        final ResultSet rs = resultSetReturningMetadata(metadata);
+        final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
         final Long ret = 0L;
         when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
 
-        final InputStream instream = convertResultSetToAvroInputStream(rs);
+        final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
