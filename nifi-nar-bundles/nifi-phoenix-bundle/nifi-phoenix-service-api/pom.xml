@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-phoenix-bundle</artifactId>
-        <version>1.9.0-SNAPSHOT</version>
+        <version>1.10.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-phoenix-service-api</artifactId>
@@ -28,13 +28,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
+            <version>1.10.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
+            <version>1.10.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

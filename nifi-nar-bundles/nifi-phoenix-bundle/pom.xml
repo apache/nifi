@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.9.0-SNAPSHOT</version>
+        <version>1.10.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-phoenix-bundle</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
+    <version>1.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -35,7 +35,7 @@
     </modules>
 
     <properties>
-        <nifi.version>1.9.0-SNAPSHOT</nifi.version>
+        <nifi.version>1.10.0-SNAPSHOT</nifi.version>
         <hbase.version>1.1.2.2.6.4.0-91</hbase.version>
         <phoenix.version>4.7.0.2.6.4.0-91</phoenix.version>
         <hadoop.guava.version>12.0.1</hadoop.guava.version>
