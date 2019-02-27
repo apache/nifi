@@ -37,7 +37,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.eclipse.jetty.server.Server;
 
 @Tags({ "reporting", "prometheus", "metrics" })
-@CapabilityDescription("Reports metrics in Prometheus Format by creating /metrics http endpoint which be used for external monitoring of the application."
+@CapabilityDescription("Reports metrics in Prometheus format by creating /metrics http endpoint which can be used for external monitoring of the application."
         + " Metrics reported include JVM Metrics (optional) and NiFi statistics")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
 
