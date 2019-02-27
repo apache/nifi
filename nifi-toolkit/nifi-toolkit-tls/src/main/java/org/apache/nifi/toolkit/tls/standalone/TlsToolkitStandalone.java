@@ -82,13 +82,6 @@ public class TlsToolkitStandalone {
 
     public void splitKeystore(StandaloneConfig standaloneConfig) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore keyStore = KeyStore.getInstance("JKS");
-        char[] keyStorePassword;
-        if(standaloneConfig.getKeyStorePassword() != null) {
-            keyStorePassword = standaloneConfig.getKeyStorePassword().toCharArray();
-        } else {
-
-        }
-
         keyStore.load(new FileInputStream(standaloneConfig.getKeyStore()), standaloneConfig.getKeyStorePassword().toCharArray());
         splitKeystore(keyStore, standaloneConfig.getKeyPassword().toCharArray(), standaloneConfig.getBaseDir());
     }
