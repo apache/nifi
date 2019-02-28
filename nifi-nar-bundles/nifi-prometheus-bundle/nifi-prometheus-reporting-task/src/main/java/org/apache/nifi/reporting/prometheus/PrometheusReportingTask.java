@@ -38,7 +38,7 @@ import org.eclipse.jetty.server.Server;
 
 @Tags({ "reporting", "prometheus", "metrics" })
 @CapabilityDescription("Reports metrics in Prometheus format by creating /metrics http endpoint which can be used for external monitoring of the application."
-        + " Metrics reported include JVM Metrics (optional) and NiFi statistics")
+        + "The reporting task reports a set of metrics regarding the JVM (optional) and the NiFi instance")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
 
 public class PrometheusReportingTask extends AbstractReportingTask {
