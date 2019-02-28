@@ -129,7 +129,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
             retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, operationContext);
         } catch (URISyntaxException | StorageException e) {
-            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[]{e});
+            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
             context.yield();
             return;
         }
@@ -152,7 +152,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                 try {
                     out.write(message.getMessageContentAsByte());
                 } catch (StorageException e) {
-                    getLogger().error("Failed to write the retrieved queue message to FlowFile content due to {}", new Object[]{e});
+                    getLogger().error("Failed to write the retrieved queue message to FlowFile content due to {}", new Object[] {e});
                     context.yield();
                 }
             });
@@ -161,7 +161,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             session.getProvenanceReporter().receive(flowFile, cloudQueue.getStorageUri().toString());
         }
 
-        if (autoDelete) {
+        if(autoDelete) {
             session.commit();
 
             for (final CloudQueueMessage message : cloudQueueMessages) {
@@ -169,7 +169,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                     cloudQueue.deleteMessage(message);
                 } catch (StorageException e) {
                     getLogger().error("Failed to delete the retrieved message with the id {} from the queue due to {}",
-                            new Object[]{message.getMessageId(), e});
+                            new Object[] {message.getMessageId(), e});
                 }
             }
         }
@@ -183,10 +183,10 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
         if (visibilityTimeout <= 0) {
             problems.add(new ValidationResult.Builder()
-                    .valid(false)
-                    .subject(VISIBILITY_TIMEOUT.getDisplayName())
-                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
-                    .build());
+                                             .valid(false)
+                                             .subject(VISIBILITY_TIMEOUT.getDisplayName())
+                                             .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
+                                             .build());
         }
 
         AzureStorageUtils.validateProxySpec(validationContext, problems);
@@ -201,7 +201,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
         final ArrayList<CloudQueueMessage> list = new ArrayList<>();
         if (iterable != null) {
-            for (CloudQueueMessage message : iterable) {
+            for(CloudQueueMessage message : iterable) {
                 list.add(message);
             }
         }

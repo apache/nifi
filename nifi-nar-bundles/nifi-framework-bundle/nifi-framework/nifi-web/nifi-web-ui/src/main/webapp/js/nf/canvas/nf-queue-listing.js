@@ -126,8 +126,8 @@
                 sortable: false,
                 resizable: false,
                 formatter: moreDetailsFormatter,
-                width: 48,
-                maxWidth: 48
+                width: 50,
+                maxWidth: 50
             },
             {
                 id: 'position',
@@ -135,8 +135,8 @@
                 field: 'position',
                 sortable: false,
                 resizable: false,
-                width: 80,
-                maxWidth: 80,
+                width: 75,
+                maxWidth: 75,
                 formatter: nfCommon.genericValueFormatter
             },
             {
@@ -217,8 +217,8 @@
                 resizable: false,
                 formatter: actionsFormatter,
                 sortable: false,
-                width: 48,
-                maxWidth: 48
+                width: 50,
+                maxWidth: 50
             });
         }
 

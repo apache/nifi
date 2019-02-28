@@ -52,33 +52,32 @@ public class GetAzureEventHubTest {
 
     @Test
     public void testProcessorConfigValidity() {
-        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, eventHubName);
+        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME,eventHubName);
         testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.NAMESPACE, namespaceName);
+        testRunner.setProperty(GetAzureEventHub.NAMESPACE,namespaceName);
         testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, sasKeyName);
+        testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY,sasKeyName);
         testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY, sasKey);
+        testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY,sasKey);
         testRunner.assertNotValid();
-        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS, "4");
+        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
         testRunner.assertValid();
-        testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME, "2015-12-22T21:55:10.000Z");
+        testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME,"2015-12-22T21:55:10.000Z");
         testRunner.assertValid();
         testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_SIZE, "5");
         testRunner.assertValid();
-        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT, "10000");
+        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT,"10000");
         testRunner.assertValid();
     }
-
+    
     @Test
-    public void verifyRelationships() {
+    public void verifyRelationships(){
 
-        assert (1 == processor.getRelationships().size());
+        assert(1 == processor.getRelationships().size());
 
     }
-
     @Test
-    public void testNoPartitions() {
+    public void testNoPartitions(){
         MockGetAzureEventHubNoPartitions mockProcessor = new MockGetAzureEventHubNoPartitions();
         testRunner = TestRunners.newTestRunner(mockProcessor);
         setUpStandardTestConfig();
@@ -86,25 +85,22 @@ public class GetAzureEventHubTest {
         testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 0);
         testRunner.clearTransferState();
     }
-
     @Test
-    public void testNullRecieve() {
+    public void testNullRecieve(){
         setUpStandardTestConfig();
         processor.nullReceive = true;
         testRunner.run(1, true);
         testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 0);
         testRunner.clearTransferState();
     }
-
     @Test(expected = AssertionError.class)
-    public void testThrowGetReceiver() {
+    public void testThrowGetReceiver(){
         setUpStandardTestConfig();
         processor.getReceiverThrow = true;
         testRunner.run(1, true);
         testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 0);
         testRunner.clearTransferState();
     }
-
     @Test
     public void testNormalFlow() throws Exception {
 
@@ -117,40 +113,39 @@ public class GetAzureEventHubTest {
     /**
      * Provides a stubbed processor instance for testing
      */
-    public static class MockGetAzureEventHub extends GetAzureEventHub {
+    public static class MockGetAzureEventHub extends GetAzureEventHub{
 
         boolean nullReceive = false;
         boolean getReceiverThrow = false;
 
         @Override
-        protected void setupReceiver(final String connectionString) throws ProcessException {
+        protected void setupReceiver(final String connectionString) throws ProcessException{
             //do nothing
         }
-
         @Override
         protected PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, ServiceBusException, ExecutionException, InterruptedException {
-            if (getReceiverThrow) {
+            if(getReceiverThrow){
                 throw new IOException("Could not create receiver");
             }
             return null;
         }
 
         @Override
-        protected Iterable<EventData> receiveEvents(final ProcessContext context, final String partitionId) throws ProcessException {
-            if (nullReceive) {
+        protected Iterable<EventData> receiveEvents(final ProcessContext context, final String partitionId) throws ProcessException{
+            if(nullReceive){
                 return null;
             }
-            if (getReceiverThrow) {
+            if(getReceiverThrow){
                 throw new ProcessException("Could not create receiver");
             }
             final LinkedList<EventData> receivedEvents = new LinkedList<>();
-            for (int i = 0; i < 10; i++) {
-                final EventData eventData = new EventData(String.format("test event number: %d", i).getBytes());
-                Whitebox.setInternalState(eventData, "isReceivedEvent", true);
-                Whitebox.setInternalState(eventData, "partitionKey", "0");
+            for(int i = 0; i < 10; i++){
+                final EventData eventData = new EventData(String.format("test event number: %d",i).getBytes());
+                Whitebox.setInternalState(eventData,"isReceivedEvent",true);
+                Whitebox.setInternalState(eventData, "partitionKey","0");
                 Whitebox.setInternalState(eventData, "offset", "100");
-                Whitebox.setInternalState(eventData, "sequenceNumber", 13L);
-                Whitebox.setInternalState(eventData, "enqueuedTime", Instant.now().minus(100L, ChronoUnit.SECONDS));
+                Whitebox.setInternalState(eventData, "sequenceNumber",13L);
+                Whitebox.setInternalState(eventData, "enqueuedTime",Instant.now().minus(100L, ChronoUnit.SECONDS));
                 receivedEvents.add(eventData);
             }
 
@@ -159,11 +154,11 @@ public class GetAzureEventHubTest {
         }
     }
 
-    public static class MockGetAzureEventHubNoPartitions extends GetAzureEventHub {
+    public static class MockGetAzureEventHubNoPartitions extends GetAzureEventHub{
 
 
         @Override
-        protected void setupReceiver(final String connectionString) throws ProcessException {
+        protected void setupReceiver(final String connectionString) throws ProcessException{
             //do nothing
         }
 
@@ -174,12 +169,13 @@ public class GetAzureEventHubTest {
     }
 
 
+
     private void setUpStandardTestConfig() {
-        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, eventHubName);
-        testRunner.setProperty(GetAzureEventHub.NAMESPACE, namespaceName);
-        testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, sasKeyName);
-        testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY, sasKey);
-        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS, "4");
+        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(GetAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY,sasKeyName);
+        testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY,sasKey);
+        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
         testRunner.assertValid();
     }
 

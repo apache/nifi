@@ -433,7 +433,7 @@
                     details.append('text')
                         .attrs({
                             'x': 10,
-                            'y': 168,
+                            'y': 150,
                             'class': 'remote-process-group-last-refresh'
                         });
 

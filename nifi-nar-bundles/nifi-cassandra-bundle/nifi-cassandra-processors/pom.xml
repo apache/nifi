@@ -76,7 +76,7 @@
             <scope>compile</scope>
         </dependency>
         <!-- test scoped in nar-bundles dependency management -->
-        <dependency>
+	<dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
         </dependency>

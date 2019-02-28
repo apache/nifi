@@ -38,26 +38,23 @@ public class PutAzureEventHubTest {
         processor = new PutAzureEventHubTest.MockPutAzureEventHub();
         testRunner = TestRunners.newTestRunner(processor);
     }
-
     @Test
     public void testProcessorConfigValidity() {
-        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME, eventHubName);
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME,eventHubName);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.NAMESPACE, namespaceName);
+        testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY, sasKeyName);
+        testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY,sasKeyName);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY, sasKey);
+        testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY,sasKey);
         testRunner.assertValid();
     }
-
     @Test
-    public void verifyRelationships() {
+    public void verifyRelationships(){
 
-        assert (2 == processor.getRelationships().size());
+        assert(2 == processor.getRelationships().size());
 
     }
-
     @Test
     public void testNoFlow() {
 
@@ -66,19 +63,17 @@ public class PutAzureEventHubTest {
         testRunner.assertAllFlowFilesTransferred(PutAzureEventHub.REL_SUCCESS, 0);
         testRunner.clearTransferState();
     }
-
     @Test
-    public void testNormalFlow() {
+    public void testNormalFlow(){
 
         setUpStandardTestConfig();
         String flowFileContents = "TEST MESSAGE";
         testRunner.enqueue(flowFileContents);
         testRunner.run(1, true);
-        assert (flowFileContents.contentEquals(new String(processor.getReceivedBuffer())));
+        assert(flowFileContents.contentEquals(new String(processor.getReceivedBuffer())));
         testRunner.assertAllFlowFilesTransferred(PutAzureEventHub.REL_SUCCESS, 1);
         testRunner.clearTransferState();
     }
-
     @Test
     public void testSendMessageThrows() {
 
@@ -101,13 +96,10 @@ public class PutAzureEventHubTest {
         testRunner.run(1, true);
     }
 
-    private static class MockPutAzureEventHub extends PutAzureEventHub {
+    private static class MockPutAzureEventHub extends PutAzureEventHub{
 
         byte[] receivedBuffer = null;
-
-        byte[] getReceivedBuffer() {
-            return receivedBuffer;
-        }
+        byte[] getReceivedBuffer(){return receivedBuffer;}
 
         @Override
         protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
@@ -119,27 +111,24 @@ public class PutAzureEventHubTest {
             receivedBuffer = buffer;
         }
     }
-
-    private static class OnSendThrowingMockPutAzureEventHub extends PutAzureEventHub {
+    private static class OnSendThrowingMockPutAzureEventHub extends PutAzureEventHub{
         @Override
         protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
             return null;
         }
     }
-
-    private static class BogusConnectionStringMockPutAzureEventHub extends PutAzureEventHub {
+    private static class BogusConnectionStringMockPutAzureEventHub extends PutAzureEventHub{
 
         @Override
-        protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey) {
+        protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
             return "Bogus Connection String";
         }
     }
-
     private void setUpStandardTestConfig() {
-        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME, eventHubName);
-        testRunner.setProperty(PutAzureEventHub.NAMESPACE, namespaceName);
-        testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY, sasKeyName);
-        testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY, sasKey);
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY,sasKeyName);
+        testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY,sasKey);
         testRunner.assertValid();
     }
 }

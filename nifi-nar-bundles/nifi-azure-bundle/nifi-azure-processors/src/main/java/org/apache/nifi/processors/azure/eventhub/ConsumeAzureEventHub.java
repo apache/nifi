@@ -74,7 +74,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
@@ -607,7 +606,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
         if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
             options.setInitialOffsetProvider(options.new StartOfStreamInitialOffsetProvider());
-        } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)) {
+        } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)){
             options.setInitialOffsetProvider(options.new EndOfStreamInitialOffsetProvider());
         } else {
             throw new IllegalArgumentException("Initial offset " + initialOffset + " is not allowed.");

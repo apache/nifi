@@ -108,7 +108,6 @@ public final class AzureStorageUtils {
 
     /**
      * Create CloudBlobClient instance.
-     *
      * @param flowFile An incoming FlowFile can be used for NiFi Expression Language evaluation to derive
      *                 Account Name, Account Key or SAS Token. This can be null if not available.
      */
@@ -159,9 +158,9 @@ public final class AzureStorageUtils {
         if ((StringUtils.isBlank(sasToken) && StringUtils.isBlank(acctName))
                 || (StringUtils.isNotBlank(sasToken) && StringUtils.isNotBlank(acctName))) {
             results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
-                    .valid(false)
-                    .explanation("either Azure Account Key or Shared Access Signature required, but not both")
-                    .build());
+                        .valid(false)
+                        .explanation("either Azure Account Key or Shared Access Signature required, but not both")
+                        .build());
         }
 
         return results;

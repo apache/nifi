@@ -44,12 +44,12 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
-@Tags({"azure", "microsoft", "cloud", "storage", "blob"})
+@Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
-@SeeAlso({ListAzureBlobStorage.class, PutAzureBlobStorage.class, DeleteAzureBlobStorage.class})
+@SeeAlso({ ListAzureBlobStorage.class, PutAzureBlobStorage.class, DeleteAzureBlobStorage.class })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
-        @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
+    @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
 })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
@@ -102,7 +102,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
                 throw (ProcessException) e;
             } else {
                 Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
-                getLogger().error("Failure to fetch Azure blob {}", new Object[]{blobPath}, failureException);
+                getLogger().error("Failure to fetch Azure blob {}",  new Object[]{blobPath}, failureException);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }
