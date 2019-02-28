@@ -89,7 +89,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("To support Namespaces in non-standard Host URIs ( not .servicebus.windows.net,  ie .servicebus.chinacloudapi.cn) select from the drop down acceptable options ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(".servicebus.windows.net",".servicebus.chinacloudapi.cn")
+            .allowableValues(".servicebus.windows.net", ".servicebus.chinacloudapi.cn")
             .defaultValue(".servicebus.windows.net")
             .required(true)
             .build();
@@ -165,9 +165,9 @@ public class GetAzureEventHub extends AbstractProcessor {
     private final static Set<Relationship> relationships;
 
     /*
-    * Will ensure that the list of property descriptors is build only once.
-    * Will also create a Set of relationships
-    */
+     * Will ensure that the list of property descriptors is build only once.
+     * Will also create a Set of relationships
+     */
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(EVENT_HUB_NAME);
@@ -295,24 +295,23 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
 
 
-
-        if(context.getProperty(ENQUEUE_TIME).isSet()) {
+        if (context.getProperty(ENQUEUE_TIME).isSet()) {
             configuredEnqueueTime = Instant.parse(context.getProperty(ENQUEUE_TIME).toString());
         } else {
             configuredEnqueueTime = null;
         }
-        if(context.getProperty(RECEIVER_FETCH_SIZE).isSet()) {
+        if (context.getProperty(RECEIVER_FETCH_SIZE).isSet()) {
             receiverFetchSize = context.getProperty(RECEIVER_FETCH_SIZE).asInteger();
         } else {
             receiverFetchSize = 100;
         }
-        if(context.getProperty(RECEIVER_FETCH_TIMEOUT).isSet()) {
+        if (context.getProperty(RECEIVER_FETCH_TIMEOUT).isSet()) {
             receiverFetchTimeout = Duration.ofMillis(context.getProperty(RECEIVER_FETCH_TIMEOUT).asLong());
         } else {
             receiverFetchTimeout = null;
         }
 
-        final String connectionString = new ConnectionStringBuilder(new URI("amqps://"+namespace+serviceBusEndpoint), eventHubName, policyName, policyKey).toString();
+        final String connectionString = new ConnectionStringBuilder(new URI("amqps://" + namespace + serviceBusEndpoint), eventHubName, policyName, policyKey).toString();
         setupReceiver(connectionString);
     }
 

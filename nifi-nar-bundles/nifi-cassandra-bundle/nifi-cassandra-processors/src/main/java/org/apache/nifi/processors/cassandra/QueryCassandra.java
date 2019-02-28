@@ -359,7 +359,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                         nrOfRows += 1;
 
                     }
-                } while (!rs.isFullyFetched());
+                }
+                while (!rs.isFullyFetched());
             }
             return nrOfRows;
         }
@@ -457,7 +458,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                         nrOfRows += 1;
                         outStream.write("}".getBytes(charset));
                     }
-                } while (!rs.isFullyFetched());
+                }
+                while (!rs.isFullyFetched());
             }
             return nrOfRows;
         } finally {

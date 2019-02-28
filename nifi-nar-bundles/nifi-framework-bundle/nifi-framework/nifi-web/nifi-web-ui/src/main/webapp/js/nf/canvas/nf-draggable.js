@@ -62,6 +62,7 @@
     var nfCanvas;
     var drag;
     var snapAlignmentPixels = 8;
+    var snapAlign = true;
 
     /**
      * Updates the positioning of all selected components.
@@ -213,15 +214,28 @@
                                 y: minY
                             });
                     } else {
+                        snapAlign = !d3.event.shiftKey;
                         // update the position of the drag selection
                         dragSelection.attr('x', function (d) {
                             d.x += d3.event.dx;
-                            return (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels);
-                        }).attr('y', function (d) {
+                            // shift modifier: disable snap alignment.
+                            if (snapAlign) {
+                                return d.x;
+                            } else {
+                                return (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels);
+                            }
+
+                        })
+                          .attr('y', function (d) {
                                 d.y += d3.event.dy;
-                                return (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels);
+                                if (snapAlign) {
+                                    return d.y;
+                                } else {
+                                    return (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels);
+                                }
+
                         });
-                     }
+                    }
                 })
                 .on('end', function () {
                     // stop further propagation
@@ -260,8 +274,8 @@
          */
         updateComponentPosition: function (d, delta) {
             var newPosition = {
-                'x': (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels),
-                'y': (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels)
+                'x': snapAlign ? (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.x + delta.x,
+                'y': snapAlign ? (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.y + delta.y
             };
 
             // build the entity

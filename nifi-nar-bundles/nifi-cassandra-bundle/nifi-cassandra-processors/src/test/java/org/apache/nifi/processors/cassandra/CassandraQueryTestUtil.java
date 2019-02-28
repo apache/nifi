@@ -87,12 +87,14 @@ public class CassandraQueryTestUtil {
                         Arrays.asList("New York, NY", "Santa Clara, CA"),
                         new HashMap<Date, String>() {{
                             put(aMonthPrior, "Set my alarm \"for\" a month from now");
-                        }}, false, 1.0f, 2.0),
+                        }
+                      }, false, 1.0f, 2.0),
                 createRow("user2", "Mary", "Jones", Sets.newHashSet("mjones@notareal.com"),
                         Collections.singletonList("Orlando, FL"),
                         new HashMap<Date, String>() {{
                             put(testDate, "Get milk and bread");
-                        }}, true, 3.0f, 4.0)
+                        }
+                      }, true, 3.0f, 4.0)
         );
 
         when(resultSet.iterator()).thenReturn(rows.iterator());

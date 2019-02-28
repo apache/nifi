@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 
 @SeeAlso({GetAzureQueueStorage.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({ "azure", "microsoft", "cloud", "storage", "queue", "enqueue" })
+@Tags({"azure", "microsoft", "cloud", "storage", "queue", "enqueue"})
 @CapabilityDescription("Writes the content of the incoming FlowFiles to the configured Azure Queue Storage.")
 public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
@@ -63,13 +63,13 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
             .name("visibility-delay")
             .displayName("Visibility Delay")
             .description("The length of time during which the message will be invisible, starting when it is added to the queue. " +
-                         "This value must be greater than or equal to 0 and less than the TTL value.")
+                    "This value must be greater than or equal to 0 and less than the TTL value.")
             .required(false)
             .defaultValue("0 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> properties =  Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, TTL,
             QUEUE, VISIBILITY_DELAY, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
@@ -133,10 +133,10 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
             if (ttl > SEVEN_DAYS_TIMEPERIOD_IN_SECS) {
                 problems.add(new ValidationResult.Builder()
-                                                 .subject(TTL.getDisplayName())
-                                                 .valid(false)
-                                                 .explanation(TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days")
-                                                 .build());
+                        .subject(TTL.getDisplayName())
+                        .valid(false)
+                        .explanation(TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days")
+                        .build());
             }
         }
 
@@ -145,10 +145,10 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
             if (delay > ttl || delay < 0) {
                 problems.add(new ValidationResult.Builder()
-                                                 .subject(VISIBILITY_DELAY.getDisplayName())
-                                                 .valid(false)
-                                                 .explanation(VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than " + TTL.getDisplayName())
-                                                 .build());
+                        .subject(VISIBILITY_DELAY.getDisplayName())
+                        .valid(false)
+                        .explanation(VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than " + TTL.getDisplayName())
+                        .build());
             }
         }
 

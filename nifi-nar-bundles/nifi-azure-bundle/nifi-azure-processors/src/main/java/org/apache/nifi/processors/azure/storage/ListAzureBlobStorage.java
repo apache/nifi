@@ -62,13 +62,13 @@ import java.util.Map;
 
 @PrimaryNodeOnly
 @TriggerSerially
-@Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ FetchAzureBlobStorage.class, PutAzureBlobStorage.class, DeleteAzureBlobStorage.class })
+@Tags({"azure", "microsoft", "cloud", "storage", "blob"})
+@SeeAlso({FetchAzureBlobStorage.class, PutAzureBlobStorage.class, DeleteAzureBlobStorage.class})
 @CapabilityDescription("Lists blobs in an Azure Storage container. Listing details are attached to an empty FlowFile for use with FetchAzureBlobStorage.  " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
+@WritesAttributes({@WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
         @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
         @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
         @WritesAttribute(attribute = "azure.secondaryUri", description = "Secondary location for blob content"),
@@ -77,8 +77,8 @@ import java.util.Map;
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
         @WritesAttribute(attribute = "lang", description = "Language code for the content"),
-        @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
-@Stateful(scopes = { Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. " +
+        @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type")})
+@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. " +
         "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
@@ -104,7 +104,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
-            ));
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -143,9 +143,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
         return PROP_PREFIX.equals(property)
-                   || AzureStorageUtils.ACCOUNT_NAME.equals(property)
-                   || AzureStorageUtils.CONTAINER.equals(property)
-                   || AzureStorageUtils.PROP_SAS_TOKEN.equals(property);
+                || AzureStorageUtils.ACCOUNT_NAME.equals(property)
+                || AzureStorageUtils.CONTAINER.equals(property)
+                || AzureStorageUtils.PROP_SAS_TOKEN.equals(property);
     }
 
     @Override
@@ -183,14 +183,14 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                     StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
 
                     Builder builder = new BlobInfo.Builder()
-                                              .primaryUri(uri.getPrimaryUri().toString())
-                                              .blobName(cloudBlob.getName())
-                                              .containerName(containerName)
-                                              .contentType(properties.getContentType())
-                                              .contentLanguage(properties.getContentLanguage())
-                                              .etag(properties.getEtag())
-                                              .lastModifiedTime(properties.getLastModified().getTime())
-                                              .length(properties.getLength());
+                            .primaryUri(uri.getPrimaryUri().toString())
+                            .blobName(cloudBlob.getName())
+                            .containerName(containerName)
+                            .contentType(properties.getContentType())
+                            .contentLanguage(properties.getContentLanguage())
+                            .etag(properties.getEtag())
+                            .lastModifiedTime(properties.getLastModified().getTime())
+                            .length(properties.getLength());
 
                     if (uri.getSecondaryUri() != null) {
                         builder.secondaryUri(uri.getSecondaryUri().toString());
@@ -209,7 +209,6 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         }
         return listing;
     }
-
 
 
 }

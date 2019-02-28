@@ -1341,7 +1341,7 @@
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
                 var snapshot = nodeSnapshot.snapshot;
                 snapshot.provenanceRepositoryStorageUsage.forEach(function (provenanceRepoUsage) {
-                	provenanceStorageTableRows.push({
+                  provenanceStorageTableRows.push({
                         id: nodeSnapshot.nodeId + ':' + provenanceRepoUsage.identifier,
                         address: nodeSnapshot.address,
                         node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
@@ -1359,7 +1359,7 @@
             provenanceTab.dataView.reSort();
             provenanceTab.grid.invalidate();
         } else {
-        	provenanceTab.rowCount = 0;
+          provenanceTab.rowCount = 0;
         }
     }
 

@@ -107,7 +107,10 @@ public class AbstractCassandraProcessorTest {
                 Sets.newHashSet("jsmith@notareal.com", "joes@fakedomain.com"), Arrays.asList("New York, NY", "Santa Clara, CA"),
                 new HashMap<Date, String>() {{
                     put(Calendar.getInstance().getTime(), "Set my alarm for a month from now");
-                }}, true, 1.0f, 2.0);
+                }
+              },
+            true, 1.0f, 2.0
+        );
 
         assertEquals("user1", AbstractCassandraProcessor.getCassandraObject(row, 0, DataType.text()));
         assertEquals("Joe", AbstractCassandraProcessor.getCassandraObject(row, 1, DataType.text()));

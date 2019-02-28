@@ -47,11 +47,11 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
-@Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
+@Tags({"azure", "microsoft", "cloud", "storage", "blob"})
+@SeeAlso({ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class})
 @CapabilityDescription("Puts content into an Azure Storage Blob")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
+@WritesAttributes({@WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
         @WritesAttribute(attribute = "azure.blobname", description = "The name of the Azure blob"),
         @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for blob content"),
         @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),

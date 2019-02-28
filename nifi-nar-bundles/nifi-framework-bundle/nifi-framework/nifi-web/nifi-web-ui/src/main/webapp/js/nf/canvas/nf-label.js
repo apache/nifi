@@ -54,8 +54,8 @@
     var nfContextMenu;
 
     var dimensions = {
-        width: 150,
-        height: 150
+        width: 148,
+        height: 148
     };
 
     var MIN_HEIGHT = 20;

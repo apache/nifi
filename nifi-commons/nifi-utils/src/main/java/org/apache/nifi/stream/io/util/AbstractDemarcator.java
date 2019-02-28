@@ -114,8 +114,7 @@ abstract class AbstractDemarcator implements Closeable {
      * and or shuffling it if necessary. If buffer exceeds max buffer size a
      * {@link TokenTooLargeException} will be thrown.
      *
-     * @throws IOException
-     *             if unable to read from the stream
+     * @throws IOException if unable to read from the stream
      */
     void fill() throws IOException {
         if (this.index >= this.buffer.length) {
@@ -144,7 +143,8 @@ abstract class AbstractDemarcator implements Closeable {
          */
         do {
             bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
-        } while (bytesRead == 0);
+        }
+        while (bytesRead == 0);
         this.availableBytesLength = bytesRead != -1 ? this.index + bytesRead : -1;
     }
 

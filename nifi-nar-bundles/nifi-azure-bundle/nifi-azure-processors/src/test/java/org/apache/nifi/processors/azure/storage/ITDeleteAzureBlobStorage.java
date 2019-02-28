@@ -30,7 +30,7 @@ import org.junit.Test;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
-public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT{
+public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
     @Test
     public void testDeleteBlob() throws StorageException, URISyntaxException, InvalidKeyException, IOException {
