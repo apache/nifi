@@ -56,13 +56,13 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
         }
 
         if (jsonNode.isIntegralNumber()) {
+            if (jsonNode.isBigInteger()) {
+                return RecordFieldType.BIGINT.getDataType();
+            }
             return RecordFieldType.LONG.getDataType();
         }
 
         if (jsonNode.isFloatingPointNumber()) {
-            return RecordFieldType.FLOAT.getDataType();
-        }
-        if (jsonNode.isDouble()) {
             return RecordFieldType.DOUBLE.getDataType();
         }
         if (jsonNode.isBinary()) {
