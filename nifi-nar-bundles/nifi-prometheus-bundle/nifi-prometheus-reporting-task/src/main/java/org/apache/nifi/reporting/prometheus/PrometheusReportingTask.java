@@ -19,6 +19,7 @@ package org.apache.nifi.reporting.prometheus;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -78,13 +79,19 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> properties;
+
+    static {
+        List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(METRICS_ENDPOINT_PORT);
+        props.add(APPLICATION_ID);
+        props.add(INSTANCE_ID);
+        props.add(SEND_JVM_METRICS);
+        properties = Collections.unmodifiableList(props);
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(METRICS_ENDPOINT_PORT);
-        properties.add(APPLICATION_ID);
-        properties.add(INSTANCE_ID);
-        properties.add(SEND_JVM_METRICS);
         return properties;
     }
 
