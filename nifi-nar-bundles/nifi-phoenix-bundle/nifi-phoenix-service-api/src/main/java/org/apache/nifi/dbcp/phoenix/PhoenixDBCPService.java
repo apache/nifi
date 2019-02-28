@@ -20,7 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.dbcp.DBCPService;
 
-@Tags({"phoenix", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
+@Tags({ "phoenix", "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Phoenix. Connections can be asked from pool and returned after usage.")
 
 public interface PhoenixDBCPService extends DBCPService {

@@ -34,12 +34,9 @@ public class TestProcessor extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
-        propDescs.add(new PropertyDescriptor.Builder()
-                .name("MyService test processor")
-                .description("MyService test processor")
-                .identifiesControllerService(PhoenixDBCPService.class)
-                .required(true)
-                .build());
+        propDescs.add(new PropertyDescriptor.Builder().name("MyService test processor")
+                .description("MyService test processor").identifiesControllerService(PhoenixDBCPService.class)
+                .required(true).build());
         return propDescs;
     }
 }
