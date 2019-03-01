@@ -19,5 +19,6 @@ org.apache.nifi.lookup.PropertiesFileLookupService
 org.apache.nifi.lookup.RestLookupService
 org.apache.nifi.lookup.SimpleKeyValueLookupService
 org.apache.nifi.lookup.SimpleCsvFileLookupService
+org.apache.nifi.lookup.db.SimpleDatabaseLookupService
 org.apache.nifi.lookup.XMLFileLookupService
 org.apache.nifi.lookup.DistributedMapCacheLookupService

@@ -36,12 +36,9 @@ import java.sql.SQLException
 import java.sql.Statement
 
 import static org.hamcrest.CoreMatchers.instanceOf
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertThat
+import static org.junit.Assert.*
 
-
-class TestDatabaseRecordLookupService {
+class TestSimpleDatabaseLookupService {
 
     private TestRunner runner
 
@@ -82,31 +79,33 @@ class TestDatabaseRecordLookupService {
         stmt.execute("insert into TEST (id, val1, val2) VALUES (0, NULL, 'Hello')")
         stmt.execute("insert into TEST (id, val1, val2) VALUES (1, 1, 'World')")
 
-        final DatabaseRecordLookupService service = new DatabaseRecordLookupService()
+        final SimpleDatabaseLookupService service = new SimpleDatabaseLookupService()
 
         runner.addControllerService("db-lookup-service", service)
-        runner.setProperty(service, DatabaseRecordLookupService.DBCP_SERVICE, "dbcp")
+        runner.setProperty(service, SimpleDatabaseLookupService.DBCP_SERVICE, "dbcp")
         runner.assertNotValid()
-        runner.setProperty(service, DatabaseRecordLookupService.TABLE_NAME, "TEST")
-        runner.setProperty(service, DatabaseRecordLookupService.LOOKUP_KEY_COLUMN, "id")
+        runner.setProperty(service, SimpleDatabaseLookupService.TABLE_NAME, "TEST")
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_KEY_COLUMN, "id")
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_VALUE_COLUMN, "VAL1")
         runner.enableControllerService(service)
         runner.assertValid(service)
 
-        def lookupService = (DatabaseRecordLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
+        def lookupService = (SimpleDatabaseLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
 
         assertThat(lookupService, instanceOf(LookupService.class))
 
-        final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
-        assertNull("Should be null but is not", property1.get().getAsInt("VAL1"))
-        assertEquals("Hello", property1.get().getAsString("VAL2"))
-
-        final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
-        assertEquals(1, property2.get().getAsInt("VAL1"))
-        assertEquals("World", property2.get().getAsString("VAL2"))
-
+        // Lookup VAL1
+        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
+        assertFalse(property1.isPresent())
         // Key not found
-        final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "2"))
+        final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "2"))
         assertEquals(EMPTY_RECORD, property3)
+
+        runner.disableControllerService(service)
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_VALUE_COLUMN, "VAL2")
+        runner.enableControllerService(service)
+        final Optional<String> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
+        assertEquals("World", property2.get())
     }
 
     @Test
@@ -128,36 +127,37 @@ class TestDatabaseRecordLookupService {
         stmt.execute("insert into TEST (id, val1, val2) VALUES (0, NULL, 'Hello')")
         stmt.execute("insert into TEST (id, val1, val2) VALUES (1, 1, 'World')")
 
-        final DatabaseRecordLookupService service = new DatabaseRecordLookupService()
+        final SimpleDatabaseLookupService service = new SimpleDatabaseLookupService()
 
         runner.addControllerService("db-lookup-service", service)
-        runner.setProperty(service, DatabaseRecordLookupService.DBCP_SERVICE, "dbcp")
+        runner.setProperty(service, SimpleDatabaseLookupService.DBCP_SERVICE, "dbcp")
         runner.assertNotValid()
-        runner.setProperty(service, DatabaseRecordLookupService.TABLE_NAME, "TEST")
-        runner.setProperty(service, DatabaseRecordLookupService.LOOKUP_KEY_COLUMN, "id")
-        runner.setProperty(service, DatabaseRecordLookupService.CACHE_SIZE, "10")
+        runner.setProperty(service, SimpleDatabaseLookupService.TABLE_NAME, "TEST")
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_KEY_COLUMN, "id")
+        runner.setProperty(service, SimpleDatabaseLookupService.CACHE_SIZE, "10")
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_VALUE_COLUMN, "VAL1")
         runner.enableControllerService(service)
         runner.assertValid(service)
 
-        def lookupService = (DatabaseRecordLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
+        def lookupService = (SimpleDatabaseLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
 
         assertThat(lookupService, instanceOf(LookupService.class))
 
-        final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "1"))
-        assertEquals(1, property1.get().getAsInt("VAL1"))
-        assertEquals("World", property1.get().getAsString("VAL2"))
+        // Lookup VAL1
+        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "1"))
+        assertEquals("1", property1.get())
+        final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "0"))
+        assertFalse(property3.isPresent())
 
-        final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
-        assertEquals(1, property2.get().getAsInt("VAL1"))
-        assertEquals("World", property2.get().getAsString("VAL2"))
 
-        final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "0"))
-        assertNull(property3.get().getAsInt("VAL1"))
-        assertEquals("Hello", property3.get().getAsString("VAL2"))
+        runner.disableControllerService(service)
+        runner.setProperty(service, SimpleDatabaseLookupService.LOOKUP_VALUE_COLUMN, "VAL2")
+        runner.enableControllerService(service)
+        final Optional<String> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
+        assertEquals("World", property2.get())
 
-        final Optional<Record> property4 = lookupService.lookup(Collections.singletonMap("key", "0"))
-        assertNull(property4.get().getAsInt("VAL1"))
-        assertEquals("Hello", property4.get().getAsString("VAL2"))
+        final Optional<String> property4 = lookupService.lookup(Collections.singletonMap("key", "0"))
+        assertEquals("Hello", property4.get())
     }
 
     /**

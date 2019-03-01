@@ -18,25 +18,19 @@ package org.apache.nifi.lookup.db;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.avro.Schema;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
-import org.apache.nifi.lookup.RecordLookupService;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.ResultSetRecordSet;
+import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -50,13 +44,22 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-@Tags({"lookup", "cache", "enrich", "join", "rdbms", "database", "reloadable", "key", "value", "record"})
-@CapabilityDescription("A relational-database-based lookup service. When the lookup key is found in the database, " +
-        "the columns are returned as a Record. Only one row will be returned for each lookup, duplicate database entries are ignored.")
-public class DatabaseRecordLookupService extends AbstractDatabaseLookupService implements RecordLookupService {
+public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService implements StringLookupService {
 
-    private volatile Cache<Tuple<String, Object>, Record> cache;
+    private volatile Cache<Tuple<String, Object>, String> cache;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    private volatile String lookupValueColumn;
+
+    static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
+            new PropertyDescriptor.Builder()
+                    .name("lookup-value-column")
+                    .displayName("Lookup Value Column")
+                    .description("The column whose value will be returned when the Lookup value is matched")
+                    .required(true)
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .build();
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
@@ -64,6 +67,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         properties.add(DBCP_SERVICE);
         properties.add(TABLE_NAME);
         properties.add(LOOKUP_KEY_COLUMN);
+        properties.add(LOOKUP_VALUE_COLUMN);
         properties.add(CACHE_SIZE);
         properties.add(CLEAR_CACHE_ON_ENABLED);
         this.properties = Collections.unmodifiableList(properties);
@@ -73,9 +77,10 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     public void onEnabled(final ConfigurationContext context) {
         this.dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
+        this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
         int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
         boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
-        if(this.cache == null || (cacheSize > 0 && clearCache)) {
+        if (this.cache == null || (cacheSize > 0 && clearCache)) {
             this.cache = Caffeine.newBuilder()
                     .maximumSize(cacheSize)
                     .build();
@@ -87,17 +92,18 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                 .maxRows(1)
                 // Keep column names as field names
                 .convertNames(false)
-                .useLogicalTypes(true)
+                // Get the value as a string, so logical types are irrelevant
+                .useLogicalTypes(false)
                 .build();
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
     @Override
-    public Optional<Record> lookup(final Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }
@@ -112,19 +118,25 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
 
         // Not using the function param of cache.get so we can catch and handle the checked exceptions
-        Record foundRecord = cache.get(cacheLookupKey, k -> null);
+        String foundRecord = cache.get(cacheLookupKey, k -> null);
 
         if (foundRecord == null) {
-            final String selectQuery = "SELECT * FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
+            final String selectQuery = "SELECT " + lookupValueColumn + " FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
             try (final Connection con = dbcpService.getConnection(context);
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
                 st.setObject(1, key);
                 ResultSet resultSet = st.executeQuery();
-                final Schema avroSchema = JdbcCommon.createSchema(resultSet, options);
-                final RecordSchema recordAvroSchema = AvroTypeUtil.createSchema(avroSchema);
-                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, recordAvroSchema, true);
-                foundRecord = resultSetRecordSet.next();
+
+                if (!resultSet.next()) {
+                    return Optional.empty();
+                }
+
+                Object o = resultSet.getObject(lookupValueColumn);
+                if (o == null) {
+                    return Optional.empty();
+                }
+                foundRecord = o.toString();
 
                 // Populate the cache if the record is present
                 if (foundRecord != null) {
@@ -135,8 +147,6 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
             } catch (SQLException se) {
                 throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString(), se);
-            } catch (IOException ioe) {
-                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "using value " + key.toString(), ioe);
             }
         }
 
