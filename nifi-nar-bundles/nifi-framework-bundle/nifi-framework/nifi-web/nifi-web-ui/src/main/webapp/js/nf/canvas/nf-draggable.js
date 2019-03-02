@@ -62,6 +62,7 @@
     var nfCanvas;
     var drag;
     var snapAlignmentPixels = 8;
+    var snapEnabled = true;
 
     /**
      * Updates the positioning of all selected components.
@@ -214,12 +215,14 @@
                             });
                     } else {
                         // update the position of the drag selection
+                        // snap align the position unless the user is holding shift
+                        snapEnabled = !d3.event.sourceEvent.shiftKey;
                         dragSelection.attr('x', function (d) {
                             d.x += d3.event.dx;
-                            return (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels);
+                            return snapEnabled ? (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels) : d.x;
                         }).attr('y', function (d) {
                                 d.y += d3.event.dy;
-                                return (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels);
+                                return snapEnabled ? (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels) : d.y;
                         });
                      }
                 })
@@ -260,8 +263,8 @@
          */
         updateComponentPosition: function (d, delta) {
             var newPosition = {
-                'x': (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels),
-                'y': (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels)
+                'x': snapEnabled ? (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.x + delta.x,
+                'y': snapEnabled ? (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.y + delta.y
             };
 
             // build the entity
