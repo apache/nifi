@@ -22,11 +22,6 @@
     </parent>
     <artifactId>nifi-toolkit-s2s</artifactId>
     <description>Site-to-site cli</description>
-
-    <properties>
-        <jackson.version>2.9.7</jackson.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
