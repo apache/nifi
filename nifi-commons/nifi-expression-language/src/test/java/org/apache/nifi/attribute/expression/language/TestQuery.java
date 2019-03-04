@@ -1347,6 +1347,15 @@ public class TestQuery {
     }
 
     @Test
+    public void testDefault() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("exists_val", "existsValue");
+
+        verifyEquals("${exists_val:default('defaultValue')}", attributes, "existsValue");
+        verifyEquals("${not_exists_val:default('defaultValue')}", attributes, "defaultValue");
+    }
+
+    @Test
     public void testSubstringAfter() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");

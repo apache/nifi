@@ -624,6 +624,34 @@ Each of the following functions manipulates a String in some way.
 
 
 [.function]
+=== default
+
+*Description*: [.description]#Returns Subject if it's defined & not null, will return first argument otherwise.#
+
+*Subject Type*: [.subject]#Any#
+
+*Arguments*:
+
+	- [.argName]#_value_# : [.argDesc]#The String with default value#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "filename" attribute is defined with value "filename.txt" and
+    "not_filename" attribute is not defined or equal null, then the following
+    Expressions will result in the following values:
+
+.SubstringBefore Examples
+|======================================================================
+| Expression | Value
+| `${filename:default('default.txt')}` | `filename.txt`
+| `${not_filename:default('default.txt')}` | `default.txt`
+|======================================================================
+
+
+
+
+
+[.function]
 === substring
 
 *Description*:

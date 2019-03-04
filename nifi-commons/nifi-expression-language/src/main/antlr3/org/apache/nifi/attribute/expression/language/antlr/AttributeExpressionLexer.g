@@ -158,6 +158,7 @@ FIND	: 'find';	// regex
 MATCHES : 'matches';	// regex
 EQUALS	: 'equals';
 EQUALS_IGNORE_CASE : 'equalsIgnoreCase';
+DEFAULT : 'default';
 GREATER_THAN	: 'gt';
 LESS_THAN		: 'lt';
 GREATER_THAN_OR_EQUAL	: 'ge';
