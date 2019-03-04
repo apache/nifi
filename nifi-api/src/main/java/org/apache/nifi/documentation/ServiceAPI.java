@@ -28,7 +28,7 @@ package org.apache.nifi.documentation;
  * <b>NOTE WELL:</b> At this time, while this class is part of nifi-api, it is still evolving and may change in a non-backward-compatible manner or even be
  * removed from one incremental release to the next. Use at your own risk!
  */
-public interface ProvidedServiceAPI {
+public interface ServiceAPI {
     /**
      * @return the fully qualified class name of the interface implemented by the Controller Service
      */
