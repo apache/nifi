@@ -99,7 +99,9 @@ public class PutAzureEventHubTest {
     private static class MockPutAzureEventHub extends PutAzureEventHub{
 
         byte[] receivedBuffer = null;
-        byte[] getReceivedBuffer(){return receivedBuffer;}
+        byte[] getReceivedBuffer(){
+            return receivedBuffer;
+        }
 
         @Override
         protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
