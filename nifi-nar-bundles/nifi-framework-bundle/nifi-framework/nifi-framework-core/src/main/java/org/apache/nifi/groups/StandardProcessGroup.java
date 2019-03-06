@@ -3447,8 +3447,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         // A's former name. This is a valid state by the end of the flow update, but for a brief moment there may be two ports with the
         // same name. To avoid this conflict, we keep the final names in a map indexed by port id, use a temporary name for each port
         // during the update, and after all ports have been added/updated/removed, we set the final names on all ports.
-        final Map<String, String> proposedInputPortNamesByPortId = new HashMap<>();
-        final Map<String, String> proposedOutputPortNamesByPortId = new HashMap<>();
+        final Map<Port, String> proposedPortFinalNames = new HashMap<>();
 
         group.setComments(proposed.getComments());
 
@@ -3600,12 +3599,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (port == null) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
                 final Port added = addInputPort(group, proposedPort, componentIdSeed, temporaryName);
-                proposedInputPortNamesByPortId.put(added.getIdentifier(), proposedPort.getName());
+                proposedPortFinalNames.put(added, proposedPort.getName());
                 flowManager.onInputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedInputPortNamesByPortId.put(port.getIdentifier(), proposedPort.getName());
+                proposedPortFinalNames.put(port, proposedPort.getName());
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
@@ -3625,12 +3624,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (port == null) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
                 final Port added = addOutputPort(group, proposedPort, componentIdSeed, temporaryName);
-                proposedOutputPortNamesByPortId.put(added.getIdentifier(), proposedPort.getName());
+                proposedPortFinalNames.put(added, proposedPort.getName());
                 flowManager.onOutputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 final String temporaryName = generateTemporaryPortName(proposedPort);
-                proposedOutputPortNamesByPortId.put(port.getIdentifier(), proposedPort.getName());
+                proposedPortFinalNames.put(port, proposedPort.getName());
                 updatePort(port, proposedPort, temporaryName);
                 LOG.info("Updated {}", port);
             } else {
@@ -3789,27 +3788,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         // Now that all input/output ports have been removed, we should be able to update
         // all ports to the final name that was proposed in the new flow version.
-        for (final Map.Entry<String, String> idAndName : proposedInputPortNamesByPortId.entrySet()) {
-            final String portId = idAndName.getKey();
-            final String portFinalName = idAndName.getValue();
-            final Port port = getInputPort(portId);
-            if (port == null) {
-                LOG.warn("Expected to find input port with id={} but it was missing.", portId);
-                continue;
-            }
+        for (final Map.Entry<Port, String> portAndFinalName : proposedPortFinalNames.entrySet()) {
+            final Port port = portAndFinalName.getKey();
+            final String finalName = portAndFinalName.getValue();
             LOG.info("Updating {} to replace temporary name with final name", port);
-            updatePortToSetFinalName(port, portFinalName);
-        }
-        for (final Map.Entry<String, String> idAndName : proposedOutputPortNamesByPortId.entrySet()) {
-            final String portId = idAndName.getKey();
-            final String portFinalName = idAndName.getValue();
-            final Port port = getOutputPort(portId);
-            if (port == null) {
-                LOG.warn("Expected to find output port with id={} but it was missing.", portId);
-                continue;
-            }
-            LOG.info("Updating {} to replace temporary name with final name", port);
-            updatePortToSetFinalName(port, portFinalName);
+            updatePortToSetFinalName(port, finalName);
         }
 
         for (final String removedVersionedId : labelsRemoved) {
