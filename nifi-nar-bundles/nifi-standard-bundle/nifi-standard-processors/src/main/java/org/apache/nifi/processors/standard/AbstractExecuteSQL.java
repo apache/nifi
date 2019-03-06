@@ -312,6 +312,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 // If we've reached the batch size, send out the flow files
                                 if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                                     session.transfer(resultSetFlowFiles, REL_SUCCESS);
+                                    // Need to remove the original input file if it exists
+                                    if (fileToProcess != null) {
+                                        session.remove(fileToProcess);
+                                        fileToProcess = null;
+                                    }
                                     session.commit();
                                     resultSetFlowFiles.clear();
                                 }
