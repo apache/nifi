@@ -61,7 +61,7 @@ public class PostSlackTextMessageTest {
     }
 
     @Test
-    public void sendMessageWithBasicPropertiesSuccessfully() {
+    public void sendMessageSuccessfully() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
@@ -76,14 +76,11 @@ public class PostSlackTextMessageTest {
     }
 
     @Test
-    public void sendMessageWithAllPropertiesSuccessfully() {
+    public void sendMessageWithAttachmentSuccessfully() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
-        testRunner.setProperty(PostSlack.USERNAME, "my-username");
-        testRunner.setProperty(PostSlack.ICON_EMOJI, ":my-icon-emoji:");
-        testRunner.setProperty(PostSlack.ICON_URL, "http://my-icon-url");
         testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
 
         testRunner.enqueue(new byte[0]);
@@ -93,9 +90,6 @@ public class PostSlackTextMessageTest {
 
         JsonObject requestBodyJson = getRequestBodyJson();
         assertBasicRequest(requestBodyJson);
-        assertEquals("my-username", requestBodyJson.getString("username"));
-        assertEquals(":my-icon-emoji:", requestBodyJson.getString("icon_emoji"));
-        assertEquals("http://my-icon-url", requestBodyJson.getString("icon_url"));
         assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
     }
 

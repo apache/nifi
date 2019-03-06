@@ -184,43 +184,6 @@ public class PostSlack extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor
-            .Builder()
-            .name("username")
-            .displayName("Username")
-            .description("The displayed Slack username." +
-                    " The property value will only be used if 'Upload FlowFile' has been set to 'No'." +
-                    " If the property evaluated to null or empty string, then it will not be added to the Slack message.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor ICON_EMOJI = new PropertyDescriptor
-            .Builder()
-            .name("icon-emoji")
-            .displayName("Icon Emoji")
-            .description("Icon Emoji to be used for the Slack message. Must begin and end with a colon (e.g. :ghost:)." +
-                    " The property value will only be used if 'Upload FlowFile' has been set to 'No'." +
-                    " If the property evaluated to null or empty string, then it will not be added to the Slack message.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(new EmojiValidator())
-            .build();
-
-    public static final PropertyDescriptor ICON_URL = new PropertyDescriptor
-            .Builder()
-            .name("icon-url")
-            .displayName("Icon URL")
-            .description("Icon URL to be used for the Slack message." +
-                    " The property value will only be used if 'Upload FlowFile' has been set to 'No'." +
-                    " If the property evaluated to null or empty string, then it will not be added to the Slack message.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are routed to success after being successfully sent to Slack")
@@ -232,7 +195,7 @@ public class PostSlack extends AbstractProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(POST_MESSAGE_URL, FILE_UPLOAD_URL, ACCESS_TOKEN, CHANNEL, TEXT, UPLOAD_FLOWFILE, FILE_TITLE, FILE_NAME, FILE_MIME_TYPE, USERNAME, ICON_EMOJI, ICON_URL));
+            Arrays.asList(POST_MESSAGE_URL, FILE_UPLOAD_URL, ACCESS_TOKEN, CHANNEL, TEXT, UPLOAD_FLOWFILE, FILE_TITLE, FILE_NAME, FILE_MIME_TYPE));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -411,21 +374,6 @@ public class PostSlack extends AbstractProcessor {
         }
         jsonBuilder.add("text", text);
 
-        String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        if (username != null && !username.isEmpty()) {
-            jsonBuilder.add("username", username);
-        }
-
-        String iconEmoji = context.getProperty(ICON_EMOJI).evaluateAttributeExpressions(flowFile).getValue();
-        if (iconEmoji != null && !iconEmoji.isEmpty()) {
-            jsonBuilder.add("icon_emoji", iconEmoji);
-        }
-
-        String iconUrl = context.getProperty(ICON_URL).evaluateAttributeExpressions(flowFile).getValue();
-        if (iconUrl != null && !iconUrl.isEmpty()) {
-            jsonBuilder.add("icon_url", iconUrl);
-        }
-
         if (!attachmentProperties.isEmpty()) {
             JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
             for (PropertyDescriptor attachmentProperty : attachmentProperties) {
@@ -498,19 +446,6 @@ public class PostSlack extends AbstractProcessor {
 
         PostSlackException(String message, Throwable cause) {
             super(message, cause);
-        }
-    }
-
-    private static class EmojiValidator implements Validator {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (input.startsWith(":") && input.endsWith(":") && input.length() > 2) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            }
-
-            return new ValidationResult.Builder().input(input).subject(subject).valid(false)
-                    .explanation("Must begin and end with a colon")
-                    .build();
         }
     }
 }
