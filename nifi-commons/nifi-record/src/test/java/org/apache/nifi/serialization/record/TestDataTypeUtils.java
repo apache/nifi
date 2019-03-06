@@ -108,6 +108,34 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testConvertArrayOfRecordsToJavaArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("stringField", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("intField", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values1 = new HashMap<>();
+        values1.put("stringField", "hello");
+        values1.put("intField", 5);
+        final Record inputRecord1 = new MapRecord(schema, values1);
+
+        final Map<String, Object> values2 = new HashMap<>();
+        values2.put("stringField", "world");
+        values2.put("intField", 50);
+        final Record inputRecord2 = new MapRecord(schema, values2);
+
+        Object[] recordArray = {inputRecord1, inputRecord2};
+        Object resultObj = DataTypeUtils.convertRecordFieldtoObject(recordArray, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(schema)));
+        assertNotNull(resultObj);
+        assertTrue(resultObj instanceof Object[]);
+        Object[] resultArray = (Object[]) resultObj;
+        for(Object o : resultArray) {
+            assertTrue(o instanceof Map);
+        }
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testConvertRecordFieldToObject() {
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, null));
@@ -251,5 +279,12 @@ public class TestDataTypeUtils {
                 }
             }
         }
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeMap() {
+        Map<String,Object> testMap = new HashMap<>();
+        testMap.put("Hello", "World");
+        assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
     }
 }
