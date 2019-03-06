@@ -40,7 +40,7 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfPostMessageUrlIsEmpty() {
+    public void validationShouldFailIfPostMessageUrlIsEmptyString() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, "");
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
@@ -60,7 +60,7 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfFileUploadUrlIsEmpty() {
+    public void validationShouldFailIfFileUploadUrlIsEmptyString() {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, "");
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
@@ -88,7 +88,7 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfAccessTokenIsEmpty() {
+    public void validationShouldFailIfAccessTokenIsEmptyString() {
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
@@ -105,7 +105,7 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfChannelIsEmpty() {
+    public void validationShouldFailIfChannelIsEmptyString() {
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
@@ -114,7 +114,7 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfTextIsNotGiven() {
+    public void validationShouldFailIfTextIsNotGivenAndNoAttachmentSpecifiedNorFileUploadChosen() {
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
 
@@ -122,10 +122,30 @@ public class PostSlackConfigValidationTest {
     }
 
     @Test
-    public void validationShouldFailIfTextIsEmpty() {
+    public void validationShouldPassIfTextIsNotGivenButAttachmentSpecified() {
+        testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
+        testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
+        testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void validationShouldPassIfTextIsNotGivenButFileUploadChosen() {
+        testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
+        testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
+        testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void validationShouldFailIfTextIsEmptyString() {
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "");
+        testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
+        testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
 
         testRunner.assertNotValid();
     }

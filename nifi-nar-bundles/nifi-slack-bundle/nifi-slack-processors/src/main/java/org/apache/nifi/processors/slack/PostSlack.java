@@ -38,7 +38,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -60,7 +59,9 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -126,8 +127,7 @@ public class PostSlack extends AbstractProcessor {
     public static final PropertyDescriptor TEXT = new PropertyDescriptor.Builder()
             .name("text")
             .displayName("Text")
-            .description("Text of the Slack message to send.")
-            .required(true)
+            .description("Text of the Slack message to send. Only required if no attachment has been specified and 'Upload File' has been set to 'No'.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -267,6 +267,27 @@ public class PostSlack extends AbstractProcessor {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        List<ValidationResult> validationResults = new ArrayList<>();
+
+        boolean textSpecified = validationContext.getProperty(TEXT).isSet();
+        boolean attachmentSpecified = validationContext.getProperties().keySet()
+                .stream()
+                .anyMatch(PropertyDescriptor::isDynamic);
+        boolean uploadFileYes = validationContext.getProperty(UPLOAD_FLOWFILE).asBoolean();
+
+        if (!textSpecified && !attachmentSpecified && !uploadFileYes) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(TEXT.getDisplayName())
+                    .valid(false)
+                    .explanation("it is required if no attachment has been specified, nor 'Upload FlowFile' has been set to 'Yes'.")
+                    .build());
+        }
+
+        return validationResults;
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -369,10 +390,13 @@ public class PostSlack extends AbstractProcessor {
         jsonBuilder.add("channel", channel);
 
         String text = context.getProperty(TEXT).evaluateAttributeExpressions(flowFile).getValue();
-        if (text == null || text.isEmpty()) {
-            throw new PostSlackException("The text of the message must be specified.");
+        if (text != null && !text.isEmpty()){
+            jsonBuilder.add("text", text);
+        } else {
+            if (attachmentProperties.isEmpty()) {
+                throw new PostSlackException("The text of the message must be specified if no attachment has been specified and 'Upload File' has been set to 'No'.");
+            }
         }
-        jsonBuilder.add("text", text);
 
         if (!attachmentProperties.isEmpty()) {
             JsonArrayBuilder jsonArrayBuilder = Json.createArrayBuilder();
@@ -404,10 +428,9 @@ public class PostSlack extends AbstractProcessor {
         multipartBuilder.addTextBody("channels", channel, MIME_TYPE_PLAINTEXT_UTF8);
 
         String text = context.getProperty(TEXT).evaluateAttributeExpressions(flowFile).getValue();
-        if (text == null || text.isEmpty()) {
-            throw new PostSlackException("The text of the message must be specified.");
+        if (text != null && !text.isEmpty()) {
+            multipartBuilder.addTextBody("initial_comment", text, MIME_TYPE_PLAINTEXT_UTF8);
         }
-        multipartBuilder.addTextBody("initial_comment", text, MIME_TYPE_PLAINTEXT_UTF8);
 
         String title = context.getProperty(FILE_TITLE).evaluateAttributeExpressions(flowFile).getValue();
         if (title != null && !title.isEmpty()) {

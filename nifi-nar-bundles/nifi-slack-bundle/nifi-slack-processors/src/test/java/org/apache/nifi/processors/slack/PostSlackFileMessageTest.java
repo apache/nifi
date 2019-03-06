@@ -64,7 +64,6 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
 
         Map<String, String> flowFileAttributes = new HashMap<>();
@@ -77,7 +76,7 @@ public class PostSlackFileMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
-        assertRequest("my-file-name", "image/png", null);
+        assertRequest("my-file-name", "image/png", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
@@ -99,7 +98,7 @@ public class PostSlackFileMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
-        assertRequest("my-file-name", "image/png", "my-file-title");
+        assertRequest("my-file-name", "image/png", "my-text", "my-file-title");
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
@@ -110,23 +109,6 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl());
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "${dummy}");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
-        testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
-
-        testRunner.enqueue("my-data");
-        testRunner.run(1);
-
-        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_FAILURE);
-
-        assertFalse(servlet.hasBeenInteracted());
-    }
-
-    @Test
-    public void processShouldFailWhenTextIsEmpty() {
-        testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl());
-        testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
-        testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "${dummy}");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
 
         testRunner.enqueue("my-data");
@@ -142,7 +124,6 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "${dummy}");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "image/png");
@@ -153,7 +134,7 @@ public class PostSlackFileMessageTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
         // fallback value for file name is 'file'
-        assertRequest("file", "image/png", null);
+        assertRequest("file", "image/png", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
@@ -164,7 +145,6 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "my-file-name");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "${dummy}");
@@ -175,7 +155,7 @@ public class PostSlackFileMessageTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
         // fallback value for mime type is 'application/octet-stream'
-        assertRequest("my-file-name", "application/octet-stream", null);
+        assertRequest("my-file-name", "application/octet-stream", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
@@ -186,7 +166,6 @@ public class PostSlackFileMessageTest {
         testRunner.setProperty(PostSlack.FILE_UPLOAD_URL, server.getUrl() + REQUEST_PATH_SUCCESS_FILE_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty(PostSlack.UPLOAD_FLOWFILE, PostSlack.UPLOAD_FLOWFILE_YES);
         testRunner.setProperty(PostSlack.FILE_NAME, "my-file-name");
         testRunner.setProperty(PostSlack.FILE_MIME_TYPE, "invalid");
@@ -197,7 +176,7 @@ public class PostSlackFileMessageTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
         // fallback value for mime type is 'application/octet-stream'
-        assertRequest("my-file-name", "application/octet-stream", null);
+        assertRequest("my-file-name", "application/octet-stream", null, null);
 
         FlowFile flowFileOut = testRunner.getFlowFilesForRelationship(PutSlack.REL_SUCCESS).get(0);
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
@@ -225,7 +204,7 @@ public class PostSlackFileMessageTest {
         assertEquals("slack-file-url", flowFileOut.getAttribute("slack.file.url"));
     }
 
-    private void assertRequest(String fileName, String mimeType, String title) {
+    private void assertRequest(String fileName, String mimeType, String text, String title) {
         Map<String, String> requestHeaders = servlet.getLastPostHeaders();
         assertEquals("Bearer my-access-token", requestHeaders.get("Authorization"));
 
@@ -240,8 +219,10 @@ public class PostSlackFileMessageTest {
         assertNotNull("'channels' parameter not found in the POST request body", parts.get("channels"));
         assertEquals("'channels' parameter has wrong value", "my-channel", parts.get("channels"));
 
-        assertNotNull("'initial_comment' parameter not found in the POST request body", parts.get("initial_comment"));
-        assertEquals("'initial_comment' parameter has wrong value", "my-text", parts.get("initial_comment"));
+        if (text != null) {
+            assertNotNull("'initial_comment' parameter not found in the POST request body", parts.get("initial_comment"));
+            assertEquals("'initial_comment' parameter has wrong value", text, parts.get("initial_comment"));
+        }
 
         assertNotNull("'filename' parameter not found in the POST request body", parts.get("filename"));
         assertEquals("'fileName' parameter has wrong value", fileName, parts.get("filename"));

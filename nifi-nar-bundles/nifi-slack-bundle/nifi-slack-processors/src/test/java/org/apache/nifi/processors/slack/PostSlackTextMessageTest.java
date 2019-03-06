@@ -61,7 +61,7 @@ public class PostSlackTextMessageTest {
     }
 
     @Test
-    public void sendMessageSuccessfully() {
+    public void sendTextOnlyMessageSuccessfully() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
@@ -72,15 +72,35 @@ public class PostSlackTextMessageTest {
 
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
-        assertBasicRequest(getRequestBodyJson());
+        JsonObject requestBodyJson = getRequestBodyJson();
+        assertBasicRequest(requestBodyJson);
+        assertEquals("my-text", requestBodyJson.getString("text"));
     }
 
     @Test
-    public void sendMessageWithAttachmentSuccessfully() {
+    public void sendTextWithAttachmentMessageSuccessfully() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty(PostSlack.TEXT, "my-text");
+        testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
+
+        testRunner.enqueue(new byte[0]);
+        testRunner.run(1);
+
+        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
+
+        JsonObject requestBodyJson = getRequestBodyJson();
+        assertBasicRequest(requestBodyJson);
+        assertEquals("my-text", requestBodyJson.getString("text"));
+        assertEquals("[{\"my-attachment-key\":\"my-attachment-value\"}]", requestBodyJson.getJsonArray("attachments").toString());
+    }
+
+    @Test
+    public void sendAttachmentOnlyMessageSuccessfully() {
+        testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
+        testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
+        testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
         testRunner.setProperty("attachment_01", "{\"my-attachment-key\": \"my-attachment-value\"}");
 
         testRunner.enqueue(new byte[0]);
@@ -109,7 +129,7 @@ public class PostSlackTextMessageTest {
     }
 
     @Test
-    public void processShouldFailWhenTextIsEmpty() {
+    public void processShouldFailWhenTextIsEmptyAndNoAttachmentSpecified() {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl());
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
@@ -128,7 +148,6 @@ public class PostSlackTextMessageTest {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty("attachment_01", "${dummy}");
         testRunner.setProperty("attachment_02", "{\"my-attachment-key\": \"my-attachment-value\"}");
 
@@ -148,7 +167,6 @@ public class PostSlackTextMessageTest {
         testRunner.setProperty(PostSlack.POST_MESSAGE_URL, server.getUrl() + REQUEST_PATH_SUCCESS_TEXT_MSG);
         testRunner.setProperty(PostSlack.ACCESS_TOKEN, "my-access-token");
         testRunner.setProperty(PostSlack.CHANNEL, "my-channel");
-        testRunner.setProperty(PostSlack.TEXT, "my-text");
         testRunner.setProperty("attachment_01", "{invalid-json}");
         testRunner.setProperty("attachment_02", "{\"my-attachment-key\": \"my-attachment-value\"}");
 
@@ -243,6 +261,7 @@ public class PostSlackTextMessageTest {
         testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS);
 
         JsonObject requestBodyJson = getRequestBodyJson();
+        assertBasicRequest(requestBodyJson);
         assertEquals("Iñtërnâtiônàližætiøn", requestBodyJson.getString("text"));
     }
 
@@ -252,7 +271,6 @@ public class PostSlackTextMessageTest {
         assertEquals("application/json; charset=UTF-8", requestHeaders.get("Content-Type"));
 
         assertEquals("my-channel", requestBodyJson.getString("channel"));
-        assertEquals("my-text", requestBodyJson.getString("text"));
     }
 
     private JsonObject getRequestBodyJson() {
