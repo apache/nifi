@@ -204,6 +204,30 @@ public class DataTypeUtils {
                 if (value == null) {
                     return false;
                 }
+
+                // value may be a Map even when type is RECORD
+                if (value instanceof Map) {
+                    final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
+                    if (schema == null) {
+                        return true;
+                    }
+                    Map<String, Object> record = ((Map<String, Object>) value);
+                    for (final RecordField childField : schema.getFields()) {
+                        final Object childValue = record.get(childField.getFieldName());
+                        if (childValue == null && !childField.isNullable()) {
+                            logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
+                            return false;
+                        }
+                        if (childValue == null) {
+                            continue; // consider compatible
+                        }
+
+                        if (!isCompatibleDataType(childValue, childField.getDataType())) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
                 if (!(value instanceof Record)) {
                     return false;
                 }
@@ -687,6 +711,9 @@ public class DataTypeUtils {
             return convertRecordMapToJavaMap((Map) value, ((MapDataType) dataType).getValueType());
         } else if (dataType != null && isScalarValue(dataType, value)) {
             return value;
+        } else if (value instanceof Object[] && dataType instanceof ArrayDataType) {
+            // This is likely a Map whose values are represented as an array. Return a new array with each element converted to a Java object
+            return convertRecordArrayToJavaArray((Object[]) value, ((ArrayDataType) dataType).getElementType());
         }
 
         throw new IllegalTypeConversionException("Cannot convert value of class " + value.getClass().getName() + " because the type is not supported");
