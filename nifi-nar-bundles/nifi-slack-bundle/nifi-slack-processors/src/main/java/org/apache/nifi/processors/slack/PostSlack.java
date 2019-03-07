@@ -70,10 +70,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-@Tags({"slack", "post", "notify"})
+@Tags({"slack", "post", "notify", "upload", "message"})
 @CapabilityDescription("Sends a message on Slack. The FlowFile content (e.g. an image) can be uploaded and attached to the message.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@DynamicProperty(name = "Arbitrary name", value = "JSON snippet specifying a Slack message \"attachment\"",
+@DynamicProperty(name = "<Arbitrary name>", value = "JSON snippet specifying a Slack message \"attachment\"",
         description = "The property value will be converted to JSON and will be added to the array of attachments in the JSON payload being sent to Slack." +
                 " The property name will not be used by the processor.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
