@@ -241,6 +241,31 @@ public class TestEncryptContent {
     }
 
     @Test
+    public void testShouldValidateEncryptContentExpandsTildeToUsersHomeDirectory() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
+
+        System.setProperty("user.home", HOME_PATH);
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "~/gpg/pubring.gpg");
+        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "NiFi PGP Test Key (Short test key for NiFi PGP unit tests) <alopresto.apache+test@gmail.com>");
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+
+        // Act
+        results = pc.validate();
+
+        // Assert
+        String message = EncryptContent.PUBLIC_KEYRING.getDisplayName() + " cannot be found on the file system on path src/test/resources/TestEncryptContent/user/testuser/gpg";
+        Assert.assertEquals(message, 0, results.size());
+    }
+
+    @Test
     public void testShouldValidatePGPPublicKeyringExists() {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);

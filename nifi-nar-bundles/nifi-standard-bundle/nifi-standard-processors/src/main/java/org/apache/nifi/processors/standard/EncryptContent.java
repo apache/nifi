@@ -61,6 +61,7 @@ import org.apache.nifi.security.util.crypto.KeyedEncryptor;
 import org.apache.nifi.security.util.crypto.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.security.util.crypto.OpenPGPPasswordBasedEncryptor;
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -252,7 +253,7 @@ public class EncryptContent extends AbstractProcessor {
         final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();
         if (isPGPAlgorithm(algorithm)) {
             final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
-            final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
+            final String publicKeyring = FileExpansionUtil.expandPath(context.getProperty(PUBLIC_KEYRING).getValue());
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
             final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue();
@@ -472,7 +473,8 @@ public class EncryptContent extends AbstractProcessor {
         try {
             if (isPGPAlgorithm(algorithm)) {
                 final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-                final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
+
+                final String publicKeyring = FileExpansionUtil.expandPath(context.getProperty(PUBLIC_KEYRING).getValue());
                 final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
                 if (encrypt && publicKeyring != null) {
                     final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
