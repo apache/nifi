@@ -100,13 +100,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.7</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- overriding jackson-dataformat-cbor in aws-java-sdk-core -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
-            <version>2.9.7</version>
+            <version>${jackson.version}</version>
         </dependency>
     </dependencies>
     <build>

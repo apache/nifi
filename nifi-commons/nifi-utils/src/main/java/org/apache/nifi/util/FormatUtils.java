@@ -399,8 +399,8 @@ public class FormatUtils {
     public static String formatNanos(final long nanos, final boolean includeTotalNanos) {
         final StringBuilder sb = new StringBuilder();
 
-        final long seconds = nanos > 1000000000L ? nanos / 1000000000L : 0L;
-        long millis = nanos > 1000000L ? nanos / 1000000L : 0L;
+        final long seconds = nanos >= 1000000000L ? nanos / 1000000000L : 0L;
+        long millis = nanos >= 1000000L ? nanos / 1000000L : 0L;
         final long nanosLeft = nanos % 1000000L;
 
         if (seconds > 0) {
