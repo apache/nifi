@@ -345,6 +345,9 @@ public class AccessResource extends ApplicationResource {
                     .build();
             httpServletResponse.sendRedirect(logoutUri.toString());
         }
+
+        String authorizationHeader = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
+        jwtService.logOut(authorizationHeader);
     }
 
     @GET
