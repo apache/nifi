@@ -75,7 +75,8 @@ public class PrometheusMetricsUtil {
             .register(JVM_REGISTRY);
 
     private static final Gauge JVM_THREAD = Gauge.build()
-            .name("jvm_thread_stats").help("The JVM thread stats")
+            .name("jvm_thread_stats")
+            .help("The JVM thread stats")
             .labelNames("status")
             .register(JVM_REGISTRY);
 

@@ -69,8 +69,10 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("Instance ID")
-            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus").required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).defaultValue("${hostname(true)}")
+            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
