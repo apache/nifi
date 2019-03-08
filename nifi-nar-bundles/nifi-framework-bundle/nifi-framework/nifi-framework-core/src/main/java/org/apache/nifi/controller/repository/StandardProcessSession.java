@@ -359,8 +359,25 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final long updateProvenanceStart = System.nanoTime();
             updateProvenanceRepo(checkpoint);
 
-            final long claimRemovalStart = System.nanoTime();
-            final long updateProvenanceNanos = claimRemovalStart - updateProvenanceStart;
+            final long flowFileRepoUpdateStart = System.nanoTime();
+            final long updateProvenanceNanos = flowFileRepoUpdateStart - updateProvenanceStart;
+
+            // Update the FlowFile Repository
+            try {
+                final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
+                context.getFlowFileRepository().updateRepository((Collection) repoRecords);
+            } catch (final IOException ioe) {
+                // if we fail to commit the session, we need to roll back
+                // the checkpoints as well because none of the checkpoints
+                // were ever committed.
+                rollback(false, true);
+                throw new ProcessException("FlowFile Repository failed to update", ioe);
+            }
+
+            final long flowFileRepoUpdateFinishNanos = System.nanoTime();
+            final long flowFileRepoUpdateNanos = flowFileRepoUpdateFinishNanos - flowFileRepoUpdateStart;
+
+            final long claimRemovalStart = flowFileRepoUpdateFinishNanos;
 
             /**
              * Figure out which content claims can be released. At this point,
@@ -401,25 +418,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final long claimRemovalFinishNanos = System.nanoTime();
             final long claimRemovalNanos = claimRemovalFinishNanos - claimRemovalStart;
 
-            // Update the FlowFile Repository
-            try {
-                final Collection<StandardRepositoryRecord> repoRecords = checkpoint.records.values();
-                context.getFlowFileRepository().updateRepository((Collection) repoRecords);
-            } catch (final IOException ioe) {
-                // if we fail to commit the session, we need to roll back
-                // the checkpoints as well because none of the checkpoints
-                // were ever committed.
-                rollback(false, true);
-                throw new ProcessException("FlowFile Repository failed to update", ioe);
-            }
-
-            final long flowFileRepoUpdateFinishNanos = System.nanoTime();
-            final long flowFileRepoUpdateNanos = flowFileRepoUpdateFinishNanos - claimRemovalFinishNanos;
-
             updateEventRepository(checkpoint);
 
             final long updateEventRepositoryFinishNanos = System.nanoTime();
-            final long updateEventRepositoryNanos = updateEventRepositoryFinishNanos - flowFileRepoUpdateFinishNanos;
+            final long updateEventRepositoryNanos = updateEventRepositoryFinishNanos - claimRemovalFinishNanos;
 
             // transfer the flowfiles to the connections' queues.
             final Map<FlowFileQueue, Collection<FlowFileRecord>> recordMap = new HashMap<>();
