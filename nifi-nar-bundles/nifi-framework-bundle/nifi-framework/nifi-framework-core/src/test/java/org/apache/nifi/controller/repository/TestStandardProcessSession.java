@@ -92,6 +92,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.notNull;
@@ -323,6 +324,60 @@ public class TestStandardProcessSession {
         }
     }
 
+
+    @Test
+    public void testUpdateFlowFileRepoFailsOnSessionCommit() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create("original".getBytes());
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(8L)
+            .contentClaim(contentClaim)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile ff1 = session.get();
+        assertNotNull(ff1);
+
+        // Fork a child FlowFile.
+        final FlowFile child = session.create(flowFileRecord);
+        final FlowFile updated = session.write(flowFileRecord, out -> out.write("update".getBytes()));
+        final ContentClaim updatedContentClaim = ((FlowFileRecord) updated).getContentClaim();
+
+        session.remove(updated);
+        final FlowFile updatedChild = session.write(child, out -> out.write("hello".getBytes(StandardCharsets.UTF_8)));
+        session.transfer(updatedChild, relationship);
+
+        final ContentClaim childContentClaim = ((FlowFileRecord) updatedChild).getContentClaim();
+
+        flowFileRepo.setFailOnUpdate(true);
+
+        assertEquals(1, contentRepo.getClaimantCount(contentClaim));
+
+        // these will be the same content claim due to how the StandardProcessSession adds multiple FlowFiles' contents to a single claim.
+        assertSame(updatedContentClaim, childContentClaim);
+        assertEquals(2, contentRepo.getClaimantCount(childContentClaim));
+
+        try {
+            session.commit();
+            Assert.fail("Expected session commit to fail");
+        } catch (final ProcessException pe) {
+            // Expected
+        }
+
+        // Ensure that if we fail to update teh flowfile repo, that the claimant count of the 'original' flowfile, which was removed, does not get decremented.
+        assertEquals(1, contentRepo.getClaimantCount(contentClaim));
+        assertEquals(0, contentRepo.getClaimantCount(updatedContentClaim)); // temporary claim should be cleaned up.
+        assertEquals(0, contentRepo.getClaimantCount(childContentClaim)); // temporary claim should be cleaned up.
+
+        assertEquals(1, flowFileQueue.size().getObjectCount());
+        assertEquals(8L, flowFileQueue.size().getByteCount());
+    }
 
     @Test
     public void testCloneOriginalDataSmaller() throws IOException {
