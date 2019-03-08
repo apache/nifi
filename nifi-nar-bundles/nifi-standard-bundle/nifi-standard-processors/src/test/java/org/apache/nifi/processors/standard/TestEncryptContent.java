@@ -33,7 +33,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -263,6 +262,9 @@ public class TestEncryptContent {
         Collection<ValidationResult> results;
         MockProcessContext pc;
 
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
+        System.setProperty("user.home", HOME_PATH);
+
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.setProperty(EncryptContent.PUBLIC_KEYRING, "~/gpg/pubring.gpg");
@@ -467,6 +469,9 @@ public class TestEncryptContent {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
+
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
+        System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.removeProperty(EncryptContent.PUBLIC_KEYRING);
