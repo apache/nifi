@@ -73,9 +73,7 @@ public class ComponentMetrics {
         snapshot.setTimestamp(timestamp);
 
         for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
-            if (descriptor.isVisible()) {
-                snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
-            }
+            snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
         }
 
         final Map<String, Long> counters = status.getCounters();
@@ -87,7 +85,7 @@ public class ComponentMetrics {
                 final MetricDescriptor<ProcessorStatus> metricDescriptor = new CounterMetricDescriptor<>(entry.getKey(), label, label, MetricDescriptor.Formatter.COUNT,
                         s -> s.getCounters() == null ? null : s.getCounters().get(counterName));
 
-                snapshot.addCounterStatusMetric(metricDescriptor, entry.getValue());
+                snapshot.addStatusMetric(metricDescriptor, entry.getValue());
             }
         }
 
