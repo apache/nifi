@@ -35,6 +35,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
 
 @Tags({ "reporting", "prometheus", "metrics" })
@@ -45,6 +47,7 @@ import org.eclipse.jetty.server.Server;
 public class PrometheusReportingTask extends AbstractReportingTask {
 
     private PrometheusServer prometheusServer;
+    private SSLContextService sslContextService;
 
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("Prometheus Metrics Endpoint Port")
@@ -79,6 +82,13 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -87,6 +97,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         props.add(APPLICATION_ID);
         props.add(INSTANCE_ID);
         props.add(SEND_JVM_METRICS);
+        props.add(SSL_CONTEXT);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -97,10 +108,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
+        sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
         final String metricsEndpointPort = context.getProperty(METRICS_ENDPOINT_PORT).getValue();
 
         try {
-            this.prometheusServer = new PrometheusServer(new InetSocketAddress(Integer.parseInt(metricsEndpointPort)), getLogger());
+            if (sslContextService == null) {
+                this.prometheusServer = new PrometheusServer(new InetSocketAddress(Integer.parseInt(metricsEndpointPort)), getLogger());
+            } else {
+                this.prometheusServer = new PrometheusServer(Integer.parseInt(metricsEndpointPort), sslContextService, getLogger());
+            }
             this.prometheusServer.setApplicationId(context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue());
             this.prometheusServer.setSendJvmMetrics(context.getProperty(SEND_JVM_METRICS).asBoolean());
             getLogger().info("Started JETTY server");

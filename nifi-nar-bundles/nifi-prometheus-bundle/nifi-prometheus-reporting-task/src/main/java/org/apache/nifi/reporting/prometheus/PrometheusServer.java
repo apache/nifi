@@ -32,10 +32,17 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
-
+import org.apache.nifi.ssl.SSLContextService;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 
@@ -86,6 +93,45 @@ public class PrometheusServer {
         this.handler = new ServletContextHandler(server, "/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
         this.server.start();
+    }
+
+    public PrometheusServer(int addr, SSLContextService sslContextService, ComponentLog logger) throws Exception {
+        PrometheusServer.logger = logger;
+        this.server = new Server();
+        this.handler = new ServletContextHandler(server, "/metrics");
+        this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
+
+        SslContextFactory sslFactory = createSslFactory(sslContextService);
+        HttpConfiguration httpsConfiguration = new HttpConfiguration();
+        httpsConfiguration.setSecureScheme("https");
+        httpsConfiguration.setSecurePort(addr);
+        httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
+
+        ServerConnector https = new ServerConnector(server, new SslConnectionFactory(sslFactory, "http/1.1"),
+                                new HttpConnectionFactory(httpsConfiguration));
+        https.setPort(addr);
+        this.server.setConnectors(new Connector[]{https});
+        this.server.start();
+    }
+
+    private SslContextFactory createSslFactory(final SSLContextService sslService) {
+        SslContextFactory sslFactory = new SslContextFactory();
+        sslFactory.setNeedClientAuth(true);
+        sslFactory.setWantClientAuth(false);
+        sslFactory.setProtocol(sslService.getSslAlgorithm());
+
+        if (sslService.isKeyStoreConfigured()) {
+            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
+            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
+            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
+        }
+
+        if (sslService.isTrustStoreConfigured()) {
+            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
+            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
+            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
+        }
+        return sslFactory;
     }
 
     public Server getServer() {
