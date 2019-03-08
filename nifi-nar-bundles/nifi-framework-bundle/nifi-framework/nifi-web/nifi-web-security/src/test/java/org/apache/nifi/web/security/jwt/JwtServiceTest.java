@@ -27,8 +27,12 @@ import org.codehaus.jettison.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +48,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class JwtServiceTest {
@@ -177,15 +182,27 @@ public class JwtServiceTest {
         key.setIdentity(DEFAULT_IDENTITY);
         key.setKey(HMAC_SECRET);
 
+        Answer<Key> keyAnswer = new Answer<Key>() {
+            Key answerKey = key;
+            @Override
+            public Key answer(InvocationOnMock invocation) throws Throwable {
+                if(invocation.getMethod().equals(KeyService.class.getMethod("deleteKey", String.class))) {
+                    answerKey = null;
+                }
+                return answerKey;
+            }
+        };
+
         mockKeyService = Mockito.mock(KeyService.class);
-        when(mockKeyService.getKey(anyInt())).thenReturn(key);
+        when(mockKeyService.getKey(anyInt())).thenAnswer(keyAnswer);
         when(mockKeyService.getOrCreateKey(anyString())).thenReturn(key);
+        doAnswer(keyAnswer).when(mockKeyService).deleteKey(anyString());
         jwtService = new JwtService(mockKeyService);
     }
 
     @After
     public void tearDown() throws Exception {
-
+        jwtService = null;
     }
 
     @Test
@@ -442,4 +459,50 @@ public class JwtServiceTest {
         // Assert
         // Should throw exception
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Test
+    public void testShouldLogOutUser() throws Exception {
+        // Arrange
+        expectedException.expect(JwtException.class);
+        expectedException.expectMessage("Unable to validate the access token.");
+
+
+        // Token expires in 60 seconds
+        final int EXPIRATION_MILLIS = 60000;
+        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken("alopresto",
+                EXPIRATION_MILLIS,
+                "MockIdentityProvider");
+        logger.debug("Generating token for " + loginAuthenticationToken);
+
+        // Act
+        String token = jwtService.generateSignedToken(loginAuthenticationToken);
+        logger.debug("Generated JWT: " + token);
+        String authID = jwtService.getAuthenticationFromToken(token);
+        assertEquals("alopresto", authID);
+        jwtService.logOut(token);
+        jwtService.getAuthenticationFromToken(token);
+
+        // Assert
+        // Should throw exception when user is not found
+    }
+
+    @Test
+    public void testLogoutWhenAuthTokenIsEmptyShouldThrowError() throws Exception {
+        // Arrange
+        expectedException.expect(JwtException.class);
+        expectedException.expectMessage("Log out failed: The required Authorization header was not present in the request to log out user.");
+
+        // Act
+        jwtService.logOut(null);
+
+        // Assert
+        // Should throw exception when authorization header is null
+    }
+
+
+
+
 }

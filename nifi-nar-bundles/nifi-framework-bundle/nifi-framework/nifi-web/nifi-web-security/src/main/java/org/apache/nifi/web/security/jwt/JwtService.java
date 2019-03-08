@@ -157,4 +157,21 @@ public class JwtService {
             throw new JwtException(errorMessage, e);
         }
     }
+
+    public void logOut(String authorizationHeader) throws JwtException {
+        if(authorizationHeader == null || authorizationHeader.isEmpty()) {
+            throw new JwtException("Log out failed: The required Authorization header was not present in the request to log out user.");
+        }
+
+        try {
+            Jws<Claims> claims = parseTokenFromBase64EncodedString(authorizationHeader);
+            String identity = claims.getBody().getSubject();
+            keyService.deleteKey(identity);
+        } catch (JwtException e) {
+            logger.debug("The Base64 encoded JWT: " + authorizationHeader);
+            final String errorMessage = "There was an error parsing the JWT to logOut user.";
+            logger.error(errorMessage, e);
+            throw e;
+        }
+    }
 }
