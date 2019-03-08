@@ -246,8 +246,8 @@ public class TestEncryptContent {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
 
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
         System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
@@ -447,5 +447,28 @@ public class TestEncryptContent {
             Assert.assertTrue(vr.toString().contains(
                     " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
         }
+    }
+
+    @Test
+    public void testShouldValidateEncryptContentExpandsTildeToPrivateKeyRingStoredInHomeDirectory() {
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
+
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
+        System.setProperty("user.home", HOME_PATH);
+
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
+        runner.removeProperty(EncryptContent.PUBLIC_KEYRING);
+        runner.removeProperty(EncryptContent.PUBLIC_KEY_USERID);
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+        runner.setProperty(EncryptContent.PRIVATE_KEYRING, "~/gpg/private.gpg");
+        runner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, "testUser");
+
+        runner.enqueue(new byte[0]);
+        pc = (MockProcessContext) runner.getProcessContext();
+        results = pc.validate();
+        Assert.assertEquals(0, results.size());
     }
 }

@@ -255,7 +255,7 @@ public class EncryptContent extends AbstractProcessor {
             final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
             final String publicKeyring = FileExpansionUtil.expandPath(context.getProperty(PUBLIC_KEYRING).getValue());
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
-            final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
+            final String privateKeyring = FileExpansionUtil.expandPath(context.getProperty(PRIVATE_KEYRING).getValue());
             final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue();
             validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId, privateKeyring, privateKeyringPassphrase));
         } else { // Not PGP
