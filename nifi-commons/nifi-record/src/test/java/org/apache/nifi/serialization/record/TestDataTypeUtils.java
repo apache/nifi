@@ -282,9 +282,31 @@ public class TestDataTypeUtils {
     }
 
     @Test
-    public void testIsCompatibleDataTypeMap() {
-        Map<String,Object> testMap = new HashMap<>();
-        testMap.put("Hello", "World");
-        assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    public void testToRecordWithArrayOfMaps() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("complex", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()))));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values1 = new HashMap<>();
+        values1.put("noDefault", "world");
+
+        final Map<String, Object> values2 = new HashMap<>();
+        values2.put("noDefault", "world");
+
+        final Object[] recordArray = {values1, values2};
+
+        // Need a map to serve as the input "record"
+        final Map<String, Object> recordMap = new HashMap<>();
+        recordMap.put("DataItems", recordArray);
+
+        Record record = DataTypeUtils.toRecord(recordMap, "r");
+        assertNotNull(record);
+        Object[] objectArray = record.getAsArray("DataItems");
+        assertNotNull(objectArray);
+        assertEquals(2, objectArray.length);
+        for (Object o : objectArray) {
+            assertTrue(o instanceof Record);
+        }
     }
 }

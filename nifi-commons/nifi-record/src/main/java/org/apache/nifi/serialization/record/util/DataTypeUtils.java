@@ -155,7 +155,22 @@ public class DataTypeUtils {
             case TIMESTAMP:
                 return toTimestamp(value, timestampFormat, fieldName);
             case ARRAY:
-                return toArray(value, fieldName, ((ArrayDataType)dataType).getElementType(), charset);
+                DataType arrayDataType = ((ArrayDataType) dataType).getElementType();
+                // If an object array, check the type of the individual elements. If a complex type (Map, e.g.), convert each element
+                if (value instanceof Object[]) {
+                    Object[] objectArray = (Object[]) value;
+                    Object o = objectArray[0];
+                    if (o instanceof Map) {
+                        for (int i = 0; i < objectArray.length; i++) {
+                            objectArray[i] = convertType(objectArray[i], arrayDataType, "a");
+                        }
+                        return objectArray;
+                    } else {
+                        return toArray(value, fieldName, arrayDataType, charset);
+                    }
+                } else {
+                    return toArray(value, fieldName, arrayDataType, charset);
+                }
             case MAP:
                 return toMap(value, fieldName);
             case RECORD:
@@ -205,29 +220,6 @@ public class DataTypeUtils {
                     return false;
                 }
 
-                // value may be a Map even when type is RECORD
-                if (value instanceof Map) {
-                    final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                    if (schema == null) {
-                        return true;
-                    }
-                    Map<String, Object> record = ((Map<String, Object>) value);
-                    for (final RecordField childField : schema.getFields()) {
-                        final Object childValue = record.get(childField.getFieldName());
-                        if (childValue == null && !childField.isNullable()) {
-                            logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                            return false;
-                        }
-                        if (childValue == null) {
-                            continue; // consider compatible
-                        }
-
-                        if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
                 if (!(value instanceof Record)) {
                     return false;
                 }
