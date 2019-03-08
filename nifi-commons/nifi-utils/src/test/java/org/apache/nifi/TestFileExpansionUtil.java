@@ -14,7 +14,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 public class TestFileExpansionUtil {
-
     private static final Logger logger = LoggerFactory.getLogger(TestFileExpansionUtil.class);
     private String originalHome = "";
 
@@ -34,6 +33,8 @@ public class TestFileExpansionUtil {
    @Test
    public void  testExpandPath() {
        logger.debug("User Home: " + System.getProperty("user.home"));
+       // arrange
+       System.getProperties().setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath("~/somedirectory");
