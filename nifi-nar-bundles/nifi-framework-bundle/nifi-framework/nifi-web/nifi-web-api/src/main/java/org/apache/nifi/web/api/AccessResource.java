@@ -344,6 +344,9 @@ public class AccessResource extends ApplicationResource {
                     .build();
             httpServletResponse.sendRedirect(logoutUri.toString());
         }
+
+        String authorizationHeader = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
+        jwtService.logOut(authorizationHeader);
     }
 
     @GET
@@ -742,6 +745,35 @@ public class AccessResource extends ApplicationResource {
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
         return generateCreatedResponse(uri, token).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/logout")
+    @ApiOperation(
+            value = "Performs a logout for other providers that have been issued a JWT.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 500, message = "Client failed to log out."),
+            }
+    )
+    public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        String authorizationHeader = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
+        final String token = StringUtils.substringAfterLast(authorizationHeader, " ");
+        try {
+            jwtService.logOut(token);
+            return generateOkResponse().build();
+        } catch (final JwtException e) {
+            return Response.serverError().build();
+        }
     }
 
     private long validateTokenExpiration(long proposedTokenExpiration, String identity) {

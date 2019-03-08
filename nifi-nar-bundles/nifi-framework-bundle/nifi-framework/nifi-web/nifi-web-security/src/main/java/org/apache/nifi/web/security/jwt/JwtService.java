@@ -27,15 +27,15 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
+import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 
 /**
  *
@@ -76,7 +76,19 @@ public class JwtService {
         } catch (JwtException e) {
             logger.debug("The Base64 encoded JWT: " + base64EncodedToken);
             final String errorMessage = "There was an error validating the JWT";
-            logger.error(errorMessage, e);
+
+            // A common attack is someone trying to use a token after the user is logged out
+            // No need to show a stacktrace for an expected and handled scenario
+            String causeMessage = e.getLocalizedMessage();
+            if (e.getCause() != null) {
+                causeMessage += "\n\tCaused by: " + e.getCause().getLocalizedMessage();
+            }
+            if (logger.isDebugEnabled()) {
+                logger.error(errorMessage, e);
+            } else {
+                logger.error(errorMessage);
+                logger.error(causeMessage);
+            }
             throw e;
         }
     }
@@ -155,6 +167,21 @@ public class JwtService {
             final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
+        }
+    }
+
+    public void logOut(String authorizationHeader) {
+        if (authorizationHeader == null || authorizationHeader.isEmpty()) {
+            throw new JwtException("Log out failed: The required Authorization header was not present in the request to log out user.");
+        }
+
+        String identity = NiFiUserUtils.getNiFiUserIdentity();
+
+        try {
+            keyService.deleteKey(identity);
+        } catch (Exception e) {
+            logger.error("Unable to log out user: " + identity + ". Failed to remove their token from database.");
+            throw e;
         }
     }
 }

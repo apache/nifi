@@ -177,6 +177,13 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-security</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-optimistic-locking</artifactId>
             <scope>provided</scope>
         </dependency>
