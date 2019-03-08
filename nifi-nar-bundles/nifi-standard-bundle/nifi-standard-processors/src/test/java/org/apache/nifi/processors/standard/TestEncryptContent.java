@@ -362,7 +362,7 @@ public class TestEncryptContent {
     }
 
     @Test
-    public void testValidation() {
+    public void testValidationPasswordRequired() {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
@@ -375,6 +375,13 @@ public class TestEncryptContent {
             Assert.assertTrue(vr.toString()
                     .contains(EncryptContent.PASSWORD.getDisplayName() + " is required when using algorithm"));
         }
+    }
+
+    @Test
+    public void testValidationPasswordLongerThanSixteenCharacters() {
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
 
         runner.enqueue(new byte[0]);
         final EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
@@ -395,7 +402,13 @@ public class TestEncryptContent {
         } else {
             Assert.assertEquals(results.toString(), 0, results.size());
         }
-        runner.removeProperty(EncryptContent.PASSWORD);
+    }
+
+    @Test
+    public void testValidationEncryptionWithoutAPasswordRequiresBothKeyAndUserId() {
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
 
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/text.txt");
@@ -409,37 +422,30 @@ public class TestEncryptContent {
                             + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
                             + EncryptContent.PUBLIC_KEY_USERID.getDisplayName()));
         }
+    }
 
-        // Legacy tests moved to individual tests to comply with new library
+    @Test
+    public void testValidationWithInvalidPassword() {
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
+        Collection<ValidationResult> results;
+        MockProcessContext pc;
 
-        // TODO: Move secring tests out to individual as well
-
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.removeProperty(EncryptContent.PUBLIC_KEYRING);
         runner.removeProperty(EncryptContent.PUBLIC_KEY_USERID);
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
         runner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/secring.gpg");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-        results = pc.validate();
-        Assert.assertEquals(1, results.size());
-        for (final ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains(
-                    " decryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                            + EncryptContent.PRIVATE_KEYRING.getDisplayName() + " and "
-                            + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
-
-        }
-
         runner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, "PASSWORD");
+
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
         Assert.assertEquals(1, results.size());
+
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains(
                     " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
-
         }
     }
 }
