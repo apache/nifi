@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.HashMap;
@@ -218,6 +219,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
 
+    // Visible/overrideable for testing.
+    protected void createOverflowDirectory(final Path path) throws IOException {
+        Files.createDirectories(path);
+    }
+
     @Override
     public void update(final Collection<T> records, final RecordLookup<T> recordLookup) throws IOException {
         if (!headerWritten) {
@@ -246,7 +252,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     final int size = bados.getByteArrayOutputStream().size();
                     if (serde.isWriteExternalFileReferenceSupported() && size > maxInHeapSerializationBytes) {
                         if (!overflowDirectory.exists()) {
-                            Files.createDirectory(overflowDirectory.toPath());
+                            createOverflowDirectory(overflowDirectory.toPath());
                         }
 
                         // If we have exceeded our threshold for how much to serialize in memory,

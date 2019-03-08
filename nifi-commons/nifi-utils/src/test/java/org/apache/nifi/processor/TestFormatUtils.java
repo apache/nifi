@@ -47,9 +47,9 @@ public class TestFormatUtils {
         assertEquals("00:00:07.777", FormatUtils.formatHoursMinutesSeconds(7777, TimeUnit.MILLISECONDS));
 
         assertEquals("20:11:36.897", FormatUtils.formatHoursMinutesSeconds(TimeUnit.MILLISECONDS.convert(20, TimeUnit.HOURS)
-                        + TimeUnit.MILLISECONDS.convert(11, TimeUnit.MINUTES)
-                        + TimeUnit.MILLISECONDS.convert(36, TimeUnit.SECONDS)
-                        + TimeUnit.MILLISECONDS.convert(897, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS));
+                + TimeUnit.MILLISECONDS.convert(11, TimeUnit.MINUTES)
+                + TimeUnit.MILLISECONDS.convert(36, TimeUnit.SECONDS)
+                + TimeUnit.MILLISECONDS.convert(897, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS));
 
         assertEquals("1000:01:01.001", FormatUtils.formatHoursMinutesSeconds(TimeUnit.MILLISECONDS.convert(999, TimeUnit.HOURS)
                 + TimeUnit.MILLISECONDS.convert(60, TimeUnit.MINUTES)
@@ -57,4 +57,48 @@ public class TestFormatUtils {
                 + TimeUnit.MILLISECONDS.convert(1001, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS));
     }
 
+
+    @Test
+    public void testFormatNanos() {
+        assertEquals("0 nanos", FormatUtils.formatNanos(0L, false));
+        assertEquals("0 nanos (0 nanos)", FormatUtils.formatNanos(0L, true));
+
+        assertEquals("1 millis, 0 nanos", FormatUtils.formatNanos(1_000_000L, false));
+        assertEquals("1 millis, 0 nanos (1000000 nanos)", FormatUtils.formatNanos(1_000_000L, true));
+
+        assertEquals("1 millis, 1 nanos", FormatUtils.formatNanos(1_000_001L, false));
+        assertEquals("1 millis, 1 nanos (1000001 nanos)", FormatUtils.formatNanos(1_000_001L, true));
+
+        assertEquals("1 seconds, 0 millis, 0 nanos", FormatUtils.formatNanos(1_000_000_000L, false));
+        assertEquals(
+            "1 seconds, 0 millis, 0 nanos (1000000000 nanos)",
+            FormatUtils.formatNanos(1_000_000_000L, true));
+
+        assertEquals("1 seconds, 1 millis, 0 nanos", FormatUtils.formatNanos(1_001_000_000L, false));
+        assertEquals(
+            "1 seconds, 1 millis, 0 nanos (1001000000 nanos)",
+            FormatUtils.formatNanos(1_001_000_000L, true));
+
+        assertEquals("1 seconds, 1 millis, 1 nanos", FormatUtils.formatNanos(1_001_000_001L, false));
+        assertEquals(
+            "1 seconds, 1 millis, 1 nanos (1001000001 nanos)",
+            FormatUtils.formatNanos(1_001_000_001L, true));
+    }
+
+    @Test
+    public void testFormatDataSize() {
+        assertEquals("0 bytes", FormatUtils.formatDataSize(0d));
+        assertEquals("10.4 bytes", FormatUtils.formatDataSize(10.4d));
+        assertEquals("1,024 bytes", FormatUtils.formatDataSize(1024d));
+
+        assertEquals("1 KB", FormatUtils.formatDataSize(1025d));
+        assertEquals("1.95 KB", FormatUtils.formatDataSize(2000d));
+        assertEquals("195.31 KB", FormatUtils.formatDataSize(200_000d));
+
+        assertEquals("190.73 MB", FormatUtils.formatDataSize(200_000_000d));
+
+        assertEquals("186.26 GB", FormatUtils.formatDataSize(200_000_000_000d));
+
+        assertEquals("181.9 TB", FormatUtils.formatDataSize(200_000_000_000_000d));
+    }
 }
