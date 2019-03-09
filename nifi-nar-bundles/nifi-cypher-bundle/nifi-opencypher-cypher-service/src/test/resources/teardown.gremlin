@@ -1,0 +1,2 @@
+g.V().has('is_for', 'testing_only').drop().iterate()
+graph.tx().commit()

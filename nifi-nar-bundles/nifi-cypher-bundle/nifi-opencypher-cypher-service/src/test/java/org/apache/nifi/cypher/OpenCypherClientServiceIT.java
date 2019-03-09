@@ -57,7 +57,7 @@ public class OpenCypherClientServiceIT {
         service = new OpenCypherClientService();
         runner = TestRunners.newTestRunner(MockProcessor.class);
         runner.addControllerService("clientService", service);
-        runner.setProperty(service, OpenCypherClientService.CONTACT_POINTS, "localhost");
+        runner.setProperty(service, AbstractTinkerpopClientService.CONTACT_POINTS, "localhost");
         runner.setProperty(MockProcessor.CLIENT, "clientService");
         runner.enableControllerService(service);
         runner.assertValid();

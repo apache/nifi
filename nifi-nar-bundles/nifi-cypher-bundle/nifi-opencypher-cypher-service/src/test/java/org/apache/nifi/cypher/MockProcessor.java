@@ -29,11 +29,16 @@ import java.util.List;
 public class MockProcessor extends AbstractProcessor {
     public static final PropertyDescriptor CLIENT = new PropertyDescriptor.Builder()
         .name("client")
-        .required(true)
+        .required(false)
         .identifiesControllerService(CypherClientService.class)
         .build();
+    public static final PropertyDescriptor GREMLIN_CLIENT = new PropertyDescriptor.Builder()
+            .name("gremlin-client")
+            .required(false)
+            .identifiesControllerService(GremlinClientService.class)
+            .build();
 
-    public static final List<PropertyDescriptor> PROPS = Arrays.asList(CLIENT);
+    public static final List<PropertyDescriptor> PROPS = Arrays.asList(CLIENT, GREMLIN_CLIENT);
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

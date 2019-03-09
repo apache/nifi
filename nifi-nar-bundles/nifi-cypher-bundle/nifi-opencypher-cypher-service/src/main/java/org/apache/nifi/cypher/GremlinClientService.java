@@ -21,61 +21,52 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.tinkerpop.gremlin.driver.Client;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
-import org.neo4j.driver.internal.InternalNode;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Record;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
-import org.opencypher.gremlin.neo4j.driver.GremlinDatabase;
+import org.apache.tinkerpop.gremlin.driver.Result;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
-public class OpenCypherClientService extends AbstractTinkerpopClientService implements CypherClientService {
-    private volatile Driver gremlinDriver;
-    private volatile String transitUrl;
+public class GremlinClientService extends AbstractTinkerpopClientService implements CypherClientService {
+    private Cluster cluster;
+    protected Client client;
+    public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        Cluster cluster = buildCluster(context);
-
-        gremlinDriver = GremlinDatabase.driver(cluster);
-        transitUrl = String.format("gremlin://%s", context.getProperty(CONTACT_POINTS).getValue());
+        cluster = buildCluster(context);
+        client = cluster.connect();
     }
 
     @OnDisabled
     public void onDisabled() {
-        gremlinDriver.close();
-    }
-
-    public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
-
-    private Map<String, Object> handleInternalNode(Map<String, Object> recordMap) {
-        if (recordMap.size() == 1) {
-            String key = recordMap.keySet().iterator().next();
-            Object value = recordMap.get(key);
-            if (value instanceof InternalNode) {
-                return ((InternalNode)value).asMap();
-            }
-        }
-
-        return recordMap;
+        client.close();
+        cluster.close();
+        client = null;
+        cluster = null;
     }
 
     @Override
     public Map<String, String> executeQuery(String query, Map<String, Object> parameters, CypherQueryResultCallback handler) {
-        try (Session session = gremlinDriver.session()) {
-            StatementResult result = session.run(query, parameters);
+        try {
+            Iterator<Result> iterator = client.submit(query, parameters).iterator();
             long count = 0;
-            while (result.hasNext()) {
-                Record record = result.next();
-                Map<String, Object> asMap = handleInternalNode(record.asMap());
-                handler.process(asMap, result.hasNext());
+            while (iterator.hasNext()) {
+                Result result = iterator.next();
+                Object obj = result.getObject();
+                if (obj instanceof Map) {
+                    handler.process((Map)obj, iterator.hasNext());
+                } else {
+                    handler.process(new HashMap<String, Object>(){{
+                        put("result", obj);
+                    }}, iterator.hasNext());
+                }
                 count++;
             }
 
-            Map<String,String> resultAttributes = new HashMap<>();
+            Map<String, String> resultAttributes = new HashMap<>();
             resultAttributes.put(NODES_CREATED, NOT_SUPPORTED);
             resultAttributes.put(RELATIONS_CREATED, NOT_SUPPORTED);
             resultAttributes.put(LABELS_ADDED, NOT_SUPPORTED);
@@ -85,6 +76,7 @@ public class OpenCypherClientService extends AbstractTinkerpopClientService impl
             resultAttributes.put(ROWS_RETURNED, String.valueOf(count));
 
             return resultAttributes;
+
         } catch (Exception ex) {
             throw new ProcessException(ex);
         }
@@ -92,6 +84,6 @@ public class OpenCypherClientService extends AbstractTinkerpopClientService impl
 
     @Override
     public String getTransitUrl() {
-        return transitUrl;
+        return null;
     }
 }
