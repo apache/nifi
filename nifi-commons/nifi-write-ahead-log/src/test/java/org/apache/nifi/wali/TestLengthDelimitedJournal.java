@@ -17,16 +17,21 @@
 
 package org.apache.nifi.wali;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.wali.DummyRecord;
+import org.wali.DummyRecordSerde;
+import org.wali.SerDeFactory;
+import org.wali.SingletonSerDeFactory;
+import org.wali.UpdateType;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,15 +41,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wali.DummyRecord;
-import org.wali.DummyRecordSerde;
-import org.wali.SerDeFactory;
-import org.wali.SingletonSerDeFactory;
-import org.wali.UpdateType;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestLengthDelimitedJournal {
     private final File journalFile = new File("target/testLengthDelimitedJournal/testJournal.journal");
@@ -304,6 +308,71 @@ public class TestLengthDelimitedJournal {
             final DummyRecord retrieved = recordMap.get("1");
             assertNotNull(retrieved);
             assertEquals(thirdRecord, retrieved);
+        }
+    }
+
+    @Test
+    public void testMultipleThreadsCreatingOverflowDirectory() throws IOException, InterruptedException {
+        final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<DummyRecord>(journalFile, serdeFactory, streamPool, 3820L, 100) {
+            @Override
+            protected void createOverflowDirectory(final Path path) throws IOException {
+                // Create the overflow directory.
+                super.createOverflowDirectory(path);
+
+                // Ensure that a second call to create the overflow directory will not cause an issue.
+                super.createOverflowDirectory(path);
+            }
+        };
+
+        // Ensure that the overflow directory does not exist.
+        journal.dispose();
+
+        try {
+            journal.writeHeader();
+
+            final List<DummyRecord> largeCollection1 = new ArrayList<>();
+            for (int i=0; i < 1_000; i++) {
+                largeCollection1.add(new DummyRecord(String.valueOf(i), UpdateType.CREATE));
+            }
+            final Map<String, DummyRecord> recordMap = largeCollection1.stream()
+                .collect(Collectors.toMap(DummyRecord::getId, rec -> rec));
+
+            final List<DummyRecord> largeCollection2 = new ArrayList<>();
+            for (int i=0; i < 1_000; i++) {
+                largeCollection2.add(new DummyRecord(String.valueOf(5_000_000 + i), UpdateType.CREATE));
+            }
+            final Map<String, DummyRecord> recordMap2 = largeCollection2.stream()
+                .collect(Collectors.toMap(DummyRecord::getId, rec -> rec));
+
+            final AtomicReference<Exception> thread1Failure = new AtomicReference<>();
+            final Thread t1 = new Thread(() -> {
+                try {
+                    journal.update(largeCollection1, recordMap::get);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    thread1Failure.set(e);
+                }
+            });
+            t1.start();
+
+            final AtomicReference<Exception> thread2Failure = new AtomicReference<>();
+            final Thread t2 = new Thread(() -> {
+                try {
+                    journal.update(largeCollection2, recordMap2::get);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    thread2Failure.set(e);
+                }
+            });
+            t2.start();
+
+            t1.join();
+            t2.join();
+
+            assertNull(thread1Failure.get());
+            assertNull(thread2Failure.get());
+        } finally {
+            journal.close();
         }
     }
 

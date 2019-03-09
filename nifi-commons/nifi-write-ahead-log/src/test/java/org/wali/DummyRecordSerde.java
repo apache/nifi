@@ -43,7 +43,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
 
     @SuppressWarnings("fallthrough")
     @Override
-    public void serializeEdit(final DummyRecord previousState, final DummyRecord record, final DataOutputStream out) throws IOException {
+    public synchronized void serializeEdit(final DummyRecord previousState, final DummyRecord record, final DataOutputStream out) throws IOException {
         if (throwIOEAfterNserializeEdits >= 0 && (serializeEditCount++ >= throwIOEAfterNserializeEdits)) {
             throw new IOException("Serialized " + (serializeEditCount - 1) + " records successfully, so now it's time to throw IOE");
         }
@@ -80,13 +80,13 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     }
 
     @Override
-    public void serializeRecord(final DummyRecord record, final DataOutputStream out) throws IOException {
+    public synchronized void serializeRecord(final DummyRecord record, final DataOutputStream out) throws IOException {
         serializeEdit(null, record, out);
     }
 
     @Override
     @SuppressWarnings("fallthrough")
-    public DummyRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+    public synchronized DummyRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         if (externalRecords != null) {
             final DummyRecord record = externalRecords.poll();
             if (record != null) {
@@ -122,7 +122,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     }
 
     @Override
-    public boolean isMoreInExternalFile() {
+    public synchronized boolean isMoreInExternalFile() {
         return externalRecords != null && !externalRecords.isEmpty();
     }
 
@@ -189,11 +189,11 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
         return 1;
     }
 
-    public void setThrowIOEAfterNSerializeEdits(final int n) {
+    public synchronized void setThrowIOEAfterNSerializeEdits(final int n) {
         this.throwIOEAfterNserializeEdits = n;
     }
 
-    public void setThrowOOMEAfterNSerializeEdits(final int n) {
+    public synchronized void setThrowOOMEAfterNSerializeEdits(final int n) {
         this.throwOOMEAfterNserializeEdits = n;
     }
 
@@ -208,7 +208,7 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     }
 
     @Override
-    public void writeExternalFileReference(final File externalFile, final DataOutputStream out) throws IOException {
+    public synchronized void writeExternalFileReference(final File externalFile, final DataOutputStream out) throws IOException {
         out.write(EXTERNAL_FILE_INDICATOR);
         out.writeUTF(externalFile.getAbsolutePath());
 
