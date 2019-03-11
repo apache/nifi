@@ -20,6 +20,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -118,6 +119,15 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .defaultValue("ONE")
             .build();
 
+    static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
+            .name("Compression Type")
+            .description("Enable compression at transport-level requests and responses")
+            .required(false)
+            .allowableValues(ProtocolOptions.Compression.values())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("NONE")
+            .build();
+
     private List<PropertyDescriptor> properties;
     private Cluster cluster;
     private Session cassandraSession;
@@ -129,6 +139,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
         props.add(CONTACT_POINTS);
         props.add(CLIENT_AUTH);
         props.add(CONSISTENCY_LEVEL);
+        props.add(COMPRESSION_TYPE);
         props.add(KEYSPACE);
         props.add(USERNAME);
         props.add(PASSWORD);
@@ -190,6 +201,8 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
+            final String compressionType = context.getProperty(COMPRESSION_TYPE).getValue();
+
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
@@ -228,7 +241,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             }
 
             // Create the cluster and connect to it
-            Cluster newCluster = createCluster(contactPoints, sslContext, username, password);
+            Cluster newCluster = createCluster(contactPoints, sslContext, username, password, compressionType);
             PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
             final Session newSession;
             if (keyspaceProperty != null) {
@@ -266,7 +279,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
     }
 
     private Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                  String username, String password) {
+                                  String username, String password, String compressionType) {
         Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
 
         if (sslContext != null) {
@@ -278,6 +291,12 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
 
         if (username != null && password != null) {
             builder = builder.withCredentials(username, password);
+        }
+
+        if(ProtocolOptions.Compression.SNAPPY.equals(compressionType)) {
+            builder = builder.withCompression(ProtocolOptions.Compression.SNAPPY);
+        } else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
+            builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
         }
 
         return builder.build();

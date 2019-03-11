@@ -46,7 +46,7 @@ public class TestCassandraSessionProvider {
     public void testGetPropertyDescriptors() {
         List<PropertyDescriptor> properties = sessionProvider.getPropertyDescriptors();
 
-        assertEquals(7, properties.size());
+        assertEquals(8, properties.size());
         assertTrue(properties.contains(CassandraSessionProvider.CLIENT_AUTH));
         assertTrue(properties.contains(CassandraSessionProvider.CONSISTENCY_LEVEL));
         assertTrue(properties.contains(CassandraSessionProvider.CONTACT_POINTS));
