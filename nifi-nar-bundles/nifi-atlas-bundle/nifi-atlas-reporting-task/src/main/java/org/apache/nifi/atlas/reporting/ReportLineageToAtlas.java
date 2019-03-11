@@ -262,7 +262,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     static final PropertyDescriptor KAFKA_KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("kafka-kerberos-service-name")
             .displayName("Kafka Kerberos Service Name")
-            .description("The Kerberos principal name that Kafka runs for Atlas notification." +
+            .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS file." +
                     " This can be defined either in Kafka's JAAS config or in Kafka's config." +
                     " Corresponds to Kafka's 'security.protocol' property." +
                     " It is ignored unless one of the SASL options of the <Security Protocol> are selected.")

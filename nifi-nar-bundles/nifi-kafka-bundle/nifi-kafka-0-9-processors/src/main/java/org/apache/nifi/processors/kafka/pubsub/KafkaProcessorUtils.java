@@ -90,7 +90,8 @@ final class KafkaProcessorUtils {
     static final PropertyDescriptor KERBEROS_PRINCIPLE = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
-            .description("The Kerberos principal name that Kafka runs as. This can be defined either in Kafka's JAAS config or in Kafka's config. "
+            .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS file."
+                    + "This can be defined either in Kafka's JAAS config or in Kafka's config. "
                     + "Corresponds to Kafka's 'security.protocol' property."
                     + "It is ignored unless one of the SASL options of the <Security Protocol> are selected.")
             .required(false)
