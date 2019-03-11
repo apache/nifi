@@ -55,11 +55,11 @@
 
     var portDimensions = {
         width: 240,
-        height: 50
+        height: 48
     };
     var remotePortDimensions = {
         width: 240,
-        height: 75
+        height: 80
     };
 
     // ----------------------------

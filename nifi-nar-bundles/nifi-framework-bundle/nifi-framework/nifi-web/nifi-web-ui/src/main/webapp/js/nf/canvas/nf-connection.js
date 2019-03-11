@@ -60,11 +60,17 @@
 
     // the dimensions for the connection label
     var dimensions = {
-        width: 216
+        width: 224
     };
 
     // width of a backpressure indicator - half of width, left/right padding, left/right border
     var backpressureBarWidth = (dimensions.width / 2) - 15 - 2;
+
+    // --------------------------
+    // Snap alignment for drag events
+    // --------------------------
+    var snapAlignmentPixels = 8;
+    var snapEnabled = true;
 
     /**
      * Gets the position of the label for the specified connection.
@@ -896,7 +902,7 @@
                                 connectionFrom.append('text')
                                     .attrs({
                                         'class': 'connection-from-run-status',
-                                        'x': 200,
+                                        'x': 208,
                                         'y': 14
                                     });
                             } else {
@@ -1005,7 +1011,7 @@
                                 connectionTo.append('text')
                                     .attrs({
                                         'class': 'connection-to-run-status',
-                                        'x': 200,
+                                        'x': 208,
                                         'y': 14
                                     });
                             } else {
@@ -1221,7 +1227,7 @@
                         queued.append('text')
                             .attrs({
                                 'class': 'expiration-icon',
-                                'x': 200,
+                                'x': 208,
                                 'y': 14
                             })
                             .text(function () {
@@ -1381,7 +1387,7 @@
                             return d.permissions.canRead && !isExpirationConfigured(d.component);
 
                         }).attr('x', function() {
-                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 184 : 200;
+                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 192 : 208;
 
                         }).select('title').text(function () {
                             if (d.permissions.canRead) {
@@ -1678,8 +1684,9 @@
                     d3.event.sourceEvent.stopPropagation();
                 })
                 .on('drag', function (d) {
-                    d.x = d3.event.x;
-                    d.y = d3.event.y;
+                    snapEnabled = !d3.event.sourceEvent.shiftKey;
+                    d.x = snapEnabled ? (Math.round(d3.event.x/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.x;
+                    d.y = snapEnabled ? (Math.round(d3.event.y/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.y;
 
                     // redraw this connection
                     d3.select(this.parentNode).call(updateConnections, {
