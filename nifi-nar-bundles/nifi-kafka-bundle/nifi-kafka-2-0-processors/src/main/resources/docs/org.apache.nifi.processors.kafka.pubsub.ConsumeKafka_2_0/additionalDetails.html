@@ -144,6 +144,7 @@
         <p>
             <b>NOTE:</b> It is not recommended to use a SASL mechanism of PLAIN with SASL_PLAINTEXT, as it would transmit
             the username and password unencrypted.
+            <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of PLAIN. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string. I prefer "null".
         </p>
         <p>
             <b>NOTE:</b> Using the PlainLoginModule will cause it be registered in the JVM's static list of Providers, making
@@ -153,7 +154,7 @@
         <h4>SASL_PLAINTEXT - SCRAM</h4>
         <p>
             If the SASL mechanism is SCRAM, then client must provide a JAAS configuration to authenticate, but
-            the JAAS configuration must use Kafka's ScramLoginModule. Ensure that you add user defined attribute 'sasl.mechanism' and assign 'SCRAM-SHA-256' as value. An example of the JAAS config file would
+            the JAAS configuration must use Kafka's ScramLoginModule. Ensure that you add user defined attribute 'sasl.mechanism' and assign 'SCRAM-SHA-256' or 'SCRAM-SHA-512' based on kafka broker configurations. An example of the JAAS config file would
             be the following:
         <pre>
     KafkaClient {
@@ -176,6 +177,7 @@
                                         password="nifi-password";
             </pre>
         </ol>
+        <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of SCRAM-SHA-256 or SCRAM-SHA-512. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string. I prefer "null".
         </p>
         <h3>SASL_SSL</h3>
         <p>
