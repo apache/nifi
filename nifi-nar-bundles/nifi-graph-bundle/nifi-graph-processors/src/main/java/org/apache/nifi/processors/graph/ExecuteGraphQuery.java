@@ -45,10 +45,10 @@ import java.util.Set;
 @EventDriven
 @SupportsBatching
 @Tags({"cypher", "neo4j", "graph", "network", "insert", "update", "delete", "put", "get",
-        "node", "relationship", "connection", "executor"})
-@CapabilityDescription("This processor is designed to run queries written in the Cypher query language. Cypher is " +
-        "a SQL-like language for querying graph databases. For more information, see: " +
-        "https://neo4j.com/developer/cypher-query-language/")
+        "node", "relationship", "connection", "executor", "gremlin", "tinkerpop"})
+@CapabilityDescription("This processor is designed to execute queries in either the Cypher query language or the Tinkerpop " +
+        "Gremlin DSL. It delegates most of the logic to a configured client service that handles the interaction with the " +
+        "remote data source.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractGraphExecutor.ERROR_MESSAGE, description = "GraphDB error message"),
     @WritesAttribute(attribute = GraphClientService.LABELS_ADDED, description = "Number of labels added"),

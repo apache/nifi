@@ -17,6 +17,8 @@
 
 package org.apache.nifi.graph;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -29,6 +31,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+@CapabilityDescription("A client service that connects to a graph database that can accept queries in the Tinkerpop Gremlin DSL.")
+@Tags({ "graph", "database", "gremlin", "tinkerpop", })
 public class GremlinClientService extends AbstractTinkerpopClientService implements GraphClientService {
     private Cluster cluster;
     protected Client client;

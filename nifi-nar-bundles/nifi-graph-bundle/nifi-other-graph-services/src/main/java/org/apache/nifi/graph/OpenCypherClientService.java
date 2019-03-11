@@ -17,6 +17,8 @@
 
 package org.apache.nifi.graph;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -32,6 +34,10 @@ import org.opencypher.gremlin.neo4j.driver.GremlinDatabase;
 import java.util.HashMap;
 import java.util.Map;
 
+@CapabilityDescription("A client service that uses the OpenCypher implementation of the Cypher query langauge to connect to " +
+        "databases other than Neo4J that are on the supported list of OpenCypher-compatible products. For more information, see: " +
+        "http://www.opencypher.org/")
+@Tags({ "cypher", "opencypher", "graph", "database", "janus" })
 public class OpenCypherClientService extends AbstractTinkerpopClientService implements GraphClientService {
     private volatile Driver gremlinDriver;
     private volatile String transitUrl;
