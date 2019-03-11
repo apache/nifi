@@ -1387,7 +1387,7 @@
                             return d.permissions.canRead && !isExpirationConfigured(d.component);
 
                         }).attr('x', function() {
-                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 184 : 200;
+                            return d.permissions.canRead && isExpirationConfigured(d.component) ? 192 : 208;
 
                         }).select('title').text(function () {
                             if (d.permissions.canRead) {
