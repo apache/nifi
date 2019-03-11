@@ -64,7 +64,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
      * @param rs The underlying ResultSet for this RecordSet
      * @param readerSchema The schema to which this RecordSet adheres
      * @param allFieldsNullable Whether to override the database column's "nullable" metadata. If true then all fields in the RecordSet are nullable.
-     * @throws SQLException
+     * @throws SQLException if an error occurs while creating the schema or reading the result set's metadata
      */
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema, boolean allFieldsNullable) throws SQLException {
         this.rs = rs;

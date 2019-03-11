@@ -21,7 +21,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.db.JdbcCommon;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,9 +30,9 @@ import java.util.stream.Stream;
 
 public class AbstractDatabaseLookupService extends AbstractControllerService {
 
-    protected static final String KEY = "key";
+    static final String KEY = "key";
 
-    protected static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
+    static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("dbrecord-lookup-dbcp-service")
@@ -53,7 +52,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
             .build();
 
     static final PropertyDescriptor LOOKUP_KEY_COLUMN = new PropertyDescriptor.Builder()
-            .name("dbrecord-lookup-key column")
+            .name("dbrecord-lookup-key-column")
             .displayName("Lookup Key Column")
             .description("The column in the table that will serve as the lookup key. This is the column that will be matched against "
                     + "the property specified in the lookup processor. Note that this may be case-sensitive depending on the database.")
@@ -84,17 +83,22 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
             .required(true)
             .build();
 
+    static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
+            .name("Cache Expiration")
+            .description("Time interval to clear all cache entries. If the Cache Size is zero then this property is ignored.")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     protected List<PropertyDescriptor> properties;
 
-    protected DBCPService dbcpService;
+    DBCPService dbcpService;
 
-    protected volatile String lookupKeyColumn;
-
-    protected volatile JdbcCommon.AvroConversionOptions options;
+    volatile String lookupKeyColumn;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
-
 }

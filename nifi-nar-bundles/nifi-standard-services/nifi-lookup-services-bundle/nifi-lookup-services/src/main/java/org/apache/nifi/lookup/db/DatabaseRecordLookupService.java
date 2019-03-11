@@ -18,6 +18,7 @@ package org.apache.nifi.lookup.db;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import org.apache.avro.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -28,8 +29,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
@@ -42,21 +45,33 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @Tags({"lookup", "cache", "enrich", "join", "rdbms", "database", "reloadable", "key", "value", "record"})
-@CapabilityDescription("A relational-database-based lookup service. When the lookup key is found in the database, " +
-        "the columns are returned as a Record. Only one row will be returned for each lookup, duplicate database entries are ignored.")
+@CapabilityDescription("A relational-database-based lookup service. When the lookup key is found in the database, "
+        + "the specified columns (or all if Lookup Value Columns are not specified) are returned as a Record. Only one row "
+        + "will be returned for each lookup, duplicate database entries are ignored.")
 public class DatabaseRecordLookupService extends AbstractDatabaseLookupService implements RecordLookupService {
 
     private volatile Cache<Tuple<String, Object>, Record> cache;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private volatile JdbcCommon.AvroConversionOptions options;
+
+    static final PropertyDescriptor LOOKUP_VALUE_COLUMNS = new PropertyDescriptor.Builder()
+            .name("dbrecord-lookup-value-columns")
+            .displayName("Lookup Value Columns")
+            .description("A comma-delimited list of columns in the table that will be returned when the lookup key matches. Note that this may be case-sensitive depending on the database.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
@@ -64,8 +79,10 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         properties.add(DBCP_SERVICE);
         properties.add(TABLE_NAME);
         properties.add(LOOKUP_KEY_COLUMN);
+        properties.add(LOOKUP_VALUE_COLUMNS);
         properties.add(CACHE_SIZE);
         properties.add(CLEAR_CACHE_ON_ENABLED);
+        properties.add(CACHE_EXPIRATION);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -73,12 +90,35 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     public void onEnabled(final ConfigurationContext context) {
         this.dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
-        int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
-        boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
-        if(this.cache == null || (cacheSize > 0 && clearCache)) {
-            this.cache = Caffeine.newBuilder()
-                    .maximumSize(cacheSize)
-                    .build();
+        final int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
+        final boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
+        final long durationNanos = context.getProperty(CACHE_EXPIRATION).isSet() ? context.getProperty(CACHE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.NANOSECONDS) : 0L;
+        if (this.cache == null || (cacheSize > 0 && clearCache)) {
+            if (durationNanos > 0) {
+                this.cache = Caffeine.newBuilder()
+                        .maximumSize(cacheSize)
+                        .expireAfter(new Expiry<Tuple<String, Object>, Record>() {
+                            @Override
+                            public long expireAfterCreate(Tuple<String, Object> stringObjectTuple, Record record, long currentTime) {
+                                return durationNanos;
+                            }
+
+                            @Override
+                            public long expireAfterUpdate(Tuple<String, Object> stringObjectTuple, Record record, long currentTime, long currentDuration) {
+                                return currentDuration;
+                            }
+
+                            @Override
+                            public long expireAfterRead(Tuple<String, Object> stringObjectTuple, Record record, long currentTime, long currentDuration) {
+                                return currentDuration;
+                            }
+                        })
+                        .build();
+            } else {
+                this.cache = Caffeine.newBuilder()
+                        .maximumSize(cacheSize)
+                        .build();
+            }
         }
 
         options = JdbcCommon.AvroConversionOptions.builder()
@@ -108,6 +148,18 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         }
 
         final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
+        final String lookupValueColumnsList = getProperty(LOOKUP_VALUE_COLUMNS).evaluateAttributeExpressions(context).getValue();
+
+        Set<String> lookupValueColumnsSet = new LinkedHashSet<>();
+        if (lookupValueColumnsList != null) {
+            Stream.of(lookupValueColumnsList)
+                    .flatMap(path -> Arrays.stream(path.split(",")))
+                    .filter(DatabaseRecordLookupService::isNotBlank)
+                    .map(String::trim)
+                    .forEach(lookupValueColumnsSet::add);
+        }
+
+        final String lookupValueColumns = lookupValueColumnsSet.isEmpty() ? "*" : String.join(",", lookupValueColumnsSet);
 
         Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
 
@@ -115,7 +167,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         Record foundRecord = cache.get(cacheLookupKey, k -> null);
 
         if (foundRecord == null) {
-            final String selectQuery = "SELECT * FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
+            final String selectQuery = "SELECT " + lookupValueColumns + " FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
             try (final Connection con = dbcpService.getConnection(context);
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
@@ -128,19 +180,23 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
                 // Populate the cache if the record is present
                 if (foundRecord != null) {
-                    lock.writeLock().lock();
                     cache.put(cacheLookupKey, foundRecord);
-                    lock.writeLock().unlock();
                 }
 
             } catch (SQLException se) {
-                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString(), se);
+                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
+                        + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
             } catch (IOException ioe) {
-                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "using value " + key.toString(), ioe);
+                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for value " + key.toString()
+                        + " : " + (ioe.getCause() == null ? ioe.getMessage() : ioe.getCause().getMessage()), ioe);
             }
         }
 
         return Optional.ofNullable(foundRecord);
+    }
+
+    private static boolean isNotBlank(final String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     @Override

@@ -110,6 +110,51 @@ class TestDatabaseRecordLookupService {
     }
 
     @Test
+    void testDatabaseLookupServiceSpecifyColumns() throws InitializationException, IOException, LookupFailureException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION)
+        dbLocation.delete()
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).connection
+        final Statement stmt = con.createStatement()
+
+        try {
+            stmt.execute("drop table TEST")
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST (id integer not null, val1 integer, val2 varchar(10), constraint my_pk primary key (id))")
+        stmt.execute("insert into TEST (id, val1, val2) VALUES (0, NULL, 'Hello')")
+        stmt.execute("insert into TEST (id, val1, val2) VALUES (1, 1, 'World')")
+
+        final DatabaseRecordLookupService service = new DatabaseRecordLookupService()
+
+        runner.addControllerService("db-lookup-service", service)
+        runner.setProperty(service, DatabaseRecordLookupService.DBCP_SERVICE, "dbcp")
+        runner.assertNotValid()
+        runner.setProperty(service, DatabaseRecordLookupService.TABLE_NAME, "TEST")
+        runner.setProperty(service, DatabaseRecordLookupService.LOOKUP_KEY_COLUMN, "id")
+        runner.setProperty(service, DatabaseRecordLookupService.LOOKUP_VALUE_COLUMNS, "val1")
+        runner.enableControllerService(service)
+        runner.assertValid(service)
+
+        def lookupService = (DatabaseRecordLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
+
+        assertThat(lookupService, instanceOf(LookupService.class))
+
+        final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
+        assertNull("Should be null but is not", property1.get().getAsInt("VAL1"))
+
+        final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
+        assertEquals(1, property2.get().getAsInt("VAL1"))
+
+        // Key not found
+        final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "2"))
+        assertEquals(EMPTY_RECORD, property3)
+    }
+
+    @Test
     void exerciseCacheLogic() {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION)

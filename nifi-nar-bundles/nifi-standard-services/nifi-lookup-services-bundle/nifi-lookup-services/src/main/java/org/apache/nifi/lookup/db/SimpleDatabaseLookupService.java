@@ -18,7 +18,10 @@ package org.apache.nifi.lookup.db;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -29,7 +32,6 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.Tuple;
-import org.apache.nifi.util.db.JdbcCommon;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,15 +43,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.TimeUnit;
 
+@Tags({"lookup", "cache", "enrich", "join", "rdbms", "database", "reloadable", "key", "value"})
+@CapabilityDescription("A relational-database-based lookup service. When the lookup key is found in the database, " +
+        "the specified lookup value column is returned. Only one value will be returned for each lookup, duplicate database entries are ignored.")
 public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService implements StringLookupService {
 
     private volatile Cache<Tuple<String, Object>, String> cache;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
-
-    private volatile String lookupValueColumn;
 
     static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
             new PropertyDescriptor.Builder()
@@ -70,6 +71,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
         properties.add(LOOKUP_VALUE_COLUMN);
         properties.add(CACHE_SIZE);
         properties.add(CLEAR_CACHE_ON_ENABLED);
+        properties.add(CACHE_EXPIRATION);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -77,24 +79,36 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     public void onEnabled(final ConfigurationContext context) {
         this.dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
-        this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
         int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
         boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
+        final long durationNanos = context.getProperty(CACHE_EXPIRATION).isSet() ? context.getProperty(CACHE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.NANOSECONDS) : 0L;
         if (this.cache == null || (cacheSize > 0 && clearCache)) {
-            this.cache = Caffeine.newBuilder()
-                    .maximumSize(cacheSize)
-                    .build();
-        }
+            if (durationNanos > 0) {
+                this.cache = Caffeine.newBuilder()
+                        .maximumSize(cacheSize)
+                        .expireAfter(new Expiry<Tuple<String, Object>, Object>() {
+                            @Override
+                            public long expireAfterCreate(Tuple<String, Object> stringObjectTuple, Object value, long currentTime) {
+                                return durationNanos;
+                            }
 
-        options = JdbcCommon.AvroConversionOptions.builder()
-                .recordName("NiFi_DB_Record_Lookup")
-                // Ignore duplicates
-                .maxRows(1)
-                // Keep column names as field names
-                .convertNames(false)
-                // Get the value as a string, so logical types are irrelevant
-                .useLogicalTypes(false)
-                .build();
+                            @Override
+                            public long expireAfterUpdate(Tuple<String, Object> stringObjectTuple, Object value, long currentTime, long currentDuration) {
+                                return currentDuration;
+                            }
+
+                            @Override
+                            public long expireAfterRead(Tuple<String, Object> stringObjectTuple, Object value, long currentTime, long currentDuration) {
+                                return currentDuration;
+                            }
+                        })
+                        .build();
+            } else {
+                this.cache = Caffeine.newBuilder()
+                        .maximumSize(cacheSize)
+                        .build();
+            }
+        }
     }
 
     @Override
@@ -114,6 +128,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
         }
 
         final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
+        final String lookupValueColumn = getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions(context).getValue();
 
         Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
 
@@ -140,13 +155,12 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
 
                 // Populate the cache if the record is present
                 if (foundRecord != null) {
-                    lock.writeLock().lock();
                     cache.put(cacheLookupKey, foundRecord);
-                    lock.writeLock().unlock();
                 }
 
             } catch (SQLException se) {
-                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString(), se);
+                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
+                        + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
             }
         }
 
