@@ -158,7 +158,7 @@ public class PutCassandraRecordTest {
 
         @Override
         protected Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                        String username, String password) {
+                                        String username, String password, String compressionType) {
             Cluster mockCluster = mock(Cluster.class);
             try {
                 Metadata mockMetadata = mock(Metadata.class);

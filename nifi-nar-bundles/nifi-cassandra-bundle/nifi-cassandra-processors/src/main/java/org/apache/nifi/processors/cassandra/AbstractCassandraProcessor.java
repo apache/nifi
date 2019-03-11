@@ -22,6 +22,7 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
@@ -137,6 +138,15 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .defaultValue("ONE")
             .build();
 
+    static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
+            .name("Compression Type")
+            .description("Enable compression at transport-level requests and responses")
+            .required(false)
+            .allowableValues(ProtocolOptions.Compression.values())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("NONE")
+            .build();
+
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies the character set of the record data.")
@@ -172,6 +182,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(CONSISTENCY_LEVEL);
+        descriptors.add(COMPRESSION_TYPE);
         descriptors.add(CHARSET);
     }
 
@@ -238,6 +249,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
+            final String compressionType = context.getProperty(COMPRESSION_TYPE).getValue();
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
@@ -277,7 +289,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             }
 
             // Create the cluster and connect to it
-            Cluster newCluster = createCluster(contactPoints, sslContext, username, password);
+            Cluster newCluster = createCluster(contactPoints, sslContext, username, password, compressionType);
             PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
 
             final Session newSession;
@@ -304,16 +316,22 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
      * @param sslContext    The SSL context (used for secure connections)
      * @param username      The username for connection authentication
      * @param password      The password for connection authentication
+     * @param compressionType Enable compression at transport-level requests and responses.
      * @return A reference to the Cluster object associated with the given Cassandra configuration
      */
     protected Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                    String username, String password) {
+                                    String username, String password, String compressionType) {
         Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
         if (sslContext != null) {
             JdkSSLOptions sslOptions = JdkSSLOptions.builder()
                     .withSSLContext(sslContext)
                     .build();
             builder = builder.withSSL(sslOptions);
+            if(ProtocolOptions.Compression.SNAPPY.equals(compressionType)) {
+                builder = builder.withCompression(ProtocolOptions.Compression.SNAPPY);
+            } else if(ProtocolOptions.Compression.LZ4.equals(compressionType)) {
+                builder = builder.withCompression(ProtocolOptions.Compression.LZ4);
+            }
         }
         if (username != null && password != null) {
             builder = builder.withCredentials(username, password);
