@@ -20,6 +20,7 @@ import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import org.apache.curator.test.TestingServer
 import org.apache.curator.utils.ZKPaths
+import org.apache.nifi.util.FileExpansionUtil
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.ZKUtil
@@ -280,6 +281,28 @@ class ZooKeeperMigratorTest extends Specification {
 
         then: "verify the data has been written to the output file"
         new File(dataPath).exists()
+
+        when: "data is sent to the same zookeeper as the the source zookeeper with a different path"
+        ZooKeeperMigratorMain.main(['-s', '-z', "$connectString/new-path", '-f', dataPath] as String[])
+
+        then: "no exceptions are thrown"
+        noExceptionThrown()
+    }
+
+    def "Send to same ZooKeeper with data path set to home directory"() {
+        def server = new TestingServer()
+        def connectString = "$server.connectString"
+        def dataPath = '~/test-data-different-path.json'
+
+        System.setProperty("user.home", "target/home")
+        File homedir = new File(System.getProperty("user.home"))
+        homedir.mkdir()
+
+        when: "data is read from the source zookeeper"
+        ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
+
+        then: "verify the data has been written to the output file"
+        new File(FileExpansionUtil.expandPath(dataPath)).exists()
 
         when: "data is sent to the same zookeeper as the the source zookeeper with a different path"
         ZooKeeperMigratorMain.main(['-s', '-z', "$connectString/new-path", '-f', dataPath] as String[])

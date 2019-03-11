@@ -26,6 +26,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.toolkit.zkmigrator.ZooKeeperMigrator.AuthMode;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.FileInputStream;
@@ -137,7 +138,7 @@ public class ZooKeeperMigratorMain {
             } else {
                 final String zookeeperUri = commandLine.getOptionValue(OPTION_ZK_ENDPOINT.getOpt());
                 final Mode mode = commandLine.hasOption(OPTION_RECEIVE.getOpt()) ? Mode.READ : Mode.WRITE;
-                final String filename = commandLine.getOptionValue(OPTION_FILE.getOpt());
+                final String filename = FileExpansionUtil.expandPath(commandLine.getOptionValue(OPTION_FILE.getOpt()));
                 final String auth = commandLine.getOptionValue(OPTION_ZK_AUTH_INFO.getOpt());
                 final String jaasFilename = commandLine.getOptionValue(OPTION_ZK_KRB_CONF_FILE.getOpt());
                 final boolean ignoreSource = commandLine.hasOption(OPTION_IGNORE_SOURCE.getLongOpt());
