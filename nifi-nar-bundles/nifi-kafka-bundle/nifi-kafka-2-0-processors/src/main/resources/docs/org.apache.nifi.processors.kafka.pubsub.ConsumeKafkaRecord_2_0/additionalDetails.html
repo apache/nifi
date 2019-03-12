@@ -139,6 +139,7 @@
                                         username="nifi"
                                         password="nifi-password";
             </pre>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
         </ol>
         </p>
         <p>
@@ -147,9 +148,6 @@
         </p>
         <p>
             <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of PLAIN. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
-        </p>
-        <p>
-            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
         </p>
         <p>
             <b>NOTE:</b> Using the PlainLoginModule will cause it be registered in the JVM's static list of Providers, making
@@ -181,12 +179,10 @@
                                         username="nifi"
                                         password="nifi-password";
             </pre>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
         </ol>
         <p>
         <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of SCRAM-SHA-256 or SCRAM-SHA-512. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
-        </p>
-        <p>
-            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
         </p>
         <h3>SASL_SSL</h3>
         <p>
