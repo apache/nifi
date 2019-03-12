@@ -25,8 +25,7 @@ import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 public class TestStandardValidators {
@@ -124,6 +123,28 @@ public class TestStandardValidators {
 
         vr = val.validate("TimePeriodTest", "1 sec", validationContext);
         assertTrue(vr.isValid());
+    }
+
+    @Test
+    public void testFileExistsValidatorReturnsInvalidResultWhenFileDoesntExist() {
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+
+        ValidationResult vr = StandardValidators.FILE_EXISTS_VALIDATOR.validate("", "this_file_does_not_exist.txt", validationContext);
+
+        assertFalse(vr.isValid());
+    }
+
+    @Test
+    public void testFileExistsValidatorPerformsExpansion() {
+        Validator val = new StandardValidators.FileExistsValidator(false);
+
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+
+        System.setProperty("user.home", "src/test/resources");
+
+        ValidationResult vr = val.validate("", "~/this_file_exists.txt", validationContext);
+
+        assertTrue(vr.toString(), vr.isValid());
     }
 
     @Test
@@ -250,6 +271,8 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createURLorFileValidator();
         ValidationResult vr;
 
+        System.setProperty("user.home", "src/test/resources");
+
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 
         vr = val.validate("URLorFile", null, validationContext);
@@ -268,11 +291,13 @@ public class TestStandardValidators {
         assertFalse(vr.isValid());
 
         vr = val.validate("URLorFile", "src/test/resources/this_file_exists.txt", validationContext);
-        assertTrue(vr.isValid());
+        assertTrue(vr.toString(), vr.isValid());
+
+        vr = val.validate("URLorFile", "~/this_file_exists.txt", validationContext);
+        assertTrue(vr.toString(), vr.isValid());
 
         vr = val.validate("URLorFile", "src/test/resources/this_file_does_not_exist.txt", validationContext);
-        assertFalse(vr.isValid());
-
+        assertFalse(vr.toString(), vr.isValid());
     }
 
     @Test

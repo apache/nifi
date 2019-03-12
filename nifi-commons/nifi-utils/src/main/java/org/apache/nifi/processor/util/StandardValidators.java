@@ -23,6 +23,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.FormatUtils;
 
 import java.io.File;
@@ -549,7 +550,7 @@ public class StandardValidators {
                 boolean validFile = true;
                 if (!validUrl) {
                     // Check to see if it is a file and it exists
-                    final File file = new File(evaluatedInput);
+                    final File file = new File(FileExpansionUtil.expandPath(evaluatedInput));
                     validFile = file.exists();
                 }
 
@@ -830,7 +831,7 @@ public class StandardValidators {
                 substituted = value;
             }
 
-            final File file = new File(substituted);
+            final File file = new File(FileExpansionUtil.expandPath(substituted));
             final boolean valid = file.exists();
             final String explanation = valid ? null : "File " + file + " does not exist";
             return new ValidationResult.Builder().subject(subject).input(value).valid(valid).explanation(explanation).build();
