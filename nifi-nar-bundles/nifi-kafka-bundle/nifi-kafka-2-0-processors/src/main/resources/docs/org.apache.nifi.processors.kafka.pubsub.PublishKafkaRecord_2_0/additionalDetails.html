@@ -134,10 +134,17 @@
             the username and password unencrypted.
         </p>
         <p>
+            <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of PLAIN. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
+        </p>
+        <p>
             <b>NOTE:</b> Using the PlainLoginModule will cause it be registered in the JVM's static list of Providers, making
             it visible to components in other NARs that may access the providers. There is currently a known issue
             where Kafka processors using the PlainLoginModule will cause HDFS processors with Keberos to no longer work.
         </p>
+        <p>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
+        </p>
+
         <h4>SASL_PLAINTEXT - SCRAM</h4>
         <p>
             If the SASL mechanism is SSL, then client must provide a JAAS configuration to authenticate, but
@@ -165,7 +172,10 @@
                                         password="nifi-password";
             </pre>
         </ol>
-        <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of SCRAM-SHA-256 or SCRAM-SHA-512. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string. I prefer "null".
+        <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of SCRAM-SHA-256 or SCRAM-SHA-512. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
+        </p>
+        <p>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
         </p>
         <h3>SASL_SSL</h3>
         <p>
