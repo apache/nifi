@@ -260,13 +260,13 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.10.0-SNAPSHOT</version>
+                <version>1.9.1-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock-record-utils</artifactId>
-                <version>1.10.0-SNAPSHOT</version>
+                <version>1.9.1-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <!-- The following dependencies are marked provided because they must be provided by the container.  Nars can assume they are there-->
