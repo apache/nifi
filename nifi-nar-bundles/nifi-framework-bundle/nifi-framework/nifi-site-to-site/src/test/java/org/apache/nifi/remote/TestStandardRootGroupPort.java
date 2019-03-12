@@ -19,6 +19,7 @@ package org.apache.nifi.remote;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.groups.ProcessGroup;
@@ -57,9 +58,10 @@ public class TestStandardRootGroupPort {
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
         final StandardRootGroupPort rootGroupPort = new StandardRootGroupPort("id", "name", processGroup,
-                TransferDirection.SEND, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
+                TransferDirection.SEND, ConnectableType.INPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
 
-        final StandardPublicPort publicPort = new StandardPublicPort(rootGroupPort, TransferDirection.SEND, authorizer, bulletinRepository, processScheduler, true, nifiProperties);
+        final StandardPublicPort publicPort = new StandardPublicPort(rootGroupPort, TransferDirection.SEND,
+            authorizer, bulletinRepository, processScheduler, true, IdentityMappingUtil.getIdentityMappings(nifiProperties));
         rootGroupPort.setPublicPort(publicPort);
         return rootGroupPort;
     }

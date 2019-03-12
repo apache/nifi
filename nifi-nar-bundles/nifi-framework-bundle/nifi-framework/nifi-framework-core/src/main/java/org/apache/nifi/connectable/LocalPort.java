@@ -24,7 +24,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
@@ -115,6 +114,7 @@ public class LocalPort extends AbstractPort {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        final PublicPort publicPort = getPublicPort();
         if (publicPort != null) {
             // If this is a publicly accessible port, then process remote transactions first.
             publicPort.onTrigger(context, sessionFactory);
@@ -130,12 +130,9 @@ public class LocalPort extends AbstractPort {
         try {
             onTrigger(context, session);
             session.commit();
-        } catch (final ProcessException e) {
-            session.rollback();
-            throw e;
         } catch (final Throwable t) {
             session.rollback();
-            throw new RuntimeException(t);
+            throw t;
         }
 
     }
@@ -241,7 +238,7 @@ public class LocalPort extends AbstractPort {
 
     @Override
     public boolean isTriggerWhenEmpty() {
-        return publicPort != null;
+        return getPublicPort() != null;
     }
 
     @Override
@@ -259,8 +256,4 @@ public class LocalPort extends AbstractPort {
         return "Local Port";
     }
 
-    @Override
-    public PublicPort getPublicPort() {
-        return publicPort;
-    }
 }

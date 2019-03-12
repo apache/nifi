@@ -28,7 +28,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.NiFiProperties;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,12 +40,12 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     public StandardRootGroupPort(final String id, final String name, final ProcessGroup processGroup,
             final TransferDirection direction, final ConnectableType type, final ProcessScheduler scheduler,
-            final NiFiProperties nifiProperties) {
+            final String yieldPeriod) {
 
         super(id, name, processGroup, type, scheduler);
 
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
-        setYieldPeriod(nifiProperties.getBoredYieldDuration());
+        setYieldPeriod(yieldPeriod);
 
         relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(AbstractPort.PORT_RELATIONSHIP) : Collections.emptySet();
     }
@@ -63,7 +62,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        publicPort.onTrigger(context, sessionFactory);
+        getPublicPort().onTrigger(context, sessionFactory);
     }
 
     @Override
@@ -96,14 +95,14 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     public void shutdown() {
         super.shutdown();
 
-        publicPort.shutdown();
+        getPublicPort().shutdown();
     }
 
     @Override
     public void onSchedulingStart() {
         super.onSchedulingStart();
 
-        publicPort.start();
+        getPublicPort().start();
     }
 
     @Override

@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -131,7 +132,7 @@ public class StandardFlowManager implements FlowManager {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
+        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
         setRemoteAccessibility(port, true);
         return port;
     }
@@ -140,7 +141,7 @@ public class StandardFlowManager implements FlowManager {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties);
+        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
         setRemoteAccessibility(port, true);
         return port;
     }
@@ -158,7 +159,7 @@ public class StandardFlowManager implements FlowManager {
     }
 
     private PublicPort createPublicPort(Port port, TransferDirection direction) {
-        return new StandardPublicPort(port, direction, authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, nifiProperties);
+        return new StandardPublicPort(port, direction, authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     /**

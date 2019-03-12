@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
@@ -48,7 +50,6 @@ import org.apache.nifi.remote.protocol.ServerProtocol;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,12 +93,12 @@ public class StandardPublicPort implements PublicPort {
 
     public StandardPublicPort(final Port port, final TransferDirection direction, final Authorizer authorizer,
                               final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
-                              final NiFiProperties nifiProperties) {
+                              final List<IdentityMapping> identityMappings) {
 
         this.port = port;
         this.authorizer = authorizer;
         this.secure = secure;
-        this.identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
+        this.identityMappings = identityMappings;
         this.scheduler = scheduler;
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
@@ -541,4 +542,19 @@ public class StandardPublicPort implements PublicPort {
         }
     }
 
+    @Override
+    public String getIdentifier() {
+        return port.getIdentifier();
+    }
+
+    @Override
+    public String getName() {
+        return port.getName();
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+            .append("id", getIdentifier()).append("name", getName()).toString();
+    }
 }

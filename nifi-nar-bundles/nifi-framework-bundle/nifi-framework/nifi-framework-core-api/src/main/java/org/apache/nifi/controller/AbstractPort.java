@@ -90,7 +90,7 @@ public abstract class AbstractPort implements Port {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    protected PublicPort publicPort;
+    private PublicPort publicPort;
 
     public AbstractPort(final String id, final String name, final ProcessGroup processGroup, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
@@ -247,12 +247,9 @@ public abstract class AbstractPort implements Port {
         try {
             onTrigger(context, session);
             session.commit();
-        } catch (final ProcessException e) {
-            session.rollback();
-            throw e;
         } catch (final Throwable t) {
             session.rollback();
-            throw new RuntimeException(t);
+            throw t;
         }
     }
 

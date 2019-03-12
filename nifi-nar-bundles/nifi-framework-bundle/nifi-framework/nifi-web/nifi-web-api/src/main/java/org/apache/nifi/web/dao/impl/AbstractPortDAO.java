@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractStandardPortDAO extends ComponentDAO implements PortDAO {
+public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
     protected FlowController flowController;
 

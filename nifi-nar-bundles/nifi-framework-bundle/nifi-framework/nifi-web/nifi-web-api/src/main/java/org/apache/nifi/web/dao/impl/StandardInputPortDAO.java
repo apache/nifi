@@ -26,7 +26,7 @@ import org.apache.nifi.web.dao.PortDAO;
 
 import java.util.Set;
 
-public class StandardInputPortDAO extends AbstractStandardPortDAO implements PortDAO {
+public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
 
     protected Port locatePort(final String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();

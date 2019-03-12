@@ -106,6 +106,14 @@ public class TestLocalPort {
     public void testValidLocalInputPort() {
         final LocalPort port = getLocalInputPort();
 
+        // Add an incoming relationship.
+        port.addConnection(new StandardConnection.Builder(null)
+            .source(mock(Connectable.class))
+            .destination(port)
+            .relationships(Collections.singleton(Relationship.ANONYMOUS))
+            .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
+            .build());
+
         // Add an outgoing relationship.
         port.addConnection(new StandardConnection.Builder(null)
             .source(port)
@@ -154,6 +162,14 @@ public class TestLocalPort {
     public void testValidLocalOutputPort() {
         final LocalPort port = getLocalOutputPort();
 
+        // Add an incoming relationship.
+        port.addConnection(new StandardConnection.Builder(null)
+            .source(mock(Connectable.class))
+            .destination(port)
+            .relationships(Collections.singleton(Relationship.ANONYMOUS))
+            .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
+            .build());
+
         // Add an outgoing relationship.
         port.addConnection(new StandardConnection.Builder(null)
             .source(port)
@@ -171,6 +187,14 @@ public class TestLocalPort {
 
         // If this is a public port, outgoing relationship is not required.
         port.setPublicPort(mock(PublicPort.class));
+
+        // Add an incoming relationship.
+        port.addConnection(new StandardConnection.Builder(null)
+            .source(mock(Connectable.class))
+            .destination(port)
+            .relationships(Collections.singleton(Relationship.ANONYMOUS))
+            .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
+            .build());
 
         assertTrue(port.isValid());
     }

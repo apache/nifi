@@ -31,6 +31,16 @@ import java.util.Set;
  */
 public interface PublicPort {
 
+    /**
+     * @return the unique identifier for this port
+     */
+    String getIdentifier();
+
+    /**
+     * @return the name of this port
+     */
+    String getName();
+
     boolean isTransmitting();
 
     void setGroupAccessControl(Set<String> groups);
