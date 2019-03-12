@@ -83,7 +83,11 @@ public class TlsToolkitStandalone {
     public void splitKeystore(StandaloneConfig standaloneConfig) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(new FileInputStream(standaloneConfig.getKeyStore()), standaloneConfig.getKeyStorePassword().toCharArray());
-        splitKeystore(keyStore, standaloneConfig.getKeyPassword().toCharArray(), standaloneConfig.getBaseDir());
+        if(standaloneConfig.getKeyPassword() == null || standaloneConfig.getKeyPassword().isEmpty()) {
+            splitKeystore(keyStore, standaloneConfig.getKeyStorePassword().toCharArray(), standaloneConfig.getBaseDir());
+        } else {
+            splitKeystore(keyStore, standaloneConfig.getKeyPassword().toCharArray(), standaloneConfig.getBaseDir());
+        }
     }
 
     public void createNifiKeystoresAndTrustStores(StandaloneConfig standaloneConfig) throws GeneralSecurityException, IOException {

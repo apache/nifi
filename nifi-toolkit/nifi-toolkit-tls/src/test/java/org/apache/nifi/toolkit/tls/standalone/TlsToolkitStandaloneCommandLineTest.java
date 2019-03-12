@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -478,10 +479,46 @@ public class TlsToolkitStandaloneCommandLineTest {
     @Test(expected = CommandLineParseException.class)
     public void testSplitKeystoreMissingPasswords() throws Exception {
 
-        String keyPass = "changeit";
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-o", folder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+    }
+
+    @Test
+    public void testSplitKeystoreWithKeystoreAndKeyPasswordTheSame() throws Exception {
+
         String keystorePass = "changeit";
         File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile());
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass,  "-o", folder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+    }
+
+    @Test(expected = UnrecoverableKeyException.class)
+    public void testSplitKeystoreWrongKeyPass() throws Exception {
+
+        String keyPass = "wrongpass";
+        String keystorePass = "changeit";
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+    }
+
+    @Test(expected = IOException.class)
+    public void testSplitKeystoreWrongKeystorePass() throws Exception {
+
+        String keyPass = "changeit";
+        String keystorePass = "wrongpass";
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();

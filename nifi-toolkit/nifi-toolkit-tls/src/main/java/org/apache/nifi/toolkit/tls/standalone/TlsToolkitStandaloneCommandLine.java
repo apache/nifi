@@ -130,9 +130,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
             System.exit(e.getExitCode().ordinal());
         }
 
-        StandaloneConfig conf = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
-
-        if(conf.isSplitKeystore()) {
+        if(tlsToolkitStandaloneCommandLine.splitKeystore) {
+            StandaloneConfig conf = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
             try {
                 new TlsToolkitStandalone().splitKeystore(conf);
             } catch (Exception e) {
@@ -189,13 +188,13 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         overwrite = commandLine.hasOption(OVERWRITE_ARG);
 
         if(commandLine.hasOption(SPLIT_KEYSTORE_ARG)) {
-            if(commandLine.hasOption(KEY_STORE_PASSWORD_ARG) && commandLine.hasOption(KEY_PASSWORD_ARG)) {
+            if(commandLine.hasOption(KEY_STORE_PASSWORD_ARG)) {
                 splitKeystoreFile = commandLine.getOptionValue(SPLIT_KEYSTORE_ARG);
                 keyStorePassword = commandLine.getOptionValue(KEY_STORE_PASSWORD_ARG);
                 keyPassword = commandLine.getOptionValue(KEY_PASSWORD_ARG);
                 splitKeystore = true;
             } else {
-                printUsageAndThrow("-splitKeystore specified but no keyStorePassword or keyPassword supplied.", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
+                printUsageAndThrow("-splitKeystore specified but no keyStorePassword supplied.", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
             }
         }
 
