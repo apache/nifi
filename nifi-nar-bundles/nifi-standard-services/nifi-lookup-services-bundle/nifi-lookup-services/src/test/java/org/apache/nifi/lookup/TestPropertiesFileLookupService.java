@@ -39,7 +39,6 @@ public class TestPropertiesFileLookupService {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources");
     }
 
     @After
@@ -79,6 +78,7 @@ public class TestPropertiesFileLookupService {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PropertiesFileLookupService service = new PropertiesFileLookupService();
 
+        System.setProperty("user.home", "src/test/resources");
 
         runner.addControllerService("properties-file-lookup-service", service);
         runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "~/test.properties");

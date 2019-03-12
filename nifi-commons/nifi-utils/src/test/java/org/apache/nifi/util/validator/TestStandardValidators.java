@@ -27,8 +27,7 @@ import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 public class TestStandardValidators {
@@ -163,32 +162,16 @@ public class TestStandardValidators {
 
     @Test
     public void testFileExistsValidatorPerformsExpansionWhenExpressionLanguageIsSupported() {
-        System.setProperty("user.home", "src/test/resources");
         Validator val = new StandardValidators.FileExistsValidator(true);
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 
-        ValidationResult vr = val.validate("user-properties", "~/this_file_exists.txt", validationContext);
+        System.setProperty("user.home", "src/test/resources");
+
+        ValidationResult vr = val.validate("", "~/this_file_exists.txt", validationContext);
 
         assertTrue(vr.toString(), vr.isValid());
     }
-
-    // @TODO I need to figure out how to properly make the VariableRegistry available to the ValidationContext.
-    //  In the test below I'm not
-//    @Test
-//    public void testFileExistsValidatorPerformsExpansionWhenExpressionLanguageIsSupportedAndPresent() {
-//        System.setProperty("user.home", "src/test");
-//        System.setProperty("directory-fragment", "resources");
-//        Validator val = new StandardValidators.FileExistsValidator(true);
-//
-//        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-//        validationContext.
-//        Mockito.when(validationContext.isExpressionLanguagePresent("${directory-fragment}/this_file_exists.txt")).thenReturn(true);
-//
-//        ValidationResult vr = val.validate("user-properties", "~/${directory-fragment}/this_file_exists.txt", validationContext);
-//
-//        assertTrue(vr.toString(), vr.isValid());
-//    }
 
     @Test
     public void testDataSizeBoundsValidator() {
@@ -314,6 +297,8 @@ public class TestStandardValidators {
         System.setProperty("user.home", "src/test/resources");
         Validator val = StandardValidators.createURLorFileValidator();
         ValidationResult vr;
+
+        System.setProperty("user.home", "src/test/resources");
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 
