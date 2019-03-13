@@ -65,6 +65,7 @@ final class KafkaProcessorUtils {
     static final String KAFKA_TOPIC = "kafka.topic";
     static final String KAFKA_PARTITION = "kafka.partition";
     static final String KAFKA_OFFSET = "kafka.offset";
+    static final String KAFKA_TIMESTAMP = "kafka.timestamp";
     static final String KAFKA_COUNT = "kafka.count";
     static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
