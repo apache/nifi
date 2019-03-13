@@ -1242,6 +1242,20 @@ public class DataTypeUtils {
                         + ", value is not a valid representation of BigInteger", nfe);
             }
         }
+        if (value instanceof Integer) {
+            return BigInteger.valueOf(((Integer) value).longValue());
+        }
+        if (value instanceof Short) {
+            return BigInteger.valueOf(((Short) value).longValue());
+        }
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
+        }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
