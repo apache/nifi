@@ -55,21 +55,9 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final String FLOAT_CLASS_NAME = Float.class.getName();
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
-        this(rs, readerSchema, false);
-    }
-
-    /**
-     * Constructs a ResultSetRecordSet with a given ResultSet and RecordSchema
-     *
-     * @param rs The underlying ResultSet for this RecordSet
-     * @param readerSchema The schema to which this RecordSet adheres
-     * @param allFieldsNullable Whether to override the database column's "nullable" metadata. If true then all fields in the RecordSet are nullable.
-     * @throws SQLException if an error occurs while creating the schema or reading the result set's metadata
-     */
-    public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema, boolean allFieldsNullable) throws SQLException {
         this.rs = rs;
         moreRows = rs.next();
-        this.schema = createSchema(rs, readerSchema, allFieldsNullable);
+        this.schema = createSchema(rs, readerSchema);
 
         rsColumnNames = new HashSet<>();
         final ResultSetMetaData metadata = rs.getMetaData();
@@ -152,7 +140,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return value;
     }
 
-    private static RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema, boolean allFieldsNullable) throws SQLException {
+    private static RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         final ResultSetMetaData metadata = rs.getMetaData();
         final int numCols = metadata.getColumnCount();
         final List<RecordField> fields = new ArrayList<>(numCols);
@@ -166,7 +154,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
             final int nullableFlag = metadata.isNullable(column);
             final boolean nullable;
-            if (nullableFlag == ResultSetMetaData.columnNoNulls && !allFieldsNullable) {
+            if (nullableFlag == ResultSetMetaData.columnNoNulls) {
                 nullable = false;
             } else {
                 nullable = true;

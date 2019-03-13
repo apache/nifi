@@ -19,12 +19,10 @@ package org.apache.nifi.lookup.db;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import org.apache.avro.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -34,10 +32,8 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.Tuple;
-import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -62,7 +58,6 @@ import java.util.stream.Stream;
 public class DatabaseRecordLookupService extends AbstractDatabaseLookupService implements RecordLookupService {
 
     private volatile Cache<Tuple<String, Object>, Record> cache;
-    private volatile JdbcCommon.AvroConversionOptions options;
 
     static final PropertyDescriptor LOOKUP_VALUE_COLUMNS = new PropertyDescriptor.Builder()
             .name("dbrecord-lookup-value-columns")
@@ -120,15 +115,6 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                         .build();
             }
         }
-
-        options = JdbcCommon.AvroConversionOptions.builder()
-                .recordName("NiFi_DB_Record_Lookup")
-                // Ignore duplicates
-                .maxRows(1)
-                // Keep column names as field names
-                .convertNames(false)
-                .useLogicalTypes(true)
-                .build();
     }
 
     @Override
@@ -173,9 +159,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
                 st.setObject(1, key);
                 ResultSet resultSet = st.executeQuery();
-                final Schema avroSchema = JdbcCommon.createSchema(resultSet, options);
-                final RecordSchema recordAvroSchema = AvroTypeUtil.createSchema(avroSchema);
-                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, recordAvroSchema, true);
+                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
                 foundRecord = resultSetRecordSet.next();
 
                 // Populate the cache if the record is present

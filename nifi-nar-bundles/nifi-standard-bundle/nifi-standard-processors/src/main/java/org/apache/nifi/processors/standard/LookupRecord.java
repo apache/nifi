@@ -316,7 +316,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             if (RESULT_RECORD_FIELDS.getValue().equals(resultContentsValue) && lookupValue instanceof Record) {
                 final Record lookupRecord = (Record) lookupValue;
 
-                // Use wants to add all fields of the resultant Record to the specified Record Path.
+                // User wants to add all fields of the resultant Record to the specified Record Path.
                 // If the destination Record Path returns to us a Record, then we will add all field values of
                 // the Lookup Record to the destination Record. However, if the destination Record Path returns
                 // something other than a Record, then we can't add the fields to it. We can only replace it,
@@ -332,7 +332,14 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
                             final Optional<RecordField> recordFieldOption = lookupRecord.getSchema().getField(fieldName);
                             if (recordFieldOption.isPresent()) {
-                                destinationRecord.setValue(recordFieldOption.get(), value);
+                                // Even if the looked up field is not nullable, if the lookup key didn't match with any record,
+                                // and matched/unmatched records are written to the same FlowFile routed to 'success' relationship,
+                                // then enriched fields should be nullable to support unmatched records whose enriched fields will be null.
+                                RecordField field = recordFieldOption.get();
+                                if (!routeToMatchedUnmatched && !field.isNullable()) {
+                                    field = new RecordField(field.getFieldName(), field.getDataType(), field.getDefaultValue(), field.getAliases(), true);
+                                }
+                                destinationRecord.setValue(field, value);
                             } else {
                                 destinationRecord.setValue(fieldName, value);
                             }
