@@ -19,8 +19,10 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -286,5 +288,34 @@ public class TestDataTypeUtils {
         Map<String,Object> testMap = new HashMap<>();
         testMap.put("Hello", "World");
         assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeBigint() {
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), RecordFieldType.BIGINT.getDataType()));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, RecordFieldType.BIGINT.getDataType()));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, RecordFieldType.BIGINT.getDataType()));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, RecordFieldType.BIGINT.getDataType()));
+        assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", RecordFieldType.BIGINT.getDataType()));
+        assertTrue(DataTypeUtils.isCompatibleDataType("1234567XYZ", RecordFieldType.BIGINT.getDataType())); // Compatible but the value might not be a valid BigInteger
+        assertFalse(DataTypeUtils.isCompatibleDataType(3.0f, RecordFieldType.BIGINT.getDataType()));
+        assertFalse(DataTypeUtils.isCompatibleDataType(3.0, RecordFieldType.BIGINT.getDataType()));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, RecordFieldType.BIGINT.getDataType()));
+    }
+
+    @Test
+    public void testConvertDataTypeBigint() {
+        assertTrue(DataTypeUtils.convertType(new BigInteger("12345678901234567890"), RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        assertTrue(DataTypeUtils.convertType(1234567890123456789L, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        assertTrue(DataTypeUtils.convertType(1, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        assertTrue(DataTypeUtils.convertType((short) 1, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        assertTrue(DataTypeUtils.convertType("12345678901234567890", RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        Exception e = null;
+        try {
+            DataTypeUtils.convertType("1234567XYZ", RecordFieldType.BIGINT.getDataType(), "field");
+        } catch (IllegalTypeConversionException itce) {
+            e = itce;
+        }
+        assertNotNull(e);
     }
 }
