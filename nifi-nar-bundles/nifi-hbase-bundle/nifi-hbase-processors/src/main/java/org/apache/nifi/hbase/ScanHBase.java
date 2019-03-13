@@ -215,8 +215,8 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             .description("The Block Cache to enable/disable block cache on HBase scan.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
-            .required(false)
-            .defaultValue("false")
+            .required(true)
+            .defaultValue("true")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 

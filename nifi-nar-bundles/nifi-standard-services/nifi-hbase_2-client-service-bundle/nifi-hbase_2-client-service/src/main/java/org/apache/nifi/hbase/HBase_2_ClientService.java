@@ -693,9 +693,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             scan.setReversed(isReversed);
         }
 
-        if(blockCache != null){
-            scan.setCacheBlocks(blockCache);
-        }
+        scan.setCacheBlocks(blockCache);
 
         return table.getScanner(scan);
     }
