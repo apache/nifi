@@ -114,15 +114,64 @@
       password="nifi-password";
     };
             </pre>
+        The JAAS configuration can be provided by either of below ways
+        <ol type="1">
+            <li>specify the java.security.auth.login.config system property in
+                NiFi's bootstrap.conf. This limits you to use only one user credential across the cluster.</li>
+            <pre>
+                java.arg.16=-Djava.security.auth.login.config=/path/to/kafka_client_jaas.conf
+            </pre>
+            <li>add user attribute 'sasl.jaas.config' in the processor configurations. This method allows one to have multiple consumers with different user credentials or gives flexibility to consume from multiple kafka clusters.</li>
+            <pre>
+                sasl.jaas.config : org.apache.kafka.common.security.plain.PlainLoginModule required
+                                        username="nifi"
+                                        password="nifi-password";
+            </pre>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
+        </ol>
         </p>
         <p>
             <b>NOTE:</b> It is not recommended to use a SASL mechanism of PLAIN with SASL_PLAINTEXT, as it would transmit
             the username and password unencrypted.
         </p>
         <p>
+            <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of PLAIN. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
+        </p>
+        <p>
             <b>NOTE:</b> Using the PlainLoginModule will cause it be registered in the JVM's static list of Providers, making
             it visible to components in other NARs that may access the providers. There is currently a known issue
             where Kafka processors using the PlainLoginModule will cause HDFS processors with Keberos to no longer work.
+        </p>
+
+        <h4>SASL_PLAINTEXT - SCRAM</h4>
+        <p>
+            If the SASL mechanism is SSL, then client must provide a JAAS configuration to authenticate, but
+            the JAAS configuration must use Kafka's ScramLoginModule. Ensure that you add user defined attribute 'sasl.mechanism' and assign 'SCRAM-SHA-256' or 'SCRAM-SHA-512' based on kafka broker configurations. An example of the JAAS config file would
+            be the following:
+        <pre>
+    KafkaClient {
+      org.apache.kafka.common.security.scram.ScramLoginModule
+      username="nifi"
+      password="nifi-password";
+    };
+            </pre>
+
+        The JAAS configuration can be provided by either of below ways
+        <ol type="1">
+            <li>specify the java.security.auth.login.config system property in
+                NiFi's bootstrap.conf. This limits you to use only one user credential across the cluster.</li>
+            <pre>
+                java.arg.16=-Djava.security.auth.login.config=/path/to/kafka_client_jaas.conf
+            </pre>
+            <li>add user attribute 'sasl.jaas.config' in the processor configurations. This method allows one to have multiple consumers with different user credentials or gives flexibility to consume from multiple kafka clusters.</li>
+            <pre>
+                sasl.jaas.config : org.apache.kafka.common.security.scram.ScramLoginModule required
+                                        username="nifi"
+                                        password="nifi-password";
+            </pre>
+            <b>NOTE:</b> The dynamic properties of this processor are not secured and as a result the password entered when utilizing sasl.jaas.config will be stored in the flow.xml.gz file in plain-text, and will be saved to NiFi Registry if using versioned flows.
+        </ol>
+        <b>NOTE:</b> The Kerberos Service Name is not required for SASL mechanism of SCRAM-SHA-256 or SCRAM-SHA-512. However, processor warns saying this attribute has to be filled with non empty string. You can choose to fill any random string, such as "null".
         </p>
         <h3>SASL_SSL</h3>
         <p>
