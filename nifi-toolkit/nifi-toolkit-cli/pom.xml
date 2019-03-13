@@ -64,7 +64,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-client</artifactId>
-            <version>0.2.0</version>
+            <version>${nifi.registry.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

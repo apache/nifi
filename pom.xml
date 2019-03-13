@@ -96,6 +96,7 @@
         <ranger.version>1.0.0</ranger.version>
         <jetty.version>9.4.11.v20180605</jetty.version>
         <jackson.version>2.9.8</jackson.version>
+        <nifi.registry.version>0.3.0</nifi.registry.version>
     </properties>
 
     <repositories>
