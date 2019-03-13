@@ -102,7 +102,8 @@ public class TestPrometheusReportingTask {
         HttpResponse response = client.execute(request);
         HttpEntity entity = response.getEntity();
         String content = EntityUtils.toString(entity);
-        System.out.println(content);
+        Assert.assertEquals(true, content.contains(
+                "process_group_amount_flowfiles_total{status=\"received\",application=\"nifi\",process_group=\"root\",} 5.0"));
         Assert.assertEquals(true, content.contains(
                 "process_group_amount_threads_total{status=\"nano\",application=\"nifi\",process_group=\"root\",} 5.0"));
 
