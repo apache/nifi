@@ -1083,12 +1083,30 @@ public class DataTypeUtils {
         if (value instanceof Long) {
             return BigInteger.valueOf((Long) value);
         }
+        if (value instanceof Integer) {
+            return BigInteger.valueOf(((Integer) value).longValue());
+        }
+        if (value instanceof Short) {
+            return BigInteger.valueOf(((Short) value).longValue());
+        }
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
+        }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
-        return value == null && (value instanceof BigInteger || value instanceof Long);
+        return value instanceof BigInteger
+                || value instanceof Long
+                || value instanceof Integer
+                || value instanceof Short
+                || value instanceof String;
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
