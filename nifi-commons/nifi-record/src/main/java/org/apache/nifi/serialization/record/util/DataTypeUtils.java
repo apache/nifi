@@ -201,59 +201,8 @@ public class DataTypeUtils {
             case LONG:
                 return isLongTypeCompatible(value);
             case RECORD: {
-                if (value == null) {
-                    return false;
-                }
-
-                // value may be a Map even when type is RECORD
-                if (value instanceof Map) {
-                    final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                    if (schema == null) {
-                        return true;
-                    }
-                    Map<String, Object> record = ((Map<String, Object>) value);
-                    for (final RecordField childField : schema.getFields()) {
-                        final Object childValue = record.get(childField.getFieldName());
-                        if (childValue == null && !childField.isNullable()) {
-                            logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                            return false;
-                        }
-                        if (childValue == null) {
-                            continue; // consider compatible
-                        }
-
-                        if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-                if (!(value instanceof Record)) {
-                    return false;
-                }
-
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                if (schema == null) {
-                    return true;
-                }
-
-                final Record record = (Record) value;
-                for (final RecordField childField : schema.getFields()) {
-                    final Object childValue = record.getValue(childField);
-                    if (childValue == null && !childField.isNullable()) {
-                        logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                        return false;
-                    }
-                    if (childValue == null) {
-                        continue; // consider compatible
-                    }
-
-                    if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                        return false;
-                    }
-                }
-
-                return true;
+                return isRecordTypeCompatible(schema, value);
             }
             case SHORT:
                 return isShortTypeCompatible(value);
@@ -539,8 +488,47 @@ public class DataTypeUtils {
         return RecordFieldType.RECORD.getRecordDataType(schema);
     }
 
-    public static boolean isRecordTypeCompatible(final Object value) {
-        return value instanceof Record;
+    /**
+     * Check if the given record structured object compatible with the schema.
+     * @param schema record schema, schema validation will not be performed if schema is null
+     * @param value the record structured object, i.e. Record or Map
+     * @return True if the object is compatible with the schema
+     */
+    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
+
+        if (value == null) {
+            return false;
+        }
+
+        if (!(value instanceof Record) && !(value instanceof Map)) {
+            return false;
+        }
+
+        if (schema == null) {
+            return true;
+        }
+
+        for (final RecordField childField : schema.getFields()) {
+            final Object childValue;
+            if (value instanceof Record) {
+                childValue = ((Record) value).getValue(childField);
+            } else {
+                childValue = ((Map) value).get(childField.getFieldName());
+            }
+
+            if (childValue == null && !childField.isNullable()) {
+                logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
+                return false;
+            }
+            if (childValue == null) {
+                continue; // consider compatible
+            }
+
+            if (!isCompatibleDataType(childValue, childField.getDataType())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType) {
