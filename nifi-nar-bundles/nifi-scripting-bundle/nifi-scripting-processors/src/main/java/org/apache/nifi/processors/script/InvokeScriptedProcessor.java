@@ -208,29 +208,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         scriptingComponentHelper.setupVariables(context);
         setup();
 
-        // Run the scripted processor's onScheduled() method here, if it exists
-        if (scriptEngine instanceof Invocable) {
-            final Invocable invocable = (Invocable) scriptEngine;
-            final Object obj = scriptEngine.get("processor");
-            if (obj != null) {
-
-                ComponentLog logger = getLogger();
-                try {
-                    invocable.invokeMethod(obj, "onScheduled", context);
-                } catch (final NoSuchMethodException nsme) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Configured script Processor does not contain an onScheduled method.");
-                    }
-                } catch (final Exception e) {
-                    // An error occurred during onScheduled, propagate it up
-                    logger.error("Error while executing the scripted processor's onScheduled method", e);
-                    if (e instanceof ProcessException) {
-                        throw (ProcessException) e;
-                    }
-                    throw new ProcessException(e);
-                }
-            }
-        }
+        invokeScriptedProcessorMethod("onScheduled", context);
     }
 
     public void setup() {
@@ -591,7 +569,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
     @OnStopped
     public void stop(ProcessContext context) {
-        // Run the scripted processor's onStopped() method here, if it exists
+        invokeScriptedProcessorMethod("onStopped", context);
+        scriptingComponentHelper.stop();
+        processor.set(null);
+        scriptEngine = null;
+    }
+
+    private void invokeScriptedProcessorMethod(String methodName, Object... params) {
+        // Run the scripted processor's method here, if it exists
         if (scriptEngine instanceof Invocable) {
             final Invocable invocable = (Invocable) scriptEngine;
             final Object obj = scriptEngine.get("processor");
@@ -599,14 +584,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
                 ComponentLog logger = getLogger();
                 try {
-                    invocable.invokeMethod(obj, "onStopped", context);
+                    invocable.invokeMethod(obj, methodName, params);
                 } catch (final NoSuchMethodException nsme) {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Configured script Processor does not contain an onStopped method.");
+                        logger.debug("Configured script Processor does not contain the method " + methodName);
                     }
                 } catch (final Exception e) {
-                    // An error occurred during onStopped, propagate it up
-                    logger.error("Error while executing the scripted processor's onStopped method", e);
+                    // An error occurred during onScheduled, propagate it up
+                    logger.error("Error while executing the scripted processor's method " + methodName, e);
                     if (e instanceof ProcessException) {
                         throw (ProcessException) e;
                     }
@@ -614,8 +599,5 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 }
             }
         }
-        scriptingComponentHelper.stop();
-        processor.set(null);
-        scriptEngine = null;
     }
 }
