@@ -71,8 +71,10 @@ public enum CommandOption {
     USER_NAME("un", "userName", "The name of a user", true),
     UG_ID("ugid", "userGroupId", "The id of a user group", true),
     UG_NAME("ugn", "userGroupName", "The name of a user group", true),
-    USER_LIST("ul", "userList", "The comma-separated user id list", true),
-    GROUP_LIST("gl", "groupList", "The comma-separated user group id list", true),
+    USER_NAME_LIST("unl", "userNameList", "The comma-separated user name list", true),
+    USER_ID_LIST("uil", "userIdList", "The comma-separated user id list", true),
+    GROUP_NAME_LIST("gnl", "groupNameList", "The comma-separated user group name list", true),
+    GROUP_ID_LIST("gil", "groupIdList", "The comma-separated user group id list", true),
 
     // NiFi - Access Policies
     POLICY_RESOURCE("por", "accessPolicyResource", "The resource of an access policy", true),

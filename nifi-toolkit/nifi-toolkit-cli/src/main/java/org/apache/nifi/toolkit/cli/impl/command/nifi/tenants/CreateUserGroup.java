@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.tenants;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -25,10 +26,13 @@ import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
+import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Command for creating a user group.
@@ -47,21 +51,33 @@ public class CreateUserGroup extends AbstractNiFiCommand<StringResult> {
     @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.UG_NAME.createOption());
-        addOption(CommandOption.USER_LIST.createOption());
+        addOption(CommandOption.USER_NAME_LIST.createOption());
+        addOption(CommandOption.USER_ID_LIST.createOption());
     }
 
     @Override
     public StringResult doExecute(final NiFiClient client, final Properties properties)
-            throws NiFiClientException, IOException, MissingOptionException {
+            throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final String userGroupId = getRequiredArg(properties, CommandOption.UG_NAME);
-        final String users = getArg(properties, CommandOption.USER_LIST);
+        final String users = getArg(properties, CommandOption.USER_NAME_LIST);
+        final String userIds = getArg(properties, CommandOption.USER_ID_LIST);
 
         final UserGroupDTO userGroupDTO = new UserGroupDTO();
         userGroupDTO.setIdentity(userGroupId);
+
+        final Set<TenantEntity> tenantEntities = new HashSet<>();
+
         if (StringUtils.isNotBlank(users)) {
-            userGroupDTO.setUsers(generateTenantEntities(users));
+            tenantEntities.addAll(
+                generateTenantEntities(users, client.getTenantsClient().getUsers()));
         }
+
+        if (StringUtils.isNotBlank(userIds)) {
+            tenantEntities.addAll(generateTenantEntities(userIds));
+        }
+
+        userGroupDTO.setUsers(tenantEntities);
 
         final UserGroupEntity userGroupEntity = new UserGroupEntity();
         userGroupEntity.setComponent(userGroupDTO);

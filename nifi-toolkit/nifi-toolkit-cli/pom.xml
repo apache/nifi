@@ -107,5 +107,10 @@
             <artifactId>jersey-media-jaxb</artifactId>
             <version>2.27</version>
         </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.5</version>
+        </dependency>
     </dependencies>
 </project>

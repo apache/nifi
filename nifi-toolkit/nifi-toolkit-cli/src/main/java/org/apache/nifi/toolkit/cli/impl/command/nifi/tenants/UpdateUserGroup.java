@@ -26,11 +26,14 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Command for updating a user group.
@@ -48,8 +51,10 @@ public class UpdateUserGroup extends AbstractNiFiCommand<VoidResult> {
 
     @Override
     public void doInitialize(final Context context) {
+        addOption(CommandOption.UG_NAME.createOption());
         addOption(CommandOption.UG_ID.createOption());
-        addOption(CommandOption.USER_LIST.createOption());
+        addOption(CommandOption.USER_NAME_LIST.createOption());
+        addOption(CommandOption.USER_ID_LIST.createOption());
     }
 
     @Override
@@ -57,21 +62,46 @@ public class UpdateUserGroup extends AbstractNiFiCommand<VoidResult> {
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final TenantsClient tenantsClient = client.getTenantsClient();
 
-        final String id = getRequiredArg(properties, CommandOption.UG_ID);
+        final String group = getArg(properties, CommandOption.UG_NAME);
+        final String groupId = getArg(properties, CommandOption.UG_ID);
 
-        UserGroupEntity existingGroup = tenantsClient.getUserGroup(id);
-
-        if (existingGroup == null) {
-            throw new CommandException("User group does not exist for id " + id);
+        if ((StringUtils.isBlank(group) && StringUtils.isBlank(groupId))
+            || (StringUtils.isNotBlank(group) && StringUtils.isNotBlank(groupId))) {
+            throw new CommandException("Specify either \"" + CommandOption.UG_NAME.getLongName()
+                + "\" or \"" + CommandOption.UG_ID.getLongName() + "\" (not both)");
         }
 
-        final String users = getArg(properties, CommandOption.USER_LIST);
+        UserGroupEntity existingGroup;
+
+        if (StringUtils.isNotBlank(group)) {
+            final Optional<UserGroupEntity> existingGroupEntity = tenantsClient.getUserGroups().getUserGroups().stream()
+                .filter(userGroupEntity -> group.equals(userGroupEntity.getComponent().getIdentity()))
+                .findAny();
+
+            if (!existingGroupEntity.isPresent()) {
+                throw new CommandException("User group does not exist for identity \"" + group + "\"");
+            }
+
+            existingGroup = existingGroupEntity.get();
+        } else {
+            existingGroup = tenantsClient.getUserGroup(groupId);
+        }
+
+        final String users = getArg(properties, CommandOption.USER_NAME_LIST);
+        final String userIds = getArg(properties, CommandOption.USER_ID_LIST);
+
+        final Set<TenantEntity> tenantEntities = new HashSet<>();
 
         if (StringUtils.isNotBlank(users)) {
-            existingGroup.getComponent().setUsers(generateTenantEntities(users));
-        } else {
-            existingGroup.getComponent().setUsers(new HashSet<>());
+            tenantEntities.addAll(
+                generateTenantEntities(users, client.getTenantsClient().getUsers()));
         }
+
+        if (StringUtils.isNotBlank(userIds)) {
+            tenantEntities.addAll(generateTenantEntities(userIds));
+        }
+
+        existingGroup.getComponent().setUsers(tenantEntities);
 
         final String clientId = getContext().getSession().getNiFiClientID();
         existingGroup.getRevision().setClientId(clientId);
