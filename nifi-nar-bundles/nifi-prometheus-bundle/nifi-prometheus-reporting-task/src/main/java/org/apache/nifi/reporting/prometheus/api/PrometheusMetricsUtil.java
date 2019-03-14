@@ -112,12 +112,10 @@ public class PrometheusMetricsUtil {
 
         for (ProcessorStatus pstatus : processorStatus) {
             Map<String, Long> counters = pstatus.getCounters();
-
             counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
                     .labels(pstatus.getName(), entry.getKey(), pstatus.getId()).set(entry.getValue()));
         }
         return NIFI_REGISTRY;
-
     }
 
     public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics) {
@@ -133,5 +131,4 @@ public class PrometheusMetricsUtil {
 
         return JVM_REGISTRY;
     }
-
 }

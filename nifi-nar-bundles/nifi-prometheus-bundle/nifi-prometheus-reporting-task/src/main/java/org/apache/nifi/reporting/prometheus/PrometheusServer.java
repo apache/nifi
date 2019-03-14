@@ -108,7 +108,7 @@ public class PrometheusServer {
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         ServerConnector https = new ServerConnector(server, new SslConnectionFactory(sslFactory, "http/1.1"),
-                                new HttpConnectionFactory(httpsConfiguration));
+            new HttpConnectionFactory(httpsConfiguration));
         https.setPort(addr);
         this.server.setConnectors(new Connector[]{https});
         this.server.start();
