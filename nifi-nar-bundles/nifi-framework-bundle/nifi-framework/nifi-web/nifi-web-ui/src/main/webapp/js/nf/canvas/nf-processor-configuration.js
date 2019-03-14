@@ -76,8 +76,10 @@
     // possible values for a processor's run duration (in millis)
     var RUN_DURATION_VALUES = [0, 25, 50, 100, 250, 500, 1000, 2000];
 
-    // key path to the thread state
-    var THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount';
+    // key paths to the status objects
+    var ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
+        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
+        BULLETINS_KEY = 'bulletins';
 
     /**
      * Gets the available scheduling strategies based on the specified processor.
@@ -525,72 +527,10 @@
     };
 
     /**
-     * Inspects the processor thread state and executes the callback if thread count is safe
-     *
-     * @param {processor}   The processor
-     * @param {cb}          The callback to execute if the thread state is safe
-     */
-    var requireSafeThreadCount = function (id,cb) {
-        var count = nfCommon.getKeyValue(nfProcessor.get(id),THREAD_COUNT_KEY);
-        if(count == 0 && typeof cb == 'function'){
-            cb();
-        } else {
-            $.when(nfProcessor.reload(id)).done(function(current){
-                nfProcessor.set(current);
-                count = nfCommon.getKeyValue(current,THREAD_COUNT_KEY);
-                if(count == 0 && typeof cb == 'function'){
-                    cb();
-                } else {
-                    showTerminateDialog(current,cb);
-                }
-            }).fail(handleProcessorConfigurationError);
-        }
-    };
-
-    /**
-     * Displays the Terminate dialog and executes the callback when thread count is safe
-     *
-     * @param {processor}   The processor
-     * @param {cb}          The callback to execute if all threads terminate successfully
-     */
-    var showTerminateDialog = function(processor,cb){
-        nfDialog.showYesNoDialog({
-            headerText: 'Terminate active threads?',
-            dialogContent: 'There are currently active threads '+
-                'present for this processor, do you wish to terminate them and apply this configuration?',
-            noText : 'WAIT',
-            noHandler: function () {
-                //wait for threads to clear naturally
-            },
-            yesHandler: function () {
-                //send the terminate call
-                $.ajax({
-                      type: 'DELETE',
-                      url: processor.uri + '/threads',
-                      dataType: 'json',
-                      contentType: 'application/json'
-                 }).done(function (current) {
-                    nfProcessor.set(current);
-                    var count = nfCommon.getKeyValue(current,THREAD_COUNT_KEY);
-                    if(count == 0 && typeof cb == 'function'){
-                        cb();
-                    } else {
-                        nfDialog.showOkDialog({
-                            dialogContent: 'Terminate threads request was processed, but active threads still persist. Please try again later.',
-                            headerText: 'Unable to apply changes'
-                        });
-                    }
-                 }).fail(handleProcessorConfigurationError);
-            }
-        });
-    };
-
-    /**
      * Releases the synchronization listener to the components canvas element
      */
     var stopCanvasSync = function(){
-        if(nfCommon.isDefinedAndNotNull(config.canvasSync) &&
-            nfCommon.isDefinedAndNotNull(config.listener)){
+        if(config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.listener)){
             clearTimeout(config.listener);
         }
     };
@@ -647,8 +587,7 @@
             $('#processor-configuration').modal({
                 scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Processor',
-                headerBulletinsCtrl : nfCommon.getKeyValue(config,'canvasSync.bulletins'),
-                headerThreadsCtrl : nfCommon.getKeyValue(config,'canvasSync.threads'),
+                statusBar: config.supportsStatusBar,
                 handler: {
                     close: function () {
                         //stop any synchronization
@@ -890,23 +829,25 @@
                             hover: '#004849',
                             text: '#ffffff'
                         },
+                        disabled : function() {
+                            var p = nfProcessor.get(processor.id);
+                            return (nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) != 0);
+                        },
                         handler: {
                             click: function () {
-                                requireSafeThreadCount(processor.id,function() {
-                                    // close all fields currently being edited
-                                    $('#processor-properties').propertytable('saveRow');
+                                // close all fields currently being edited
+                                $('#processor-properties').propertytable('saveRow');
 
-                                    // save the processor
-                                    saveProcessor(processor).done(function (response) {
-                                        // reload the processor's outgoing connections
-                                        reloadProcessorConnections(processor);
+                                // save the processor
+                                saveProcessor(processor).done(function (response) {
+                                    // reload the processor's outgoing connections
+                                    reloadProcessorConnections(processor);
 
-                                        // close the details panel
-                                        $('#processor-configuration').modal('hide');
+                                    // close the details panel
+                                    $('#processor-configuration').modal('hide');
 
-                                        // inform Angular app values have changed
-                                        nfNgBridge.digest();
-                                    });
+                                    // inform Angular app values have changed
+                                    nfNgBridge.digest();
                                 });
                             }
                         }
@@ -977,32 +918,70 @@
                         });
                     }
 
-
-                    //if canvas synchronization is enabled, monitor the latest bullets and threads from the component canvas element
-                    if(config.canvasSync &&
-                        nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+                    //Synchronize the current component canvas attributes in the status bar
+                    if(config.supportsStatusBar){
                         var sync = function(id){
+                            var p = nfProcessor.get(processor.id),
+                                runStatus = nfCommon.getKeyValue(p,RUN_STATUS_KEY),
+                                activeThreadCount = nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY),
+                                bulletins = nfCommon.getKeyValue(p,BULLETINS_KEY);
 
-                            var d = config.nfCanvasUtils.getSelectionById(id),
-                                bulletins = nfCommon.getKeyValue(d,'datum.bulletins'),
-                                threads = nfCommon.getKeyValue(d,'datum.'+THREAD_COUNT_KEY);
-
-                            //update bulletins
-                            if(config.canvasSync.bulletins && nfCommon.isDefinedAndNotNull(bulletins)){
-                                $('#processor-configuration').modal('setBulletins',bulletins);
+                            //if the active threads have closed out and terminate button present, refresh/remove
+                            if(activeThreadCount == 0 &&
+                                $('#processor-configuration').modal('statusBar').buttons().length > 0) {
+                                $('#processor-configuration').modal('refreshButtons');
+                                $('#processor-configuration').modal('statusBar').buttons()[0].remove();
                             }
 
-                            //update thread count
-                            if(config.canvasSync.threads && nfCommon.isDefinedAndNotNull(threads)){
-                                $('#processor-configuration').modal('setThreads',threads);
-                            }
-
+                            //update the status bar
+                            $('#processor-configuration').modal('statusBar').set(runStatus, activeThreadCount, bulletins);
                             config.listener = setTimeout(function(){sync(id)},2500);
                         };
-                        //initialize
-                        sync(processor.id);
-                    }
 
+                        //initialize the canvas monitoring
+                        sync(processor.id);
+
+                        //if there are active threads, add the terminate button to the status bar
+                        if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
+                            nfCommon.getKeyValue(processorResponse,ACTIVE_THREAD_COUNT_KEY) != 0){
+
+                            $('#processor-configuration').modal('statusBar').buttons([{
+                                buttonText: 'Terminate',
+                                clazz: 'fa fa-hourglass-end button-icon',
+                                color: {
+                                    base: '#C7D2D7',
+                                    hover: '#004849',
+                                    text: '#004849'
+                                },
+                                disabled : function() {
+                                    var p = nfProcessor.get(processor.id);
+                                    return (nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) == 0);
+                                },
+                                handler: {
+                                    click: function() {
+                                        $('#processor-configuration').modal('statusBar').buttons()[0].addClass('disabled-button');
+                                        var selection = nfCanvasUtils.getSelectionById(processor.id);
+                                        var cb = function(){
+                                            if(nfCommon.getKeyValue(nfProcessor.get(processor.id),ACTIVE_THREAD_COUNT_KEY) != 0){
+                                                nfDialog.showOkDialog({
+                                                    dialogContent: 'Terminate threads request was processed, but active threads still persist. Please try again later.',
+                                                    headerText: 'Unable to Terminate'
+                                                });
+                                                $('#processor-configuration').modal('statusBar').buttons()[0].removeClass('disabled-button');
+                                            }
+                                            else {
+                                                //refresh the sync to reflect the update
+                                                stopCanvasSync();
+                                                sync(processor.id);
+                                            }
+                                        };
+                                        //execute the terminate call
+                                        config.nfActions.terminate(selection,cb);
+                                    }
+                                }
+                            }]);
+                        }
+                    }
                     // set the button model
                     $('#processor-configuration').modal('setButtonModel', buttons)
 

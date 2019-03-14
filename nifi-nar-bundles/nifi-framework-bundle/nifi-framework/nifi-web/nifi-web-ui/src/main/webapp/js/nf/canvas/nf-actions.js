@@ -766,8 +766,8 @@
         /**
          * Stops the component and displays the processor configuration dialog
          *
-         * @argument {selection} selection      The selection
-         * @argument {cb} callback              The function to call when complete
+         * @param {selection} selection      The selection
+         * @param {cb} callback              The function to call when complete
          */
         stopAndConfigure: function (selection,cb) {
             if(selection.size() === 1 &&
@@ -783,9 +783,10 @@
         /**
          * Terminates active threads for the selected component.
          *
-         * @param {selection} selection
+         * @param {selection}       selection
+         * @param {cb} callback     The function to call when complete
          */
-        terminate: function (selection) {
+        terminate: function (selection,cb) {
             if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
 
@@ -795,6 +796,9 @@
                     dataType: 'json'
                 }).done(function (response) {
                     nfProcessor.set(response);
+                    if(typeof cb == 'function'){
+                        cb();
+                    }
                 }).fail(nfErrorHandler.handleAjaxError);
             }
         },

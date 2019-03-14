@@ -3042,7 +3042,8 @@
 
                     // initialize the processor/connection details dialog
                     nfProcessorDetails.init({
-                        supportsGoTo : false
+                        supportsGoTo : false,
+                        supportsStatusBar : false,
                     });
                     nfConnectionDetails.init();
                     initSummaryTable(isClustered);

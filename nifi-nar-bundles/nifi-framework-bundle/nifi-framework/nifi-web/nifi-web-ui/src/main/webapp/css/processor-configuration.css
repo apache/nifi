@@ -187,3 +187,11 @@ div.processor-relationship-container {
 #processor-comments {
     height: 100%;
 }
+
+/* status bar buttons */
+#processor-configuration div.dialog-status-bar div.button-icon.fa-hourglass-end {
+    font-size : 12px !important;
+}
+#processor-configuration div.dialog-status-bar div.button-icon:hover {
+    color : #ffffff !important;
+}

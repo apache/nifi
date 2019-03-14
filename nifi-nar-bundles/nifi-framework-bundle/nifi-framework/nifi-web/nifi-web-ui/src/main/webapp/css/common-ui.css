@@ -446,17 +446,6 @@ div.button-icon {
 div.button-icon.auto-width {
     width : auto !important;
 }
-div.button-icon.stop-button {
-    background-color : #E3E8EB !important;
-    color : #a63f3f !important;
-    float : right !important;
-    padding-left : 15px;
-    padding-right : 15px;
-}
-div.button-icon.stop-button:not(.disabled-button):hover {
-    background-color : #a63f3f !important;
-    color : #ffffff !important;
-}
 
 div.button {
     height: 32px;

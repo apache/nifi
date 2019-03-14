@@ -55,6 +55,11 @@
      */
     var config;
 
+    // key paths to the status objects
+    var ACTIVE_THREAD_COUNT_KEY = 'datum.status.aggregateSnapshot.activeThreadCount',
+        RUN_STATUS_KEY = 'datum.status.aggregateSnapshot.runStatus',
+        BULLETINS_KEY = 'datum.bulletins';
+
     /**
      * Creates an option for the specified relationship name.
      *
@@ -82,14 +87,12 @@
      * Releases the synchronization listener to the components canvas element
      */
     var stopCanvasSync = function(){
-        if(nfCommon.isDefinedAndNotNull(config.canvasSync) &&
-            nfCommon.isDefinedAndNotNull(config.listener)){
+        if(config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.listener)){
             clearTimeout(config.listener);
         }
     };
 
     return {
-
         /**
          * Initializes the processor details dialog.
          *
@@ -138,8 +141,7 @@
             // configure the processor details dialog
             $('#processor-details').modal({
                 headerText: 'Processor Details',
-                headerBulletinsCtrl : nfCommon.getKeyValue(config,'canvasSync.bulletins'),
-                headerThreadsCtrl : nfCommon.getKeyValue(config,'canvasSync.threads'),
+                statusBar: config.supportsStatusBar,
                 scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
@@ -287,7 +289,7 @@
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
-                    buttonText: 'Close',
+                    buttonText: 'Ok',
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -323,60 +325,56 @@
                     });
                 }
 
-                if (nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+                //Populate the status bar if the feature is enabled
+                if (config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+
+                    //fetch the component from the canvas
                     selection = config.nfCanvasUtils.getSelectionById(processor.id);
 
-                    // Add the stop button if appropriate
+                    // Add the stop & configure button if appropriate
                     if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
                         config.nfCanvasUtils.isProcessor(selection) &&
                         config.nfCanvasUtils.canModify(selection)){
 
-                        buttons.push({
+                        $('#processor-details').modal('statusBar').buttons([{
                             buttonText: 'Stop & Configure',
-                            clazz: 'fa fa-pencil-square button-icon auto-width stop-button',
+                            clazz: 'fa fa-pencil-square button-icon auto-width',
+                            color: {
+                                base: '#C7D2D7',
+                                hover: '#004849',
+                                text: '#004849'
+                            },
                             disabled : function() {
                                 return !config.nfCanvasUtils.isStoppable(selection);
                             },
                             handler: {
                                 click: function() {
-
                                     //Assign a callback when the ProcessorConfiguration window is ready
                                     var cb = function(){
                                         var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
                                         $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
                                         $('#processor-details').modal('hide');
                                     };
-
-                                    $(this).find('.stop-button').addClass('disabled-button');
+                                    $('#processor-details').modal('statusBar').buttons()[0].addClass('disabled-button');
                                     config.nfActions.stopAndConfigure(selection,cb);
                                 }
                             }
-                         });
+                        }]);
                     }
 
-                    //if canvas synchronization is enabled, monitor the latest bullets/threads from the component canvas element
-                    if(config.canvasSync){
-                        var sync = function(id){
-                            var d = config.nfCanvasUtils.getSelectionById(id),
-                                bulletins = nfCommon.getKeyValue(d,'datum.bulletins'),
-                                threads = nfCommon.getKeyValue(d,'datum.status.aggregateSnapshot.activeThreadCount');
+                    //Synchronize the current component canvas attributes in the status bar
+                    var sync = function(id){
+                        var d = config.nfCanvasUtils.getSelectionById(id)  ,
+                            runStatus = nfCommon.getKeyValue(d,RUN_STATUS_KEY),
+                            activeThreadCount = nfCommon.getKeyValue(d,ACTIVE_THREAD_COUNT_KEY),
+                            bulletins = nfCommon.getKeyValue(d,BULLETINS_KEY);
 
-                            //update bulletins
-                            if(config.canvasSync.bulletins && nfCommon.isDefinedAndNotNull(bulletins)){
-                                $('#processor-details').modal('setBulletins',bulletins);
-                            }
+                        $('#processor-details').modal('statusBar').set(runStatus, activeThreadCount, bulletins);
+                        config.listener = setTimeout(function(){sync(id)},2500);
+                    };
 
-                            //update thread count
-                            if(config.canvasSync.threads && nfCommon.isDefinedAndNotNull(threads)){
-                                $('#processor-details').modal('setThreads',threads);
-                            }
-
-                            config.listener = setTimeout(function(){sync(id)},2500);
-                        };
-
-                        //initialize
-                        sync(processor.id);
-                    }
+                    //initialize the canvas monitoring
+                    sync(processor.id);
                 }
 
                 // show the dialog

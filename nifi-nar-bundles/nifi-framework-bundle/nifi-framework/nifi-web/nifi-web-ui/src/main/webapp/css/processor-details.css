@@ -71,3 +71,11 @@ div.relationship-description {
     margin-left: 16px;
     margin-top: 2px;
 }
+
+/* status bar buttons */
+#processor-details div.dialog-status-bar div.button-icon.fa-pencil-square {
+    font-size : 15px !important;
+}
+#processor-details div.dialog-status-bar div.button-icon:hover {
+    color : #ffffff !important;
+}

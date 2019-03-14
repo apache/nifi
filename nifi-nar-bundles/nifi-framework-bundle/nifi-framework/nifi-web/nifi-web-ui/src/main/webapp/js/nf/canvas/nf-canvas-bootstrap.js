@@ -366,9 +366,8 @@
                     nfReportingTask.init(nfSettings);
                     nfPolicyManagement.init();
                     nfProcessorConfiguration.init({
-                      canvasSync : {bulletins : true, threads : true},
-                      nfCanvasUtils : nfCanvasUtils,
-                      nfActions : nfActions
+                        supportsStatusBar : true,
+                        nfActions : nfActions
                     });
                     // initialize the PG config and invert control of the controllerServices
                     nfProcessGroupConfiguration.init(nfControllerServices);
@@ -378,7 +377,7 @@
                     nfLabelConfiguration.init();
                     nfProcessorDetails.init({
                         supportsGoTo : true,
-                        canvasSync : {bulletins : true, threads : true},
+                        supportsStatusBar : true,
                         nfCanvasUtils : nfCanvasUtils,
                         nfActions : nfActions
                     });
