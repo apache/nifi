@@ -83,22 +83,19 @@
                         var port = {
                             'id': portId,
                             'name': $('#port-name').val(),
-                            'comments': $('#port-comments').val(),
-                            'concurrentlySchedulableTaskCount': $('#port-concurrent-tasks').val()
+                            'comments': $('#port-comments').val()
                         };
 
-                        // mark the port disabled if appropriate
+                        // include the concurrent tasks if appropriate
+                        if ($('#port-concurrent-task-container').is(':visible')) {
+                            port['concurrentlySchedulableTaskCount'] = $('#port-concurrent-tasks').val();
+                        }
+
+                        // mark the processor disabled if appropriate
                         if ($('#port-enabled').hasClass('checkbox-unchecked')) {
                             port['state'] = 'DISABLED';
                         } else if ($('#port-enabled').hasClass('checkbox-checked')) {
                             port['state'] = 'STOPPED';
-                        }
-
-                        // mark the port remotely accessible if appropriate
-                        if ($('#port-allow-remote-access').hasClass('checkbox-unchecked')) {
-                            port['allowRemoteAccess'] = false;
-                        } else if ($('#port-allow-remote-access').hasClass('checkbox-checked')) {
-                            port['allowRemoteAccess'] = true;
                         }
 
                         // build the port entity
@@ -149,7 +146,6 @@
                     $('#port-enabled').removeClass('checkbox-unchecked checkbox-checked');
                     $('#port-concurrent-tasks').val('');
                     $('#port-comments').val('');
-                    $('#port-allow-remote-access').removeClass('checkbox-unchecked checkbox-checked');
                 }
             }
         });
@@ -176,14 +172,19 @@
                     portEnableStyle = 'checkbox-unchecked';
                 }
 
+                // show concurrent tasks for site-to-site port only
+                if (selectionData.component.allowRemoteAccess === true) {
+                    $('#port-concurrent-task-container').show();
+                } else {
+                    $('#port-concurrent-task-container').hide();
+                }
+
                 // populate the port settings
                 $('#port-id').text(selectionData.id);
                 $('#port-name').val(selectionData.component.name);
                 $('#port-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(portEnableStyle);
                 $('#port-concurrent-tasks').val(selectionData.component.concurrentlySchedulableTaskCount);
                 $('#port-comments').val(selectionData.component.comments);
-                $('#port-allow-remote-access').removeClass('checkbox-unchecked checkbox-checked')
-                    .addClass(true === selectionData.component.allowRemoteAccess ? 'checkbox-checked' : 'checkbox-unchecked');
 
                 // show the details
                 $('#port-configuration').modal('show');

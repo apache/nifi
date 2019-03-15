@@ -37,13 +37,6 @@
                 <span id="port-id"></span>
             </div>
         </div>
-        <div class="port-setting">
-            <div class="setting-field">
-                <div id="port-allow-remote-access" class="port-allow-remote-access nf-checkbox checkbox-unchecked"></div>
-                <span class="nf-checkbox-label"> Allow Remote Access</span>
-                <div class="fa fa-question-circle" alt="Info" title="Whether this port can be accessed as a RemoteGroupPort via Site-to-Site protocol."></div>
-            </div>
-        </div>
         <div id="port-concurrent-task-container" class="port-setting">
             <div class="setting-name">
                 Concurrent tasks

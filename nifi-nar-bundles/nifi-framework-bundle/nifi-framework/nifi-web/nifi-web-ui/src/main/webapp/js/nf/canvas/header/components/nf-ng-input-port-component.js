@@ -57,9 +57,10 @@
          * Create the input port and add to the graph.
          *
          * @argument {string} portName          The input port name.
+         * @argument {boolean} allowRemoteAccess Whether the input port can be accessed via S2S.
          * @argument {object} pt                The point that the input port was dropped.
          */
-        var createInputPort = function (portName, pt) {
+        var createInputPort = function (portName, allowRemoteAccess, pt) {
             var inputPortEntity = {
                 'revision': nfClient.getRevision({
                     'revision': {
@@ -69,6 +70,7 @@
                 'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': portName,
+                    'allowRemoteAccess': allowRemoteAccess,
                     'position': {
                         'x': pt.x,
                         'y': pt.y
@@ -152,6 +154,25 @@
                  * Show the modal.
                  */
                 show: function () {
+                    var optionLocal = {
+                                text: 'Local connections',
+                                value: 'false',
+                                description: 'Accepts connections from components in the parent ProcessGroups.'
+                            };
+
+                    var optionRemote = {
+                                text: 'Site-to-Site connections',
+                                value: 'true',
+                                description: 'Receives FlowFiles via Site-to-Site connections.'
+                            };
+
+                    // initialize the remote access combo
+                    $('#port-allow-remote-access-label').text('Receive data from');
+                    $('#port-allow-remote-access-info').attr('title', 'Specify the way this port receives incoming FlowFiles.');
+                    $('#port-allow-remote-access').combo({
+                        options: nfCanvasUtils.getParentGroupId() === null ? [optionRemote] : [optionLocal, optionRemote]
+                    });
+
                     this.getElement().modal('show');
                 },
 
@@ -219,9 +240,10 @@
                 var addInputPort = function () {
                     // get the name of the input port and clear the textfield
                     var portName = $('#new-port-name').val();
+                    var allowRemoteAccess = $('#port-allow-remote-access').combo('getSelectedOption').value;
 
                     // create the input port
-                    createInputPort(portName, pt);
+                    createInputPort(portName, allowRemoteAccess, pt);
                 };
 
                 this.modal.update('setButtonModel', [{
