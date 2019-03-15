@@ -556,7 +556,7 @@ public class TestPutWebSocket {
         failed.assertAttributeEquals(ATTR_WS_BROADCAST_FAILED, "3");
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());                                       // logging the FORK
+        assertEquals(3, provenanceEvents.size());                                       // logging the FORK
         assertEquals(provenanceEvents.get(0).getEventType(), ProvenanceEventType.FORK); // verify EventType
     }
 
@@ -718,7 +718,7 @@ public class TestPutWebSocket {
         assertEquals(2, failedFlowFiles.size());
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());                       // logging SEND and FORK
+        assertEquals(3, provenanceEvents.size());                       // logging SEND and FORK
         int sendCnt = 0, forkCnt = 0;
         for (ProvenanceEventRecord provEvent : provenanceEvents ) {
             if (provEvent.getEventType() == ProvenanceEventType.SEND)
@@ -727,7 +727,7 @@ public class TestPutWebSocket {
                 forkCnt ++;
         }
         assertEquals(1, sendCnt); // verify EventType SEND (due to success)
-        assertEquals(1, forkCnt); // verify EventType FORK (due to failure)
+        assertEquals(2, forkCnt); // verify EventType FORK (due to failure)
     }
 
 }
