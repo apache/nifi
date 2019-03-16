@@ -65,6 +65,7 @@ final class KafkaProcessorUtils {
     static final String KAFKA_TOPIC = "kafka.topic";
     static final String KAFKA_PARTITION = "kafka.partition";
     static final String KAFKA_OFFSET = "kafka.offset";
+    static final String KAFKA_TIMESTAMP = "kafka.timestamp";
     static final String KAFKA_COUNT = "kafka.count";
     static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
@@ -92,7 +93,8 @@ final class KafkaProcessorUtils {
     static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
-            .description("The Kerberos principal name that Kafka runs as. This can be defined either in Kafka's JAAS config or in Kafka's config. "
+            .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS file."
+                    + "This can be defined either in Kafka's JAAS config or in Kafka's config. "
                     + "Corresponds to Kafka's 'security.protocol' property."
                     + "It is ignored unless one of the SASL options of the <Security Protocol> are selected.")
             .required(false)

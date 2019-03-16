@@ -442,6 +442,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             // And continue to the next message.
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
+            attributes.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(consumerRecord.timestamp()));
             attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(topicPartition.partition()));
             attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, topicPartition.topic());
 
@@ -566,6 +567,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private void populateAttributes(final BundleTracker tracker) {
         final Map<String, String> kafkaAttrs = new HashMap<>();
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(tracker.initialOffset));
+        kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(tracker.initialTimestamp));
         if (tracker.key != null && tracker.totalRecords == 1) {
             kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY, tracker.key);
         }
@@ -590,6 +592,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private static class BundleTracker {
 
         final long initialOffset;
+        final long initialTimestamp;
         final int partition;
         final String topic;
         final String key;
@@ -603,6 +606,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         private BundleTracker(final ConsumerRecord<byte[], byte[]> initialRecord, final TopicPartition topicPartition, final String keyEncoding, final RecordSetWriter recordWriter) {
             this.initialOffset = initialRecord.offset();
+            this.initialTimestamp = initialRecord.timestamp();
             this.partition = topicPartition.partition();
             this.topic = topicPartition.topic();
             this.recordWriter = recordWriter;

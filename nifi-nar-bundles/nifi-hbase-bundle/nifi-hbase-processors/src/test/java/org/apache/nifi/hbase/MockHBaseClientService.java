@@ -176,7 +176,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     @Override
     public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
-            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, List<String> visibilityLabels,  ResultHandler handler)
+            Long timerangeMax, Integer limitRows, Boolean isReversed, Boolean blockCache, Collection<Column> columns, List<String> visibilityLabels,  ResultHandler handler)
             throws IOException {
         if (throwException) {
             throw new IOException("exception");

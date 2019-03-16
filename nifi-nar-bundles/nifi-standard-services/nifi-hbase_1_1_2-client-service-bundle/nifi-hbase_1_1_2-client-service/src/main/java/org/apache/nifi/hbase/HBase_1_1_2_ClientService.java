@@ -612,11 +612,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public void scan(final String tableName, final String startRow, final String endRow, String filterExpression,
             final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
-            final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
+            final Boolean blockCache, final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
 
         try (final Table table = connection.getTable(TableName.valueOf(tableName));
                 final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
-                        timerangeMax, limitRows, isReversed, columns, visibilityLabels)) {
+                        timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
 
             int cnt = 0;
             final int lim = limitRows != null ? limitRows : 0;
@@ -649,7 +649,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     //
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
-            final Integer limitRows, final Boolean isReversed, final Collection<Column> columns, List<String> authorizations)  throws IOException {
+            final Integer limitRows, final Boolean isReversed,  final Boolean blockCache, final Collection<Column> columns, List<String> authorizations)  throws IOException {
         final Scan scan = new Scan();
         if (!StringUtils.isBlank(startRow)){
             scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
@@ -692,6 +692,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         if (isReversed != null){
             scan.setReversed(isReversed);
         }
+
+        scan.setCacheBlocks(blockCache);
 
         return table.getScanner(scan);
     }

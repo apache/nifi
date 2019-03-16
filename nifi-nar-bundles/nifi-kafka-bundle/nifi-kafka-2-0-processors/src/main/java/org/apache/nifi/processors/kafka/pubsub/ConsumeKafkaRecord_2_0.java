@@ -69,6 +69,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "record.count", description = "The number of records received"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the records are from"),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic records are from")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
