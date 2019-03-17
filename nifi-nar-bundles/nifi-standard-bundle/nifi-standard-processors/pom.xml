@@ -429,6 +429,14 @@
                         <exclude>src/test/resources/TestReplaceTextLineByLine/testFile.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/AppendLineByLineTest.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/PrependLineByLineTest.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptFirstLine.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-backreference-mapping.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-blank-mapping.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt</exclude>
