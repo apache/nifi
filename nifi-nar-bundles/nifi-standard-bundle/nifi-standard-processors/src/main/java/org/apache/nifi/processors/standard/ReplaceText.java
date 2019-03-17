@@ -98,20 +98,20 @@ public class ReplaceText extends AbstractProcessor {
     // Prepend and Append will just insert the replacement value at the beginning or end
     // Properties PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE
     static final AllowableValue PREPEND = new AllowableValue(prependValue, prependValue,
-        "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
-            + "the value will be prepended to each line. One can even choose to prepend particular set of lines by making use of \"Number of Occurrences\" and \"Occurrence Offset\" fields."
-            +"For \"Entire Text\" evaluation mode, the value will be prepended to the entire text.");
+        "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). "
+            + "For \"Line-by-Line\" Evaluation Mode, the value will be prepended to each line. One can prepend particular set of lines by "
+            + "making use of \"Number of Occurrences\" and \"Occurrence Offset\" fields. For \"Entire Text\" evaluation mode, the value will be prepended to the entire text.");
     static final AllowableValue APPEND = new AllowableValue(appendValue, appendValue,
         "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
-            + "the value will be appended to each line. One can even choose to append particular set of lines by making use of \"Number of Occurrences\" and \"Occurrence Offset\" fields."
-            +"For \"Entire Text\" evaluation mode, the value will be appended to the entire text.");
+            + "the value will be appended to each line. One can append particular set of lines by making use of \"Number of Occurrences\" and"
+            + " \"Occurrence Offset\" fields. For \"Entire Text\" evaluation mode, the value will be appended to the entire text.");
     static final AllowableValue LITERAL_REPLACE = new AllowableValue(literalReplaceValue, literalReplaceValue,
-        "Search for all instances of the Search Value and replace the matches with the Replacement Value. One can choose to replace a particular set of matches using \"Number of Occurrences\" "
+        "Search for all instances of the Search Value and replace the matches with the Replacement Value. One can replace a particular set of matches using \"Number of Occurrences\" "
             + "and \"Occurrence Offset\" fields in either of the Evaluation Modes");
     static final AllowableValue REGEX_REPLACE = new AllowableValue(regexReplaceValue, regexReplaceValue,
         "Interpret the Search Value as a Regular Expression and replace all matches with the Replacement Value. The Replacement Value may reference Capturing Groups used "
             + "in the Search Value by using a dollar-sign followed by the Capturing Group number, such as $1 or $2. If the Search Value is set to .* then everything is replaced without "
-            + "even evaluating the Regular Expression. One can choose to replace a particular set of matches using \"Number of Occurrences\" and \"Occurrence Offset\" fields "
+            + "even evaluating the Regular Expression. One can replace a particular set of matches using \"Number of Occurrences\" and \"Occurrence Offset\" fields "
             + "in either of the Evaluation Modes");
     static final AllowableValue ALWAYS_REPLACE = new AllowableValue(alwaysReplace, alwaysReplace,
         "Always replaces the entire line or the entire contents of the FlowFile (depending on the value of the <Evaluation Mode> property) and does not bother searching "
@@ -173,20 +173,23 @@ public class ReplaceText extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor NUMBER_OF_OCCURRENCES = new PropertyDescriptor.Builder()
-            .name("Number of Occurrences")
-            .description("Number of occurrences to replace text from top. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
-            .addValidator(StandardValidators.NUMBER_VALIDATOR)
-            .defaultValue("-1")
-            .required(false)
-            .build();
+        .name("Number of Occurrences")
+        .displayName("Number of Occurrences")
+        .description("Number of occurrences to replace text from top. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
+        .addValidator(StandardValidators.NUMBER_VALIDATOR)
+        .defaultValue("-1")
+        .required(false)
+        .build();
 
     public static final PropertyDescriptor OCCURRENCE_OFFSET = new PropertyDescriptor.Builder()
-            .name("Occurrence Offset")
-            .description("Number of occurrences after which processor starts considering replacement upto \"Number of Occurrences\" times if configured, till the end of the content otherwise. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
-            .addValidator(StandardValidators.NUMBER_VALIDATOR)
-            .defaultValue("0")
-            .required(false)
-            .build();
+        .name("Occurrence Offset")
+        .displayName("Occurrence Offset")
+        .description("Number of occurrences after which processor starts considering replacement upto \"Number of Occurrences\" times if configured, till the end "
+            +"of the content otherwise. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
+        .addValidator(StandardValidators.NUMBER_VALIDATOR)
+        .defaultValue("0")
+        .required(false)
+        .build();
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -445,21 +448,21 @@ public class ReplaceText extends AbstractProcessor {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
-                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
                             String oneLine;
                             int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
                             int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
                             while (null != (oneLine = demarcator.nextLine())) {
-                                if(offset > 0) {
+                                if (offset > 0) {
                                     bw.write(oneLine);
                                     offset--;
                                     continue;
                                 }
-                                if(occurrences == -1 ) {
+                                if (occurrences == -1) {
                                     final String updatedValue = replacementValue.concat(oneLine);
                                     bw.write(updatedValue);
-                                } else if(occurrences > 0) {
+                                } else if (occurrences > 0) {
                                     final String updatedValue = replacementValue.concat(oneLine);
                                     bw.write(updatedValue);
                                     occurrences--;
@@ -499,7 +502,7 @@ public class ReplaceText extends AbstractProcessor {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
-                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
                             String oneLine;
                             int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
@@ -518,17 +521,17 @@ public class ReplaceText extends AbstractProcessor {
                                     }
 
                                     if (c == '\r' || c == '\n') {
-                                        if(offset > 0) {
+                                        if (offset > 0) {
                                             offset--;
                                             bw.write(oneLine.substring(i));
                                             foundNewLine = true;
                                             break;
                                         }
 
-                                        if(occurrences == -1 ) {
+                                        if (occurrences == -1) {
                                             bw.write(replacementValue);
 
-                                        } else if(occurrences > 0) {
+                                        } else if (occurrences > 0) {
                                             bw.write(replacementValue);
                                             occurrences--;
                                         }
@@ -540,9 +543,9 @@ public class ReplaceText extends AbstractProcessor {
                                 }
 
                                 if (!foundNewLine) {
-                                    if(occurrences == -1 ) {
+                                    if (occurrences == -1) {
                                         bw.write(replacementValue);
-                                    } else if(occurrences > 0) {
+                                    } else if (occurrences > 0) {
                                         bw.write(replacementValue);
                                         occurrences--;
                                     }
@@ -613,14 +616,14 @@ public class ReplaceText extends AbstractProcessor {
                 final StringBuffer sb = new StringBuffer();
                 while (matcher.find()) {
 
-                    if(offset > 0) {
+                    if (offset > 0) {
                         offset--;
                         continue;
                     }
-                    if(occurrences == -1 ) {
+                    if (occurrences == -1) {
                         matches++;
 
-                        for (int i=0; i <= matcher.groupCount(); i++) {
+                        for (int i = 0; i <= matcher.groupCount(); i++) {
                             additionalAttrs.put("$" + i, matcher.group(i));
                         }
                         String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
@@ -628,11 +631,11 @@ public class ReplaceText extends AbstractProcessor {
                         String replacementFinal = normalizeReplacementString(replacement);
 
                         matcher.appendReplacement(sb, replacementFinal);
-                    } else if(occurrences > 0) {
+                    } else if (occurrences > 0) {
                         matches++;
                         occurrences--;
 
-                        for (int i=0; i <= matcher.groupCount(); i++) {
+                        for (int i = 0; i <= matcher.groupCount(); i++) {
                             additionalAttrs.put("$" + i, matcher.group(i));
                         }
                         String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
