@@ -48,7 +48,8 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
 
     @Override
     public String getDescription() {
-        return "Updates an access policy.";
+        return "Updates the access policy for the given resource and action, "
+            + "or creates the policy if it doesn't not exist.";
     }
 
     @Override

@@ -37,7 +37,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
- * Command for creating a controller service.
+ * Command for creating a controller service for reporting tasks.
  */
 public class CreateControllerService extends AbstractNiFiCommand<StringResult> {
 
@@ -47,7 +47,7 @@ public class CreateControllerService extends AbstractNiFiCommand<StringResult> {
 
     @Override
     public String getDescription() {
-        return "Creates a controller service from a local file.";
+        return "Creates a controller service for reporting tasks from a local file.";
     }
 
     @Override
