@@ -67,7 +67,6 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
     }
 
     private void authenticate(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain) throws IOException, ServletException {
-        String dnChain = null;
         try {
             final Authentication authenticationRequest = attemptAuthentication(request);
             if (authenticationRequest != null) {
@@ -79,13 +78,25 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
                 final Authentication authenticated = authenticationManager.authenticate(authenticationRequest);
                 successfulAuthorization(request, response, authenticated);
             }
-
-            // continue
-            chain.doFilter(request, response);
         } catch (final AuthenticationException ae) {
             // invalid authentication - always error out
             unsuccessfulAuthorization(request, response, ae);
+            return;
+        } catch (final Exception e) {
+            log.error(String.format("Unable to authorize: %s", e.getMessage()), e);
+
+            // set the response status
+            response.setContentType("text/plain");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+            // other exception - always error out
+            PrintWriter out = response.getWriter();
+            out.println(String.format("Failed to authorize request. Please contact the system administrator."));
+            return;
         }
+
+        // continue
+        chain.doFilter(request, response);
     }
 
     /**
