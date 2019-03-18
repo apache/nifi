@@ -43,11 +43,10 @@ public class ControllerServiceResult extends AbstractWritableResult<ControllerSe
     @Override
     protected void writeSimpleResult(PrintStream output) throws IOException {
         final ControllerServiceDTO controllerServiceDTO = controllerServiceEntity.getComponent();
-        final String[] typeSplit = controllerServiceDTO.getType().split("\\.", -1);
 
         final BundleDTO bundle = controllerServiceDTO.getBundle();
-        output.printf("Name  : %s\nID    : %s\nType  : %s %s\nBundle: %s - %s\nState : %s\n",
-                controllerServiceDTO.getName(), controllerServiceDTO.getId(), typeSplit[typeSplit.length - 1], bundle.getVersion(),
-                bundle.getGroup(), bundle.getArtifact(), controllerServiceDTO.getState());
+        output.printf("Name  : %s\nID    : %s\nType  : %s\nBundle: %s - %s %s\nState : %s\n",
+                controllerServiceDTO.getName(), controllerServiceDTO.getId(), controllerServiceDTO.getType(),
+                bundle.getGroup(), bundle.getArtifact(), bundle.getVersion(), controllerServiceDTO.getState());
     }
 }
