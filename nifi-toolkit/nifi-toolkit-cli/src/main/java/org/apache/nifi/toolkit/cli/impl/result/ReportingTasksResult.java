@@ -60,6 +60,7 @@ public class ReportingTasksResult extends AbstractWritableResult<ReportingTasksE
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)
                 .column("Name", 5, 40, true)
+                .column("ID", 36, 36, false)
                 .column("Type", 5, 40, true)
                 .column("Run Status", 10, 20, false)
                 .build();
@@ -70,6 +71,7 @@ public class ReportingTasksResult extends AbstractWritableResult<ReportingTasksE
             table.addRow(
                     String.valueOf(i + 1),
                     taskDTO.getName(),
+                    taskDTO.getId(),
                     typeSplit[typeSplit.length - 1],
                     taskDTO.getState()
             );

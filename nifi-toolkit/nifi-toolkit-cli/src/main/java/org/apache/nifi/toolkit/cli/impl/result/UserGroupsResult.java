@@ -62,6 +62,7 @@ public class UserGroupsResult extends AbstractWritableResult<UserGroupsEntity> {
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)
                 .column("Name", 5, 40, false)
+                .column("ID", 36, 36, false)
                 .column("Members", 20, 40, true)
                 .build();
 
@@ -70,6 +71,7 @@ public class UserGroupsResult extends AbstractWritableResult<UserGroupsEntity> {
             table.addRow(
                     String.valueOf(i + 1),
                     userGroupDTO.getIdentity(),
+                    userGroupDTO.getId(),
                     userGroupDTO.getUsers().stream().map(u -> u.getComponent().getIdentity())
                             .collect(Collectors.joining(", "))
             );
