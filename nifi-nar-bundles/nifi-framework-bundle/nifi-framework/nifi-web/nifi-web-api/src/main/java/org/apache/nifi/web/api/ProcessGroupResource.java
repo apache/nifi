@@ -2955,7 +2955,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 connectionEntity -> {
                     final ConnectionDTO connection = connectionEntity.getComponent();
 
-                    // set the processor id as appropriate
+                    // set the connection id as appropriate
                     connection.setId(generateUuid());
 
                     // create the new relationship target

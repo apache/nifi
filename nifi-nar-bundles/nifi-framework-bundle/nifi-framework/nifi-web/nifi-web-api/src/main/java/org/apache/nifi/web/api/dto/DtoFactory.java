@@ -1231,6 +1231,7 @@ public final class DtoFactory {
         dto.setName(portStatus.getName());
         dto.setRunStatus(portStatus.getRunStatus().toString());
         dto.setTransmitting(portStatus.isTransmitting());
+        dto.setAllowRemoteAccess(portStatus.isAllowRemoteAccess());
         dto.setStatsLastRefreshed(new Date());
 
         final PortStatusSnapshotDTO snapshot = new PortStatusSnapshotDTO();
@@ -1333,8 +1334,8 @@ public final class DtoFactory {
         dto.setVersionedComponentId(port.getVersionedComponentId().orElse(null));
 
         // if this port is remotely accessible, determine if its actually connected to another nifi
-        if (port.isAllowRemoteAccess()) {
-            final PublicPort publicPort = port.getPublicPort();
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
             dto.setAllowRemoteAccess(true);
             dto.setTransmitting(publicPort.isTransmitting());
             dto.setGroupAccessControl(publicPort.getGroupAccessControl());

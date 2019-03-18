@@ -66,7 +66,7 @@
     };
 
     var dimensions = function (d) {
-        return d.component.allowRemoteAccess === true ? remotePortDimensions : portDimensions;
+        return d.status.allowRemoteAccess === true ? remotePortDimensions : portDimensions;
     }
 
     // ----------------------------
@@ -105,7 +105,7 @@
      * Utility method to check if the target port is a local port.
      */
     var isLocalPort = function (d) {
-        return d.component.allowRemoteAccess !== true;
+        return d.status.allowRemoteAccess !== true;
     };
 
     /**

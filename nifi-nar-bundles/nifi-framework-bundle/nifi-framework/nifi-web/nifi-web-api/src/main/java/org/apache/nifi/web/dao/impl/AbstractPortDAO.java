@@ -23,7 +23,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.PublicPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
@@ -45,36 +44,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     }
 
 
-    class PortTypeChange {
-        private final boolean isPublic;
-        private final boolean willBePublic;
-
-        private PortTypeChange(boolean isPublic, boolean willBePublic) {
-            this.isPublic = isPublic;
-            this.willBePublic = willBePublic;
-        }
-
-        boolean isLocalToPublic() {
-            return !isPublic && willBePublic;
-        }
-
-        boolean isPublicToLocal() {
-            return isPublic && !willBePublic;
-        }
-    }
-
-    private PortTypeChange analyzePortTypeChange(final Port port, final PortDTO portDTO) {
-        // handle Port type change.
-        final boolean isPublicPort = port.isAllowRemoteAccess();
-        final boolean willBePublicPort = portDTO.isAllowRemoteAccess() != null ? portDTO.isAllowRemoteAccess() : isPublicPort;
-        return new PortTypeChange(isPublicPort, willBePublicPort);
-    }
-
     protected void verifyUpdate(final Port port, final PortDTO portDTO) {
-        verifyUpdate(port, portDTO, analyzePortTypeChange(port, portDTO));
-    }
-
-    protected void verifyUpdate(final Port port, final PortDTO portDTO, final PortTypeChange portTypeChange) {
         if (isNotNull(portDTO.getState())) {
             final ScheduledState purposedScheduledState = ScheduledState.valueOf(portDTO.getState());
 
@@ -111,7 +81,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
             portDTO.isAllowRemoteAccess())) {
 
             // validate the request
-            final List<String> requestValidation = validateProposedConfiguration(port, portDTO, portTypeChange);
+            final List<String> requestValidation = validateProposedConfiguration(port, portDTO);
 
             // ensure there was no validation errors
             if (!requestValidation.isEmpty()) {
@@ -124,8 +94,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
     }
 
-    private List<String> validateProposedConfiguration(final Port port, final PortDTO portDTO,
-                                                       final PortTypeChange portTypeChange) {
+    private List<String> validateProposedConfiguration(final Port port, final PortDTO portDTO) {
         List<String> validationErrors = new ArrayList<>();
 
         if (isNotNull(portDTO.getName()) && portDTO.getName().trim().isEmpty()) {
@@ -137,15 +106,13 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
         // Although StandardProcessGroup.addIn/OutputPort has the similar validation,
         // this validation is necessary to prevent a port becomes public with an existing port name.
-        if (portTypeChange.willBePublic) {
+        if (port instanceof PublicPort) {
             final String portName = isNotNull(portDTO.getName()) ? portDTO.getName() : port.getName();
             // If there is any port with the same name, but different identifier, throw an error.
             if (getPublicPorts().stream()
                 .anyMatch(p -> portName.equals(p.getName()) && !port.getIdentifier().equals(p.getIdentifier()))) {
                 throw new IllegalStateException("Public port name should be unique throughout the flow.");
             }
-        } else if (port instanceof RootGroupPort) {
-            throw new IllegalStateException("Cannot disable remote access for RootGroupPorts.");
         }
 
         return validationErrors;
@@ -159,19 +126,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         }
     }
 
-
     protected abstract Set<Port> getPublicPorts();
-
-    private void handlePortTypeChange(final Port port, final PortTypeChange portTypeChange) {
-        // handle Port type change.
-        final boolean localToPublic = portTypeChange.isLocalToPublic();
-        final boolean publicToLocal = portTypeChange.isPublicToLocal();
-
-        if (localToPublic || publicToLocal) {
-            // recreate the port instance.
-            flowController.getFlowManager().setRemoteAccessibility(port, localToPublic);
-        }
-    }
 
     protected abstract void handleStateTransition(final Port port, final ScheduledState proposedScheduledState) throws IllegalStateException;
 
@@ -179,12 +134,9 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     public Port updatePort(PortDTO portDTO) {
         final Port port = locatePort(portDTO.getId());
         final ProcessGroup processGroup = port.getProcessGroup();
-        final PortTypeChange portTypeChange = analyzePortTypeChange(port, portDTO);
 
         // ensure we can do this update
-        verifyUpdate(port, portDTO, portTypeChange);
-
-        handlePortTypeChange(port, portTypeChange);
+        verifyUpdate(port, portDTO);
 
         // handle state transition
         if (isNotNull(portDTO.getState())) {
@@ -200,8 +152,8 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
             }
         }
 
-        if (port.isAllowRemoteAccess()) {
-            final PublicPort publicPort = port.getPublicPort();
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
             if (isNotNull(portDTO.getGroupAccessControl())) {
                 publicPort.setGroupAccessControl(portDTO.getGroupAccessControl());
             }

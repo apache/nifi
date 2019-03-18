@@ -39,7 +39,7 @@ import static org.mockito.Mockito.mock;
 
 public class TestStandardRootGroupPort {
 
-    private RootGroupPort createRootGroupPort(NiFiProperties nifiProperties) {
+    private PublicPort createRootGroupPort(NiFiProperties nifiProperties) {
         final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
         final ProcessScheduler processScheduler = null;
 
@@ -57,13 +57,8 @@ public class TestStandardRootGroupPort {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
-        final StandardRootGroupPort rootGroupPort = new StandardRootGroupPort("id", "name", processGroup,
-                TransferDirection.SEND, ConnectableType.INPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
-
-        final StandardPublicPort publicPort = new StandardPublicPort(rootGroupPort, TransferDirection.SEND,
-            authorizer, bulletinRepository, processScheduler, true, IdentityMappingUtil.getIdentityMappings(nifiProperties));
-        rootGroupPort.setPublicPort(publicPort);
-        return rootGroupPort;
+        return new StandardPublicPort("id", "name", processGroup,
+                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true, nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     @Test
@@ -71,12 +66,12 @@ public class TestStandardRootGroupPort {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
+        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.getPublicPort().checkUserAuthorization("node1@nifi.test");
+        authResult = port.checkUserAuthorization("node1@nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 
@@ -96,12 +91,12 @@ public class TestStandardRootGroupPort {
         doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node2, OU=nifi.test");
+        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
+        authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 
@@ -124,12 +119,12 @@ public class TestStandardRootGroupPort {
         doReturn(mapTransform).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey));
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createRootGroupPort(nifiProperties);
 
-        PortAuthorizationResult authResult = port.getPublicPort().checkUserAuthorization("CN=node2, OU=nifi.test");
+        PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
 
-        authResult = port.getPublicPort().checkUserAuthorization("CN=node1, OU=nifi.test");
+        authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertTrue(authResult.isAuthorized());
     }
 

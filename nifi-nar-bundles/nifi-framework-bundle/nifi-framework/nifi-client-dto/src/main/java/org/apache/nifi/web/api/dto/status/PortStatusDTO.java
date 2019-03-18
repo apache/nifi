@@ -32,6 +32,7 @@ public class PortStatusDTO {
     private Boolean transmitting;
     private String runStatus;
     private Date statsLastRefreshed;
+    private Boolean allowRemoteAccess;
 
     private PortStatusSnapshotDTO aggregateSnapshot;
     private List<NodePortStatusSnapshotDTO> nodeSnapshots;
@@ -123,5 +124,19 @@ public class PortStatusDTO {
 
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
+    }
+
+    /**
+     * @return whether this port can be accessed remotely via Site-to-Site protocol.
+     */
+    @ApiModelProperty(
+        value = "Whether this port can be accessed remotely via Site-to-Site protocol."
+    )
+    public Boolean isAllowRemoteAccess() {
+        return allowRemoteAccess;
+    }
+
+    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+        this.allowRemoteAccess = allowRemoteAccess;
     }
 }

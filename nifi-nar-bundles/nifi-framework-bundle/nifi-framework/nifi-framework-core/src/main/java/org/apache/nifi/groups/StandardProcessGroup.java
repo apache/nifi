@@ -133,8 +133,8 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -494,11 +494,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void addInputPort(final Port port) {
         if (isRootGroup()) {
-            if (!(port instanceof RootGroupPort)) {
+            if (!(port instanceof PublicPort)) {
                 throw new IllegalArgumentException("Cannot add Input Port of type " + port.getClass().getName() + " to the Root Group");
             }
-        } else if (!(port instanceof LocalPort)) {
-            throw new IllegalArgumentException("Cannot add Input Port of type " + port.getClass().getName() + " to a non-root group");
         }
 
         writeLock.lock();
@@ -580,11 +578,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void addOutputPort(final Port port) {
         if (isRootGroup()) {
-            if (!(port instanceof RootGroupPort)) {
+            if (!(port instanceof PublicPort)) {
                 throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to the Root Group");
             }
-        } else if (!(port instanceof LocalPort)) {
-            throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to a non-root group");
         }
 
         writeLock.lock();

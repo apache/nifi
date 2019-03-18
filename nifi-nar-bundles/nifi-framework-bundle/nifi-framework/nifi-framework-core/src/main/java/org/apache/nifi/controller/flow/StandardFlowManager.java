@@ -30,7 +30,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
@@ -66,10 +65,8 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardPublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
-import org.apache.nifi.remote.StandardRootGroupPort;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
@@ -128,38 +125,24 @@ public class StandardFlowManager implements FlowManager {
         this.isSiteToSiteSecure = Boolean.TRUE.equals(nifiProperties.isSiteToSiteSecure());
     }
 
-    public Port createRootGroupInputPort(String id, String name) {
+    public Port createPublicInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
-        setRemoteAccessibility(port, true);
-        return port;
+        return new StandardPublicPort(id, name, null,
+            TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
+            processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
+            IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
-    public Port createRootGroupOutputPort(String id, String name) {
+    public Port createPublicOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        final StandardRootGroupPort port = new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties.getBoredYieldDuration());
-        setRemoteAccessibility(port, true);
-        return port;
-    }
-
-    public void setRemoteAccessibility(final Port port, final boolean allowRemoteAccess) {
-        if (port instanceof RootGroupPort && !allowRemoteAccess) {
-            throw new IllegalArgumentException("Cannot disable remote access for RootGroupPorts.");
-        }
-        final TransferDirection direction = ConnectableType.INPUT_PORT == port.getConnectableType() ? TransferDirection.RECEIVE : TransferDirection.SEND;
-        if (allowRemoteAccess) {
-            ((AbstractPort) port).setPublicPort(createPublicPort(port, direction));
-        } else {
-            ((AbstractPort) port).setPublicPort(null);
-        }
-    }
-
-    private PublicPort createPublicPort(Port port, TransferDirection direction) {
-        return new StandardPublicPort(port, direction, authorizer, bulletinRepository, processScheduler, isSiteToSiteSecure, IdentityMappingUtil.getIdentityMappings(nifiProperties));
+        return new StandardPublicPort(id, name, null,
+            TransferDirection.SEND, ConnectableType.OUTPUT_PORT, authorizer, bulletinRepository,
+            processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
+            IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     /**
@@ -189,7 +172,7 @@ public class StandardFlowManager implements FlowManager {
 
     private void getPublicPorts(final Set<Port> publicPorts, final ProcessGroup group, final Function<ProcessGroup, Set<Port>> getPorts) {
         for (final Port port : getPorts.apply(group)) {
-            if (port.isAllowRemoteAccess()) {
+            if (port instanceof PublicPort) {
                 publicPorts.add(port);
             }
         }

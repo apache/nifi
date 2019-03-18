@@ -29,15 +29,18 @@ import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.authorization.util.UserGroupUtil;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.BadRequestException;
@@ -50,11 +53,14 @@ import org.apache.nifi.remote.protocol.ServerProtocol;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -69,21 +75,25 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.util.Objects.requireNonNull;
 
-public class StandardPublicPort implements PublicPort {
+public class StandardPublicPort extends AbstractPort implements PublicPort {
 
     private static final String CATEGORY = "Site to Site";
 
     private static final Logger logger = LoggerFactory.getLogger(StandardPublicPort.class);
 
-    private final Port port;
+
     private final AtomicReference<Set<String>> groupAccessControl = new AtomicReference<>(new HashSet<>());
     private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<>(new HashSet<>());
     private final boolean secure;
     private final Authorizer authorizer;
     private final List<IdentityMapping> identityMappings;
+    private TransferDirection direction;
 
+    @SuppressWarnings("unused")
+    private final BulletinRepository bulletinRepository;
     private final EventReporter eventReporter;
     private final ProcessScheduler scheduler;
+    private final Set<Relationship> relationships;
 
     private final BlockingQueue<FlowFileRequest> requestQueue = new ArrayBlockingQueue<>(1000);
 
@@ -91,32 +101,47 @@ public class StandardPublicPort implements PublicPort {
     private final Lock requestLock = new ReentrantLock();
     private boolean shutdown = false;   // guarded by requestLock
 
-    public StandardPublicPort(final Port port, final TransferDirection direction, final Authorizer authorizer,
+    public StandardPublicPort(final String id, final String name, final ProcessGroup processGroup,
+                              final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
                               final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
-                              final List<IdentityMapping> identityMappings) {
+                              final String yieldPeriod, final List<IdentityMapping> identityMappings) {
 
-        this.port = port;
+        super(id, name, processGroup, type, scheduler);
+
+        setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;
         this.secure = secure;
         this.identityMappings = identityMappings;
+        this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
+        this.direction = direction;
+        setYieldPeriod(yieldPeriod);
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
-                final ProcessGroup processGroup = StandardPublicPort.this.port.getProcessGroup();
                 final String groupId = processGroup.getIdentifier();
                 final String groupName = processGroup.getName();
-                final String sourceId = StandardPublicPort.this.port.getIdentifier();
-                final String sourceName = StandardPublicPort.this.port.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, componentType, sourceName, category, severity.name(), message));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, id, componentType, name, category, severity.name(), message));
             }
         };
 
+        relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(AbstractPort.PORT_RELATIONSHIP) : Collections.emptySet();
     }
 
+    @Override
+    public Collection<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public boolean isTriggerWhenEmpty() {
+        return true;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         final FlowFileRequest flowFileRequest;
         try {
@@ -171,6 +196,11 @@ public class StandardPublicPort implements PublicPort {
         }
     }
 
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        // nothing to do here -- we will never get called because we override onTrigger(ProcessContext, ProcessSessionFactory)
+    }
+
     private void onTrigger(final ProcessContext context, final ProcessSession session, final FlowFileRequest flowFileRequest) {
         final ServerProtocol protocol = flowFileRequest.getProtocol();
         final BlockingQueue<ProcessingResult> responseQueue = flowFileRequest.getResponseQueue();
@@ -208,7 +238,7 @@ public class StandardPublicPort implements PublicPort {
         final int transferCount;
 
         try {
-            if (port.getConnectableType() == ConnectableType.INPUT_PORT) {
+            if (getConnectableType() == ConnectableType.INPUT_PORT) {
                 transferCount = receiveFlowFiles(context, session, codec, flowFileRequest);
             } else {
                 transferCount = transferFlowFiles(context, session, codec, flowFileRequest);
@@ -232,7 +262,32 @@ public class StandardPublicPort implements PublicPort {
     }
 
     @Override
+    public boolean isValid() {
+        return getConnectableType() == ConnectableType.INPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true;
+    }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors() {
+        final Collection<ValidationResult> validationErrors = new ArrayList<>();
+        if (getScheduledState() == ScheduledState.STOPPED) {
+            if (!isValid()) {
+                final ValidationResult error = new ValidationResult.Builder()
+                        .explanation(String.format("Output connection for port '%s' is not defined.", getName()))
+                        .subject(String.format("Port '%s'", getName()))
+                        .valid(false)
+                        .build();
+                validationErrors.add(error);
+            }
+        }
+        return validationErrors;
+    }
+
+    @Override
     public boolean isTransmitting() {
+        if (!isRunning()) {
+            return false;
+        }
+
         requestLock.lock();
         try {
             return !activeRequests.isEmpty();
@@ -263,6 +318,8 @@ public class StandardPublicPort implements PublicPort {
 
     @Override
     public void shutdown() {
+        super.shutdown();
+
         requestLock.lock();
         try {
             this.shutdown = true;
@@ -279,7 +336,9 @@ public class StandardPublicPort implements PublicPort {
     }
 
     @Override
-    public void start() {
+    public void onSchedulingStart() {
+        super.onSchedulingStart();
+
         requestLock.lock();
         try {
             shutdown = false;
@@ -320,7 +379,7 @@ public class StandardPublicPort implements PublicPort {
         }
 
         // perform the authorization
-        final Authorizable dataTransferAuthorizable = new DataTransferAuthorizable(this.port);
+        final Authorizable dataTransferAuthorizable = new DataTransferAuthorizable(this);
         final AuthorizationResult result = dataTransferAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user);
 
         if (!Result.Approved.equals(result.getResult())) {
@@ -433,11 +492,11 @@ public class StandardPublicPort implements PublicPort {
     @Override
     public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
-        if (port.getConnectableType() != ConnectableType.INPUT_PORT) {
+        if (getConnectableType() != ConnectableType.INPUT_PORT) {
             throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
         }
 
-        if (!port.isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Port not running");
         }
 
@@ -448,7 +507,7 @@ public class StandardPublicPort implements PublicPort {
             }
 
             // Trigger this port to run.
-            scheduler.registerEvent(this.port);
+            scheduler.registerEvent(this);
 
             // Get a response from the response queue but don't wait forever if the port is stopped
             ProcessingResult result = null;
@@ -489,11 +548,11 @@ public class StandardPublicPort implements PublicPort {
     @Override
     public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
-        if (port.getConnectableType() != ConnectableType.OUTPUT_PORT) {
+        if (getConnectableType() != ConnectableType.OUTPUT_PORT) {
             throw new IllegalStateException("Cannot send FlowFiles because this port is not an Output Port");
         }
 
-        if (!port.isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Port not running");
         }
 
@@ -504,7 +563,7 @@ public class StandardPublicPort implements PublicPort {
             }
 
             // Trigger this port to run
-            scheduler.registerEvent(port);
+            scheduler.registerEvent(this);
 
             // Get a response from the response queue but don't wait forever if the port is stopped
             ProcessingResult result;
@@ -543,13 +602,23 @@ public class StandardPublicPort implements PublicPort {
     }
 
     @Override
-    public String getIdentifier() {
-        return port.getIdentifier();
+    public SchedulingStrategy getSchedulingStrategy() {
+        return SchedulingStrategy.TIMER_DRIVEN;
     }
 
     @Override
-    public String getName() {
-        return port.getName();
+    public boolean isSideEffectFree() {
+        return false;
+    }
+
+    @Override
+    public String getComponentType() {
+        return "PublicPort";
+    }
+
+    @Override
+    public TransferDirection getDirection() {
+        return direction;
     }
 
     @Override

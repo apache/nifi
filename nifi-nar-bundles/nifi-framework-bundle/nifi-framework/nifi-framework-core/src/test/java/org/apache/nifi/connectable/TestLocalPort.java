@@ -19,7 +19,6 @@ package org.apache.nifi.connectable;
 
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 
@@ -126,32 +125,6 @@ public class TestLocalPort {
     }
 
     @Test
-    public void testInvalidPublicLocalInputPort() {
-        final LocalPort port = getLocalInputPort();
-
-        port.setPublicPort(mock(PublicPort.class));
-
-        assertFalse(port.isValid());
-    }
-
-    @Test
-    public void testValidPublicLocalInputPort() {
-        final LocalPort port = getLocalInputPort();
-
-        port.setPublicPort(mock(PublicPort.class));
-
-        // Add an outgoing relationship.
-        port.addConnection(new StandardConnection.Builder(null)
-            .source(port)
-            .destination(mock(Connectable.class))
-            .relationships(Collections.singleton(Relationship.ANONYMOUS))
-            .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
-            .build());
-
-        assertTrue(port.isValid());
-    }
-
-    @Test
     public void testInvalidLocalOutputPort() {
         final LocalPort port = getLocalOutputPort();
 
@@ -174,24 +147,6 @@ public class TestLocalPort {
         port.addConnection(new StandardConnection.Builder(null)
             .source(port)
             .destination(mock(Connectable.class))
-            .relationships(Collections.singleton(Relationship.ANONYMOUS))
-            .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
-            .build());
-
-        assertTrue(port.isValid());
-    }
-
-    @Test
-    public void testValidPublicLocalOutputPort() {
-        final LocalPort port = getLocalOutputPort();
-
-        // If this is a public port, outgoing relationship is not required.
-        port.setPublicPort(mock(PublicPort.class));
-
-        // Add an incoming relationship.
-        port.addConnection(new StandardConnection.Builder(null)
-            .source(mock(Connectable.class))
-            .destination(port)
             .relationships(Collections.singleton(Relationship.ANONYMOUS))
             .flowFileQueueFactory(mock(FlowFileQueueFactory.class))
             .build());

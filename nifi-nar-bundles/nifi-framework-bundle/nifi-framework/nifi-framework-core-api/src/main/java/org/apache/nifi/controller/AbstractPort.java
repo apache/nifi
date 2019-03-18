@@ -34,7 +34,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 
@@ -89,8 +88,6 @@ public abstract class AbstractPort implements Port {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
-
-    private PublicPort publicPort;
 
     public AbstractPort(final String id, final String name, final ProcessGroup processGroup, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
@@ -659,26 +656,6 @@ public abstract class AbstractPort implements Port {
             } else {
                 throw new IllegalStateException(this + " is already under version control");
             }
-        }
-    }
-
-
-    @Override
-    public PublicPort getPublicPort() {
-        readLock.lock();
-        try {
-            return publicPort;
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    public void setPublicPort(PublicPort publicPort) {
-        writeLock.lock();
-        try {
-            this.publicPort = publicPort;
-        } finally {
-            writeLock.unlock();
         }
     }
 }

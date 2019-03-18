@@ -95,9 +95,9 @@ public class PortAuditor extends NiFiAuditor {
         final Set<String> existingUsers = new HashSet<>();
         final Set<String> existingGroups = new HashSet<>();
         boolean isPublicPort = false;
-        if (port.isAllowRemoteAccess()) {
+        if (port instanceof PublicPort) {
             isPublicPort = true;
-            final PublicPort publicPort = port.getPublicPort();
+            final PublicPort publicPort = (PublicPort) port;
             existingUsers.addAll(publicPort.getUserAccessControl());
             existingGroups.addAll(publicPort.getGroupAccessControl());
         }

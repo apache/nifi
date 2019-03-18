@@ -60,7 +60,7 @@ import java.util.zip.CheckedOutputStream;
 public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     protected ProcessGroup rootGroup;
-    protected Port port;
+    protected PublicPort port;
 
     protected boolean handshakeCompleted;
     protected boolean shutdown = false;
@@ -142,13 +142,13 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
             throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received unknown port identifier: " + portId);
         }
-        if (!receivedPort.isAllowRemoteAccess()) {
+        if (!(receivedPort instanceof PublicPort)) {
             logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
             throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received port identifier " + portId + ", but this Port is not remotely accessible");
         }
 
-        this.port = receivedPort;
-        final PortAuthorizationResult portAuthResult = this.port.getPublicPort().checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
+        this.port = (PublicPort) receivedPort;
+        final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
         if (!portAuthResult.isAuthorized()) {
             logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
             throw new HandshakeException(ResponseCode.UNAUTHORIZED, portAuthResult.getExplanation());
@@ -179,7 +179,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     @Override
     public PublicPort getPort() {
-        return port.getPublicPort();
+        return port;
     }
 
     @Override

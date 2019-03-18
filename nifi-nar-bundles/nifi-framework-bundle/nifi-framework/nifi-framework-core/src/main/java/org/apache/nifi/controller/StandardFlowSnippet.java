@@ -40,6 +40,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -282,17 +283,16 @@ public class StandardFlowSnippet implements FlowSnippet {
         //
         for (final PortDTO portDTO : dto.getInputPorts()) {
             final Port inputPort;
-            if (group.isRootGroup()) {
-                inputPort = flowManager.createRootGroupInputPort(portDTO.getId(), portDTO.getName());
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+                inputPort = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
-                    inputPort.getPublicPort().setGroupAccessControl(portDTO.getGroupAccessControl());
+                    ((PublicPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
                 if (portDTO.getUserAccessControl() != null) {
-                    inputPort.getPublicPort().setUserAccessControl(portDTO.getUserAccessControl());
+                    ((PublicPort) inputPort).setUserAccessControl(portDTO.getUserAccessControl());
                 }
             } else {
                 inputPort = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
-                flowManager.setRemoteAccessibility(inputPort, Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()));
             }
 
             if (!topLevel) {
@@ -307,17 +307,16 @@ public class StandardFlowSnippet implements FlowSnippet {
 
         for (final PortDTO portDTO : dto.getOutputPorts()) {
             final Port outputPort;
-            if (group.isRootGroup()) {
-                outputPort = flowManager.createRootGroupOutputPort(portDTO.getId(), portDTO.getName());
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+                outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
-                    outputPort.getPublicPort().setGroupAccessControl(portDTO.getGroupAccessControl());
+                    ((PublicPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
                 if (portDTO.getUserAccessControl() != null) {
-                    outputPort.getPublicPort().setUserAccessControl(portDTO.getUserAccessControl());
+                    ((PublicPort) outputPort).setUserAccessControl(portDTO.getUserAccessControl());
                 }
             } else {
                 outputPort = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());
-                flowManager.setRemoteAccessibility(outputPort, Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()));
             }
 
             if (!topLevel) {

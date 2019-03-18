@@ -186,8 +186,8 @@ public class ControllerSearchService {
             }
         }
 
-        if (port.isAllowRemoteAccess()) {
-            final PublicPort publicPort = port.getPublicPort();
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
 
             // user access controls
             for (final String userAccessControl : publicPort.getUserAccessControl()) {

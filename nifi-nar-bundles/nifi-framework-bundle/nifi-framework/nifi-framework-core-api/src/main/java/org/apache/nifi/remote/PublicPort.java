@@ -17,8 +17,7 @@
 package org.apache.nifi.remote;
 
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
@@ -29,17 +28,7 @@ import java.util.Set;
 /**
  * Represents an input or output port that can receive or transfer data via Site-to-Site protocol.
  */
-public interface PublicPort {
-
-    /**
-     * @return the unique identifier for this port
-     */
-    String getIdentifier();
-
-    /**
-     * @return the name of this port
-     */
-    String getName();
+public interface PublicPort extends Port {
 
     boolean isTransmitting();
 
@@ -100,7 +89,6 @@ public interface PublicPort {
      */
     int transferFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
-    void start();
-    void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory);
-    void shutdown();
+    TransferDirection getDirection();
+
 }

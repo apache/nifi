@@ -14,10 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote;
+package org.apache.nifi.authorization;
 
-import org.apache.nifi.connectable.Port;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 
-public interface RootGroupPort extends Port {
+/**
+ * Authorizable for a PublicPort.
+ */
+public interface PublicPortAuthorizable {
+    /**
+     * Returns the authorizable for this PublicGroupPort. Non null
+     *
+     * @return authorizable
+     */
+    Authorizable getAuthorizable();
 
+    /**
+     * Checks the authorization for the specified user.
+     *
+     * @param user user
+     * @return authorization result
+     */
+    AuthorizationResult checkAuthorization(NiFiUser user);
 }

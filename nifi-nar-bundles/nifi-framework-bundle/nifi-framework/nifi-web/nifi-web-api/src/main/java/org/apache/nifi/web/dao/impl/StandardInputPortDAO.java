@@ -20,6 +20,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
@@ -65,15 +66,14 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
 
         // determine if this is the root group
         Port port;
-        if (group.getParent() == null) {
-            port = flowController.getFlowManager().createRootGroupInputPort(portDTO.getId(), portDTO.getName());
+        if (group.getParent() == null || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+            port = flowController.getFlowManager().createPublicInputPort(portDTO.getId(), portDTO.getName());
         } else {
             port = flowController.getFlowManager().createLocalInputPort(portDTO.getId(), portDTO.getName());
-            flowController.getFlowManager().setRemoteAccessibility(port, Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()));
         }
 
         // Unique public port check among all groups.
-        if (port.isAllowRemoteAccess()) {
+        if (port instanceof PublicPort) {
             verifyPublicPortUniqueness(port.getIdentifier(), port.getName());
         }
 
