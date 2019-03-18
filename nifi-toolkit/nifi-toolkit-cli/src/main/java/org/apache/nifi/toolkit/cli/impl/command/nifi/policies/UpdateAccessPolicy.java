@@ -48,8 +48,9 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
 
     @Override
     public String getDescription() {
-        return "Updates the access policy for the given resource and action, "
-            + "or creates the policy if it doesn't not exist.";
+        return "Updates the access policy for the given resource and action, or creates the policy " +
+            "if it doesn't not exist. In stand-alone mode this command will not produce all of " +
+            "the output seen in interactive mode unless the --verbose argument is specified.";
     }
 
     @Override
@@ -112,9 +113,11 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
         }
 
         if (policyEntity == null) {
-            println("Access policy not found" +
+            if (shouldPrint(properties)) {
+                println("Access policy not found" +
                     " for action " + actionType.toString().toLowerCase() +
                     " on resource /" + StringUtils.removeStart(resource, "/"));
+            }
 
             final AccessPolicyDTO policyDTO = new AccessPolicyDTO();
             policyDTO.setResource(resource);
@@ -125,14 +128,19 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             policyEntity = new AccessPolicyEntity();
             policyEntity.setComponent(policyDTO);
             policyEntity.setRevision(getInitialRevisionDTO());
-            setTenant(policyEntity, userEntities, groupEntites, overwrite);
+            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
 
             final AccessPolicyEntity createdEntity = policiesClient.createAccessPolicy(policyEntity);
-            println("New access policy was created");
-            println("id: " + createdEntity.getId());
+
+            if (shouldPrint(properties)) {
+                println("New access policy was created");
+                println("id: " + createdEntity.getId());
+            }
         } else if (!resource.equals(policyEntity.getComponent().getResource())) {
-            println("Override the policy inherited from "
+            if (shouldPrint(properties)) {
+                println("Override the policy inherited from "
                     + policyEntity.getComponent().getResource());
+            }
 
             final AccessPolicyDTO policyDTO = new AccessPolicyDTO();
             policyDTO.setResource(resource);
@@ -143,59 +151,63 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
             policyEntity = new AccessPolicyEntity();
             policyEntity.setComponent(policyDTO);
             policyEntity.setRevision(getInitialRevisionDTO());
-            setTenant(policyEntity, userEntities, groupEntites, overwrite);
+            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
 
             final AccessPolicyEntity createdEntity = policiesClient.createAccessPolicy(policyEntity);
-            println("Override access policy was created");
-            println("id: " + createdEntity.getId());
+
+            if (shouldPrint(properties)) {
+                println("Override access policy was created");
+                println("id: " + createdEntity.getId());
+            }
         } else {
             final String clientId = getContext().getSession().getNiFiClientID();
             policyEntity.getRevision().setClientId(clientId);
-            setTenant(policyEntity, userEntities, groupEntites, overwrite);
+            setTenant(policyEntity, userEntities, groupEntites, overwrite, properties);
 
             policiesClient.updateAccessPolicy(policyEntity);
-            println("Access policy was updated");
-            println("id: " + policyEntity.getId());
+
+            if (shouldPrint(properties)) {
+                println("Access policy was updated");
+                println("id: " + policyEntity.getId());
+            }
         }
 
         return VoidResult.getInstance();
     }
 
     private void setTenant(final AccessPolicyEntity policyEntity, final Set<TenantEntity> userEntities,
-        final Set<TenantEntity> groupEntities, final boolean overwrite) {
+            final Set<TenantEntity> groupEntities, final boolean overwrite, final Properties properties) {
         if (overwrite) {
             policyEntity.getComponent().setUsers(new LinkedHashSet<>());
             policyEntity.getComponent().setUserGroups(new LinkedHashSet<>());
         }
 
         final Set<TenantEntity> userSet = policyEntity.getComponent().getUsers();
-
-        userEntities.forEach(entity -> {
-            final String dispUserName = entity.getComponent() != null && StringUtils.isNotBlank(entity.getComponent().getIdentity())
-                ? "User \"" + entity.getComponent().getIdentity() + "\""
-                : "User (id: " + entity.getId() + ")";
-
-            if (userSet.contains(entity)) {
-                println(dispUserName + " already included");
-            } else {
-                println(dispUserName + " added");
-                userSet.add(entity);
-            }
-        });
+        userEntities.forEach(entity -> addTenant(userSet, entity, "User", properties));
 
         final Set<TenantEntity> groupSet = policyEntity.getComponent().getUserGroups();
+        groupEntities.forEach(entity -> addTenant(groupSet, entity, "User group", properties));
+    }
 
-        groupEntities.forEach(entity -> {
-            final String dispGroupName = entity.getComponent() != null && StringUtils.isNotBlank(entity.getComponent().getIdentity())
-                ? "User group \"" + entity.getComponent().getIdentity() + "\""
-                : "User group (id: " + entity.getId() + ")";
+    private void addTenant(final Set<TenantEntity> tenantSet, final TenantEntity additionalTenant,
+            final String tenantType, final Properties properties) {
+        final String dispTenantName = additionalTenant.getComponent() != null && StringUtils.isNotBlank(additionalTenant.getComponent().getIdentity())
+            ? tenantType + " \"" + additionalTenant.getComponent().getIdentity() + "\""
+            : tenantType + " (id: " + additionalTenant.getId() + ")";
 
-            if (groupSet.contains(entity)) {
-                println(dispGroupName + " already included");
-            } else {
-                println(dispGroupName + " added");
-                groupSet.add(entity);
+        if (tenantSet.contains(additionalTenant)) {
+            if (shouldPrint(properties)) {
+                println(dispTenantName + " already included");
             }
-        });
+        } else {
+            if (shouldPrint(properties)) {
+                println(dispTenantName + " added");
+            }
+            tenantSet.add(additionalTenant);
+        }
+    }
+
+    private boolean shouldPrint(final Properties properties) {
+        return isInteractive() || isVerbose(properties);
     }
 }
