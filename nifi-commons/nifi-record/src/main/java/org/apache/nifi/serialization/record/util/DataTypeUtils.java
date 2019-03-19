@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
@@ -179,7 +181,7 @@ public class DataTypeUtils {
                 return convertType(value, chosenDataType, fieldName, charset);
             }
             case DECIMAL:
-                return toDecimal(value, fieldName);
+                return toDecimal(value, fieldName).setScale(((DecimalDataType)dataType).getScale(), RoundingMode.HALF_UP);
         }
 
         return null;
@@ -1404,6 +1406,10 @@ public class DataTypeUtils {
             return new BigDecimal((String) value);
         }
 
+        if(value instanceof Number){
+            return new BigDecimal(((Number)value).doubleValue());
+        }
+
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Decimal for field " + fieldName);
     }
 
@@ -1416,6 +1422,9 @@ public class DataTypeUtils {
         }
         if(value instanceof String){
             return isDecimal((String)value);
+        }
+        if(value instanceof Number){
+            return true;
         }
         return false;
     }

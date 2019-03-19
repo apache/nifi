@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -73,7 +74,7 @@ public class TestJsonPathRowRecordReader {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("balance", RecordFieldType.DECIMAL.getDecimalDataType(10, 2)));
         fields.add(new RecordField("address", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
@@ -85,7 +86,7 @@ public class TestJsonPathRowRecordReader {
     private RecordSchema getAccountSchema() {
         final List<RecordField> accountFields = new ArrayList<>();
         accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        accountFields.add(new RecordField("balance", RecordFieldType.DECIMAL.getDecimalDataType(10,2)));
 
         final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
         return accountSchema;
@@ -105,14 +106,14 @@ public class TestJsonPathRowRecordReader {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
-                RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+                RecordFieldType.DECIMAL, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", new BigDecimal("4820.09"), "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -131,14 +132,14 @@ public class TestJsonPathRowRecordReader {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
-                    RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+                    RecordFieldType.DECIMAL, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", new BigDecimal("4820.09"), "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -157,11 +158,11 @@ public class TestJsonPathRowRecordReader {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
-                RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+                RecordFieldType.DECIMAL, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -187,7 +188,7 @@ public class TestJsonPathRowRecordReader {
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DECIMAL,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.RECORD});
             assertEquals(expectedTypes, dataTypes);
 
@@ -199,7 +200,7 @@ public class TestJsonPathRowRecordReader {
             assertTrue(lastElement instanceof Record);
             final Record record = (Record) lastElement;
             assertEquals(42, record.getValue("id"));
-            assertEquals(4750.89D, record.getValue("balance"));
+            assertEquals(new BigDecimal("4750.89"), record.getValue("balance"));
 
             assertNull(reader.nextRecord());
         }
@@ -226,7 +227,7 @@ public class TestJsonPathRowRecordReader {
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DECIMAL,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.ARRAY});
             assertEquals(expectedTypes, dataTypes);
 
@@ -244,13 +245,13 @@ public class TestJsonPathRowRecordReader {
 
             final Record firstRecord = (Record) firstElement;
             assertEquals(42, firstRecord.getValue("id"));
-            assertEquals(4750.89D, firstRecord.getValue("balance"));
+            assertEquals(new BigDecimal("4750.89"), firstRecord.getValue("balance"));
 
             final Object secondElement = array[1];
             assertTrue(secondElement instanceof Record);
             final Record secondRecord = (Record) secondElement;
             assertEquals(43, secondRecord.getValue("id"));
-            assertEquals(48212.38D, secondRecord.getValue("balance"));
+            assertEquals(new BigDecimal("48212.38"), secondRecord.getValue("balance"));
 
             assertNull(reader.nextRecord());
         }
@@ -269,17 +270,17 @@ public class TestJsonPathRowRecordReader {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
-                RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+                RecordFieldType.DECIMAL, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null}, secondRecordValues);
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", new BigDecimal("4820.09"), "321 Your Street", "Your City", "NY", "33333", null}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA"}, thirdRecordValues);
+            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", new BigDecimal("4751.89"), "124 My Street", "My City", "MS", "11111", "USA"}, thirdRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -303,18 +304,18 @@ public class TestJsonPathRowRecordReader {
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE, RecordFieldType.STRING,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DECIMAL, RecordFieldType.STRING,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA", null}, firstRecordValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA", null}, firstRecordValues);
 
             final Object[] secondRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", null, null}, secondRecordValues);
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", new BigDecimal("4820.09"), "321 Your Street", "Your City", "NY", "33333", null, null}, secondRecordValues);
 
             final Object[] thirdRecordValues = reader.nextRecord().getValues();
-            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", 4751.89, "124 My Street", "My City", "MS", "11111", "USA", "Apt. #12"}, thirdRecordValues);
+            Assert.assertArrayEquals(new Object[] {3, "Jake Doe", new BigDecimal("4751.89"), "124 My Street", "My City", "MS", "11111", "USA", "Apt. #12"}, thirdRecordValues);
 
             assertNull(reader.nextRecord());
         }
@@ -338,14 +339,14 @@ public class TestJsonPathRowRecordReader {
             assertEquals(expectedFieldNames, fieldNames);
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
-            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DOUBLE, RecordFieldType.STRING,
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.DECIMAL, RecordFieldType.STRING,
                 RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.ARRAY});
             assertEquals(expectedTypes, dataTypes);
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
 
             final Object[] nonArrayValues = Arrays.copyOfRange(firstRecordValues, 0, firstRecordValues.length - 1);
-            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"}, nonArrayValues);
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", new BigDecimal("4750.89"), "123 My Street", "My City", "MS", "11111", "USA"}, nonArrayValues);
 
             final Object lastRecord = firstRecordValues[firstRecordValues.length - 1];
             assertNotNull(lastRecord);
