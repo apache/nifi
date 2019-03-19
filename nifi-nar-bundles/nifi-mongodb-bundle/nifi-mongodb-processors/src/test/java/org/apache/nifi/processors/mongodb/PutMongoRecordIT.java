@@ -43,6 +43,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -134,12 +135,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
+        recordReader.addSchemaField("points", RecordFieldType.DECIMAL);
 
-        recordReader.addRecord("John Doe", 48, "Soccer");
-        recordReader.addRecord("Jane Doe", 47, "Tennis");
-        recordReader.addRecord("Sally Doe", 47, "Curling");
-        recordReader.addRecord("Jimmy Doe", 14, null);
-        recordReader.addRecord("Pizza Doe", 14, null);
+        recordReader.addRecord("John Doe", 48, "Soccer", new BigDecimal("1.25"));
+        recordReader.addRecord("Jane Doe", 47, "Tennis", new BigDecimal("1.25"));
+        recordReader.addRecord("Sally Doe", 47, "Curling", new BigDecimal("1.25"));
+        recordReader.addRecord("Jimmy Doe", 14, null, new BigDecimal("1.25"));
+        recordReader.addRecord("Pizza Doe", 14, null, new BigDecimal("1.25"));
 
         runner.enqueue("");
         runner.run();

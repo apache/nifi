@@ -42,14 +42,20 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.mongodb.codec.BigDecimalCodecProvider;
+import org.apache.nifi.processors.mongodb.codec.BigDecimalTransformer;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
+import org.bson.BSON;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistries;
+import org.bson.codecs.configuration.CodecRegistry;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -262,12 +268,10 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             sslContext = null;
         }
 
+
+
         try {
-            if(sslContext == null) {
-                mongoClient = new MongoClient(new MongoClientURI(getURI(context)));
-            } else {
-                mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
-            }
+            mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
             throw e;
@@ -276,8 +280,15 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     protected Builder getClientOptions(final SSLContext sslContext) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
-        builder.sslEnabled(true);
-        builder.socketFactory(sslContext.getSocketFactory());
+        if(sslContext != null) {
+            builder.sslEnabled(true);
+            builder.socketFactory(sslContext.getSocketFactory());
+        }
+        //setup bson BigDecimal support
+        //https://gist.github.com/squarepegsys/9a97f7c70337e7c5e006a436acd8a729
+        BSON.addEncodingHook(BigDecimal.class, new BigDecimalTransformer());
+        BSON.addDecodingHook(BigDecimal.class, new BigDecimalTransformer());
+        builder.codecRegistry(getCodecRegistry());
         return builder;
     }
 
@@ -301,7 +312,16 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         if (StringUtils.isEmpty(collectionName)) {
             throw new ProcessException("Collection name was empty after expression language evaluation.");
         }
-        return getDatabase(context, flowFile).getCollection(collectionName);
+        //have to add the codec registry here again otherwise the inserts will fail. Somehow we get an initialized
+        //ChildCodecRegistry (Created by DocumentCodecProvider or something like that) that doesn't have the
+        //BigDecimal registry we added in the client.
+        return getDatabase(context, flowFile).getCollection(collectionName).withCodecRegistry(getCodecRegistry());
+    }
+
+    protected CodecRegistry getCodecRegistry(){
+        return CodecRegistries.fromRegistries(
+                CodecRegistries.fromProviders(new BigDecimalCodecProvider()),
+                MongoClient.getDefaultCodecRegistry());
     }
 
     protected String getURI(final ProcessContext context) {
