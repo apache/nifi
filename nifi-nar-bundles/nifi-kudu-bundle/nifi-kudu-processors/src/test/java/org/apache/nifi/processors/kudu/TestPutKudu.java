@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
-import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder;
+import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -32,6 +32,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.processors.kudu.io.OperationType;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -86,22 +87,25 @@ public class TestPutKudu {
     public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal";
 
     private TestRunner testRunner;
+
     private MockPutKudu processor;
+
     private MockRecordParser readerFactory;
 
     @Before
-    public void setUp() {
+    public void setUp() throws InitializationException {
         processor = new MockPutKudu();
         testRunner = TestRunners.newTestRunner(processor);
         setUpTestRunner(testRunner);
     }
 
-    private void setUpTestRunner(TestRunner testRunner) {
+    private void setUpTestRunner(TestRunner testRunner) throws InitializationException {
         testRunner.setProperty(PutKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
+        testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
-        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
+        testRunner.setProperty(PutKudu.OPERATION_TYPE, OperationType.INSERT.toString());
+        testRunner.setValidateExpressionUsage(false);
     }
 
     @After
@@ -172,7 +176,6 @@ public class TestPutKudu {
         testRunner.run(1, true, false);
         assertTrue(proc.loggedOut());
     }
-
 
     @Test
     public void testInsecureClient() throws InitializationException {
@@ -314,9 +317,45 @@ public class TestPutKudu {
     @Test
     public void testUpsertFlowFiles() throws Exception {
         createRecordReader(50);
-        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.UPSERT.toString());
+        testRunner.setProperty(PutKudu.OPERATION_TYPE, OperationType.UPSERT.toString());
         testRunner.enqueue("string".getBytes());
 
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutKudu.REL_SUCCESS).get(0);
+
+        flowFile.assertContentEquals("string".getBytes());
+        flowFile.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "50");
+    }
+
+    @Test
+    public void testDeleteFlowFiles() throws Exception {
+        createRecordReader(50);
+        testRunner.setProperty(PutKudu.OPERATION_TYPE, "${kudu.record.delete}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("kudu.record.delete", "DELETE");
+
+        testRunner.enqueue("string".getBytes(), attributes);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutKudu.REL_SUCCESS).get(0);
+
+        flowFile.assertContentEquals("string".getBytes());
+        flowFile.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "50");
+    }
+
+    @Test
+    public void testUpdateFlowFiles() throws Exception {
+        createRecordReader(50);
+        testRunner.setProperty(PutKudu.OPERATION_TYPE, "${kudu.record.update}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("kudu.record.update", "UPDATE");
+
+        testRunner.enqueue("string".getBytes(), attributes);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
@@ -348,11 +387,11 @@ public class TestPutKudu {
 
     private void buildPartialRow(Long id, String name, Short age) {
         final Schema kuduSchema = new Schema(Arrays.asList(
-            new ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
-            new ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
-            new ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
-            new ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
-            new ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
+            new ColumnSchema.ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
                 new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
             ).build()));
 
@@ -369,11 +408,12 @@ public class TestPutKudu {
         values.put("age", age);
         values.put("updated_at", System.currentTimeMillis() * 1000);
         values.put("score", 10000L);
-        new PutKudu().buildPartialRow(
+        processor.buildPartialRow(
             kuduSchema,
             kuduSchema.newPartialRow(),
             new MapRecord(schema, values),
-            schema.getFieldNames()
+            schema.getFieldNames(),
+                true
         );
     }
 
@@ -393,12 +433,12 @@ public class TestPutKudu {
         EXCEPTION
     }
 
-    private LinkedList<OperationResponse> queueInsert(MockPutKudu kudu, KuduSession session, boolean sync, ResultCode... results) throws Exception {
+    private LinkedList<OperationResponse> queueInsert(MockPutKudu putKudu, KuduSession session, boolean sync, ResultCode... results) throws Exception {
         LinkedList<OperationResponse> responses = new LinkedList<>();
         for (ResultCode result : results) {
             boolean ok = result == OK;
             Tuple<Insert, OperationResponse> tuple = insert(ok);
-            kudu.queue(tuple.getKey());
+            putKudu.queue(tuple.getKey());
 
             if (result == EXCEPTION) {
                 when(session.apply(tuple.getKey())).thenThrow(mock(KuduException.class));
@@ -521,11 +561,13 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.FLUSH_MODE, flushMode.name());
         testRunner.setProperty(PutKudu.BATCH_SIZE, String.valueOf(batchSize));
         testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, String.valueOf(batchSize));
+        testRunner.setValidateExpressionUsage(false);
 
         IntStream.range(0, numFlowFiles).forEach(i -> testRunner.enqueue(""));
         testRunner.run(numFlowFiles);
 
         testRunner.assertTransferCount(PutKudu.REL_FAILURE, 3);
+
         List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(PutKudu.REL_FAILURE);
         failedFlowFiles.get(0).assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "2");
         failedFlowFiles.get(1).assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, sync ? "1" : "2");
@@ -556,7 +598,6 @@ public class TestPutKudu {
     public void testKuduPartialFailuresOnManualFlush() throws Exception {
         testKuduPartialFailure(FlushMode.MANUAL_FLUSH);
     }
-
 
     public static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
         private final String keytab;

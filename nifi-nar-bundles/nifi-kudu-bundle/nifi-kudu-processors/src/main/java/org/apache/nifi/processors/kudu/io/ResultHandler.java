@@ -15,10 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.kudu;
+package org.apache.nifi.processors.kudu.io;
 
-public enum OperationType {
-    INSERT,
-    INSERT_IGNORE,
-    UPSERT;
+import org.apache.kudu.client.RowResult;
+import org.apache.nifi.flowfile.FlowFile;
+
+import java.util.Iterator;
+
+/**
+ * Handles a single row from an Kudu scan.
+ */
+public interface ResultHandler {
+
+    void handle(Iterator<RowResult> resultCells);
+    FlowFile getFlowFile();
 }
