@@ -263,6 +263,8 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 return value instanceof java.sql.Time;
             case TIMESTAMP:
                 return value instanceof java.sql.Timestamp;
+            case DECIMAL:
+                return value instanceof java.math.BigDecimal;
         }
 
         return false;

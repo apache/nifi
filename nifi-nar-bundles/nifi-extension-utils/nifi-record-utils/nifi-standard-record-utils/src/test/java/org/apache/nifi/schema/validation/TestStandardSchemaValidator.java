@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
@@ -102,6 +103,7 @@ public class TestStandardSchemaValidator {
         valueMap.put("choice", 48L);
         valueMap.put("map", intMap);
         valueMap.put("mapRecord", mapRecord);
+        valueMap.put("decimal", new BigDecimal("12.05"));
 
         final Record record = new MapRecord(schema, valueMap);
 
