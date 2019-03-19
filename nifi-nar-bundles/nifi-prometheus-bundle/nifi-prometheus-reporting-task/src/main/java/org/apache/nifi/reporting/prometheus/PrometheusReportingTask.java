@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -48,6 +49,14 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     private PrometheusServer prometheusServer;
     private SSLContextService sslContextService;
+
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
+            "ReportingTask will not authenticate clients. Anyone can communicate with this ReportingTask anonymously");
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication",
+            "ReportingTask will try to verify the client but if unable to verify will allow the client to communicate anonymously");
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication",
+            "ReportingTask will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore"
+            + "specified in the SSL Context Service");
 
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("Prometheus Metrics Endpoint Port")
@@ -91,6 +100,16 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .required(false)
             .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
+
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("Client Authentication")
+            .description("Specifies whether or not the Reporting Task should authenticate clients. This value is ignored if the <SSL Context Service> "
+                    + "Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
+            .required(true)
+            .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
+            .defaultValue(CLIENT_NONE.getValue())
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -100,6 +119,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         props.add(INSTANCE_ID);
         props.add(SEND_JVM_METRICS);
         props.add(SSL_CONTEXT);
+        props.add(CLIENT_AUTH);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -117,7 +137,20 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             if (sslContextService == null) {
                 this.prometheusServer = new PrometheusServer(new InetSocketAddress(Integer.parseInt(metricsEndpointPort)), getLogger());
             } else {
-                this.prometheusServer = new PrometheusServer(Integer.parseInt(metricsEndpointPort), sslContextService, getLogger());
+                final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
+                final boolean need;
+                final boolean want;
+                if (CLIENT_NEED.equals(clientAuthValue)) {
+                    need = true;
+                    want = false;
+                } else if (CLIENT_WANT.equals(clientAuthValue)) {
+                    need = false;
+                    want = true;
+                } else {
+                    need = false;
+                    want = false;
+                }
+                this.prometheusServer = new PrometheusServer(Integer.parseInt(metricsEndpointPort),sslContextService, getLogger(), need, want);
             }
             this.prometheusServer.setApplicationId(context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue());
             this.prometheusServer.setSendJvmMetrics(context.getProperty(SEND_JVM_METRICS).asBoolean());

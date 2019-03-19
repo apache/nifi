@@ -95,13 +95,13 @@ public class PrometheusServer {
         this.server.start();
     }
 
-    public PrometheusServer(int addr, SSLContextService sslContextService, ComponentLog logger) throws Exception {
+    public PrometheusServer(int addr, SSLContextService sslContextService, ComponentLog logger, boolean needClientAuth, boolean wantClientAuth) throws Exception {
         PrometheusServer.logger = logger;
         this.server = new Server();
         this.handler = new ServletContextHandler(server, "/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
 
-        SslContextFactory sslFactory = createSslFactory(sslContextService);
+        SslContextFactory sslFactory = createSslFactory(sslContextService, needClientAuth, wantClientAuth);
         HttpConfiguration httpsConfiguration = new HttpConfiguration();
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(addr);
@@ -114,10 +114,10 @@ public class PrometheusServer {
         this.server.start();
     }
 
-    private SslContextFactory createSslFactory(final SSLContextService sslService) {
+    private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
         SslContextFactory sslFactory = new SslContextFactory();
-        sslFactory.setNeedClientAuth(true);
-        sslFactory.setWantClientAuth(false);
+        sslFactory.setNeedClientAuth(needClientAuth);
+        sslFactory.setWantClientAuth(wantClientAuth);
         sslFactory.setProtocol(sslService.getSslAlgorithm());
 
         if (sslService.isKeyStoreConfigured()) {
