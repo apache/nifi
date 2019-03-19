@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -209,7 +210,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
                         RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
-                        RecordFieldType.TIMESTAMP)
+                        RecordFieldType.TIMESTAMP, RecordFieldType.DECIMAL)
                     .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
 
@@ -267,6 +268,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
         if (arrayValue instanceof char[]) {
             return RecordFieldType.CHAR.getDataType();
+        }
+        if (arrayValue instanceof BigDecimal[]){
+            //find 1st non-null BigDecimal and use the precision and scale
+            BigDecimal[] decimals = (BigDecimal[])arrayValue;
+            for(BigDecimal decimal : decimals){
+                if(decimal != null){
+                    return RecordFieldType.DECIMAL.getDecimalDataType(decimal.precision(), decimal.scale());
+                }
+            }
+            //if we are here use the default decimal data type
+            return RecordFieldType.DECIMAL.getDataType();
         }
         if (arrayValue instanceof Object[]) {
             final Object[] values = (Object[]) arrayValue;
@@ -331,6 +343,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 final Record record = (Record) valueToLookAt;
                 return RecordFieldType.RECORD.getRecordDataType(record.getSchema());
             }
+            if(valueToLookAt instanceof BigDecimal){
+                BigDecimal d = (BigDecimal)valueToLookAt;
+                return  RecordFieldType.DECIMAL.getDecimalDataType(d.precision(), d.scale());
+            }
         }
 
         return RecordFieldType.STRING.getDataType();
@@ -350,6 +366,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.DATE:
                 return RecordFieldType.DATE;
             case Types.DECIMAL:
+                return RecordFieldType.DECIMAL;
             case Types.DOUBLE:
             case Types.NUMERIC:
             case Types.REAL:
