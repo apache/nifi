@@ -108,7 +108,7 @@ public interface AuthorizableLookup {
      * @param id output port id
      * @return authorizable
      */
-    PublicPortAuthorizable getRootGroupOutputPort(String id);
+    PublicPortAuthorizable getPublicOutputPort(String id);
 
     /**
      * Get the authorizable InputPort.

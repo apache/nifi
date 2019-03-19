@@ -139,7 +139,7 @@ public class DataTransferResource extends ApplicationResource {
         if (ResourceType.InputPort.equals(resourceType)) {
             authorizable = lookup.getPublicInputPort(identifier);
         } else {
-            authorizable = lookup.getRootGroupOutputPort(identifier);
+            authorizable = lookup.getPublicOutputPort(identifier);
         }
 
         // perform the authorization

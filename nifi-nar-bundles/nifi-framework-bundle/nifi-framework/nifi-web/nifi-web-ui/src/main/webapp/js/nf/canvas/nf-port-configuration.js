@@ -173,7 +173,7 @@
                 }
 
                 // show concurrent tasks for site-to-site port only
-                if (selectionData.component.allowRemoteAccess === true) {
+                if (selectionData.allowRemoteAccess === true) {
                     $('#port-concurrent-task-container').show();
                 } else {
                     $('#port-concurrent-task-container').hide();

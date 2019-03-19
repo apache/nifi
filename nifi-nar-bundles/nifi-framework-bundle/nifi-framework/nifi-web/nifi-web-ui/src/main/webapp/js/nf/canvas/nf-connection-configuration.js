@@ -326,7 +326,7 @@
                 var options = [];
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
                     // require explicit access to the output port as it's the source of the connection
-                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite && !outputPort.status.allowRemoteAccess) {
+                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite && !outputPort.allowRemoteAccess) {
                         var component = outputPort.component;
                         options.push({
                             text: component.name,
@@ -559,7 +559,7 @@
                 // show the input port options
                 var options = [];
                 $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                    if (!inputPort.status.allowRemoteAccess) {
+                    if (!inputPort.allowRemoteAccess) {
                         options.push({
                             text: inputPort.permissions.canRead ? inputPort.component.name : inputPort.id,
                             value: inputPort.id,

@@ -58,7 +58,8 @@ public class TestStandardRootGroupPort {
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
         return new StandardPublicPort("id", "name", processGroup,
-                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true, nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
+                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true,
+                nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     @Test

@@ -35,7 +35,6 @@ public class PortStatus implements Cloneable {
     private long bytesSent;
     private Boolean transmitting;
     private RunStatus runStatus;
-    private Boolean allowRemoteAccess;
 
     public Boolean isTransmitting() {
         return transmitting;
@@ -153,14 +152,6 @@ public class PortStatus implements Cloneable {
         return transmitting;
     }
 
-    public Boolean isAllowRemoteAccess() {
-        return allowRemoteAccess;
-    }
-
-    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
-        this.allowRemoteAccess = allowRemoteAccess;
-    }
-
     @Override
     public PortStatus clone() {
         final PortStatus clonedObj = new PortStatus();
@@ -178,7 +169,6 @@ public class PortStatus implements Cloneable {
         clonedObj.bytesSent = bytesSent;
         clonedObj.transmitting = transmitting;
         clonedObj.runStatus = runStatus;
-        clonedObj.allowRemoteAccess = allowRemoteAccess;
         return clonedObj;
     }
 
@@ -205,8 +195,6 @@ public class PortStatus implements Cloneable {
         builder.append(outputBytes);
         builder.append(", runStatus=");
         builder.append(runStatus);
-        builder.append(", allowRemoteAccess=");
-        builder.append(allowRemoteAccess);
         builder.append("]");
         return builder.toString();
     }

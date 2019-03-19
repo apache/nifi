@@ -1231,7 +1231,6 @@ public final class DtoFactory {
         dto.setName(portStatus.getName());
         dto.setRunStatus(portStatus.getRunStatus().toString());
         dto.setTransmitting(portStatus.isTransmitting());
-        dto.setAllowRemoteAccess(portStatus.isAllowRemoteAccess());
         dto.setStatsLastRefreshed(new Date());
 
         final PortStatusSnapshotDTO snapshot = new PortStatusSnapshotDTO();

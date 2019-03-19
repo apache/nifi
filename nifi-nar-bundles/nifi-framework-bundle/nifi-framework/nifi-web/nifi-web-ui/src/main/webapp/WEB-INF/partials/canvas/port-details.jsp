@@ -30,7 +30,7 @@
             </div>
         </div>
         <div class="port-setting">
-            <div class="setting-name">Arrow Remote Access
+            <div class="setting-name">Allow Remote Access
                 <div class="fa fa-question-circle" alt="Info" title="Whether this port can be accessed as a RemoteGroupPort via Site-to-Site protocol."></div>
             </div>
             <div class="setting-field">

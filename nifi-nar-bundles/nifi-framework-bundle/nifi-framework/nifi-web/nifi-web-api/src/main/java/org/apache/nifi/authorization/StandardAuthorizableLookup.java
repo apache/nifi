@@ -231,7 +231,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public PublicPortAuthorizable getRootGroupOutputPort(String id) {
+    public PublicPortAuthorizable getPublicOutputPort(String id) {
         final Port outputPort = outputPortDAO.getPort(id);
 
         if (!(outputPort instanceof PublicPort)) {

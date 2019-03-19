@@ -1651,10 +1651,10 @@
                 $('#component-policy-target')
                     .combo('setOptionEnabled', {
                         value: 'write-receive-data'
-                    }, nfCanvasUtils.isInputPort(selection) && d.component.allowRemoteAccess === true)
+                    }, nfCanvasUtils.isInputPort(selection) && d.allowRemoteAccess === true)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, nfCanvasUtils.isOutputPort(selection) && d.component.allowRemoteAccess === true)
+                    }, nfCanvasUtils.isOutputPort(selection) && d.allowRemoteAccess === true)
                     .combo('setOptionEnabled', {
                         value: 'read-data'
                     }, !nfCanvasUtils.isLabel(selection))

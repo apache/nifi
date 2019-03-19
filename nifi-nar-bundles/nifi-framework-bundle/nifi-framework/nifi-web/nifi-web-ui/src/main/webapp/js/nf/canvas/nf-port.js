@@ -66,8 +66,8 @@
     };
 
     var dimensions = function (d) {
-        return d.status.allowRemoteAccess === true ? remotePortDimensions : portDimensions;
-    }
+        return d.allowRemoteAccess === true ? remotePortDimensions : portDimensions;
+    };
 
     // ----------------------------
     // ports currently on the graph
@@ -105,7 +105,7 @@
      * Utility method to check if the target port is a local port.
      */
     var isLocalPort = function (d) {
-        return d.status.allowRemoteAccess !== true;
+        return d.allowRemoteAccess !== true;
     };
 
     /**
@@ -421,7 +421,7 @@
                 port.call(updatePortStatus);
 
                 // Update connections to update anchor point positions those may have been updated by changing ports remote accessibility.
-                nfConnection.getComponentConnections(port.datum().id).forEach(function (connection){
+                nfConnection.getComponentConnections(portData.id).forEach(function (connection){
                     nfConnection.refresh(connection.id);
                 });
 

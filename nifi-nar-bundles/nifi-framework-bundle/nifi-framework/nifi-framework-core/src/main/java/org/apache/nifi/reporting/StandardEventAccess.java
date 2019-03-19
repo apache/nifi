@@ -408,7 +408,6 @@ public class StandardEventAccess implements UserAwareEventAccess {
             // special handling for public ports
             if (port instanceof PublicPort) {
                 portStatus.setTransmitting(((PublicPort) port).isTransmitting());
-                portStatus.setAllowRemoteAccess(true);
             }
 
             final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());

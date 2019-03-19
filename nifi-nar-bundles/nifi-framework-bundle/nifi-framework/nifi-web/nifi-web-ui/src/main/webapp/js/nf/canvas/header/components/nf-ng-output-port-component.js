@@ -160,8 +160,13 @@
                     // initialize the remote access combo
                     $('#port-allow-remote-access-label').text('Transfer data to');
                     $('#port-allow-remote-access-info').attr('title', 'Specify the way this port transfers outgoing FlowFiles.');
+                    if (nfCanvasUtils.getParentGroupId() === null) {
+                        $('#port-allow-remote-access-setting').hide();
+                    } else {
+                        $('#port-allow-remote-access-setting').show();
+                    }
                     $('#port-allow-remote-access').combo({
-                        options: nfCanvasUtils.getParentGroupId() === null ? [optionRemote] : [optionLocal, optionRemote]
+                        options: [optionLocal, optionRemote]
                     });
 
                     this.getElement().modal('show');
