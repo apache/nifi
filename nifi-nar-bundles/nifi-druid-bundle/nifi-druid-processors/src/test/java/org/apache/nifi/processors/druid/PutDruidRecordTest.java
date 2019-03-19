@@ -30,6 +30,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+
 import static org.junit.Assert.assertEquals;
 
 
@@ -85,13 +87,14 @@ public class PutDruidRecordTest {
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
+        recordReader.addSchemaField("points", RecordFieldType.DECIMAL);
 
-        recordReader.addRecord("John Doe", 48, "Soccer");
-        recordReader.addRecord("Jane Doe", 47, "Tennis");
-        recordReader.addRecord("Sally Doe", 47, "Curling"); // Will be dropped due to the "drop after 2" parameter on the MockDruidTranquilityController
-        recordReader.addRecord("Jimmy Doe", 14, null); // Will fail due to the "fail after 3" parameter on the MockDruidTranquilityController
-        recordReader.addRecord("Pizza Doe", 14, null); // Will fail due to the "fail after 3" parameter on the MockDruidTranquilityController
-        recordReader.addRecord("Bad Record", "X", 13); // RecordWriter fail due to the "fail after 2" parameter on the MockRecordWriter, not written to output
+        recordReader.addRecord("John Doe", 48, "Soccer", new BigDecimal("123E1"));
+        recordReader.addRecord("Jane Doe", 47, "Tennis", new BigDecimal("123E1"));
+        recordReader.addRecord("Sally Doe", 47, "Curling", new BigDecimal("123E1")); // Will be dropped due to the "drop after 2" parameter on the MockDruidTranquilityController
+        recordReader.addRecord("Jimmy Doe", 14, null, new BigDecimal("123E1")); // Will fail due to the "fail after 3" parameter on the MockDruidTranquilityController
+        recordReader.addRecord("Pizza Doe", 14, null, new BigDecimal("123E1")); // Will fail due to the "fail after 3" parameter on the MockDruidTranquilityController
+        recordReader.addRecord("Bad Record", "X", 13, new BigDecimal("123E1")); // RecordWriter fail due to the "fail after 2" parameter on the MockRecordWriter, not written to output
 
         runner.enqueue("");
         runner.run();
