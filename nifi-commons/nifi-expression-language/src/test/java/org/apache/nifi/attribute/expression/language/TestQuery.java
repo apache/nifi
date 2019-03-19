@@ -1324,6 +1324,9 @@ public class TestQuery {
         assertEquals("false", secondEvaluation);
 
         verifyEquals("${dotted:matches('abc\\.xyz')}", attributes, true);
+
+        // Test for matches(null)
+        assertEquals("false", Query.evaluateExpressions("${abc:matches(${not.here})}", attributes, null));
     }
 
     @Test
@@ -1344,6 +1347,9 @@ public class TestQuery {
         assertEquals("false", secondEvaluation);
 
         verifyEquals("${dotted:find('\\.')}", attributes, true);
+
+        // Test for find(null)
+        assertEquals("false", Query.evaluateExpressions("${abc:find(${not.here})}", attributes, null));
     }
 
     @Test
