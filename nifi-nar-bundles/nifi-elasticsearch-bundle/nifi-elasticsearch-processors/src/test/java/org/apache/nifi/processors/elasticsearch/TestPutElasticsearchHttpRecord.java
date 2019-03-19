@@ -41,6 +41,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.ConnectException;
 import java.sql.Date;
 import java.sql.Time;
@@ -75,6 +76,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
+            assertEquals("123.45", record.get("points"));
         }, record -> {
             assertEquals(2, record.get("id"));
             assertEquals("reç2", record.get("name"));
@@ -82,6 +84,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
+            assertEquals("123.45", record.get("points"));
         }, record -> {
             assertEquals(3, record.get("id"));
             assertEquals("reç3", record.get("name"));
@@ -89,6 +92,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
+            assertEquals("123.45", record.get("points"));
         }, record -> {
             assertEquals(4, record.get("id"));
             assertEquals("reç4", record.get("name"));
@@ -96,6 +100,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals("20/12/2018", record.get("date"));
             assertEquals("6:55 PM", record.get("time"));
             assertEquals("20/12/2018 6:55 PM", record.get("ts"));
+            assertEquals("123.45", record.get("points"));
         });
         runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
@@ -659,9 +664,10 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("date", RecordFieldType.DATE);
         parser.addSchemaField("time", RecordFieldType.TIME);
         parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
+        parser.addSchemaField("points", RecordFieldType.DECIMAL);
 
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal("1.2345E2"));
         }
     }
 

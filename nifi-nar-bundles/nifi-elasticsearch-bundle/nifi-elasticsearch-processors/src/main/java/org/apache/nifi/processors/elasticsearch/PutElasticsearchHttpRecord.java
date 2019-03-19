@@ -75,6 +75,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -726,6 +727,11 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     writeValue(generator, mapValue, fieldName + "." + mapKey, valueDataType);
                 }
                 generator.writeEndObject();
+                break;
+            }
+            case DECIMAL:{
+                //to prevent us writing scientific notation i.e. 1.2e4
+                generator.writeString(((BigDecimal)coercedValue).toPlainString());
                 break;
             }
             case ARRAY:
