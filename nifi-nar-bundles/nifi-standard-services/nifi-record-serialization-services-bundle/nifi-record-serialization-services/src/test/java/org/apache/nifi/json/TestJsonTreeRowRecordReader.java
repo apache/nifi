@@ -484,7 +484,7 @@ public class TestJsonTreeRowRecordReader {
             assertTrue(Record.class.isAssignableFrom(last.getClass()));
             final Record record = (Record) last;
             assertEquals(42, record.getValue("id"));
-            assertEquals(4750.89, record.getValue("balance"));
+            assertEquals(new BigDecimal("4750.89"), record.getValue("balance"));
 
             assertNull(reader.nextRecord());
         }
