@@ -32,6 +32,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,7 +67,7 @@ public class PutCassandraRecordIT {
         session = cluster.connect();
 
         String createKeyspace = "CREATE KEYSPACE IF NOT EXISTS " + KEYSPACE + " WITH replication = {'class':'SimpleStrategy','replication_factor':1};";
-        String createTable = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "." + TABLE + "(id int PRIMARY KEY, name text, age int);";
+        String createTable = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "." + TABLE + "(id int PRIMARY KEY, name text, age int, points decimal);";
 
         session.execute(createKeyspace);
         session.execute(createTable);
@@ -77,12 +78,13 @@ public class PutCassandraRecordIT {
         recordReader.addSchemaField("id", RecordFieldType.INT);
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("points", RecordFieldType.DECIMAL);
 
-        recordReader.addRecord(1, "Ram", 42);
-        recordReader.addRecord(2, "Jeane", 47);
-        recordReader.addRecord(3, "Ilamaran", 27);
-        recordReader.addRecord(4, "Jian", 14);
-        recordReader.addRecord(5, "Sakura", 24);
+        recordReader.addRecord(1, "Ram", 42, new BigDecimal("12.09"));
+        recordReader.addRecord(2, "Jeane", 47, new BigDecimal("10.67"));
+        recordReader.addRecord(3, "Ilamaran", 27, new BigDecimal("12.09"));
+        recordReader.addRecord(4, "Jian", 14, new BigDecimal("16.09"));
+        recordReader.addRecord(5, "Sakura", 24, new BigDecimal("5.09"));
 
         testRunner.enqueue("");
         testRunner.run();
