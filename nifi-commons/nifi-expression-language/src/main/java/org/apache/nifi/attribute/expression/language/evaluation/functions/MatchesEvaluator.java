@@ -53,7 +53,11 @@ public class MatchesEvaluator extends BooleanEvaluator {
         }
         final Pattern pattern;
         if (compiledPattern == null) {
-            pattern = Pattern.compile(search.evaluate(attributes).getValue());
+            String expression = search.evaluate(attributes).getValue();
+            if (expression == null) {
+                return new BooleanQueryResult(false);
+            }
+            pattern = Pattern.compile(expression);
         } else {
             pattern = compiledPattern;
         }
