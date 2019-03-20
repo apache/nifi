@@ -202,7 +202,18 @@
    limitations under the License.
 
 
+************
+MIT
+************
 
+  	This product optionally depends on 'Bouncy Castle Crypto APIs' to generate
+  	a temporary self-signed X.509 certificate when the JVM does not provide the
+  	equivalent functionality.  It can be obtained at:
+
+  	  * LICENSE:
+  	    * license/LICENSE.bouncycastle.txt (MIT License)
+  	  * HOMEPAGE:
+  	    * http://www.bouncycastle.org/
 
 This product bundles 'jBCrypt' which is available under an MIT license.
 For details see https://github.com/svenkubiak/jBCrypt/blob/0.4.1/LICENSE

@@ -133,18 +133,6 @@ The following binary components are provided under the Apache Software License v
       "GCC RUntime Library Exception"
       http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 
-************
-MIT
-************
-
-  	This product optionally depends on 'Bouncy Castle Crypto APIs' to generate
-  	a temporary self-signed X.509 certificate when the JVM does not provide the
-  	equivalent functionality.  It can be obtained at:
-
-  	  * LICENSE:
-  	    * license/LICENSE.bouncycastle.txt (MIT License)
-  	  * HOMEPAGE:
-  	    * http://www.bouncycastle.org/
 
 *****************
 Public Domain
