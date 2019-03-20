@@ -366,7 +366,7 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
         validateFlowFiles(failureFlowFiles);
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(failureFlowFiles));
+        assertEquals(1053, validateFlowFiles(failureFlowFiles));
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
@@ -399,10 +399,10 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(8, successFlowFiles.size());
+        assertEquals(9, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
+        assertEquals(1053, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
     }
 
     @Test
@@ -433,10 +433,60 @@ public class ParseEvtxTest {
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(960, successFlowFiles.size());
+        assertEquals(1053, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles));
+        assertEquals(1053, validateFlowFiles(successFlowFiles));
+    }
+
+    @Test
+    public void testRecordBasedParseCorrectNumberOfFlowFiles() {
+      TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+      testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.RECORD);
+      Map<String, String> attributes = new HashMap<>();
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        InputStream resourceAsStream = classLoader.getResourceAsStream("1344_events.evtx");
+        testRunner.enqueue(resourceAsStream, attributes);
+      testRunner.run();
+
+      testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, 1344);
+    }
+
+    @Test
+    public void testChunkBasedParseCorrectNumberOfFlowFiles() {
+      TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+      testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.CHUNK);
+      Map<String, String> attributes = new HashMap<>();
+      testRunner.enqueue(this.getClass().getClassLoader().getResourceAsStream("1344_events.evtx"), attributes);
+      testRunner.run();
+
+      testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, 14);
+    }
+
+    @Test
+    public void testRecordBasedParseCorrectNumberOfFlowFilesFromAResizedFile() {
+        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.RECORD);
+        Map<String, String> attributes = new HashMap<>();
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        InputStream resourceAsStream = classLoader.getResourceAsStream("3778_events_not_exported.evtx");
+        testRunner.enqueue(resourceAsStream, attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, 3778);
+    }
+
+    @Test
+    public void testChunkBasedParseCorrectNumberOfFlowFilesFromAResizedFile() {
+        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.CHUNK);
+        Map<String, String> attributes = new HashMap<>();
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        InputStream resourceAsStream = classLoader.getResourceAsStream("3778_events_not_exported.evtx");
+        testRunner.enqueue(resourceAsStream, attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, 16);
     }
 
     private int validateFlowFiles(List<MockFlowFile> successFlowFiles) throws SAXException, IOException, ParserConfigurationException {
