@@ -67,6 +67,9 @@ public enum CommandOption {
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
 
+    // NiFi - Reporting Tasks
+    RT_ID("rt", "reportingTaskId", "The id of a reporting task", true),
+
     // NiFi - User/Group
     USER_NAME("un", "userName", "The name of a user", true),
     UG_ID("ugid", "userGroupId", "The id of a user group", true),

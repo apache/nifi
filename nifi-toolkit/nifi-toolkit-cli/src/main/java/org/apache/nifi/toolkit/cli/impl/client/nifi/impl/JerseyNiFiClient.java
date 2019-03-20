@@ -29,6 +29,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -247,6 +248,23 @@ public class JerseyNiFiClient implements NiFiClient {
     public TemplatesClient getTemplatesClientForToken(String base64token) {
         final Map<String, String> headers = getHeadersWithToken(base64token);
         return new JerseyTemplatesClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClient() {
+        return new JerseyReportingTasksClient(baseTarget);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyReportingTasksClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyReportingTasksClient(baseTarget, headers);
     }
 
     @Override

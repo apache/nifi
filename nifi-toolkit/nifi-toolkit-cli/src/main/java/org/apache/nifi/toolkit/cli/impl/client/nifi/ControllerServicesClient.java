@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 
 import java.io.IOException;
 
@@ -26,5 +27,7 @@ import java.io.IOException;
 public interface ControllerServicesClient {
 
     ControllerServiceEntity getControllerService(String id) throws NiFiClientException, IOException;
+
+    ControllerServiceEntity activateControllerService(String id, ControllerServiceRunStatusEntity runStatusEntity) throws NiFiClientException, IOException;
 
 }

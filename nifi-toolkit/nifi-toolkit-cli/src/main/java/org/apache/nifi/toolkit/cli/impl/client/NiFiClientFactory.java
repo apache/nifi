@@ -27,6 +27,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -242,6 +243,21 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public TemplatesClient getTemplatesClientForToken(String token) {
             return wrappedClient.getTemplatesClientForToken(token);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClient() {
+            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClientForToken(String token) {
+            return wrappedClient.getReportingTasksClientForToken(token);
         }
 
         @Override

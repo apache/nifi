@@ -36,19 +36,21 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Command for enabling controller services for reporting tasks.
+ * Command for disabling controller services for reporting tasks.
  */
-public class EnableControllerServices extends AbstractNiFiActivateCommand<ControllerServiceEntity,
+public class DisableControllerServices extends AbstractNiFiActivateCommand<ControllerServiceEntity,
         ControllerServiceRunStatusEntity> {
 
-    public EnableControllerServices() {
-        super("enable-services");
+    public DisableControllerServices() {
+        super("disable-services");
     }
 
     @Override
     public String getDescription() {
-        return "Attempts to enable all controller services for reporting tasks. In stand-alone mode this command " +
-            "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
+        return "Disables all controller services for reporting tasks. Any services that are in use by a running " +
+                "reporting task will fail to be disabled and will need to be stopped first using stop-reporting-tasks. " +
+                "In stand-alone mode this command will not produce all of the output seen in interactive mode unless " +
+                "the --verbose argument is specified.";
     }
 
     @Override
@@ -69,7 +71,7 @@ public class EnableControllerServices extends AbstractNiFiActivateCommand<Contro
             serviceEntities.add(client.getControllerServicesClient().getControllerService(csId));
         }
 
-        activate(client, properties, serviceEntities, "ENABLED");
+        activate(client, properties, serviceEntities, "DISABLED");
 
         return VoidResult.getInstance();
     }

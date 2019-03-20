@@ -20,11 +20,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
 
 /**
  * Jersey implementation of ControllerServicersClient.
@@ -54,4 +57,23 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
         });
     }
 
+    @Override
+    public ControllerServiceEntity activateControllerService(final String id,
+            final ControllerServiceRunStatusEntity runStatusEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Controller service id cannot be null");
+        }
+
+        if (runStatusEntity == null) {
+            throw new IllegalArgumentException("Entity cannnot be null");
+        }
+
+        return executeAction("Error enabling or disabling controller service", () -> {
+            final WebTarget target = controllerServicesTarget
+                    .path("{id}/run-status").resolveTemplate("id", id);
+            return getRequestBuilder(target).put(
+                Entity.entity(runStatusEntity, MediaType.APPLICATION_JSON_TYPE),
+                ControllerServiceEntity.class);
+        });
+    }
 }
