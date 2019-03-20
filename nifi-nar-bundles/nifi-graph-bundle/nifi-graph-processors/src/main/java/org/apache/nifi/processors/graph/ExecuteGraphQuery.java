@@ -58,11 +58,15 @@ import java.util.Set;
     @WritesAttribute(attribute = GraphClientService.RELATIONS_CREATED, description = "Number of relationships created"),
     @WritesAttribute(attribute = GraphClientService.RELATIONS_DELETED, description = "Number of relationships deleted"),
     @WritesAttribute(attribute = GraphClientService.ROWS_RETURNED, description = "Number of rows returned"),
+    @WritesAttribute(attribute = ExecuteGraphQuery.EXECUTION_TIME, description = "The amount of time in milliseconds that the query" +
+            "took to execute.")
     })
 public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
+
+    public static final String EXECUTION_TIME = "query.took";
 
     static {
         final Set<Relationship> tempRelationships = new HashSet<>();
@@ -126,10 +130,15 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
             final long endTimeMillis = System.currentTimeMillis();
 
+            String executionTime = String.valueOf((endTimeMillis - startTimeMillis));
+            resultAttrs.put(EXECUTION_TIME, executionTime);
             flowFile = session.putAllAttributes(flowFile, resultAttrs);
 
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().send(flowFile, clientService.getTransitUrl(), (endTimeMillis - startTimeMillis));
+            session.getProvenanceReporter().invokeRemoteProcess(flowFile, clientService.getTransitUrl(),
+                String.format("The following query was executed in %s milliseconds: \"%s\"", executionTime, query)
+            );
+
         } catch (Exception exception) {
             getLogger().error("Failed to execute graph statement due to {}",
                     new Object[]{exception.getLocalizedMessage()}, exception);
