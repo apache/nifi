@@ -1722,12 +1722,14 @@
 
             // determine the origin of the bounding box of the selection
             var origin = nfCanvasUtils.getOrigin(selection);
+            var selectionDimensions = nfCanvasUtils.getSelectionBoundingClientRect(selection);
 
             // copy the snippet details
             var parentGroupId = nfCanvasUtils.getGroupId();
             nfClipboard.copy({
                 snippet: nfSnippet.marshal(selection, parentGroupId),
-                origin: origin
+                origin: origin,
+                dimensions: selectionDimensions
             });
         },
 
@@ -1771,12 +1773,28 @@
                         // determine the origin of the bounding box of the copy
                         var origin = pasteLocation;
                         var snippetOrigin = data['origin'];
+                        var dimensions = data['dimensions'];
 
                         // determine the appropriate origin
                         if (!nfCommon.isDefinedAndNotNull(origin)) {
-                            snippetOrigin.x += 25;
-                            snippetOrigin.y += 25;
-                            origin = snippetOrigin;
+                            // if the copied item(s) are from a different group or the origin item is not in the viewport, center the pasted item(s)
+                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(dimensions, false)) {
+                                var scale = nfCanvasUtils.getCanvasScale();
+
+                                // put it in the center of the screen
+                                var center = nfCanvasUtils.getCenterForBoundingBox(dimensions);
+                                var translate = nfCanvasUtils.getCanvasTranslate();
+                                origin = {
+                                    x: center[0] - (translate[0] / scale),
+                                    y: center[1] - (translate[1] / scale)
+                                };
+
+                            } else {
+                                // paste it just offset from the original
+                                snippetOrigin.x += 25;
+                                snippetOrigin.y += 25;
+                                origin = snippetOrigin;
+                            }
                         }
 
                         // copy the snippet to the new location
