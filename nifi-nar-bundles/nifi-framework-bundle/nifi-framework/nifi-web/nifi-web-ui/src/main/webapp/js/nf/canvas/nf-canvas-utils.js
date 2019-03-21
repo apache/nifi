@@ -575,11 +575,12 @@
         },
 
         /**
-         * Centers the specified bounding box.
+         * Gets the coordinates neccessary to center a bounding box on the screen.
          *
          * @param {type} boundingBox
+         * @returns {number[]}
          */
-        centerBoundingBox: function (boundingBox) {
+        getCenterForBoundingBox: function (boundingBox) {
             var scale = nfCanvas.View.getScale();
             if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
                 scale = boundingBox.scale;
@@ -592,6 +593,47 @@
 
             // determine the center location for this component in canvas space
             var center = [(screenWidth / 2) - (boundingBox.width / 2), (screenHeight / 2) - (boundingBox.height / 2)];
+            return center;
+        },
+
+        /**
+         * Determines if a bounding box is fully in the current viewable canvas area.
+         *
+         * @param {type} boundingBox
+         * @returns {boolean}
+         */
+        isBoundingBoxInViewport: function (boundingBox) {
+            var scale = nfCanvas.View.getScale();
+            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
+                scale = boundingBox.scale;
+            }
+            var translate = nfCanvas.View.getTranslate();
+
+            // get the canvas normalized width and height
+            var canvasContainer = $('#canvas-container');
+            var screenWidth = canvasContainer.width() / scale;
+            var screenHeight = canvasContainer.height() / scale;
+
+            var left = boundingBox.x + (translate[0] / scale);
+            var right = left + (boundingBox.width / scale);
+            var top = boundingBox.y + (translate[1] / scale);
+            var bottom = top + (boundingBox.height / scale);
+
+            return !(left < 0 || right > screenWidth || top < 0 || bottom > screenHeight);
+        },
+
+        /**
+         * Centers the specified bounding box.
+         *
+         * @param {type} boundingBox
+         */
+        centerBoundingBox: function (boundingBox) {
+            var scale = nfCanvas.View.getScale();
+            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
+                scale = boundingBox.scale;
+            }
+
+            var center = nfCanvasUtils.getCenterForBoundingBox(boundingBox);
 
             // calculate the difference between the center point and the position of this component and convert to screen space
             nfCanvas.View.transform([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale], scale);
@@ -1753,9 +1795,11 @@
                 if (!nfCanvasUtils.isConnection(selected)) {
                     if (nfCommon.isUndefined(origin.x) || d.position.x < origin.x) {
                         origin.x = d.position.x;
+                        origin.dimensions = d.dimensions;
                     }
                     if (nfCommon.isUndefined(origin.y) || d.position.y < origin.y) {
                         origin.y = d.position.y;
+                        origin.dimensions = d.dimensions;
                     }
                 }
             });
