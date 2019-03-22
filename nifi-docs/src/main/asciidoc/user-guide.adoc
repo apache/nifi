@@ -162,7 +162,7 @@ used by DFMs to manage the flow, as well as by administrators who manage user ac
 and configure system properties, such as how many system resources should be provided to the application.
 
 On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
-canvas and can to search by component name, type, identifier, configuration properties, and their values. The Global Menu
+canvas and to search by component name, type, identifier, configuration properties, and their values. The Global Menu
 contains options that allow you to manipulate existing components on the canvas:
 
 image::global-menu.png[NiFi Global Menu]
@@ -195,7 +195,7 @@ The available global access policies are:
 components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
 of restrictions. If permission is granted regardless of restrictions, the user can create/modify all restricted components.
 |access all policies   |Allows users to view and modify the policies for all components
-|access users/groups   |Allows users view and modify the users and user groups
+|access users/groups   |Allows users to view and modify the users and user groups
 |retrieve site-to-site details | Allows other NiFi instances to retrieve Site-To-Site details
 |view system diagnostics  |Allows users to view System Diagnostics
 |proxy user requests  |Allows proxy machines to send requests on the behalf of others
@@ -301,7 +301,7 @@ While the options available from the context menu vary, the following options ar
 NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
-- *Enable* or *Disable*: This option allows the user to enable or enable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
+- *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
 - *View usage*: This option takes the user to the Processor's usage documentation.
