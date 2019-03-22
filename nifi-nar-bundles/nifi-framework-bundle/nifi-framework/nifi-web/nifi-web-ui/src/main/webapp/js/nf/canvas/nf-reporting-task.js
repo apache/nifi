@@ -429,6 +429,8 @@
          */
         showConfiguration: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
+
+            reportingTaskDialog.find('.dialog-header .dialog-header-text').text('Configure Reporting Task');
             if (reportingTaskDialog.data('mode') === config.readOnly) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').hide();
@@ -643,6 +645,8 @@
          */
         showDetails: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
+
+            reportingTaskDialog.find('.dialog-header .dialog-header-text').text('Reporting Task Details');
             if (reportingTaskDialog.data('mode') === config.edit) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').show();
