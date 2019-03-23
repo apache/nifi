@@ -354,7 +354,7 @@ public class TestListFile {
 
         // exclude oldest
         runner.setProperty(ListFile.MIN_AGE, age0);
-        runner.setProperty(ListFile.MAX_AGE, age3);
+        runner.setProperty(ListFile.MAX_AGE, age4);
         runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -363,7 +363,7 @@ public class TestListFile {
         assertEquals(file1.getName(), successFiles2.get(1).getAttribute("filename"));
 
         // exclude newest
-        runner.setProperty(ListFile.MIN_AGE, age1);
+        runner.setProperty(ListFile.MIN_AGE, age2);
         runner.setProperty(ListFile.MAX_AGE, age5);
         runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
@@ -373,8 +373,8 @@ public class TestListFile {
         assertEquals(file2.getName(), successFiles3.get(1).getAttribute("filename"));
 
         // exclude oldest and newest
-        runner.setProperty(ListFile.MIN_AGE, age1);
-        runner.setProperty(ListFile.MAX_AGE, age3);
+        runner.setProperty(ListFile.MIN_AGE, age2);
+        runner.setProperty(ListFile.MAX_AGE, age4);
         runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);

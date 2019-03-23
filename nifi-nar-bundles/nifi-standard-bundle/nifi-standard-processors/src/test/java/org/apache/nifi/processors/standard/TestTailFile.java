@@ -61,6 +61,7 @@ public class TestTailFile {
     private RandomAccessFile otherRaf;
 
     private TailFile processor;
+    private TailFile processorFromHome;
     private TestRunner runner;
 
     @Before
@@ -93,6 +94,12 @@ public class TestTailFile {
         otherFile.delete();
         assertTrue(otherFile.createNewFile());
 
+        System.setProperty("user.home", "target");
+        processorFromHome = new TailFile();
+        runner = TestRunners.newTestRunner(processorFromHome);
+        runner.setProperty(TailFile.FILENAME, "~/log.txt");
+        runner.assertValid();
+
         processor = new TailFile();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(TailFile.FILENAME, "target/log.txt");
@@ -112,6 +119,7 @@ public class TestTailFile {
             otherRaf.close();
         }
 
+        processorFromHome.cleanup();
         processor.cleanup();
     }
 
@@ -977,7 +985,7 @@ public class TestTailFile {
         state.put("timestamp", "1480639134000");
         stateManager.setState(state, Scope.LOCAL);
 
-        runner.run();
+        runner.runWithoutValidation();
 
         runner.assertTransferCount(TailFile.REL_SUCCESS, 0);
     }

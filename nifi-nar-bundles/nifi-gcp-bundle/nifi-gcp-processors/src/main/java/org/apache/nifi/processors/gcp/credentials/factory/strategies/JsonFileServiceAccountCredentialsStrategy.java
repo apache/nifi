@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.util.FileExpansionUtil;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class JsonFileServiceAccountCredentialsStrategy extends AbstractServiceAc
 
     @Override
     protected InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException {
-        String serviceAccountFile = properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE);
+        String serviceAccountFile = FileExpansionUtil.expandPath(properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE));
         return new BufferedInputStream(Files.newInputStream(Paths.get(serviceAccountFile)));
     }
 }

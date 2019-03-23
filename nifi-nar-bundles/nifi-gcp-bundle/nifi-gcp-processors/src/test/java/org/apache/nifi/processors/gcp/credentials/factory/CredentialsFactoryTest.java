@@ -79,7 +79,7 @@ public class CredentialsFactoryTest {
     }
 
     @Test
-    public void testExplicitApplicationDefaultCredentialsExclusive() throws Exception {
+    public void testExplicitApplicationDefaultCredentialsExclusive() {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS, "true");
         runner.setProperty(CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS, "true");
@@ -102,9 +102,26 @@ public class CredentialsFactoryTest {
                 credentials.getClass());
     }
 
+    @Test
+    public void testJsonFileCredentialsExpandsTildeToUsersHomeDirectory() throws Exception {
+        System.setProperty("user.home", "src/test/resources");
+
+        final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
+                "~/mock-gcp-service-account.json");
+        runner.assertValid();
+
+        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final CredentialsFactory factory = new CredentialsFactory();
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
+
+        assertNotNull(credentials);
+        assertEquals("credentials class should be equal", ServiceAccountCredentials.class,
+                credentials.getClass());
+    }
 
     @Test
-    public void testBadJsonFileCredentials() throws Exception {
+    public void testBadJsonFileCredentials() {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
                 "src/test/resources/bad-mock-gcp-service-account.json");

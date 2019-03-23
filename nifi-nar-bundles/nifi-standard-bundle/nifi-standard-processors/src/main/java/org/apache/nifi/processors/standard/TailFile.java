@@ -49,6 +49,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.FileExpansionUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -281,6 +282,15 @@ public class TailFile extends AbstractProcessor {
                     .explanation(path + " is not a directory.")
                     .build());
             }
+        } else {
+            File file = new File(FileExpansionUtil.expandPath(context.getProperty(FILENAME).getValue()));
+            if (!file.exists() || file.isDirectory()) {
+                results.add(new ValidationResult.Builder()
+                        .subject(FILENAME.getName())
+                        .valid(false)
+                        .explanation(context.getProperty(FILENAME).getValue() + " is an invalid file or it is looking at a directory when it should be a file.")
+                        .build());
+            }
         }
 
         return results;
@@ -307,7 +317,7 @@ public class TailFile extends AbstractProcessor {
                 context.getProperty(RECURSIVE).asBoolean(),
                 maxAge));
         } else {
-            filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
+            filesToTail.add(FileExpansionUtil.expandPath(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue()));
         }
         return filesToTail;
     }

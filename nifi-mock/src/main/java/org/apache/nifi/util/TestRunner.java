@@ -173,6 +173,52 @@ public interface TestRunner {
     void run(int iterations, boolean stopOnFinish, final boolean initialize, final long runWait);
 
     /**
+     * This method runs the {@link Processor} <code>iterations</code> times,
+     * using the sequence of steps below:
+     * <ul>
+     * <li>
+     * If {@code initialize} is true, run all methods on the Processor that are
+     * annotated with the
+     * {@link org.apache.nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail.
+     * </li>
+     * <li>
+     * Schedule the
+     * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger}
+     * method to be invoked <code>iterations</code> times. The number of threads
+     * used to run these iterations is determined by the ThreadCount of this
+     * <code>TestRunner</code>. By default, the value is set to 1, but it can be
+     * modified by calling the {@link #setThreadCount(int)} method.
+     * </li>
+     * <li>
+     * As soon as the first thread finishes its execution of
+     * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger},
+     * all methods on the Processor that are annotated with the
+     * {@link org.apache.nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     * are invoked. If any of these methods throws an Exception, the Unit Test
+     * will fail.
+     * </li>
+     * <li>
+     * Waits for all threads to finish execution.
+     * </li>
+     * <li>
+     * If and only if the value of <code>shutdown</code> is true: Call all
+     * methods on the Processor that is annotated with the
+     * {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped} annotation.
+     * </li>
+     * </ul>
+     *
+     * @param iterations number of iterations
+     * @param stopOnFinish whether or not to run the Processor methods that are
+     *            annotated with {@link org.apache.nifi.processor.annotation.OnStopped @OnStopped}
+     * @param initialize true if must initialize
+     * @param runWait indicates the amount of time in milliseconds that the framework should wait for
+     *            processors to stop running before calling the {@link org.apache.nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     * @param validate indicates whether or not the test runner should call validation on the {@link org.apache.nifi.util.MockProcessContext}.
+     */
+    void run(int iterations, boolean stopOnFinish, boolean initialize, long runWait, boolean validate);
+
+    /**
      * Invokes all methods on the Processor that are annotated with the
      * {@link org.apache.nifi.processor.annotation.OnShutdown @OnShutdown} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail
@@ -987,4 +1033,5 @@ public interface TestRunner {
      */
      void setRunSchedule(long runSchedule);
 
+    void runWithoutValidation();
 }

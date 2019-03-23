@@ -46,6 +46,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.File;
@@ -225,7 +226,7 @@ public class ExtractGrok extends AbstractProcessor {
             }
 
             if (validationContext.getProperty(GROK_PATTERN_FILE).isSet()) {
-                try (final InputStream in = new FileInputStream(new File(validationContext.getProperty(GROK_PATTERN_FILE).getValue()));
+                try (final InputStream in = new FileInputStream(new File(FileExpansionUtil.expandPath(validationContext.getProperty(GROK_PATTERN_FILE).getValue())));
                      final Reader reader = new InputStreamReader(in)) {
                     grokCompiler.register(reader);
                 }
@@ -264,7 +265,7 @@ public class ExtractGrok extends AbstractProcessor {
         }
 
         if (context.getProperty(GROK_PATTERN_FILE).isSet()) {
-            try (final InputStream in = new FileInputStream(new File(context.getProperty(GROK_PATTERN_FILE).getValue()));
+            try (final InputStream in = new FileInputStream(new File(FileExpansionUtil.expandPath(context.getProperty(GROK_PATTERN_FILE).getValue())));
                  final Reader reader = new InputStreamReader(in)) {
                 grokCompiler.register(reader);
             }

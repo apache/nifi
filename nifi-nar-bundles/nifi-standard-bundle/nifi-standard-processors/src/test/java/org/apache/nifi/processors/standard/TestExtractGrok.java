@@ -66,6 +66,27 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokWithMatchedContentExpandsTilde() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestExtractGrok");
+
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "~/patterns");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+
+        matched.assertAttributeEquals("grok.verb","GET");
+        matched.assertAttributeEquals("grok.response","401");
+        matched.assertAttributeEquals("grok.bytes","12846");
+        matched.assertAttributeEquals("grok.clientip","64.242.88.10");
+        matched.assertAttributeEquals("grok.auth","-");
+        matched.assertAttributeEquals("grok.timestamp","07/Mar/2004:16:05:49 -0800");
+        matched.assertAttributeEquals("grok.request","/twiki/bin/edit/Main/Double_bounce_sender?topicparent=Main.ConfigurationVariables");
+        matched.assertAttributeEquals("grok.httpversion","1.1");
+    }
+
+    @Test
     public void testExtractGrokKeepEmptyCaptures() throws Exception {
         String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);

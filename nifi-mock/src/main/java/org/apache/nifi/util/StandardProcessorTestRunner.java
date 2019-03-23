@@ -166,11 +166,18 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish, final boolean initialize, final long runWait) {
+        run(iterations, stopOnFinish, initialize, runWait, true);
+    }
+
+    @Override
+    public void run(final int iterations, final boolean stopOnFinish, final boolean initialize, final long runWait, final boolean validate) {
         if (iterations < 1) {
             throw new IllegalArgumentException();
         }
 
-        context.assertValid();
+        if (validate) {
+            context.assertValid();
+        }
         context.enableExpressionValidation();
         try {
             if (initialize) {
@@ -235,6 +242,14 @@ public class StandardProcessorTestRunner implements TestRunner {
         } finally {
             context.disableExpressionValidation();
         }
+    }
+
+    /**
+     * Convenience method for running 1 iteration and no validation
+     */
+    @Override
+    public void runWithoutValidation() {
+         run(1, true, true, 5000, false);
     }
 
     @Override
@@ -945,4 +960,5 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void setRunSchedule(long runSchedule) {
         this.runSchedule = runSchedule;
     }
+
 }

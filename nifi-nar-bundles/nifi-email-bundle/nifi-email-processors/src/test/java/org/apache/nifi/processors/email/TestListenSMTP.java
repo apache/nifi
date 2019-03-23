@@ -24,7 +24,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.mail.Email;
-import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.ssl.SSLContextService;
@@ -39,6 +38,8 @@ import org.junit.Test;
 public class TestListenSMTP {
 
     private ScheduledExecutorService executor;
+    private static final int MESSAGE_DELAY = 3000;
+    private static final int LATCH_TIMEOUT = 120000;
 
     @Before
     public void before() {
@@ -51,16 +52,16 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void validateSuccessfulInteraction() throws Exception, EmailException {
+    public void validateSuccessfulInteraction() throws Exception {
         int port = NetworkUtils.availablePort();
 
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
         runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
 
-        runner.assertValid();
-        runner.run(5, false);
         final int numMessages = 5;
+        runner.assertValid();
+        runner.run(numMessages, false);
         CountDownLatch latch = new CountDownLatch(numMessages);
 
         this.executor.schedule(() -> {
@@ -81,16 +82,16 @@ public class TestListenSMTP {
                     latch.countDown();
                 }
             }
-        }, 1500, TimeUnit.MILLISECONDS);
+        }, MESSAGE_DELAY, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(LATCH_TIMEOUT, TimeUnit.MILLISECONDS);
         runner.shutdown();
-        assertTrue(complete);
+        assertTrue("running on port: " + port, complete);
         runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
     }
 
     @Test
-    public void validateSuccessfulInteractionWithTls() throws Exception, EmailException {
+    public void validateSuccessfulInteractionWithTls() throws Exception {
         System.setProperty("mail.smtp.ssl.trust", "*");
         System.setProperty("javax.net.ssl.keyStore", "src/test/resources/keystore.jks");
         System.setProperty("javax.net.ssl.keyStorePassword", "passwordpassword");
@@ -143,16 +144,16 @@ public class TestListenSMTP {
                     latch.countDown();
                 }
             }
-        }, 1500, TimeUnit.MILLISECONDS);
+        }, MESSAGE_DELAY, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(LATCH_TIMEOUT, TimeUnit.MILLISECONDS);
         runner.shutdown();
-        assertTrue(complete);
+        assertTrue("running on port: " + port, complete);
         runner.assertAllFlowFilesTransferred("success", messageCount);
     }
 
     @Test
-    public void validateTooLargeMessage() throws Exception, EmailException {
+    public void validateTooLargeMessage() throws Exception {
         int port = NetworkUtils.availablePort();
 
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
@@ -185,11 +186,11 @@ public class TestListenSMTP {
                     latch.countDown();
                 }
             }
-        }, 1000, TimeUnit.MILLISECONDS);
+        }, MESSAGE_DELAY, TimeUnit.MILLISECONDS);
 
-        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        boolean complete = latch.await(LATCH_TIMEOUT, TimeUnit.MILLISECONDS);
         runner.shutdown();
-        assertTrue(complete);
+        assertTrue("running on port: " + port, complete);
         runner.assertAllFlowFilesTransferred("success", 0);
     }
 }
