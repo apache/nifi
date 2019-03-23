@@ -51,7 +51,6 @@ public class CredentialsFactoryTest {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources");
     }
 
     @After
@@ -118,6 +117,8 @@ public class CredentialsFactoryTest {
 
     @Test
     public void testJsonFileCredentialsExpandsTildeToUsersHomeDirectory() throws Exception {
+        System.setProperty("user.home", "src/test/resources");
+
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
                 "~/mock-gcp-service-account.json");

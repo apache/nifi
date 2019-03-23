@@ -42,7 +42,6 @@ public class TestExtractGrok {
         testRunner = TestRunners.newTestRunner(ExtractGrok.class);
 
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources/TestExtractGrok");
     }
 
     @After
@@ -78,6 +77,8 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokWithMatchedContentExpandsTilde() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestExtractGrok");
+
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "~/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);
