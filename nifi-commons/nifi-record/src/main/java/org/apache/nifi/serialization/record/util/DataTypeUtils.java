@@ -1248,6 +1248,7 @@ public class DataTypeUtils {
         if (value instanceof Short) {
             return BigInteger.valueOf(((Short) value).longValue());
         }
+
         if (value instanceof String) {
             try {
                 return new BigInteger((String) value);
