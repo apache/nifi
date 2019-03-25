@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -292,27 +293,32 @@ public class TestDataTypeUtils {
 
     @Test
     public void testIsCompatibleDataTypeBigint() {
-        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), RecordFieldType.BIGINT.getDataType()));
-        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, RecordFieldType.BIGINT.getDataType()));
-        assertTrue(DataTypeUtils.isCompatibleDataType(1, RecordFieldType.BIGINT.getDataType()));
-        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, RecordFieldType.BIGINT.getDataType()));
-        assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", RecordFieldType.BIGINT.getDataType()));
-        assertTrue(DataTypeUtils.isCompatibleDataType("1234567XYZ", RecordFieldType.BIGINT.getDataType())); // Compatible but the value might not be a valid BigInteger
-        assertFalse(DataTypeUtils.isCompatibleDataType(3.0f, RecordFieldType.BIGINT.getDataType()));
-        assertFalse(DataTypeUtils.isCompatibleDataType(3.0, RecordFieldType.BIGINT.getDataType()));
-        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, RecordFieldType.BIGINT.getDataType()));
+        final DataType dataType = RecordFieldType.BIGINT.getDataType();
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
     }
 
     @Test
     public void testConvertDataTypeBigint() {
-        assertTrue(DataTypeUtils.convertType(new BigInteger("12345678901234567890"), RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
-        assertTrue(DataTypeUtils.convertType(1234567890123456789L, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
-        assertTrue(DataTypeUtils.convertType(1, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
-        assertTrue(DataTypeUtils.convertType((short) 1, RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
-        assertTrue(DataTypeUtils.convertType("12345678901234567890", RecordFieldType.BIGINT.getDataType(), "field") instanceof BigInteger);
+        final Function<Object, BigInteger> toBigInteger = v -> (BigInteger) DataTypeUtils.convertType(v, RecordFieldType.BIGINT.getDataType(), "field");
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply(new BigInteger("12345678901234567890")));
+        assertEquals(new BigInteger("1234567890123456789"), toBigInteger.apply(1234567890123456789L));
+        assertEquals(new BigInteger("1"), toBigInteger.apply(1));
+        assertEquals(new BigInteger("1"), toBigInteger.apply((short) 1));
+        // Decimals are truncated.
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.4f));
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.9f));
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply("12345678901234567890"));
         Exception e = null;
         try {
-            DataTypeUtils.convertType("1234567XYZ", RecordFieldType.BIGINT.getDataType(), "field");
+            toBigInteger.apply("1234567XYZ");
         } catch (IllegalTypeConversionException itce) {
             e = itce;
         }
