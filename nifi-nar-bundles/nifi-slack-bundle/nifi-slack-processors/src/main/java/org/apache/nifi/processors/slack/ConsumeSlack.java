@@ -22,16 +22,21 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.json.Json;
 import javax.json.JsonException;
+import javax.json.JsonObject;
 import javax.json.JsonReader;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -40,13 +45,14 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.slack.controllers.SlackConnectionService;
 
 @Tags({"slack", "listen", "json", "events"})
@@ -54,15 +60,17 @@ import org.apache.nifi.processors.slack.controllers.SlackConnectionService;
   "forwards the messages in JSON text format.")
 @SeeAlso({SlackConnectionService.class, FetchSlack.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-public class ListenSlack extends AbstractSessionFactoryProcessor {
-
-  private volatile ProcessSessionFactory processSessionFactory;
+@PrimaryNodeOnly
+@TriggerSerially
+public class ConsumeSlack extends AbstractProcessor {
 
   private volatile SlackConnectionService slackConnectionService;
 
   private volatile List<String> matchingTypes;
 
   private volatile boolean matchAny;
+
+  private BlockingQueue<SlackMessage> messageQueue;
 
   static final PropertyDescriptor SLACK_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
     .name("slack-connection-service")
@@ -80,26 +88,31 @@ public class ListenSlack extends AbstractSessionFactoryProcessor {
       "listen to every type if empty. It is a coma separated list like: message,file_shared")
     .required(false)
     .addValidator(Validator.VALID)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .build();
 
-  static final Relationship MATCHED_MESSAGES_RELATIONSHIP = new Relationship.Builder()
-    .name("matched")
+  public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
+    .name("Max Size of Message Queue")
+    .description("The maximum size of the internal queue used to buffer messages being transferred from the underlying channel to the processor. " +
+      "Setting this value higher allows more messages to be buffered in memory during surges of incoming messages, but increases the total " +
+      "memory used by the processor.")
+    .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+    .defaultValue("10000")
+    .required(true)
+    .build();
+
+  static final Relationship SUCCESS_RELATIONSHIP = new Relationship.Builder()
+    .name("success")
     .description("Incoming messages that matches the given types")
-    .build();
-
-  static final Relationship UNMATCHED_MESSAGES_RELATIONSHIP = new Relationship.Builder()
-    .name("unmatched")
-    .description("Incoming messages that does not match the given types")
-    .autoTerminateDefault(true)
     .build();
 
   private static final String JSON_OBJECT_TYPE_KEY = "type";
 
   private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-    SLACK_CONNECTION_SERVICE, MESSAGE_TYPES));
+    SLACK_CONNECTION_SERVICE, MESSAGE_TYPES, MAX_MESSAGE_QUEUE_SIZE));
 
   private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-    MATCHED_MESSAGES_RELATIONSHIP, UNMATCHED_MESSAGES_RELATIONSHIP)));
+    SUCCESS_RELATIONSHIP)));
 
   @Override
   public Set<Relationship> getRelationships() {
@@ -113,10 +126,11 @@ public class ListenSlack extends AbstractSessionFactoryProcessor {
 
   @OnScheduled
   public void onScheduled(final ProcessContext context) {
-    String messageTypes = context.getProperty(MESSAGE_TYPES).getValue();
+    String messageTypes = context.getProperty(MESSAGE_TYPES).evaluateAttributeExpressions().getValue();
     messageTypes = messageTypes == null ? "" : messageTypes;
     matchAny = messageTypes.isEmpty();
     matchingTypes = Arrays.asList(messageTypes.split(","));
+    messageQueue = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
   }
 
   @OnUnscheduled
@@ -132,14 +146,21 @@ public class ListenSlack extends AbstractSessionFactoryProcessor {
   }
 
   @Override
-  public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-    if (processSessionFactory == null) {
-      processSessionFactory = sessionFactory;
-    }
+  public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     if (!isProcessorRegisteredToService()) {
       registerProcessorToService(context);
     }
-    context.yield();
+
+    SlackMessage slackMessage = messageQueue.poll();
+
+    if (slackMessage != null) {
+      FlowFile flowFile = session.create();
+      session.write(flowFile, outputStream -> outputStream.write(slackMessage.getJson().getBytes()));
+      session.getProvenanceReporter().receive(flowFile, "slack");
+      session.putAttribute(flowFile, "mime.type", "application/json");
+      session.putAttribute(flowFile, "slack.type", String.valueOf(slackMessage.getType()));
+      session.transfer(flowFile, SUCCESS_RELATIONSHIP);
+    }
   }
 
   private boolean isProcessorRegisteredToService() {
@@ -151,7 +172,7 @@ public class ListenSlack extends AbstractSessionFactoryProcessor {
       try {
         slackConnectionService = context.getProperty(SLACK_CONNECTION_SERVICE)
           .asControllerService(SlackConnectionService.class);
-        slackConnectionService.registerProcessor(this, getMessageHandler(processSessionFactory));
+        slackConnectionService.registerProcessor(this, getMessageHandler());
       } catch (Exception e) {
         getLogger().error("Error while creating slack client", e);
         slackConnectionService.deregisterProcessor(this);
@@ -159,41 +180,53 @@ public class ListenSlack extends AbstractSessionFactoryProcessor {
       }
   }
 
-  private Consumer<String> getMessageHandler(ProcessSessionFactory sessionFactory) {
+  private Consumer<String> getMessageHandler() {
     return message -> {
-      ProcessSession session = sessionFactory.createSession();
       try {
-        FlowFile flowFile = session.create();
-        session.write(flowFile, outputStream -> outputStream.write(message.getBytes()));
-        session.getProvenanceReporter().receive(flowFile, "slack");
-
-        if (matches(message)) {
-          session.transfer(flowFile, MATCHED_MESSAGES_RELATIONSHIP);
-        } else {
-          session.transfer(flowFile, UNMATCHED_MESSAGES_RELATIONSHIP);
+        String messageType = getMessageType(message);
+        if (matches(messageType)) {
+          boolean queued = messageQueue.offer(new SlackMessage(messageType, message), 100, TimeUnit.MILLISECONDS);
+          if (!queued) {
+            getLogger().error("Internal queue at maximum capacity, could not queue event");
+          }
         }
-        session.commit();
-      } catch (Exception e) {
-        session.rollback();
+      } catch (InterruptedException ie) {
+
       }
     };
   }
 
-  private boolean matches(String message) {
-    if (matchAny) {
-      return true;
-    }
+  private boolean matches(String type) {
+    return matchAny || matchingTypes.contains(type);
+  }
 
+  private String getMessageType(String message) {
     try (JsonReader reader = Json.createReader(new StringReader(message))) {
-      return Optional.ofNullable(reader.readObject())
-        .map(jsonObject -> jsonObject.getString(JSON_OBJECT_TYPE_KEY, null))
-        .filter(Objects::nonNull)
-        .map(matchingTypes::contains)
-        .orElse(false);
+      JsonObject jsonObject = reader.readObject();
+      if (Objects.nonNull(jsonObject)) {
+        return jsonObject.getString(JSON_OBJECT_TYPE_KEY, null);
+      }
     } catch (JsonException e) {
       getLogger().warn("Error while parsing message:", e);
     }
+    return null;
+  }
 
-    return false;
+  private static class SlackMessage {
+    String type;
+    String json;
+
+    public SlackMessage(String type, String json) {
+      this.type = type;
+      this.json = json;
+    }
+
+    public String getType() {
+      return type;
+    }
+
+    public String getJson() {
+      return json;
+    }
   }
 }

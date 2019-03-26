@@ -38,7 +38,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ListenSlackTest {
+public class ConsumeSlackTest {
 
   private static final String SERVICE_ID = "testId";
   private static final List<String> INPUT_MESSAGES = Arrays.asList(
@@ -49,21 +49,22 @@ public class ListenSlackTest {
     "",
     "{}"
   );
-  private ListenSlack listenSlack;
+  private ConsumeSlack consumeSlack;
   private TestRunner runner;
   private SlackConnectionService slackConnectionService;
   private CompletableFuture<Consumer<String>> handlerFuture;
 
   @Before
   public void setUp() throws InitializationException {
-    listenSlack = new ListenSlack();
-    runner = TestRunners.newTestRunner(listenSlack);
+    consumeSlack = new ConsumeSlack();
+    runner = TestRunners.newTestRunner(consumeSlack);
     slackConnectionService = mock(SlackConnectionService.class);
 
     when(slackConnectionService.getIdentifier()).thenReturn(SERVICE_ID);
-    when(slackConnectionService.isProcessorRegistered(listenSlack)).thenReturn(true);
+    when(slackConnectionService.isProcessorRegistered(consumeSlack)).thenReturn(true);
 
-    runner.setProperty(ListenSlack.SLACK_CONNECTION_SERVICE, SERVICE_ID);
+    runner.setProperty(ConsumeSlack.SLACK_CONNECTION_SERVICE, SERVICE_ID);
+    runner.setProperty(ConsumeSlack.MAX_MESSAGE_QUEUE_SIZE, "10");
     runner.addControllerService(SERVICE_ID, slackConnectionService);
     runner.enableControllerService(slackConnectionService);
 
@@ -71,7 +72,7 @@ public class ListenSlackTest {
     doAnswer(invocation -> {
       handlerFuture.complete(invocation.getArgumentAt(1, Consumer.class));
       return null;
-    }).when(slackConnectionService).registerProcessor(eq(listenSlack), any());
+    }).when(slackConnectionService).registerProcessor(eq(consumeSlack), any());
 
 
   }
@@ -79,13 +80,13 @@ public class ListenSlackTest {
   @Test
   public void testEmptyMessageTypesMatchesAnything() throws ExecutionException, InterruptedException {
 
-    runner.run();
-
+    runner.run(1, false);
     INPUT_MESSAGES.forEach(handlerFuture.get());
+    runner.run(10, false, false);
 
-    runner.assertAllFlowFilesTransferred(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP, INPUT_MESSAGES.size());
+    runner.assertAllFlowFilesTransferred(ConsumeSlack.SUCCESS_RELATIONSHIP, INPUT_MESSAGES.size());
 
-    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP);
+    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ConsumeSlack.SUCCESS_RELATIONSHIP);
     for (int i = 0; i < INPUT_MESSAGES.size(); i++) {
       matched.get(i).assertContentEquals(INPUT_MESSAGES.get(i));
     }
@@ -95,15 +96,14 @@ public class ListenSlackTest {
   @Test
   public void testMessageTypeMatchesProperMessages() throws ExecutionException, InterruptedException {
 
-    runner.setProperty(ListenSlack.MESSAGE_TYPES, "message");
-    runner.run();
-
+    runner.setProperty(ConsumeSlack.MESSAGE_TYPES, "message");
+    runner.run(1, false);
     INPUT_MESSAGES.forEach(handlerFuture.get());
+    runner.run(10, false, false);
 
-    runner.assertTransferCount(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP, 1);
-    runner.assertTransferCount(ListenSlack.UNMATCHED_MESSAGES_RELATIONSHIP, 5);
+    runner.assertAllFlowFilesTransferred(ConsumeSlack.SUCCESS_RELATIONSHIP, 1);
 
-    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP);
+    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ConsumeSlack.SUCCESS_RELATIONSHIP);
     matched.get(0).assertContentEquals(INPUT_MESSAGES.get(1));
   }
 
@@ -111,16 +111,14 @@ public class ListenSlackTest {
   @Test
   public void testMultipleMessageTypesMatchesProperMessages() throws ExecutionException, InterruptedException {
 
-    runner.setProperty(ListenSlack.MESSAGE_TYPES, "message,file_shared");
-
-    runner.run();
-
+    runner.setProperty(ConsumeSlack.MESSAGE_TYPES, "message,file_shared");
+    runner.run(1, false);
     INPUT_MESSAGES.forEach(handlerFuture.get());
+    runner.run(10, false, false);
 
-    runner.assertTransferCount(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP, 2);
-    runner.assertTransferCount(ListenSlack.UNMATCHED_MESSAGES_RELATIONSHIP, 4);
+    runner.assertAllFlowFilesTransferred(ConsumeSlack.SUCCESS_RELATIONSHIP, 2);
 
-    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ListenSlack.MATCHED_MESSAGES_RELATIONSHIP);
+    List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ConsumeSlack.SUCCESS_RELATIONSHIP);
     matched.get(0).assertContentEquals(INPUT_MESSAGES.get(1));
     matched.get(1).assertContentEquals(INPUT_MESSAGES.get(3));
   }
@@ -129,8 +127,18 @@ public class ListenSlackTest {
   public void testRegisterAndDeregisterHappens() {
     runner.run();
 
-    verify(slackConnectionService, times(1)).isProcessorRegistered(eq(listenSlack));
-    verify(slackConnectionService, times(1)).registerProcessor(eq(listenSlack), any());
-    verify(slackConnectionService, times(1)).deregisterProcessor(eq(listenSlack));
+    verify(slackConnectionService, times(1)).isProcessorRegistered(eq(consumeSlack));
+    verify(slackConnectionService, times(1)).registerProcessor(eq(consumeSlack), any());
+    verify(slackConnectionService, times(1)).deregisterProcessor(eq(consumeSlack));
+  }
+
+  @Test
+  public void testBackPressure() throws ExecutionException, InterruptedException {
+    runner.setProperty(ConsumeSlack.MAX_MESSAGE_QUEUE_SIZE, "1");
+    runner.run(1, false);
+    INPUT_MESSAGES.forEach(handlerFuture.get());
+    runner.run(10, false, false);
+
+    runner.assertAllFlowFilesTransferred(ConsumeSlack.SUCCESS_RELATIONSHIP, 1);
   }
 }

@@ -58,6 +58,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -67,7 +68,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"slack", "download", "fetch", "attachment"})
-@CapabilityDescription("Downloading attachments from slack messages")
+@CapabilityDescription("Downloading attachments from slack messages." +
+  "The input is the JSON string created by ConsumeSlack, the output is a new" +
+  "FlowFile with the content of the downloaded file and attributes are added" +
+  "based on the original message and the HTTP response.")
 @EventDriven
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
@@ -75,13 +79,13 @@ import org.apache.nifi.processor.util.StandardValidators;
   @WritesAttribute(attribute = "response.content-type", description = "Content-Type parsed from HTTP response."),
   @WritesAttribute(attribute = "response.content-length", description = "Content-Length parsed from HTTP response."),
   @WritesAttribute(attribute = "response.date", description = "Date parsed from HTTP response."),
-  @WritesAttribute(attribute = "message.name", description = "File name in the slack JSON."),
-  @WritesAttribute(attribute = "message.mimetype", description = "Mime type in the slack JSON."),
-  @WritesAttribute(attribute = "message.filetype", description = "File type in the slack JSON."),
-  @WritesAttribute(attribute = "message.id", description = "File id in the slack JSON."),
-  @WritesAttribute(attribute = "message.title", description = "File title in the slack JSON."),
-  @WritesAttribute(attribute = "message.size", description = "File size in the slack JSON."),
-  @WritesAttribute(attribute = "message.created", description = "Created timestamp in the slack JSON.")
+  @WritesAttribute(attribute = "slack.file.name", description = "File name in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.mimetype", description = "Mime type in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.filetype", description = "File type in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.id", description = "File id in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.title", description = "File title in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.size", description = "File size in the slack JSON."),
+  @WritesAttribute(attribute = "slack.file.created", description = "Created timestamp in the slack JSON.")
 })
 public class FetchSlack extends AbstractProcessor {
 
@@ -95,6 +99,7 @@ public class FetchSlack extends AbstractProcessor {
     .required(true)
     .sensitive(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .build();
 
   static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -141,7 +146,7 @@ public class FetchSlack extends AbstractProcessor {
   @OnScheduled
   public void createClient(final ProcessContext context) {
     Header header = new BasicHeader(
-      HttpHeaders.AUTHORIZATION, "Bearer " + context.getProperty(API_TOKEN).getValue());
+      HttpHeaders.AUTHORIZATION, "Bearer " + context.getProperty(API_TOKEN).evaluateAttributeExpressions().getValue());
     List<Header> headers = Collections.singletonList(header);
     client = HttpClients.custom().setDefaultHeaders(headers).build();
   }
@@ -173,7 +178,7 @@ public class FetchSlack extends AbstractProcessor {
         filesToDownload = collectFilesToDownload(requestInputStream);
       }
       if (filesToDownload == null || filesToDownload.isEmpty()) {
-        session.transfer(requestFlowFile, REL_FAILURE);
+        session.transfer(requestFlowFile, REL_SUCCESS_REQ);
       } else {
         downloadFiles(session, requestFlowFile, filesToDownload);
       }
@@ -215,6 +220,8 @@ public class FetchSlack extends AbstractProcessor {
       if (successfulResponses.size() == filesToDownload.size()) {
         session.transfer(successfulResponses, REL_RESPONSE);
         session.transfer(requestFlowFile, REL_SUCCESS_REQ);
+      } else {
+        successfulResponses.forEach(session::remove);
       }
     } catch (IOException e) {
       session.transfer(requestFlowFile, REL_FAILURE);
@@ -251,13 +258,13 @@ public class FetchSlack extends AbstractProcessor {
     fromheader(map, response, "Content-type", "response.content-type");
     fromheader(map, response, "Date", "response.date");
 
-    fromJson(map, file, "name", "message.name");
-    fromJson(map, file, "mimetype", "message.mimetype");
-    fromJson(map, file, "filetype", "message.filetype");
-    fromJson(map, file, "title", "message.title");
-    fromJson(map, file, "id", "message.id");
-    fromJson(map, file, "created", "message.created");
-    fromJson(map, file, "size", "message.size");
+    fromJson(map, file, "name", "slack.file.name");
+    fromJson(map, file, "mimetype", "slack.file.mimetype");
+    fromJson(map, file, "filetype", "slack.file.filetype");
+    fromJson(map, file, "title", "slack.file.title");
+    fromJson(map, file, "id", "slack.file.id");
+    fromJson(map, file, "created", "slack.file.created");
+    fromJson(map, file, "size", "slack.file.size");
 
     return map;
   }

@@ -65,7 +65,7 @@ public class FetchSlackTest {
     runner.enqueue("{\"type\":\"hello\"}");
     runner.run(2);
 
-    runner.assertAllFlowFilesTransferred(FetchSlack.REL_FAILURE, 1);
+    runner.assertAllFlowFilesTransferred(FetchSlack.REL_SUCCESS_REQ, 1);
     runner.assertQueueEmpty();
   }
 
@@ -144,7 +144,7 @@ public class FetchSlackTest {
         "      \"mimetype\": \"image/png\"," +
         "      \"filetype\": \"png\"," +
         "      \"size\": 1234," +
-        "      \"url_private_download\": \"" + url + "/400\"" +
+        "      \"url_private_download\": \"" + url + "/test_name2.png\"" +
         "    }," +
         "    {" +
         "      \"id\": \"test_id2\"," +
@@ -154,7 +154,7 @@ public class FetchSlackTest {
         "      \"mimetype\": \"image/png\"," +
         "      \"filetype\": \"png\"," +
         "      \"size\": 1234," +
-        "      \"url_private_download\": \"" + url + "/test_name2.png\"" +
+        "      \"url_private_download\": \"" + url + "/400\"" +
         "    }" +
         "  ]" +
         "}";
@@ -265,13 +265,13 @@ public class FetchSlackTest {
       List<MockFlowFile> response = runner.getFlowFilesForRelationship(FetchSlack.REL_RESPONSE);
       MockFlowFile flowFile = response.get(0);
       flowFile.assertContentEquals("test content");
-      flowFile.assertAttributeEquals("message.name", "test_name.png");
-      flowFile.assertAttributeEquals("message.title", "test_title");
-      flowFile.assertAttributeEquals("message.mimetype", "image/png");
-      flowFile.assertAttributeEquals("message.filetype", "png");
-      flowFile.assertAttributeEquals("message.id", "test_id");
-      flowFile.assertAttributeEquals("message.created", "1550597907");
-      flowFile.assertAttributeEquals("message.size", "1234");
+      flowFile.assertAttributeEquals("slack.file.name", "test_name.png");
+      flowFile.assertAttributeEquals("slack.file.title", "test_title");
+      flowFile.assertAttributeEquals("slack.file.mimetype", "image/png");
+      flowFile.assertAttributeEquals("slack.file.filetype", "png");
+      flowFile.assertAttributeEquals("slack.file.id", "test_id");
+      flowFile.assertAttributeEquals("slack.file.created", "1550597907");
+      flowFile.assertAttributeEquals("slack.file.size", "1234");
       flowFile.assertAttributeEquals("response.filename", "test_name.png");
       flowFile.assertAttributeEquals("response.content-length", "12");
       flowFile.assertAttributeEquals("response.content-type", "image/png");

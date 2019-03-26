@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Implementation of SlackConnectionService." +
@@ -45,6 +46,8 @@ public class RTMSlackConnectionService extends AbstractControllerService impleme
     .displayName("API token")
     .description("Slack auth token required for Real Time Messaging API")
     .sensitive(true)
+    .required(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -61,13 +64,13 @@ public class RTMSlackConnectionService extends AbstractControllerService impleme
       rtmClient.addErrorHandler(throwable -> getLogger().error("Slack RTM Client error:", throwable));
       rtmClient.connect();
     } catch (IOException|DeploymentException e) {
-      getLogger().error("Error while starting RTM client", e);
+      throw new RuntimeException("Error while starting RTM client", e);
     }
 
   }
 
   RTMClient getRtmClient(ConfigurationContext context) throws IOException {
-    return new Slack().rtm(context.getProperty(API_TOKEN).getValue());
+    return new Slack().rtm(context.getProperty(API_TOKEN).evaluateAttributeExpressions().getValue());
   }
 
   @OnDisabled
