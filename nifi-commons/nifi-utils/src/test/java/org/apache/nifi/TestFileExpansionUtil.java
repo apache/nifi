@@ -38,7 +38,6 @@ public class TestFileExpansionUtil {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "/Users/testuser");
     }
 
     @After
@@ -50,7 +49,7 @@ public class TestFileExpansionUtil {
    public void  testExpandPath() {
        logger.debug("User Home: " + System.getProperty("user.home"));
        // arrange
-       System.getProperties().setProperty("user.home", "/Users/testuser");
+       System.setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath("~/somedirectory");
@@ -62,6 +61,9 @@ public class TestFileExpansionUtil {
    @Test
     public void testExpandPathShouldReturnNullWhenNullIsInput() {
        logger.debug("User Home: " + System.getProperty("user.home"));
+
+       // arrange
+       System.setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath(null);

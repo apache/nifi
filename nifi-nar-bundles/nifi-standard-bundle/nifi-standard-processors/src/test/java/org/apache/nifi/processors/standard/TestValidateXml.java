@@ -32,7 +32,6 @@ public class TestValidateXml {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources/TestXml");
     }
 
     @After
@@ -89,6 +88,8 @@ public class TestValidateXml {
 
     @Test
     public void testSchemaFileSupportsTildePathExpansion() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestXml/");
+
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "~/XmlBundle.xsd");
 
