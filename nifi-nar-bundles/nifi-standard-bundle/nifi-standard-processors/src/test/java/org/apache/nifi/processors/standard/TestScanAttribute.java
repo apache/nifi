@@ -100,6 +100,44 @@ public class TestScanAttribute {
     }
 
     @Test
+    public void testAllMatchWithFileExpansion() {
+        System.setProperty("user.home", "src/test/resources/ScanAttribute");
+        final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "~/dictionary1");
+        runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "world");
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.remove("abc");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.put("abc", "world");
+        attributes.put("a world", "apart");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.put("abc", "world");
+        attributes.put("a world", "hello");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+    }
+
+    @Test
     public void testWithEmptyEntries() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
         runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary-with-empty-new-lines");

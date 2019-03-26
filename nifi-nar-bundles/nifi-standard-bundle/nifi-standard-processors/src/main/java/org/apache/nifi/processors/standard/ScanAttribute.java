@@ -50,6 +50,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
@@ -151,13 +152,13 @@ public class ScanAttribute extends AbstractProcessor {
         this.attributePattern = (attributeRegex.equals(".*")) ? null : Pattern.compile(attributeRegex);
 
         this.dictionaryTerms = createDictionary(context);
-        this.fileWatcher = new SynchronousFileWatcher(Paths.get(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue()), new LastModifiedMonitor(), 1000L);
+        this.fileWatcher = new SynchronousFileWatcher(Paths.get(FileExpansionUtil.expandPath(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue())), new LastModifiedMonitor(), 1000L);
     }
 
     private Set<String> createDictionary(final ProcessContext context) throws IOException {
         final Set<String> terms = new HashSet<>();
 
-        final File file = new File(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue());
+        final File file = new File(FileExpansionUtil.expandPath(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue()));
         try (final InputStream fis = new FileInputStream(file);
                 final BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
 
