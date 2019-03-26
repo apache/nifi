@@ -160,6 +160,8 @@ public class ConsumeSlack extends AbstractProcessor {
       session.putAttribute(flowFile, "mime.type", "application/json");
       session.putAttribute(flowFile, "slack.type", String.valueOf(slackMessage.getType()));
       session.transfer(flowFile, SUCCESS_RELATIONSHIP);
+    } else {
+      context.yield();
     }
   }
 
