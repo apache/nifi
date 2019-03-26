@@ -73,6 +73,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
@@ -316,7 +317,7 @@ public class TransformXml extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
         final String path = context.getProperty(XSLT_FILE_NAME).isSet()
-                ? context.getProperty(XSLT_FILE_NAME).evaluateAttributeExpressions(original).getValue()
+                ? FileExpansionUtil.expandPath(context.getProperty(XSLT_FILE_NAME).evaluateAttributeExpressions(original).getValue())
                         : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
         final Boolean indentOutput = context.getProperty(INDENT_OUTPUT).asBoolean();
         lookupService.set(context.getProperty(XSLT_CONTROLLER).asControllerService(LookupService.class));

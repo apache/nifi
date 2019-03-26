@@ -75,6 +75,24 @@ public class TestTransformXml {
     }
 
     @Test
+    public void testTransformMathWithFileExpansion() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestTransformXml");
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "~/math.xsl");
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
+    }
+
+    @Test
     public void testTransformCsv() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/tokens.xsl");
