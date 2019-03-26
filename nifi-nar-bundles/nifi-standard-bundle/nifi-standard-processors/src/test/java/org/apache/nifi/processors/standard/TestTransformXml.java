@@ -41,7 +41,6 @@ public class TestTransformXml {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources/TestTransformXml");
     }
 
     @After
@@ -90,6 +89,8 @@ public class TestTransformXml {
 
     @Test
     public void testTransformMathWithFileExpansion() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestTransformXml");
+
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "~/math.xsl");
