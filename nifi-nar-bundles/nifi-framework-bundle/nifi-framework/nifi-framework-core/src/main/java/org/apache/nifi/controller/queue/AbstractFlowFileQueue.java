@@ -386,25 +386,11 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         // Create a Provenance Event and a FlowFile Repository record for each FlowFile
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFiles.size());
         final List<RepositoryRecord> flowFileRepoRecords = new ArrayList<>(flowFiles.size());
+        long dropContentSize = 0L;
         for (final FlowFileRecord flowFile : flowFiles) {
             provenanceEvents.add(createDropProvenanceEvent(flowFile, requestor));
             flowFileRepoRecords.add(createDeleteRepositoryRecord(flowFile));
-        }
-
-        long dropContentSize = 0L;
-        for (final FlowFileRecord flowFile : flowFiles) {
             dropContentSize += flowFile.getSize();
-            final ContentClaim contentClaim = flowFile.getContentClaim();
-            if (contentClaim == null) {
-                continue;
-            }
-
-            final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
-            if (resourceClaim == null) {
-                continue;
-            }
-
-            resourceClaimManager.decrementClaimantCount(resourceClaim);
         }
 
         provRepository.registerEvents(provenanceEvents);
