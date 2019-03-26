@@ -976,16 +976,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             provenanceEvents.add(provenanceEvent);
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            logger.info("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
+            logger.debug("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
         }
 
         try {
             flowFileRepo.updateRepository(expiredRecords);
-
-            for (final RepositoryRecord expiredRecord : expiredRecords) {
-                contentRepo.decrementClaimantCount(expiredRecord.getCurrentClaim());
-            }
-
             provRepo.registerEvents(provenanceEvents);
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
