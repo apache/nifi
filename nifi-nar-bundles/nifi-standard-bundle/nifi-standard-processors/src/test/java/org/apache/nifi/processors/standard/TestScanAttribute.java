@@ -31,7 +31,6 @@ public class TestScanAttribute {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources/ScanAttribute");
     }
 
     @After
@@ -115,6 +114,8 @@ public class TestScanAttribute {
 
     @Test
     public void testAllMatchWithFileExpansion() {
+        System.setProperty("user.home", "src/test/resources/ScanAttribute");
+
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
         runner.setProperty(ScanAttribute.DICTIONARY_FILE, "~/dictionary1");
         runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);

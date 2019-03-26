@@ -152,6 +152,7 @@ public class ScanAttribute extends AbstractProcessor {
         this.attributePattern = (attributeRegex.equals(".*")) ? null : Pattern.compile(attributeRegex);
 
         this.dictionaryTerms = createDictionary(context);
+
         this.fileWatcher = new SynchronousFileWatcher(Paths.get(
                                FileExpansionUtil.expandPath(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue())),
                                new LastModifiedMonitor(), 1000L);
