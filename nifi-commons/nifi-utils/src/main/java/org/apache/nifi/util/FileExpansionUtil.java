@@ -13,8 +13,16 @@ public class FileExpansionUtil {
      */
     public static String expandPath(String pathname) {
         String result = null;
+        String userHome = System.getProperty("user.home");
+
+        if (userHome != null && userHome.trim().equals("")) {
+            throw new RuntimeException("Nifi assumes user.home is set to your home directory.  Nifi detected user.home is " +
+                    "either null or empty and this means your environment can't determine a value for this information.  " +
+                "You can get around this by specifying a -Duser.home=<your home directory> when running nifi.");
+        }
+
         if (pathname != null) {
-            result = pathname.replaceFirst(TILDE_CHAR_REGEX, System.getProperty("user.home"));
+            result = pathname.replaceFirst(TILDE_CHAR_REGEX, userHome);
         }
         return result;
     }

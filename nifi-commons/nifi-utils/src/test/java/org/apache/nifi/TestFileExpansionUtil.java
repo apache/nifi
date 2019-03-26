@@ -13,7 +13,7 @@ public class TestFileExpansionUtil {
        System.out.println("User Home: " + System.getProperty("user.home"));
 
        // arrange
-       System.getProperties().setProperty("user.home", "/Users/testuser");
+       System.setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath("~/somedirectory");
@@ -24,11 +24,24 @@ public class TestFileExpansionUtil {
 
    @Test
     public void testExpandPathShouldReturnNullWhenNullIsInput() {
+       System.out.println("User Home: " + System.getProperty("user.home"));
+
+       // arrange
+       System.setProperty("user.home", "/Users/testuser");
+
        // act
        String result = FileExpansionUtil.expandPath(null);
 
        // assert
        assertNull(result);
+   }
+
+   @Test(expected = RuntimeException.class)
+    public void testExceptionIsThrownWhenUserHomeIsEmpty() {
+       System.setProperty("user.home", "");
+
+       // act
+       FileExpansionUtil.expandPath("~/somedirectory");
    }
 
 }

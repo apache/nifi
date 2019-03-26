@@ -73,4 +73,27 @@ public class TestValidateXml {
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
     }
 
+    @Test
+    public void testSchemaFileSupportsTildePathExpansion() throws IOException {
+        System.setProperty("user.home", "src/test/resources/TestXml/");
+
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "~/XmlBundle.xsd");
+
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testSchemaFileTildePathExpansionToNonExistentDirectoryThrowsIOException() throws IOException {
+        System.setProperty("user.home", "NonExistentHome");
+
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "~/XmlBundle.xsd");
+
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
+        runner.run();
+    }
 }

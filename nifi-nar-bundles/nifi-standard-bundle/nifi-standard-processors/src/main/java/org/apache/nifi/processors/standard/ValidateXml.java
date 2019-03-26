@@ -54,6 +54,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.xml.sax.SAXException;
 
 @EventDriven
@@ -118,7 +119,7 @@ public class ValidateXml extends AbstractProcessor {
     @OnScheduled
     public void parseSchema(final ProcessContext context) throws IOException, SAXException {
         try {
-            final File file = new File(context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().getValue());
+            final File file = new File(FileExpansionUtil.expandPath(context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().getValue()));
             // Ensure the file exists
             if (!file.exists()) {
                 throw new FileNotFoundException("Schema file not found at specified location: " + file.getAbsolutePath());
