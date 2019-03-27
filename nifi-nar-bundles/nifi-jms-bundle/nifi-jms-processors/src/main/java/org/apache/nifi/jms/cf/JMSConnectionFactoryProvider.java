@@ -89,12 +89,12 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             .build();
     public static final PropertyDescriptor CLIENT_LIB_DIR_PATH = new PropertyDescriptor.Builder()
             .name(CF_LIB)
-            .displayName("MQ Client Libraries path (i.e., /usr/jms/lib)")
+            .displayName("MQ Client Libraries path (i.e. /usr/jms/lib)")
             .description("Path to the directory with additional resources (i.e., JARs, configuration files etc.) to be added "
                     + "to the classpath. Such resources typically represent target MQ client libraries for the "
-                    + "ConnectionFactory implementation.")
+                    + "ConnectionFactory implementation. Required if target is not ActiveMQ.")
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
-            .required(true)
+            .required(false)
             .dynamicallyModifiesClasspath(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -106,7 +106,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             .description("URI pointing to the network location of the JMS Message broker. Example for ActiveMQ: "
                     + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost:1414' and 'myhost01(1414),myhost02(1414)'")
             .addValidator(new NonEmptyBrokerURIValidator())
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -329,5 +329,4 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
         }
     }
-
 }
