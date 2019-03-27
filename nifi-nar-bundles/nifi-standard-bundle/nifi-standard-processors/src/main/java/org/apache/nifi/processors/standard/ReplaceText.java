@@ -85,6 +85,10 @@ public class ReplaceText extends AbstractProcessor {
 
     // Constants
     public static final String LINE_BY_LINE = "Line-by-Line";
+    public static final String FIRST_LINE = "First-Line";
+    public static final String EXCEPT_FIRST_LINE = "Except-First-Line";
+    public static final String LAST_LINE = "Last-Line";
+    public static final String EXCEPT_LAST_LINE = "Except-Last-Line";
     public static final String ENTIRE_TEXT = "Entire text";
     public static final String prependValue = "Prepend";
     public static final String appendValue = "Append";
@@ -98,21 +102,21 @@ public class ReplaceText extends AbstractProcessor {
     // Prepend and Append will just insert the replacement value at the beginning or end
     // Properties PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE
     static final AllowableValue PREPEND = new AllowableValue(prependValue, prependValue,
-        "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). "
-            + "For \"Line-by-Line\" Evaluation Mode, the value will be prepended to each line. One can prepend particular set of lines by "
-            + "making use of \"Number of Occurrences\" and \"Occurrence Offset\" fields. For \"Entire Text\" evaluation mode, the value will be prepended to the entire text.");
+        "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
+            + "the value will be prepended to each line. Similarly, for \"First-Line\", \"Last-Line\", \"Except-Last-Line\" and \"Except-First-Line\" Evaluation Modes,"
+            + "the value will be prepended to header alone, footer alone, all lines except header and all lines except footer respectively. For \"Entire Text\" evaluation mode,"
+            + "the value will be prepended to the entire text.");
     static final AllowableValue APPEND = new AllowableValue(appendValue, appendValue,
         "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
-            + "the value will be appended to each line. One can append particular set of lines by making use of \"Number of Occurrences\" and"
-            + " \"Occurrence Offset\" fields. For \"Entire Text\" evaluation mode, the value will be appended to the entire text.");
+            + "the value will be appended to each line. Similarly, for \"First-Line\", \"Last-Line\", \"Except-Last-Line\" and \"Except-First-Line\" Evaluation Modes,"
+            + "the value will be appended to header alone, footer alone, all lines except header and all lines except footer respectively. For \"Entire Text\" evaluation mode,"
+            + "the value will be appended to the entire text.");
     static final AllowableValue LITERAL_REPLACE = new AllowableValue(literalReplaceValue, literalReplaceValue,
-        "Search for all instances of the Search Value and replace the matches with the Replacement Value. One can replace a particular set of matches using \"Number of Occurrences\" "
-            + "and \"Occurrence Offset\" fields in either of the Evaluation Modes");
+        "Search for all instances of the Search Value and replace the matches with the Replacement Value.");
     static final AllowableValue REGEX_REPLACE = new AllowableValue(regexReplaceValue, regexReplaceValue,
         "Interpret the Search Value as a Regular Expression and replace all matches with the Replacement Value. The Replacement Value may reference Capturing Groups used "
             + "in the Search Value by using a dollar-sign followed by the Capturing Group number, such as $1 or $2. If the Search Value is set to .* then everything is replaced without "
-            + "even evaluating the Regular Expression. One can replace a particular set of matches using \"Number of Occurrences\" and \"Occurrence Offset\" fields "
-            + "in either of the Evaluation Modes");
+            + "even evaluating the Regular Expression.");
     static final AllowableValue ALWAYS_REPLACE = new AllowableValue(alwaysReplace, alwaysReplace,
         "Always replaces the entire line or the entire contents of the FlowFile (depending on the value of the <Evaluation Mode> property) and does not bother searching "
             + "for any value. When this strategy is chosen, the <Search Value> property is ignored.");
@@ -165,30 +169,11 @@ public class ReplaceText extends AbstractProcessor {
         .build();
     public static final PropertyDescriptor EVALUATION_MODE = new PropertyDescriptor.Builder()
         .name("Evaluation Mode")
-        .description("Run the 'Replacement Strategy' against each line separately (Line-by-Line) or buffer the entire file into memory (Entire Text) "
-            + "and run against that.")
-        .allowableValues(LINE_BY_LINE, ENTIRE_TEXT)
+        .description("Run the 'Replacement Strategy' against each line separately (Line-by-Line), First Line (Header) alone, Last Line (Footer) alone,"
+            +"Except the First Line, Except the Last Line or buffer the entire file into memory (Entire Text) and run against that.")
+        .allowableValues(LINE_BY_LINE, FIRST_LINE, LAST_LINE, EXCEPT_FIRST_LINE, EXCEPT_LAST_LINE, ENTIRE_TEXT)
         .defaultValue(ENTIRE_TEXT)
         .required(true)
-        .build();
-
-    public static final PropertyDescriptor NUMBER_OF_OCCURRENCES = new PropertyDescriptor.Builder()
-        .name("Number of Occurrences")
-        .displayName("Number of Occurrences")
-        .description("Number of occurrences to replace text from top. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
-        .addValidator(StandardValidators.NUMBER_VALIDATOR)
-        .defaultValue("-1")
-        .required(false)
-        .build();
-
-    public static final PropertyDescriptor OCCURRENCE_OFFSET = new PropertyDescriptor.Builder()
-        .name("Occurrence Offset")
-        .displayName("Occurrence Offset")
-        .description("Number of occurrences after which processor starts considering replacement upto \"Number of Occurrences\" times if configured, till the end "
-            +"of the content otherwise. However, this property is ignored when \"Replacement Strategy\" is \"Always Replace\"")
-        .addValidator(StandardValidators.NUMBER_VALIDATOR)
-        .defaultValue("0")
-        .required(false)
         .build();
 
     // Relationships
@@ -214,8 +199,6 @@ public class ReplaceText extends AbstractProcessor {
         properties.add(MAX_BUFFER_SIZE);
         properties.add(REPLACEMENT_STRATEGY);
         properties.add(EVALUATION_MODE);
-        properties.add(NUMBER_OF_OCCURRENCES);
-        properties.add(OCCURRENCE_OFFSET);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -300,7 +283,7 @@ public class ReplaceText extends AbstractProcessor {
 
                 break;
             case literalReplaceValue:
-                replacementStrategyExecutor = new LiteralReplace(buffer, context);
+                replacementStrategyExecutor = new LiteralReplace(buffer);
                 break;
             case alwaysReplace:
                 replacementStrategyExecutor = new AlwaysReplace();
@@ -397,24 +380,33 @@ public class ReplaceText extends AbstractProcessor {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
-                            String line;
-                            while ((line = demarcator.nextLine()) != null) {
-                                // We need to determine what line ending was used and use that after our replacement value.
-                                lineEndingBuilder.setLength(0);
-                                for (int i = line.length() - 1; i >= 0; i--) {
-                                    final char c = line.charAt(i);
-                                    if (c == '\r' || c == '\n') {
-                                        lineEndingBuilder.append(c);
-                                    } else {
-                                        break;
-                                    }
+                            String precedingLine = demarcator.nextLine();
+                            String succeedingLine;
+
+                            boolean firstLine = true;
+
+
+                            while (null != (succeedingLine = demarcator.nextLine())) {
+                                if(firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE)){
+                                    replaceInLine(bw, precedingLine, lineEndingBuilder, replacementValue);
+                                    firstLine = false;
+                                } else if(firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                                    firstLine = false;
+                                    bw.write(precedingLine);
+                                } else if(evaluateMode.equalsIgnoreCase(LINE_BY_LINE)
+                                    || evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
+                                    || (!firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
+                                    replaceInLine(bw, precedingLine, lineEndingBuilder, replacementValue);
+                                } else {
+                                    bw.write(precedingLine);
                                 }
+                                precedingLine = succeedingLine;
+                            }
 
-                                bw.write(replacementValue);
-
-                                // Preserve original line endings. Reverse string because we iterated over original line ending in reverse order, appending to builder.
-                                // So if builder has multiple characters, they are now reversed from the original string's ordering.
-                                bw.write(lineEndingBuilder.reverse().toString());
+                            if (evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE) || (!firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE))) {
+                                bw.write(precedingLine);
+                            } else {
+                                replaceInLine(bw, precedingLine, lineEndingBuilder, replacementValue);
                             }
                         }
                     }
@@ -422,6 +414,25 @@ public class ReplaceText extends AbstractProcessor {
             }
 
             return flowFile;
+        }
+
+        private void replaceInLine(BufferedWriter bw, String line, StringBuilder lineEndingBuilder, String replacementValue) throws IOException {
+            // We need to determine what line ending was used and use that after our replacement value.
+            lineEndingBuilder.setLength(0);
+            for (int i = line.length() - 1; i >= 0; i--) {
+                final char c = line.charAt(i);
+                if (c == '\r' || c == '\n') {
+                    lineEndingBuilder.append(c);
+                } else {
+                    break;
+                }
+            }
+
+            bw.write(replacementValue);
+
+            // Preserve original line endings. Reverse string because we iterated over original line ending in reverse order, appending to builder.
+            // So if builder has multiple characters, they are now reversed from the original string's ordering.
+            bw.write(lineEndingBuilder.reverse().toString());
         }
 
         @Override
@@ -448,28 +459,36 @@ public class ReplaceText extends AbstractProcessor {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
-                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
-                            String oneLine;
-                            int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                            int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
-                            while (null != (oneLine = demarcator.nextLine())) {
-                                if (offset > 0) {
-                                    bw.write(oneLine);
-                                    offset--;
-                                    continue;
-                                }
-                                if (occurrences == -1) {
-                                    final String updatedValue = replacementValue.concat(oneLine);
-                                    bw.write(updatedValue);
-                                } else if (occurrences > 0) {
-                                    final String updatedValue = replacementValue.concat(oneLine);
-                                    bw.write(updatedValue);
-                                    occurrences--;
+                            String precedingLine = demarcator.nextLine();
+                            String succeedingLine;
+
+                            boolean firstLine = true;
+
+                            while (null != (succeedingLine = demarcator.nextLine())) {
+                                if(firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE)){
+                                    bw.write(replacementValue.concat(precedingLine));
+                                    firstLine = false;
+                                } else if(firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                                    firstLine = false;
+                                    bw.write(precedingLine);
+                                } else if(evaluateMode.equalsIgnoreCase(LINE_BY_LINE)
+                                    || evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
+                                    || (!firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
+                                    bw.write(replacementValue.concat(precedingLine));
                                 } else {
-                                    bw.write(oneLine);
+                                    bw.write(precedingLine);
                                 }
+                                precedingLine = succeedingLine;
                             }
+
+                            if (evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE) || (!firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE))) {
+                                bw.write(precedingLine);
+                            } else {
+                                bw.write(replacementValue.concat(precedingLine));
+                            }
+
                         }
                     }
                 });
@@ -502,60 +521,66 @@ public class ReplaceText extends AbstractProcessor {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
-                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
-                            String oneLine;
-                            int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                            int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
-                            while (null != (oneLine = demarcator.nextLine())) {
-                                // we need to find the first carriage return or new-line so that we can append the new value
-                                // before the line separate. However, we don't want to do this using a regular expression due
-                                // to performance concerns. So we will find the first occurrence of either \r or \n and use
-                                // that to insert the replacement value.
-                                boolean foundNewLine = false;
-                                for (int i = 0; i < oneLine.length(); i++) {
-                                    final char c = oneLine.charAt(i);
-                                    if (foundNewLine) {
-                                        bw.write(c);
-                                        continue;
-                                    }
+                            String precedingLine = demarcator.nextLine();
+                            String succeedingLine;
 
-                                    if (c == '\r' || c == '\n') {
-                                        if (offset > 0) {
-                                            offset--;
-                                            bw.write(oneLine.substring(i));
-                                            foundNewLine = true;
-                                            break;
-                                        }
+                            boolean firstLine = true;
 
-                                        if (occurrences == -1) {
-                                            bw.write(replacementValue);
-
-                                        } else if (occurrences > 0) {
-                                            bw.write(replacementValue);
-                                            occurrences--;
-                                        }
-
-                                        foundNewLine = true;
-                                    }
-
-                                    bw.write(c);
+                            while (null != (succeedingLine = demarcator.nextLine())) {
+                                if(firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE)){
+                                    appendTextInLine(bw, precedingLine, replacementValue);
+                                    firstLine = false;
+                                } else if(firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                                    firstLine = false;
+                                    bw.write(precedingLine);
+                                } else if(evaluateMode.equalsIgnoreCase(LINE_BY_LINE)
+                                    || evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
+                                    || (!firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
+                                    appendTextInLine(bw, precedingLine, replacementValue);
+                                } else {
+                                    bw.write(precedingLine);
                                 }
+                                precedingLine = succeedingLine;
+                            }
 
-                                if (!foundNewLine) {
-                                    if (occurrences == -1) {
-                                        bw.write(replacementValue);
-                                    } else if (occurrences > 0) {
-                                        bw.write(replacementValue);
-                                        occurrences--;
-                                    }
-                                }
+                            if (evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE) || (!firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE))) {
+                                bw.write(precedingLine);
+                            } else {
+                                appendTextInLine(bw, precedingLine, replacementValue);
                             }
                         }
                     }
                 });
             }
             return flowFile;
+        }
+
+        private void appendTextInLine(BufferedWriter bw, String oneLine, String replacementValue) throws IOException {
+            // we need to find the first carriage return or new-line so that we can append the new value
+            // before the line separate. However, we don't want to do this using a regular expression due
+            // to performance concerns. So we will find the first occurrence of either \r or \n and use
+            // that to insert the replacement value.
+            boolean foundNewLine = false;
+            for (int i = 0; i < oneLine.length(); i++) {
+                final char c = oneLine.charAt(i);
+                if (foundNewLine) {
+                    bw.write(c);
+                    continue;
+                }
+
+                if (c == '\r' || c == '\n') {
+                    bw.write(replacementValue);
+                    foundNewLine = true;
+                }
+
+                bw.write(c);
+            }
+
+            if (!foundNewLine) {
+                bw.write(replacementValue);
+            }
         }
 
         @Override
@@ -604,8 +629,6 @@ public class ReplaceText extends AbstractProcessor {
                     }
                 });
 
-                int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
                 final String contentString = new String(buffer, 0, flowFileSize, charset);
                 additionalAttrs.clear();
                 final Matcher matcher = searchPattern.matcher(contentString);
@@ -615,36 +638,17 @@ public class ReplaceText extends AbstractProcessor {
                 int matches = 0;
                 final StringBuffer sb = new StringBuffer();
                 while (matcher.find()) {
+                    matches++;
 
-                    if (offset > 0) {
-                        offset--;
-                        continue;
-                    }
-                    if (occurrences == -1) {
-                        matches++;
-
-                        for (int i = 0; i <= matcher.groupCount(); i++) {
-                            additionalAttrs.put("$" + i, matcher.group(i));
-                        }
-                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                        replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                        String replacementFinal = normalizeReplacementString(replacement);
-
-                        matcher.appendReplacement(sb, replacementFinal);
-                    } else if (occurrences > 0) {
-                        matches++;
-                        occurrences--;
-
-                        for (int i = 0; i <= matcher.groupCount(); i++) {
-                            additionalAttrs.put("$" + i, matcher.group(i));
-                        }
-                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                        replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                        String replacementFinal = normalizeReplacementString(replacement);
-
-                        matcher.appendReplacement(sb, replacementFinal);
+                    for (int i=0; i <= matcher.groupCount(); i++) {
+                        additionalAttrs.put("$" + i, matcher.group(i));
                     }
 
+                    String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
+                    replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
+                    String replacementFinal = normalizeReplacementString(replacement);
+
+                    matcher.appendReplacement(sb, replacementFinal);
                 }
 
                 if (matches > 0) {
@@ -666,64 +670,35 @@ public class ReplaceText extends AbstractProcessor {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
-                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
+                            final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
-                            String oneLine;
 
-                            final StringBuffer sb = new StringBuffer();
+//                            final StringBuffer sb = new StringBuffer();
                             Matcher matcher = null;
-                            int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                            int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
-                            final PropertyValue replacementValueProperty = context.getProperty(REPLACEMENT_VALUE);
-
-                            while (null != (oneLine = demarcator.nextLine())) {
-                                additionalAttrs.clear();
-                                if (matcher == null) {
-                                    matcher = searchPattern.matcher(oneLine);
+                            String precedingLine = demarcator.nextLine();
+                            String succeedingLine;
+                            boolean firstLine = true;
+                            while (null != (succeedingLine = demarcator.nextLine())) {
+                                if(firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE)){
+                                    replaceRegexInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
+                                    firstLine = false;
+                                } else if(firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                                    firstLine = false;
+                                    bw.write(precedingLine);
+                                } else if(evaluateMode.equalsIgnoreCase(LINE_BY_LINE)
+                                    || evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
+                                    || (!firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
+                                    replaceRegexInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
                                 } else {
-                                    matcher.reset(oneLine);
+                                    bw.write(precedingLine);
                                 }
+                                precedingLine = succeedingLine;
+                            }
 
-                                int matches = 0;
-                                sb.setLength(0);
-
-                                while (matcher.find()) {
-                                    if (offset > 0) {
-                                        offset--;
-                                        continue;
-                                    }
-                                    if (occurrences == -1) {
-                                        matches++;
-                                        for (int i = 0; i <= matcher.groupCount(); i++) {
-                                            additionalAttrs.put("$" + i, matcher.group(i));
-                                        }
-                                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                                        replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                                        String replacementFinal = normalizeReplacementString(replacement);
-                                        matcher.appendReplacement(sb, replacementFinal);
-                                    } else if (occurrences > 0) {
-                                        matches++;
-                                        occurrences--;
-
-                                        for (int i = 0; i <= matcher.groupCount(); i++) {
-                                            additionalAttrs.put("$" + i, matcher.group(i));
-                                        }
-                                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                                        replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                                        String replacementFinal = normalizeReplacementString(replacement);
-                                        matcher.appendReplacement(sb, replacementFinal);
-                                    }
-                                }
-
-                                if (matches > 0) {
-                                    matcher.appendTail(sb);
-
-                                    final String updatedValue = sb.toString();
-                                    bw.write(updatedValue);
-                                } else {
-                                    // No match. Just write out the line as it was.
-                                    bw.write(oneLine);
-                                }
+                            if (evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE) || (!firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE))) {
+                                bw.write(precedingLine);
+                            } else {
+                                replaceRegexInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
                             }
                         }
                     }
@@ -731,6 +706,42 @@ public class ReplaceText extends AbstractProcessor {
             }
 
             return updatedFlowFile;
+        }
+
+        private void replaceRegexInLine(BufferedWriter bw, String oneLine, /*StringBuffer sb,*/ Matcher matcher, Pattern searchPattern, ProcessContext context, FlowFile flowFile) throws IOException {
+            additionalAttrs.clear();
+            if (matcher == null) {
+                matcher = searchPattern.matcher(oneLine);
+            } else {
+                matcher.reset(oneLine);
+            }
+
+            int matches = 0;
+            StringBuffer sb = new StringBuffer(); //sb.setLength(0);
+
+            while (matcher.find()) {
+                matches++;
+
+                for (int i=0; i <= matcher.groupCount(); i++) {
+                    additionalAttrs.put("$" + i, matcher.group(i));
+                }
+
+                String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
+                replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
+                String replacementFinal = normalizeReplacementString(replacement);
+
+                matcher.appendReplacement(sb, replacementFinal);
+            }
+
+            if (matches > 0) {
+                matcher.appendTail(sb);
+
+                final String updatedValue = sb.toString();
+                bw.write(updatedValue);
+            } else {
+                // No match. Just write out the line as it was.
+                bw.write(oneLine);
+            }
         }
 
         @Override
@@ -741,157 +752,92 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class LiteralReplace implements ReplacementStrategyExecutor {
         private final byte[] buffer;
-        private int numCapturingGroups;
-        private Map<String, String> additionalAttrs;
 
-        // back references are not supported in the evaluated expression
-        private static final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
-            @Override
-            public String decorate(final String attributeValue) {
-                // when we encounter a '$[0-9+]'  replace it with '\$[0-9+]'
-                return attributeValue.replaceAll("(\\$\\d+?)", "\\\\$1");
-            }
-        };
-
-        public LiteralReplace(final byte[] buffer, final ProcessContext context) {
+        public LiteralReplace(final byte[] buffer) {
             this.buffer = buffer;
-
-            final String searchVal = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions().getValue();
-            numCapturingGroups = Pattern.compile(searchVal, Pattern.LITERAL).matcher("").groupCount();
-            additionalAttrs = new HashMap<>(numCapturingGroups);
         }
 
         @Override
-        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
 
+            final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
             final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
+            final String searchValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
 
-            final String searchRegex = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
-            final Pattern searchPattern = Pattern.compile(searchRegex, Pattern.LITERAL);
-
-            final PropertyValue replacementValueProperty = context.getProperty(REPLACEMENT_VALUE);
             final int flowFileSize = (int) flowFile.getSize();
-            FlowFile updatedFlowfile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                session.read(flowFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream in) throws IOException {
-                        StreamUtils.fillBuffer(in, buffer, false);
-                    }
-                });
-
-                final String replacementValue = Matcher.quoteReplacement(context.getProperty(REPLACEMENT_VALUE)
-                        .evaluateAttributeExpressions(flowFile).getValue());
-                int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
-                final String contentString = new String(buffer, 0, flowFileSize, charset);
-                final Matcher matcher = searchPattern.matcher(contentString);
-                additionalAttrs.clear();
-
-                int matches = 0;
-                final StringBuffer sb = new StringBuffer();
-                while (matcher.find()) {
-
-                    if (offset > 0) {
-                        offset--;
-                        continue;
-                    }
-                    if (occurrences == -1) {
-                        matches++;
-                        for (int i=0; i <= matcher.groupCount(); i++) {
-                            additionalAttrs.put("$" + i, matcher.group(i));
-                        }
-                        String replacement = escapeLiteralBackReferences(replacementValue, numCapturingGroups);
-                        String replacementFinal = normalizeReplacementString(replacement);
-                        matcher.appendReplacement(sb, replacementFinal);
-                    } else if (occurrences > 0) {
-                        matches++;
-                        occurrences--;
-                        for (int i=0; i <= matcher.groupCount(); i++) {
-                            additionalAttrs.put("$" + i, matcher.group(i));
-                        }
-                        String replacement = escapeLiteralBackReferences(replacementValue, numCapturingGroups);
-                        String replacementFinal = normalizeReplacementString(replacement);
-                        matcher.appendReplacement(sb, replacementFinal);
-                    }
-                }
-
-                if (matches > 0) {
-                    matcher.appendTail(sb);
-
-                    final String updatedValue = sb.toString();
-                    updatedFlowfile = session.write(flowFile, new OutputStreamCallback() {
-                        @Override
-                        public void process(final OutputStream out) throws IOException {
-                            out.write(updatedValue.getBytes(charset));
-                        }
-                    });
-
-                }else {
-                    return flowFile;
-                }
-            } else {
-                final int initialBufferSize = (int) Math.min(flowFile.getSize(), 8192);
-                final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
-
-                updatedFlowfile = session.write(flowFile, new StreamCallback() {
+                flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
+                        StreamUtils.fillBuffer(in, buffer, false);
+                        final String contentString = new String(buffer, 0, flowFileSize, charset);
+                        // Interpreting the search and replacement values as char sequences
+                        final String updatedValue = contentString.replace(searchValue, replacementValue);
+                        out.write(updatedValue.getBytes(charset));
+                    }
+                });
+            } else {
+                final int initialBufferSize = (int) Math.min(flowFile.getSize(), 8192);
+                final Pattern searchPattern = Pattern.compile(searchValue, Pattern.LITERAL);
 
-                        int offset = context.getProperty(OCCURRENCE_OFFSET).asInteger();
-                        int occurrences = context.getProperty(NUMBER_OF_OCCURRENCES).asInteger();
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
                         try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, initialBufferSize);
                             final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
-                            String oneLine;
-                            while (null != (oneLine = demarcator.nextLine())) {
-                                int matches = 0;
-                                int lastEnd = 0;
+                            String precedingLine = demarcator.nextLine();
+                            String succeedingLine;
 
-                                final Matcher matcher = searchPattern.matcher(oneLine);
-                                while (matcher.find()) {
+                            boolean firstLine = true;
 
-                                    if (offset > 0) {
-                                        offset--;
-                                        continue;
-                                    }
-                                    if (occurrences == -1) {
-                                        bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
-                                        for (int i=0; i <= matcher.groupCount(); i++) {
-                                            additionalAttrs.put("$" + i, matcher.group(i));
-                                        }
-                                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                                        String replacementFinal = normalizeReplacementString(replacement);
-                                        bw.write(replacementFinal);
-                                        matches++;
-
-                                        lastEnd = matcher.end();
-                                    } else if (occurrences > 0) {
-                                        occurrences--;
-                                        bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
-                                        for (int i=0; i <= matcher.groupCount(); i++) {
-                                            additionalAttrs.put("$" + i, matcher.group(i));
-                                        }
-                                        String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
-                                        String replacementFinal = normalizeReplacementString(replacement);
-                                        bw.write(replacementFinal);
-                                        matches++;
-
-                                        lastEnd = matcher.end();
-                                    }
-                                }
-
-                                if (matches > 0) {
-                                    bw.write(oneLine, lastEnd, oneLine.length() - lastEnd);
+                            while (null != (succeedingLine = demarcator.nextLine())) {
+                                if(firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE)){
+                                    replaceTextInLine(bw, precedingLine, searchPattern.matcher(precedingLine), replacementValue);
+                                    firstLine = false;
+                                } else if(firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
+                                    firstLine = false;
+                                    bw.write(precedingLine);
+                                } else if(evaluateMode.equalsIgnoreCase(LINE_BY_LINE)
+                                    || evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
+                                    || (!firstLine && evaluateMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
+                                    replaceTextInLine(bw, precedingLine, searchPattern.matcher(precedingLine), replacementValue);
                                 } else {
-                                    bw.write(oneLine);
+                                    bw.write(precedingLine);
                                 }
+                                precedingLine = succeedingLine;
+                            }
+
+                            if (evaluateMode.equalsIgnoreCase(EXCEPT_LAST_LINE) || (!firstLine && evaluateMode.equalsIgnoreCase(FIRST_LINE))) {
+                                bw.write(precedingLine);
+                            } else {
+                                replaceTextInLine(bw, precedingLine, searchPattern.matcher(precedingLine), replacementValue);
                             }
                         }
                     }
                 });
             }
-            return updatedFlowfile;
+            return flowFile;
+        }
+
+        private void replaceTextInLine(BufferedWriter bw, String oneLine, Matcher matcher, String replacementValue) throws IOException {
+            int matches = 0;
+            int lastEnd = 0;
+
+
+            while (matcher.find()) {
+                bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
+                bw.write(replacementValue);
+                matches++;
+
+                lastEnd = matcher.end();
+            }
+
+            if (matches > 0) {
+                bw.write(oneLine, lastEnd, oneLine.length() - lastEnd);
+            } else {
+                bw.write(oneLine);
+            }
         }
 
         @Override
