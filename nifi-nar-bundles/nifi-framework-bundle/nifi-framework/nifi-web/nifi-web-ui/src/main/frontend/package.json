@@ -34,6 +34,7 @@
     "jquery": "3.1.1",
     "reset.css": "2.0.2",
     "jquery-form": "3.50.0",
+    "lodash-core": "4.17.11",
     "url-search-params": "0.6.1",
     "jsonlint": "1.6.2",
     "qtip2": "3.0.3",

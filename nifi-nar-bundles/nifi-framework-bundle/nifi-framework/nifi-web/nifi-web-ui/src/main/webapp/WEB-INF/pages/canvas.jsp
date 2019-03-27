@@ -60,6 +60,7 @@
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="assets/jquery-minicolors/jquery.minicolors.min.js"></script>
+        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellrangeselector.js"></script>
