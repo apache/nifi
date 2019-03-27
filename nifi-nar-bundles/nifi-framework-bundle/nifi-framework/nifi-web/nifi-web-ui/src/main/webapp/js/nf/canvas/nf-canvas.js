@@ -757,7 +757,7 @@
                         nfCommon.toggleScrollable(tabsContent.get(0));
                     });
                 }
-            }).on('keyup', function (evt) {
+            }).on('keydown', function (evt) {
                 // if a dialog is open, disable canvas shortcuts
                 if ($('.dialog').is(':visible') || $('#search-field').is(':focus')) {
                     return;
