@@ -23,7 +23,6 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <nifi.registry.version>0.3.0</nifi.registry.version>
         <jersey.version>2.26</jersey.version>
         <spring.version>4.3.19.RELEASE</spring.version>
         <spring.security.version>4.2.8.RELEASE</spring.security.version>
@@ -198,12 +197,12 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.19.1</version>
+                <version>1.20</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.11</version>
+                <version>1.12</version>
             </dependency>
             <dependency>
                 <groupId>javax.ws.rs</groupId>
@@ -306,12 +305,12 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.60</version>
+                <version>1.61</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk15on</artifactId>
-                <version>1.60</version>
+                <version>1.61</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -551,7 +550,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
-                <version>4.2</version>
+                <version>4.3</version>
             </dependency>
             <dependency>
                 <groupId>org.jasypt</groupId>
