@@ -1,12 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,8 @@ import com.google.cloud.bigquery.JobInfo;
  * Attributes associated with the BigQuery processors
  */
 public class BigQueryAttributes {
-    private BigQueryAttributes() {}
+    private BigQueryAttributes() {
+    }
 
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON_FILE = CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 
@@ -102,7 +103,12 @@ public class BigQueryAttributes {
             + "can interpret logical types into their corresponding types (such as TIMESTAMP) instead of only using their raw "
             + "types (such as INTEGER).";
 
+    public static final String RECORD_READER_ATTR = "bq.record.reader";
+    public static final String RECORD_READER_DESC = "Specifies the Controller Service to use for parsing incoming data.";
 
+    public static final String SKIP_INVALID_ROWS_ATTR = "bq.skip.invalid.rows";
+    public static final String SKIP_INVALID_ROWS_DESC = "Sets whether to insert all valid rows of a request, even if invalid "
+            + "rows exist. If not set the entire insert request will fail if it contains an invalid row.";
 
     // Batch Attributes
     public static final String JOB_CREATE_TIME_ATTR = "bq.job.stat.creation_time";
@@ -128,7 +134,6 @@ public class BigQueryAttributes {
 
     public static final String JOB_ERROR_LOCATION_ATTR = "bq.error.location";
     public static final String JOB_ERROR_LOCATION_DESC = "Load job error location";
-
 
     // Allowable values
     public static final AllowableValue CREATE_IF_NEEDED = new AllowableValue(JobInfo.CreateDisposition.CREATE_IF_NEEDED.name(),
