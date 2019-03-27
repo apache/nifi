@@ -235,6 +235,10 @@
                                         <include>url-search-params/build/url-search-params.js</include>
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
+
+                                        <include>lodash-core/distrib/lodash-core.min.js</include>
+                                        <include>lodash-core/distrib/README.md</include>
+
                                     </includes>
                                 </resource>
                             </resources>
