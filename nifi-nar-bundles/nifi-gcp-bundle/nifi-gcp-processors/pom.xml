@@ -40,6 +40,18 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
@@ -88,6 +100,12 @@
             <version>1.10.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-services</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -100,6 +118,8 @@
                         <exclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</exclude>
                         <exclude>src/test/resources/mock-gcp-service-account.json</exclude>
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

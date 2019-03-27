@@ -1,0 +1,36 @@
+[
+    {
+      "id": 1,
+      "name": "John Doe",
+      "alias": ["john", "jd"],
+      "addresses": [
+        {
+          "zip": "1000",
+          "city": "NiFi"
+        },
+        {
+          "zip": "2000",
+          "city": "Bar"
+        }
+      ],
+      "job": {
+        "position": "Manager",
+        "company": "ASF"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Jane Doe",
+      "alias": [],
+      "addresses": [
+        {
+          "zip": "1000",
+          "city": "NiFi"
+        }
+      ],
+      "job": {
+        "position": "Director",
+        "company": "ASF"
+      }
+    }
+  ]
