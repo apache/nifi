@@ -102,7 +102,7 @@ public class NiFiRestConfigurationProvider implements ConfigurationProvider {
 
         String id = null;
         if (version == null) {
-            String filenamePattern = Arrays.stream(filename.split(Pattern.quote("${version}"), -1)).map(Pattern::quote).collect(Collectors.joining("([0-9+])"));
+            String filenamePattern = Arrays.stream(filename.split(Pattern.quote("${version}"), -1)).map(Pattern::quote).collect(Collectors.joining("([0-9]+)"));
             Pair<String, Integer> maxIdAndVersion = getMaxIdAndVersion(filenamePattern);
             id = maxIdAndVersion.getFirst();
             version = maxIdAndVersion.getSecond();
