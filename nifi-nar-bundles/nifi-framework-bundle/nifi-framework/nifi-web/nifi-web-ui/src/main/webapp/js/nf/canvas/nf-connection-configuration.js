@@ -324,9 +324,14 @@
 
                 // show the output port options
                 var options = [];
+                var publicOutputPortCount = 0;
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
+                    if (outputPort.allowRemoteAccess) {
+                        publicOutputPortCount++;
+                        return;
+                    }
                     // require explicit access to the output port as it's the source of the connection
-                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite && !outputPort.allowRemoteAccess) {
+                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite) {
                         var component = outputPort.component;
                         options.push({
                             text: component.name,
@@ -363,9 +368,10 @@
 
                     deferred.resolve();
                 } else {
-                    var message = '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any output ports.';
-                    if (nfCommon.isEmpty(processGroupContents.outputPorts) === false) {
-                        message = 'Not authorized for any output ports in \'' + nfCommon.escapeHtml(processGroupName) + '\'.';
+                    var message = '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any local output ports.';
+                    if (nfCommon.isEmpty(processGroupContents.outputPorts) === false
+                            && processGroupContents.outputPorts.length > publicOutputPortCount) {
+                        message = 'Not authorized for any local output ports in \'' + nfCommon.escapeHtml(processGroupName) + '\'.';
                     }
 
                     // there are no output ports for this process group
@@ -598,7 +604,7 @@
                     // there are no relationships for this processor
                     nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any input ports.'
+                        dialogContent: '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any local input ports.'
                     });
 
                     // reset the dialog
