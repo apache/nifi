@@ -21,6 +21,8 @@ import org.apache.commons.codec.CharEncoding;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
@@ -30,11 +32,13 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -49,6 +53,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class JwtServiceTest {
@@ -193,7 +198,18 @@ public class JwtServiceTest {
             }
         };
 
-        mockKeyService = Mockito.mock(KeyService.class);
+        StandardNiFiUser nifiUser = mock(StandardNiFiUser.class);
+        when(nifiUser.getIdentity()).thenReturn(DEFAULT_IDENTITY);
+        NiFiUserDetails nifiUserDetails = mock(NiFiUserDetails.class);
+        when(nifiUserDetails.getNiFiUser()).thenReturn(nifiUser);
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(nifiUserDetails);
+
+        mockKeyService = mock(KeyService.class);
         when(mockKeyService.getKey(anyInt())).thenAnswer(keyAnswer);
         when(mockKeyService.getOrCreateKey(anyString())).thenReturn(key);
         doAnswer(keyAnswer).when(mockKeyService).deleteKey(anyString());
@@ -442,13 +458,13 @@ public class JwtServiceTest {
     public void testShouldNotGenerateTokenWithMissingKey() throws Exception {
         // Arrange
         final int EXPIRATION_MILLIS = 60000;
-        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken("alopresto",
+        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(DEFAULT_IDENTITY,
                 EXPIRATION_MILLIS,
                 "MockIdentityProvider");
         logger.debug("Generating token for " + loginAuthenticationToken);
 
         // Set up the bad key service
-        KeyService missingKeyService = Mockito.mock(KeyService.class);
+        KeyService missingKeyService = mock(KeyService.class);
         when(missingKeyService.getOrCreateKey(anyString())).thenThrow(new AdministrationException("Could not find a "
                 + "key for that user"));
         jwtService = new JwtService(missingKeyService);
@@ -465,14 +481,14 @@ public class JwtServiceTest {
 
     @Test
     public void testShouldLogOutUser() throws Exception {
+
         // Arrange
         expectedException.expect(JwtException.class);
         expectedException.expectMessage("Unable to validate the access token.");
 
-
         // Token expires in 60 seconds
         final int EXPIRATION_MILLIS = 60000;
-        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken("alopresto",
+        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(DEFAULT_IDENTITY,
                 EXPIRATION_MILLIS,
                 "MockIdentityProvider");
         logger.debug("Generating token for " + loginAuthenticationToken);
@@ -481,8 +497,10 @@ public class JwtServiceTest {
         String token = jwtService.generateSignedToken(loginAuthenticationToken);
         logger.debug("Generated JWT: " + token);
         String authID = jwtService.getAuthenticationFromToken(token);
-        assertEquals("alopresto", authID);
+        assertEquals(DEFAULT_IDENTITY, authID);
+        logger.debug("Logging out user: " + DEFAULT_IDENTITY);
         jwtService.logOut(token);
+        logger.debug("Logged out user: " + DEFAULT_IDENTITY);
         jwtService.getAuthenticationFromToken(token);
 
         // Assert
@@ -501,8 +519,6 @@ public class JwtServiceTest {
         // Assert
         // Should throw exception when authorization header is null
     }
-
-
 
 
 }

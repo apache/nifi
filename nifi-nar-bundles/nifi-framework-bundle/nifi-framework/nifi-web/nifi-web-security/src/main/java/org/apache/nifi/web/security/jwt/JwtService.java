@@ -30,6 +30,7 @@ import io.jsonwebtoken.UnsupportedJwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.key.Key;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
@@ -158,19 +159,17 @@ public class JwtService {
         }
     }
 
-    public void logOut(String authorizationHeader) throws JwtException {
+    public void logOut(String authorizationHeader)  {
         if(authorizationHeader == null || authorizationHeader.isEmpty()) {
             throw new JwtException("Log out failed: The required Authorization header was not present in the request to log out user.");
         }
 
+        String identity = NiFiUserUtils.getNiFiUserIdentity();
+
         try {
-            Jws<Claims> claims = parseTokenFromBase64EncodedString(authorizationHeader);
-            String identity = claims.getBody().getSubject();
             keyService.deleteKey(identity);
-        } catch (JwtException e) {
-            logger.debug("The Base64 encoded JWT: " + authorizationHeader);
-            final String errorMessage = "There was an error parsing the JWT to logOut user.";
-            logger.error(errorMessage, e);
+        } catch (Exception e) {
+            logger.error("Unable to log out user: " + identity + ". Failed to remove their token from database.");
             throw e;
         }
     }
