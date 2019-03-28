@@ -283,7 +283,7 @@ public class StandardFlowSnippet implements FlowSnippet {
         //
         for (final PortDTO portDTO : dto.getInputPorts()) {
             final Port inputPort;
-            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 inputPort = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
                     ((PublicPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
@@ -307,7 +307,7 @@ public class StandardFlowSnippet implements FlowSnippet {
 
         for (final PortDTO portDTO : dto.getOutputPorts()) {
             final Port outputPort;
-            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
                     ((PublicPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());

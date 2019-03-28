@@ -1271,7 +1271,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final PortDTO portDTO = FlowFromDOMFactory.getPort(inputPortElement);
 
             final Port port;
-            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 port = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
@@ -1316,7 +1316,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final PortDTO portDTO = FlowFromDOMFactory.getPort(outputPortElement);
 
             final Port port;
-            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
                 port = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());

@@ -3308,7 +3308,7 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     private void verifyPublicPortUniqueness(FlowSnippetDTO snippet) {
-        snippet.getInputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()))
+        snippet.getInputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
             .forEach(portDTO -> {
                 try {
                     serviceFacade.verifyPublicInputPortUniqueness(portDTO.getId(), portDTO.getName());
@@ -3317,7 +3317,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 }
             });
 
-        snippet.getOutputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.isAllowRemoteAccess()))
+        snippet.getOutputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
             .forEach(portDTO -> {
                 try {
                     serviceFacade.verifyPublicOutputPortUniqueness(portDTO.getId(), portDTO.getName());

@@ -78,7 +78,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
             portDTO.getConcurrentlySchedulableTaskCount(),
             portDTO.getName(),
             portDTO.getComments(),
-            portDTO.isAllowRemoteAccess())) {
+            portDTO.getAllowRemoteAccess())) {
 
             // validate the request
             final List<String> requestValidation = validateProposedConfiguration(port, portDTO);

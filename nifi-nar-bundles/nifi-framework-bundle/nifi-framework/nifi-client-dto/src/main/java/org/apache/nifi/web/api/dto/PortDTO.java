@@ -179,7 +179,7 @@ public class PortDTO extends ComponentDTO {
     @ApiModelProperty(
             value = "Whether this port can be accessed remotely via Site-to-Site protocol."
     )
-    public Boolean isAllowRemoteAccess() {
+    public Boolean getAllowRemoteAccess() {
         return allowRemoteAccess;
     }
 

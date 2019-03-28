@@ -62,7 +62,7 @@ public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
 
         // determine if this is the root group
         Port port;
-        if (group.getParent() == null || Boolean.TRUE.equals(portDTO.isAllowRemoteAccess())) {
+        if (group.getParent() == null || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
             port = flowController.getFlowManager().createPublicOutputPort(portDTO.getId(), portDTO.getName());
         } else {
             port = flowController.getFlowManager().createLocalOutputPort(portDTO.getId(), portDTO.getName());

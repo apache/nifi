@@ -230,7 +230,7 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             entity.setPortType(dto.getType());
-            entity.setAllowRemoteAccess(dto.isAllowRemoteAccess());
+            entity.setAllowRemoteAccess(dto.getAllowRemoteAccess());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
