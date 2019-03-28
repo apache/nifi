@@ -67,16 +67,14 @@
     </li>
     <li><b>Broker URI</b> - URI pointing to the network location of the JMS Message broker. For example:
         <ul>
-            <li>Apache ActiveMQ - <i>tcp://myhost:1234</i> for single broker and <i>failover:(tcp://myhost01:1234,tcp://myhost02:1234)</i>
-                for multiple brokers.
+            <li>Apache ActiveMQ - <i>tcp://myhost:1234</i> for single broker and
+                <i>failover:(tcp://myhost01:1234,tcp://myhost02:1234)</i> for multiple brokers.
             </li>
-            <li>IBM MQ - <i>myhost:1234</i> or <i>myhost(1234)</i> for single broker.
-                <i>myhost01(1234),myhost02(1234)</i>
-                for multiple brokers.
+            <li>IBM MQ - <i>myhost:1234</i> for single broker. <i>myhost01(1234),myhost02(1234)</i> for multiple
+                brokers.
             </li>
             <li>TIBCO EMS - <i>tcp://myhost:1234</i> for single broker and
-                <i>tcp://myhost01:7222,tcp://myhost02:7222</i>
-                for multiple brokers.
+                <i>tcp://myhost01:7222,tcp://myhost02:7222</i> for multiple brokers.
             </li>
         </ul>
     </li>
@@ -113,19 +111,20 @@
         <td>MQ ConnectionFactory Implementation</td>
         <td>com.ibm.mq.jms.MQQueueConnectionFactory</td>
         <td>Static</td>
-        <td>Class is implementation of QueueConnectionFactory</td>
+        <td>Vendor provided implementation of QueueConnectionFactory</td>
     </tr>
     <tr>
         <td>MQ Client Libraries path (i.e. /usr/jms/lib)</td>
         <td>/opt/mqm/java/lib</td>
         <td>Static</td>
-        <td>Default installation path on Linux systems</td>
+        <td>Default installation path of client JAR files on Linux systems</td>
     </tr>
     <tr>
         <td>Broker URI</td>
-        <td>mqhost(1414)</td>
+        <td>mqhost01(1414),mqhost02(1414)</td>
         <td>Static</td>
-        <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname">Connection Name List syntax</a></td>
+        <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname">Connection Name List syntax</a>.
+            If connecting to single instance instead use colon separated host/port pair syntax.</td>
     </tr>
     <tr>
         <td>SSL Context Service</td>
@@ -137,19 +136,19 @@
         <td>channel</td>
         <td>TO.BAR</td>
         <td>Dynamic</td>
-        <td>Required for client transport mode</td>
+        <td>Required when using the client transport mode</td>
     </tr>
     <tr>
         <td>queueManager</td>
         <td>PQM1</td>
         <td>Dynamic</td>
-        <td></td>
+        <td>Name of queue manager. Always required.</td>
     </tr>
     <tr>
         <td>transportType</td>
         <td>1</td>
         <td>Dynamic</td>
-        <td>Constant integer value corresponding to the client transport mode</td>
+        <td>Constant integer value corresponding to the client transport mode. Default value is <a href="https://www.ibm.com/support/knowledgecenter/en/SSEQTP_9.0.0/com.ibm.websphere.base.doc/ae/umj_pjcfm.html">"Bindings, then client"</a></td>
     </tr>
 </table>
 </body>
