@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
+import org.apache.nifi.web.security.jwt.JwtServiceTest;
+import net.minidev.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.util.NiFiTestServer;
@@ -48,14 +50,19 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * Access token endpoint test.
  */
 public class ITAccessTokenEndpoint {
 
+    private final String user = "unregistered-user@nifi";
+    private final String password = "password";
     private static final String CLIENT_ID = "token-endpoint-id";
     private static final String CONTEXT_PATH = "/nifi-api";
 
@@ -114,7 +121,7 @@ public class ITAccessTokenEndpoint {
     }
 
     // -----------
-    // LOGIN CONIG
+    // LOGIN CONFIG
     // -----------
     /**
      * Test getting access configuration.
@@ -254,7 +261,7 @@ public class ITAccessTokenEndpoint {
         // verify unknown
         Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
 
-        response = TOKEN_USER.testCreateToken(accessTokenUrl, "unregistered-user@nifi", "password");
+        response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
@@ -277,6 +284,202 @@ public class ITAccessTokenEndpoint {
 
         // verify unregistered
         Assert.assertEquals("ACTIVE", accessStatus.getStatus());
+    }
+
+    @Test
+    public void testLogOutSuccess() throws Exception {
+        String accessStatusUrl = BASE_URL + "/access";
+        String accessTokenUrl = BASE_URL + "/access/token";
+        String logoutUrl = BASE_URL + "/access/logout";
+
+        Response response = TOKEN_USER.testGet(accessStatusUrl);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unknown
+        Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
+
+        response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+
+        // get the token
+        String token = response.readEntity(String.class);
+
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+
+        // check the status with the token
+        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unregistered
+        Assert.assertEquals("ACTIVE", accessStatus.getStatus());
+
+
+        // log out
+        response = TOKEN_USER.testGetWithHeaders(logoutUrl, null, headers);
+        Assert.assertEquals(200, response.getStatus());
+
+        // ensure we can no longer use our token
+        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutNoTokenHeader() throws Exception {
+        String accessStatusUrl = BASE_URL + "/access";
+        String accessTokenUrl = BASE_URL + "/access/token";
+        String logoutUrl = BASE_URL + "/access/logout";
+
+        Response response = TOKEN_USER.testGet(accessStatusUrl);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unknown
+        Assert.assertEquals("UNKNOWN", accessStatus.getStatus());
+
+        response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+
+        // get the token
+        String token = response.readEntity(String.class);
+
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+
+        // check the status with the token
+        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
+
+        // ensure the request is successful
+        Assert.assertEquals(200, response.getStatus());
+
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
+        accessStatus = accessStatusEntity.getAccessStatus();
+
+        // verify unregistered
+        Assert.assertEquals("ACTIVE", accessStatus.getStatus());
+
+
+        // log out should fail as we provided no token for logout to use
+        response = TOKEN_USER.testGetWithHeaders(logoutUrl, null, null);
+        Assert.assertEquals(500, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutUnknownToken() throws Exception {
+        // Arrange
+        final String ALG_HEADER = "{\"alg\":\"HS256\"}";
+        final int EXPIRATION_SECONDS = 60;
+        Calendar now = Calendar.getInstance();
+        final long currentTime = (long) (now.getTimeInMillis() / 1000.0);
+        final long TOKEN_ISSUED_AT = currentTime;
+        final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS;
+
+        // Always use LinkedHashMap to enforce order of the keys because the signature depends on order
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", "unknownuser");
+        claims.put("iss", "MockIdentityProvider");
+        claims.put("aud", "MockIdentityProvider");
+        claims.put("preferred_username", "unknownuser");
+        claims.put("kid", 1);
+        claims.put("exp", TOKEN_EXPIRATION_SECONDS);
+        claims.put("iat", TOKEN_ISSUED_AT);
+        final String EXPECTED_PAYLOAD = new JSONObject(claims).toString();
+
+        String accessStatusUrl = BASE_URL + "/access";
+        String accessTokenUrl = BASE_URL + "/access/token";
+        String logoutUrl = BASE_URL + "/access/logout";
+
+        Response response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
+        Response responseA = TOKEN_USER.testCreateToken(accessTokenUrl, "jack", password);
+
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+        // get the token
+        String token = response.readEntity(String.class);
+        // authorization header
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + token);
+        // check the status with the token
+        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
+        Assert.assertEquals(200, response.getStatus());
+
+        // Generate a token that will not match signatures with the generated token.
+        final String UNKNOWN_USER_TOKEN = JwtServiceTest.generateHS256Token(ALG_HEADER, EXPECTED_PAYLOAD, true, true);
+        Map<String, String> badHeaders = new HashMap<>();
+        badHeaders.put("Authorization", "Bearer " + UNKNOWN_USER_TOKEN);
+
+        // Log out should fail as we provide a bad token to use, signatures will mismatch
+        response = TOKEN_USER.testGetWithHeaders(logoutUrl, null, badHeaders);
+        Assert.assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    public void testLogOutSplicedTokenSignature() throws Exception {
+        // Arrange
+        final String ALG_HEADER = "{\"alg\":\"HS256\"}";
+        final int EXPIRATION_SECONDS = 60;
+        Calendar now = Calendar.getInstance();
+        final long currentTime = (long) (now.getTimeInMillis() / 1000.0);
+        final long TOKEN_ISSUED_AT = currentTime;
+        final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS;
+
+        String accessTokenUrl = BASE_URL + "/access/token";
+        String logoutUrl = BASE_URL + "/access/logout";
+
+        Response response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
+        // replace the user in the token with an unknown user
+        String realToken = response.readEntity(String.class);
+        String realSignature = realToken.split("\\.")[2];
+
+        // Generate a token that we will add a valid signature from a different token
+        // Always use LinkedHashMap to enforce order of the keys because the signature depends on order
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", "unknownuser");
+        claims.put("iss", "MockIdentityProvider");
+        claims.put("aud", "MockIdentityProvider");
+        claims.put("preferred_username", "unknownuser");
+        claims.put("kid", 1);
+        claims.put("exp", TOKEN_EXPIRATION_SECONDS);
+        claims.put("iat", TOKEN_ISSUED_AT);
+        final String EXPECTED_PAYLOAD = new JSONObject(claims).toString();
+        final String tempToken = JwtServiceTest.generateHS256Token(ALG_HEADER, EXPECTED_PAYLOAD, true, true);
+
+        // Splice this token with the real token from above
+        String[] splitToken = tempToken.split("\\.");
+        StringJoiner joiner = new StringJoiner(".");
+        joiner.add(splitToken[0]);
+        joiner.add(splitToken[1]);
+        joiner.add(realSignature);
+        String splicedUserToken = joiner.toString();
+
+        Map<String, String> badHeaders = new HashMap<>();
+        badHeaders.put("Authorization", "Bearer " + splicedUserToken);
+
+        // Log out should fail as we provide a bad token to use, signatures will mismatch
+        response = TOKEN_USER.testGetWithHeaders(logoutUrl, null, badHeaders);
+        Assert.assertEquals(401, response.getStatus());
     }
 
     @AfterClass

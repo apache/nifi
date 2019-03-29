@@ -146,11 +146,11 @@ public class JwtServiceTest {
     // Class under test
     private JwtService jwtService;
 
-    private String generateHS256Token(String rawHeader, String rawPayload, boolean isValid, boolean isSigned) {
+    public static String generateHS256Token(String rawHeader, String rawPayload, boolean isValid, boolean isSigned) {
         return generateHS256Token(rawHeader, rawPayload, HMAC_SECRET, isValid, isSigned);
     }
 
-    private String generateHS256Token(String rawHeader, String rawPayload, String hmacSecret, boolean isValid,
+    private static String generateHS256Token(String rawHeader, String rawPayload, String hmacSecret, boolean isValid,
             boolean isSigned) {
         try {
             logger.info("Generating token for " + rawHeader + " + " + rawPayload);
@@ -172,7 +172,7 @@ public class JwtServiceTest {
         }
     }
 
-    private String generateHMAC(String hmacSecret, String body) throws NoSuchAlgorithmException,
+    private static String generateHMAC(String hmacSecret, String body) throws NoSuchAlgorithmException,
             UnsupportedEncodingException, InvalidKeyException {
         Mac hmacSHA256 = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(hmacSecret.getBytes("UTF-8"), "HmacSHA256");
