@@ -149,8 +149,6 @@ public class ConnectableTask {
     }
 
     public InvocationResult invoke() {
-        logger.trace("Triggering {}", connectable);
-
         if (scheduleState.isTerminated()) {
             logger.debug("Will not trigger {} because task is terminated", connectable);
             return InvocationResult.DO_NOT_YIELD;

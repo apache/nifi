@@ -98,6 +98,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
     // guaraded by lock
     private ValidationContext validationContext = null;
 
+    // guaraded by lock
+    private ValidationContext validationContext = null;
+
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                                  final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
