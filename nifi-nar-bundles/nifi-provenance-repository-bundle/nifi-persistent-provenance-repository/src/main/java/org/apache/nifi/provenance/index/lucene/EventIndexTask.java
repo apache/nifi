@@ -17,16 +17,6 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.nifi.events.EventReporter;
@@ -37,6 +27,18 @@ import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class EventIndexTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(EventIndexTask.class);
@@ -52,6 +54,8 @@ public class EventIndexTask implements Runnable {
     private final EventReporter eventReporter;
     private final int commitThreshold;
 
+    private volatile CompletableFuture<Void> shutdownComplete;
+
     public EventIndexTask(final BlockingQueue<StoredDocument> documentQueue, final RepositoryConfiguration repoConfig, final IndexManager indexManager,
         final IndexDirectoryManager directoryManager, final int maxEventsPerCommit, final EventReporter eventReporter) {
         this.documentQueue = documentQueue;
@@ -61,8 +65,13 @@ public class EventIndexTask implements Runnable {
         this.eventReporter = eventReporter;
     }
 
-    public void shutdown() {
+    public synchronized Future<Void> shutdown() {
+        if (shutdownComplete == null) {
+            shutdownComplete = new CompletableFuture<>();
+        }
+
         this.shutdown = true;
+        return shutdownComplete;
     }
 
     private void fetchDocuments(final List<StoredDocument> destination) throws InterruptedException {
@@ -108,6 +117,11 @@ public class EventIndexTask implements Runnable {
                 eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to index Provenance Events. See logs for more information.");
             }
         }
+
+        final CompletableFuture<Void> future = this.shutdownComplete;
+        if (future != null) {
+            future.complete(null);
+        }
     }
 
 
@@ -119,7 +133,7 @@ public class EventIndexTask implements Runnable {
             return;
         }
 
-        final Map<File, List<IndexableDocument>> docsByIndexDir = toIndex.stream().collect(Collectors.groupingBy(doc -> doc.getIndexDirectory()));
+        final Map<File, List<IndexableDocument>> docsByIndexDir = toIndex.stream().collect(Collectors.groupingBy(IndexableDocument::getIndexDirectory));
         for (final Map.Entry<File, List<IndexableDocument>> entry : docsByIndexDir.entrySet()) {
             final File indexDirectory = entry.getKey();
             final List<IndexableDocument> documentsForIndex = entry.getValue();
@@ -145,7 +159,7 @@ public class EventIndexTask implements Runnable {
                 indexWriter.getIndexWriter().deleteDocuments(query);
 
                 final List<Document> documents = documentsForIndex.stream()
-                    .map(doc -> doc.getDocument())
+                    .map(IndexableDocument::getDocument)
                     .collect(Collectors.toList());
 
                 indexWriter.index(documents, commitThreshold);

@@ -17,7 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 
 import java.util.ArrayList;
@@ -25,16 +25,16 @@ import java.util.Collection;
 import java.util.List;
 
 public class StandardQueueProvider implements QueueProvider {
-    private final FlowController flowController;
+    private final FlowManager flowManager;
 
-    public StandardQueueProvider(final FlowController flowController) {
-        this.flowController = flowController;
+    public StandardQueueProvider(final FlowManager flowManager) {
+        this.flowManager = flowManager;
     }
 
 
     @Override
     public Collection<FlowFileQueue> getAllQueues() {
-        final Collection<Connection> connections = flowController.getFlowManager().findAllConnections();
+        final Collection<Connection> connections = flowManager.findAllConnections();
         final List<FlowFileQueue> queues = new ArrayList<>(connections.size());
         for (final Connection connection : connections) {
             queues.add(connection.getFlowFileQueue());

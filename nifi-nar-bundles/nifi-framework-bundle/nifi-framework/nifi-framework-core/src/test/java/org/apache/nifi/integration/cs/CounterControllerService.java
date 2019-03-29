@@ -14,15 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
+package org.apache.nifi.integration.cs;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.wali.SerDeFactory;
+import org.apache.nifi.controller.AbstractControllerService;
 
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
-public interface RepositoryRecordSerdeFactory extends SerDeFactory<RepositoryRecord> {
-    void setQueueMap(Map<String, FlowFileQueue> queueMap);
+public class CounterControllerService extends AbstractControllerService implements Counter {
+    private final AtomicLong count = new AtomicLong(0L);
 
-    Long getRecordIdentifier(RepositoryRecord record);
+    @Override
+    public long increment(final long delta) {
+        return count.addAndGet(delta);
+    }
+
+    @Override
+    public long getValue() {
+        return count.get();
+    }
 }
