@@ -111,7 +111,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
             // If there is any port with the same name, but different identifier, throw an error.
             if (getPublicPorts().stream()
                 .anyMatch(p -> portName.equals(p.getName()) && !port.getIdentifier().equals(p.getIdentifier()))) {
-                throw new IllegalStateException("Public port name should be unique throughout the flow.");
+                throw new IllegalStateException("Public port name must be unique throughout the flow.");
             }
         }
 
@@ -120,9 +120,12 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
     @Override
     public void verifyPublicPortUniqueness(final String portId, final String portName) {
-        if (getPublicPorts().stream()
-            .anyMatch(p -> portId.equals(p.getIdentifier()) || portName.equals(p.getName()))) {
-            throw new IllegalStateException("Public port name and identifier should be unique throughout the flow.");
+        for (Port port : getPublicPorts()) {
+            if (portId.equals(port.getIdentifier())) {
+                throw new IllegalStateException("Public port identifier must be unique throughout the flow.");
+            } else if(portName.equals(port.getName())) {
+                throw new IllegalStateException("Public port name must be unique throughout the flow.");
+            }
         }
     }
 

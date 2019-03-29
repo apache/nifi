@@ -490,6 +490,19 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private void verifyPortUniqueness(final Port port,
+                                      final Map<String, Port> portIdMap,
+                                      final Function<String, Port> getPortByName) {
+
+        if (portIdMap.containsKey(requireNonNull(port).getIdentifier())) {
+            throw new IllegalStateException("A port with the same id already exists.");
+        }
+
+        if (getPortByName.apply(port.getName()) != null) {
+            throw new IllegalStateException("A port with the same name already exists.");
+        }
+    }
+
     @Override
     public void addInputPort(final Port port) {
         if (isRootGroup()) {
@@ -501,10 +514,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             // Unique port check within the same group.
-            if (inputPorts.containsKey(requireNonNull(port).getIdentifier())
-                    || getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("The input port name or identifier is not available to be added.");
-            }
+            verifyPortUniqueness(port, inputPorts, name -> getInputPortByName(name));
 
             port.setProcessGroup(this);
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
@@ -585,10 +595,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             // Unique port check within the same group.
-            if (outputPorts.containsKey(requireNonNull(port).getIdentifier())
-                || getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("The output port name or identifier is not available to be added.");
-            }
+            verifyPortUniqueness(port, outputPorts, name -> getOutputPortByName(name));
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);

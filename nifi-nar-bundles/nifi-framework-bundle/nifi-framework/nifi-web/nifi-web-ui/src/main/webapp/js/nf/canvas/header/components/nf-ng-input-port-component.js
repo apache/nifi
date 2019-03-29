@@ -25,8 +25,9 @@
                 'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
-                'nf.ErrorHandler'],
-            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+                'nf.ErrorHandler',
+                'nf.Common'],
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
                 return (nf.ng.InputPortComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -37,7 +38,8 @@
                 require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Dialog')));
     } else {
         nf.ng.InputPortComponent = factory(root.$,
             root.nf.Client,
@@ -45,9 +47,10 @@
             root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -131,7 +134,7 @@
                     // configure the new port dialog
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
-                        headerText: 'Add Port',
+                        headerText: 'Add Input Port',
                         handler: {
                             close: function () {
                                 $('#new-port-name').val('');
@@ -154,21 +157,23 @@
                  * Show the modal.
                  */
                 show: function () {
+                    $('#new-port-dialog > .dialog-header > .dialog-header-text').text('Add Input Port')
+
                     var optionLocal = {
                                 text: 'Local connections',
                                 value: 'false',
-                                description: 'Accepts connections from components in the parent ProcessGroups.'
+                                description: 'Receive FlowFiles from components in parent process groups'
                             };
 
                     var optionRemote = {
-                                text: 'Site-to-Site connections',
+                                text: 'Remote connections (site-to-site)',
                                 value: 'true',
-                                description: 'Receives FlowFiles via Site-to-Site connections.'
+                                description: 'Receive FlowFiles from remote process group (site-to-site)'
                             };
 
                     // initialize the remote access combo
-                    $('#port-allow-remote-access-label').text('Receive data from');
-                    $('#port-allow-remote-access-info').attr('title', 'Specify the way this port receives incoming FlowFiles.');
+                    $('#port-allow-remote-access-label').text('Receive from');
+                    $('#port-allow-remote-access-info').attr('title', 'Specify where FlowFiles are received from.');
                     if (nfCanvasUtils.getParentGroupId() === null) {
                         $('#port-allow-remote-access-setting').hide();
                     } else {

@@ -25,8 +25,9 @@
                 'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
-                'nf.ErrorHandler'],
-            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+                'nf.ErrorHandler',
+                'nf.Common'],
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
                 return (nf.ng.OutputPortComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -37,7 +38,8 @@
                 require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Dialog')));
     } else {
         nf.ng.OutputPortComponent = factory(root.$,
             root.nf.Client,
@@ -45,9 +47,10 @@
             root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -145,21 +148,23 @@
                  * Show the modal.
                  */
                 show: function () {
+                    $('#new-port-dialog > .dialog-header > .dialog-header-text').text('Add Output Port')
+
                     var optionLocal = {
                                 text: 'Local connections',
                                 value: 'false',
-                                description: 'Allow components in the parent ProcessGroups to pull FlowFiles.'
+                                description: 'Send FlowFiles to components in parent process groups.'
                             };
 
                     var optionRemote = {
-                                text: 'Site-to-Site connections',
+                                text: 'Remote connections (site-to-site)',
                                 value: 'true',
-                                description: 'Transfer FlowFiles via Site-to-Site connections.'
+                                description: 'Send FlowFiles to remote process group (site-to-site).'
                             };
 
                     // initialize the remote access combo
-                    $('#port-allow-remote-access-label').text('Transfer data to');
-                    $('#port-allow-remote-access-info').attr('title', 'Specify the way this port transfers outgoing FlowFiles.');
+                    $('#port-allow-remote-access-label').text('Send to');
+                    $('#port-allow-remote-access-info').attr('title', 'Specify where FlowFiles are sent.');
                     if (nfCanvasUtils.getParentGroupId() === null) {
                         $('#port-allow-remote-access-setting').hide();
                     } else {

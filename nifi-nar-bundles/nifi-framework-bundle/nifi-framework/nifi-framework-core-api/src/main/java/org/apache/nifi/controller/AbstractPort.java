@@ -138,11 +138,11 @@ public abstract class AbstractPort implements Port {
         final ProcessGroup parentGroup = this.processGroup.get();
         if (getConnectableType() == ConnectableType.INPUT_PORT) {
             if (parentGroup.getInputPortByName(name) != null) {
-                throw new IllegalStateException("The requested new port name is not available");
+                throw new IllegalStateException("A port with the same name already exists.");
             }
         } else if (getConnectableType() == ConnectableType.OUTPUT_PORT) {
             if (parentGroup.getOutputPortByName(name) != null) {
-                throw new IllegalStateException("The requested new port name is not available");
+                throw new IllegalStateException("A port with the same name already exists.");
             }
         }
 
