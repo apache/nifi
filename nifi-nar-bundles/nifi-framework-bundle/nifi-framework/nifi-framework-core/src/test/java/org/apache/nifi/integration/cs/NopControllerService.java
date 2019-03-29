@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
+package org.apache.nifi.integration.cs;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.wali.SerDeFactory;
+import org.apache.nifi.controller.ControllerService;
 
-import java.util.Map;
-
-public interface RepositoryRecordSerdeFactory extends SerDeFactory<RepositoryRecord> {
-    void setQueueMap(Map<String, FlowFileQueue> queueMap);
-
-    Long getRecordIdentifier(RepositoryRecord record);
+public interface NopControllerService extends ControllerService {
 }

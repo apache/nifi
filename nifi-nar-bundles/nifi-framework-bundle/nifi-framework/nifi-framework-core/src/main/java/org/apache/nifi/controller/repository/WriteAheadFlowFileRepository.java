@@ -181,6 +181,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
+        initialize(claimManager, new StandardRepositoryRecordSerdeFactory(claimManager));
+    }
+
+    protected void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory) throws IOException {
         this.claimManager = claimManager;
 
         for (final File file : flowFileRepositoryPaths) {
@@ -191,7 +195,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // TODO: Allow for backup path that can be used if disk out of space?? Would allow a snapshot to be stored on
         // backup and then the data deleted from the normal location; then can move backup to normal location and
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
-        serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
+        this.serdeFactory = serdeFactory;
 
         if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL)) {
             wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);

@@ -614,6 +614,17 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        // Next, process any JOIN events because we need to ensure that the JOINed FlowFile is created before any processor-emitted events occur.
+        for (final Map.Entry<FlowFile, List<ProvenanceEventRecord>> entry : checkpoint.generatedProvenanceEvents.entrySet()) {
+            for (final ProvenanceEventRecord event : entry.getValue()) {
+                final ProvenanceEventType eventType = event.getEventType();
+                if (eventType == ProvenanceEventType.JOIN) {
+                    recordsToSubmit.add(event);
+                    addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
+                }
+            }
+        }
+
         // Now add any Processor-reported events.
         for (final ProvenanceEventRecord event : processorGenerated) {
             if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
@@ -633,6 +644,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // Finally, add any other events that we may have generated.
         for (final List<ProvenanceEventRecord> eventList : checkpoint.generatedProvenanceEvents.values()) {
             for (final ProvenanceEventRecord event : eventList) {
+                if (event.getEventType() == ProvenanceEventType.JOIN) {
+                    continue; // JOIN events are handled above.
+                }
+
                 if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
                     continue;
                 }
@@ -647,17 +662,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final ContentClaim original = repoRecord.getOriginalClaim();
             final ContentClaim current = repoRecord.getCurrentClaim();
 
-            boolean contentChanged = false;
-            if (original == null && current != null) {
-                contentChanged = true;
-            }
-            if (original != null && current == null) {
-                contentChanged = true;
-            }
-            if (original != null && current != null && !original.equals(current)) {
-                contentChanged = true;
-            }
-
+            final boolean contentChanged = !Objects.equals(original, current);
             final FlowFileRecord curFlowFile = repoRecord.getCurrent();
             final String flowFileId = curFlowFile.getAttribute(CoreAttributes.UUID.key());
             boolean eventAdded = false;
@@ -1742,11 +1747,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void registerJoinEvent(final FlowFile child, final Collection<FlowFile> parents) {
         final ProvenanceEventRecord eventRecord = provenanceReporter.generateJoinEvent(parents, child);
-        List<ProvenanceEventRecord> existingRecords = generatedProvenanceEvents.get(child);
-        if (existingRecords == null) {
-            existingRecords = new ArrayList<>();
-            generatedProvenanceEvents.put(child, existingRecords);
-        }
+        final List<ProvenanceEventRecord> existingRecords = generatedProvenanceEvents.computeIfAbsent(child, k -> new ArrayList<>());
         existingRecords.add(eventRecord);
     }
 

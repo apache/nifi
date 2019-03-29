@@ -2259,11 +2259,9 @@ public class TestStandardProcessSession {
         public Set<ContentClaim> getExistingClaims() {
             final Set<ContentClaim> claims = new HashSet<>();
 
-            for (long i = 0; i < idGenerator.get(); i++) {
-                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim("container", "section", String.valueOf(i), false, false);
-                final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
-                if (getClaimantCount(contentClaim) > 0) {
-                    claims.add(contentClaim);
+            for (final Map.Entry<ContentClaim, AtomicInteger> entry : claimantCounts.entrySet()) {
+                if (entry.getValue().get() > 0) {
+                    claims.add(entry.getKey());
                 }
             }
 
