@@ -3557,7 +3557,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (childGroup == null) {
                 final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
                 flowManager.onProcessGroupAdded(added);
-                added.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
+                added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
                 updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, true, updateDescendantVersionedGroups, variablesToSkip);
@@ -3675,7 +3675,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 final Set<Relationship> proposedAutoTerminated =
                     proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
-                        .map(relName -> added.getRelationship(relName))
+                        .map(added::getRelationship)
                         .collect(Collectors.toSet());
                 autoTerminatedRelationships.put(added, proposedAutoTerminated);
                 LOG.info("Added {} to {}", added, this);
@@ -3684,7 +3684,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 final Set<Relationship> proposedAutoTerminated =
                     proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
-                        .map(relName -> processor.getRelationship(relName))
+                        .map(processor::getRelationship)
                         .collect(Collectors.toSet());
 
                 if (!processor.getAutoTerminatedRelationships().equals(proposedAutoTerminated)) {
@@ -3758,7 +3758,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         // We cannot do this above, in the 'updateProcessor' call because if a connection is removed and changed to auto-terminated,
         // then updating this in the updateProcessor call above would attempt to set the Relationship to being auto-terminated while a
         // Connection for that relationship exists. This will throw an Exception.
-        autoTerminatedRelationships.forEach((proc, rels) -> proc.setAutoTerminatedRelationships(rels));
+        autoTerminatedRelationships.forEach(ProcessorNode::setAutoTerminatedRelationships);
 
         // Remove all controller services no longer in use
         for (final String removedVersionedId : controllerServicesRemoved) {

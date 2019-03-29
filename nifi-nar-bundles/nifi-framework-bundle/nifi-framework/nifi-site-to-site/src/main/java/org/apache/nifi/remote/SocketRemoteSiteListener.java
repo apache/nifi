@@ -57,8 +57,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
-    public static final String DEFAULT_FLOWFILE_PATH = "./";
-
     private final int socketPort;
     private final SSLContext sslContext;
     private final NodeInformant nodeInformant;
@@ -373,6 +371,10 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     @Override
     public void stop() {
         stopped.set(true);
+    }
+
+    @Override
+    public void destroy() {
     }
 
     private void verifyMagicBytes(final InputStream in, final String peerDescription) throws IOException, HandshakeException {

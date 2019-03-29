@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -31,6 +23,14 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.Connectables;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RepositoryContext {
 
@@ -128,11 +128,11 @@ public class RepositoryContext {
         counterRepo.adjustCounter(globalContext, name, delta);
     }
 
-    ContentRepository getContentRepository() {
+    public ContentRepository getContentRepository() {
         return contentRepo;
     }
 
-    FlowFileRepository getFlowFileRepository() {
+    public FlowFileRepository getFlowFileRepository() {
         return flowFileRepo;
     }
 
@@ -140,7 +140,7 @@ public class RepositoryContext {
         return flowFileEventRepo;
     }
 
-    ProvenanceEventRepository getProvenanceRepository() {
+    public ProvenanceEventRepository getProvenanceRepository() {
         return provenanceRepo;
     }
 

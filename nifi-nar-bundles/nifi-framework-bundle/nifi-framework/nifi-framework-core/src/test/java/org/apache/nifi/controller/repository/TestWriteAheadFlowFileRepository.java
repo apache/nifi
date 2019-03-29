@@ -323,7 +323,7 @@ public class TestWriteAheadFlowFileRepository {
         assertTrue(path.toFile().mkdirs());
 
         final ResourceClaimManager claimManager = new StandardResourceClaimManager();
-        final RepositoryRecordSerdeFactory serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
+        final StandardRepositoryRecordSerdeFactory serdeFactory = new StandardRepositoryRecordSerdeFactory(claimManager);
         final WriteAheadRepository<RepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
         final Collection<RepositoryRecord> initialRecs = repo.recoverRecords();
         assertTrue(initialRecs.isEmpty());

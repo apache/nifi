@@ -151,37 +151,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
             for (final Object o : serviceLoader) {
                 try {
-                    // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
-                    if ((isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent) {
-                        final ConfigurableComponent configurableComponent = (ConfigurableComponent) o;
-                        initializeTempComponent(configurableComponent);
-
-                        final String cacheKey = getClassBundleKey(o.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
-                        tempComponentLookup.put(cacheKey, (ConfigurableComponent) o);
-                    }
-
-                    // only consider extensions discovered directly in this bundle
-                    boolean registerExtension = bundle.getClassLoader().equals(o.getClass().getClassLoader());
-
-                    if (registerExtension) {
-                        final Class extensionType = o.getClass();
-                        if (isControllerService && !checkControllerServiceEligibility(extensionType)) {
-                            registerExtension = false;
-                            logger.error(String.format(
-                                    "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionType.getName()));
-                        }
-
-                        final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent;
-                        if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) o, bundle.getClassLoader())) {
-                            registerExtension = false;
-                            logger.error(String.format(
-                                    "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionType.getName()));
-                        }
-
-                        if (registerExtension) {
-                            registerServiceClass(o.getClass(), classNameBundleLookup, bundleCoordinateClassesLookup, bundle, entry.getValue());
-                        }
-                    }
+                    loadExtension(o, entry.getKey(), bundle);
                 } catch (Exception e) {
                     logger.warn("Failed to register extension {} due to: {}" , new Object[]{o.getClass().getCanonicalName(), e.getMessage()});
                     if (logger.isDebugEnabled()) {
@@ -193,6 +163,50 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
         }
     }
+
+    protected void loadExtension(final Object extension, final Class<?> extensionType, final Bundle bundle) {
+        final boolean isControllerService = ControllerService.class.equals(extensionType);
+        final boolean isProcessor = Processor.class.equals(extensionType);
+        final boolean isReportingTask = ReportingTask.class.equals(extensionType);
+
+        // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
+        if ((isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent) {
+            final ConfigurableComponent configurableComponent = (ConfigurableComponent) extension;
+            initializeTempComponent(configurableComponent);
+
+            final String cacheKey = getClassBundleKey(extension.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
+            tempComponentLookup.put(cacheKey, configurableComponent);
+        }
+
+        // only consider extensions discovered directly in this bundle
+        boolean registerExtension = bundle.getClassLoader().equals(extension.getClass().getClassLoader());
+
+        if (registerExtension) {
+            final Class<?> extensionClass = extension.getClass();
+            if (isControllerService && !checkControllerServiceEligibility(extensionClass)) {
+                registerExtension = false;
+                logger.error(String.format(
+                    "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionClass.getName()));
+            }
+
+            final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent;
+            if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) extension, bundle.getClassLoader())) {
+                registerExtension = false;
+                logger.error(String.format(
+                    "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionClass.getName()));
+            }
+
+            if (registerExtension) {
+                registerExtensionClass(extensionType, extension.getClass(), bundle);
+            }
+        }
+    }
+
+    protected void registerExtensionClass(final Class<?> extensionType, final Class<?> implementationClass, final Bundle bundle) {
+        final Set<Class> registeredClasses = definitionMap.get(extensionType);
+        registerServiceClass(implementationClass, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
+    }
+
 
     private void initializeTempComponent(final ConfigurableComponent configurableComponent) {
         ConfigurableComponentInitializer initializer = null;

@@ -575,7 +575,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
 
-    private final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    private void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }

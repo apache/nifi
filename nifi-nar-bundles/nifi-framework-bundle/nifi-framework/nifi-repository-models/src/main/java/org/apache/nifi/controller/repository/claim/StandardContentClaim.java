@@ -69,6 +69,9 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
         if (offset != other.getOffset()) {
             return false;
         }
+        if (length != other.getLength()) {
+            return false;
+        }
 
         return resourceClaim.equals(other.getResourceClaim());
     }
