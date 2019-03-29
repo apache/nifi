@@ -149,6 +149,8 @@ public class ConnectableTask {
     }
 
     public InvocationResult invoke() {
+        logger.trace("Triggering {}", connectable);
+
         if (scheduleState.isTerminated()) {
             return InvocationResult.DO_NOT_YIELD;
         }
@@ -165,12 +167,14 @@ public class ConnectableTask {
 
         // Make sure processor has work to do.
         if (!isWorkToDo()) {
+            logger.debug("Yielding {} because it has no work to do", connectable);
             return InvocationResult.yield("No work to do");
         }
 
         if (numRelationships > 0) {
             final int requiredNumberOfAvailableRelationships = connectable.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
             if (!repositoryContext.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships)) {
+                logger.debug("Yielding {} because Backpressure is Applied", connectable);
                 return InvocationResult.yield("Backpressure Applied");
             }
         }
