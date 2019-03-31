@@ -51,6 +51,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.*;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -68,21 +69,19 @@ import static org.apache.commons.lang3.StringUtils.*;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY,
-    description = "The HashSet filter type will grow proportionate to the number of unique records processed. " +
-        "The BloomFilter type memory usage will remain constant regardless to the number of records processed.")
+    description = "The HashSet filter type will grow memory space proportionate to the number of unique records processed. " +
+        "The BloomFilter type will use constant memory regardless of the number of records processed.")
 @Tags({"text", "record", "update", "change", "replace", "modify", "distinct", "unique",
     "filter", "hash", "dupe", "duplicate", "dedupe"})
-@CapabilityDescription("Caches records from each incoming FlowFile and determines if the cached " +
-    "value has already been seen. If so, routes the FlowFile to 'duplicate'. If the record is " +
+@CapabilityDescription("Caches records from each incoming FlowFile and determines if the record " +
+    "has already been seen. If so, routes the record to 'duplicate'. If the record is " +
     "not determined to be a duplicate, it is routed to 'non-duplicate'."
 )
-@ReadsAttributes({@ReadsAttribute(attribute="", description="")})
-@WritesAttributes({
-    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
-})
+@WritesAttribute(attribute = "record.count", description = "The number of records processed.")
 @DynamicProperty(
     name = "RecordPath",
-    value = "User-defined property values are ignored",
+    value = "An expression language statement used to determine how the RecordPath is resolved. " +
+            "The following variables are availble: ${field.name}, ${field.value}, ${field.type}",
     description = "The name of each user-defined property must be a valid RecordPath.")
 @SeeAlso(classNames = {
     "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService",
@@ -91,13 +90,18 @@ import static org.apache.commons.lang3.StringUtils.*;
 })
 public class DetectDuplicateRecord extends AbstractProcessor {
 
+    private static final String FIELD_NAME = "field.name";
+    private static final String FIELD_VALUE = "field.value";
+    private static final String FIELD_TYPE = "field.type";
+
     private volatile RecordPathCache recordPathCache;
     private volatile List<String> recordPaths;
 
     // VALUES
 
     static final AllowableValue NONE_ALGORITHM_VALUE = new AllowableValue("none", "None",
-            "Do not use a hashing algorithm.");
+            "Do not use a hashing algorithm. The value of resolved RecordPaths will be combined with tildes (~) to form the unique record key. " +
+                    "This may use significantly more storage depending on the size and shape or your data.");
     static final AllowableValue MD5_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.MD5, "MD5",
             "The MD5 message-digest algorithm.");
     static final AllowableValue SHA1_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_1, "SHA-1",
@@ -108,13 +112,13 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             "The SHA-512 cryptographic hash algorithm.");
 
     static final AllowableValue HASH_SET_VALUE = new AllowableValue("hash-set", "HashSet",
-            "Exactly matches records seen before with 100% accuracy at the expense of more memory usage. " +
-                    "This is not ideal for large files since a hash of each record is held in memory.");
+            "Exactly matches records seen before with 100% accuracy at the expense of more storage usage. " +
+                    "Stores the filter data in a single cache entry in the distributed cache, and is loaded entirely into memory during duplicate detection. " +
+                    "This filter is preferred for small to medium data sets and offers high performance  loaded into memory when this processor is running.");
     static final AllowableValue BLOOM_FILTER_VALUE = new AllowableValue("bloom-filter", "BloomFilter",
-            "Space-efficient data structure ideal for large data sets uses probability to determine if a record was seen before. " +
-                    "False positive matches are possible, but false negatives are not – in other words, a query returns either \"possibly in set\" or \"definitely not in set\". " +
-                    "You should use this option if the FlowFile content is large and you can tolerate some duplication in the data.");
-
+            "Space-efficient data structure ideal for large data sets using probability to determine if a record was seen previously. " +
+                    "False positive matches are possible, but false negatives are not – in other words, a query returns either \"possibly in the set\" or \"definitely not in the set\". " +
+                    "You should use this option if the FlowFile content is large and you can tolerate some duplication in the data. Uses constant storage space regardless of the record set size.");
 
     // PROPERTIES
 
@@ -179,8 +183,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
     static final PropertyDescriptor AGE_OFF_DURATION = new PropertyDescriptor.Builder()
             .name("age-off-duration")
             .displayName("Age Off Duration")
-            .description("Time interval to age off cached filters. When the cache expires, the entire filter and its values " +
-                    "are destroyed. Leaving this value empty will cause the cached entries to never expire.")
+            .description("Time interval to age off cached filter entries. When the cache expires, the entire filter and its values " +
+                    "are destroyed. Leaving this value empty will cause the cached entries to never expire but may eventually be rotated " +
+                    "out when the cache servers rotation policy automatically expires entries.")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -212,13 +217,12 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             .defaultValue(HASH_SET_VALUE.getValue())
             .required(true)
             .build();
-// TODO: BloomFilter capacity resizing could cause problems on subsequent runs. Figure this out.
+
     static final PropertyDescriptor FILTER_CAPACITY_HINT = new PropertyDescriptor.Builder()
             .name("filter-capacity-hint")
             .displayName("Filter Capacity Hint")
             .description("An estimation of the total number of unique records to be processed. " +
-                    "The more accurate this number is will lead to less resizing operations on a HashSet filter and fewer false negatives on a BloomFilter. " +
-                    "Using the CountText processor block first and then using the ${text.line.count} attribute may be ideal for more dynamic estimates.")
+                    "The more accurate this number is will lead to fewer false negatives on a BloomFilter.")
             .defaultValue("25000")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
@@ -228,8 +232,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
     static final PropertyDescriptor BLOOM_FILTER_FPP = new PropertyDescriptor.Builder()
             .name("bloom-filter-certainty")
             .displayName("Bloom Filter Certainty")
-            .description("The desired false positive probability when using the BloomFilter filter type. " +
-                    "Using a value of .05 for example, guarantees a five-percent probability that the result is a false positive.")
+            .description("The desired false positive probability when using the BloomFilter type. " +
+                    "Using a value of .05 for example, guarantees a five-percent probability that the result is a false positive. " +
+                    "The closer to 1 this value is set, the more precise the result at the expense of more storage space utilization.")
             .defaultValue("0.10")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NUMBER_VALIDATOR)
@@ -247,6 +252,11 @@ public class DetectDuplicateRecord extends AbstractProcessor {
     static final Relationship REL_NON_DUPLICATE = new Relationship.Builder()
             .name("non-duplicate")
             .description("If the record was not found in the cache, it will be routed to this relationship")
+            .build();
+
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original input FlowFile is sent to this relationship unless there is a fatal error in the processing.")
             .build();
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -281,6 +291,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_DUPLICATE);
         relationships.add(REL_NON_DUPLICATE);
+        relationships.add(REL_ORIGINAL);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
     }
@@ -299,7 +310,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .description("Specifies a value to use from the record that match the RecordPath: '" +
+                .description("Specifies a value to use from the record that matches the RecordPath: '" +
                         propertyDescriptorName + "' which is used together with other specified " +
                         "record path values to determine the uniqueness of a record. " +
                         "Expression Language may reference variables 'field.name', 'field.type', and 'field.value' " +
@@ -315,7 +326,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         RecordPathValidator recordPathValidator = new RecordPathValidator();
         final List<ValidationResult> validationResults = validationContext.getProperties().keySet().stream()
-                .filter(property -> property.isDynamic())
+                .filter(PropertyDescriptor::isDynamic)
                 .map(property -> recordPathValidator.validate(
                         "User-defined Properties",
                         property.getName(),
@@ -329,7 +340,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                         new ValidationResult.Builder()
                                 .subject(BLOOM_FILTER_FPP.getName() + " out of range.")
                                 .input(String.valueOf(falsePositiveProbability))
-                                .explanation("Valid values are 0.0-1.0 inclusive")
+                                .explanation("Valid values are 0.0 - 1.0 inclusive")
                                 .valid(false).build());
             }
         }
@@ -362,7 +373,7 @@ public class DetectDuplicateRecord extends AbstractProcessor {
         final List<String> recordPaths = new ArrayList<>();
 
         recordPaths.addAll(context.getProperties().keySet().stream()
-                .filter(property -> property.isDynamic())
+                .filter(PropertyDescriptor::isDynamic)
                 .map(PropertyDescriptor::getName)
                 .collect(toList()));
 
@@ -385,6 +396,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
+
+        FlowFile nonDuplicatesFlowFile = session.create(flowFile);
+        FlowFile duplicatesFlowFile = session.create(flowFile);
 
         try {
             final long now = System.currentTimeMillis();
@@ -424,8 +438,6 @@ public class DetectDuplicateRecord extends AbstractProcessor {
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
             final RecordReader reader = readerFactory.createRecordReader(flowFile.getAttributes(), session.read(flowFile), logger);
 
-            FlowFile nonDuplicatesFlowFile = session.create(flowFile);
-            final FlowFile duplicatesFlowFile = session.create(flowFile);
             final RecordSchema writeSchema = writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema());
             final RecordSetWriter nonDuplicatesWriter = writerFactory.createWriter(getLogger(), writeSchema, session.write(nonDuplicatesFlowFile));
             final RecordSetWriter duplicatesWriter = writerFactory.createWriter(getLogger(), writeSchema, session.write(duplicatesFlowFile));
@@ -438,16 +450,31 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                 String recordValue;
 
                 if (matchWholeRecord) {
-                    recordValue = record.getSerializedForm().get().getSerialized().toString();
+                    recordValue = Joiner.on('~').join(record.getValues());
                 } else {
                     final List<String> fieldValues = new ArrayList<>();
                     for (final String recordPathText : recordPaths) {
                         final PropertyValue recordPathPropertyValue = context.getProperty(recordPathText);
                         final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);
                         final RecordPathResult result = recordPath.evaluate(record);
+
+                        if(recordPathPropertyValue.isExpressionLanguagePresent()) {
+                            final Map<String, String> fieldVariables = new HashMap<>();
+                            result.getSelectedFields().forEach(fieldVal -> {
+                                fieldVariables.clear();
+                                fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
+                                fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
+                                fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
+
+                                fieldValues.add(recordPathPropertyValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue());
+                            });
+                        } else {
+                            fieldValues.add(recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue());
+                        }
+
                         fieldValues.addAll(result.getSelectedFields()
-                                        .map(f -> recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue())
-                                        .collect(toList())
+                            .map(f -> recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue())
+                            .collect(toList())
                         );
                     }
                     recordValue = Joiner.on('~').join(fieldValues);
@@ -470,9 +497,9 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                     ? context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()
                     : true;
 
-
             // Route Non-Duplicates FlowFile
             final WriteResult nonDuplicatesWriteResult = nonDuplicatesWriter.finishRecordSet();
+            nonDuplicatesWriter.close();
             Map<String, String> attributes = new HashMap<>();
             attributes.putAll(nonDuplicatesWriteResult.getAttributes());
             attributes.put("record.count", String.valueOf(nonDuplicatesWriteResult.getRecordCount()));
@@ -488,11 +515,12 @@ public class DetectDuplicateRecord extends AbstractProcessor {
 
             // Route Duplicates FlowFile
             final WriteResult duplicatesWriteResult = duplicatesWriter.finishRecordSet();
+            duplicatesWriter.close();
             attributes.clear();
             attributes.putAll(duplicatesWriteResult.getAttributes());
             attributes.put("record.count", String.valueOf(duplicatesWriteResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), duplicatesWriter.getMimeType());
-            nonDuplicatesFlowFile = session.putAllAttributes(nonDuplicatesFlowFile, attributes);
+            duplicatesFlowFile = session.putAllAttributes(nonDuplicatesFlowFile, attributes);
             logger.info("Successfully found {} duplicate records for {}", new Object[] {duplicatesWriteResult.getRecordCount(), nonDuplicatesFlowFile});
 
             if(!includeZeroRecordFlowFiles && duplicatesWriteResult.getRecordCount() == 0) {
@@ -509,15 +537,12 @@ public class DetectDuplicateRecord extends AbstractProcessor {
                 cache.put(cacheKey, cacheValue, keySerializer, cacheValueSerializer);
             }
 
-        } catch (final SchemaNotFoundException e) {
-            throw new ProcessException(e.getLocalizedMessage(), e);
-        } catch (final MalformedRecordException e) {
-            throw new ProcessException("Could not parse incoming data", e);
-        } catch (final IOException e) {
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
-            logger.error("Unable to communicate with cache when processing {} due to {}", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_ORIGINAL);
+
         } catch (final Exception e) {
-            logger.error("Failed to process {}; will route to failure", new Object[]{flowFile, e});
+            logger.error("Failed in detecting duplicate records.", e);
+            session.remove(duplicatesFlowFile);
+            session.remove(nonDuplicatesFlowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
