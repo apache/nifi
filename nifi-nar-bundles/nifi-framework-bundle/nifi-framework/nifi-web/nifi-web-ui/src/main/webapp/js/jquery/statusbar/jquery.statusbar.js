@@ -139,6 +139,24 @@
         },
 
         /**
+         * Hides all buttons
+         */
+        hideButtons: function () {
+            var bar = $(this);
+            bar.find('.dialog-status-bar-buttons').hide();
+            return bar;
+        },
+
+        /**
+         * Shows all buttons.
+         */
+        showButtons: function () {
+            var bar = $(this);
+            bar.find('.dialog-status-bar-buttons').show(250);
+            return bar;
+        },
+
+        /**
          * Sets/Retrieves the buttons on the status bar
          *
          * @param [{object}] button objects to apply
@@ -195,9 +213,7 @@
                         button.click(function () {
                             var handler = $(this).data('handler');
                             if (isDefinedAndNotNull(handler) && typeof handler.click === 'function') {
-                                buttonWrapper.hide();
                                 handler.click.call(bar);
-                                buttonWrapper.show(100);
                             }
                         });
                     }

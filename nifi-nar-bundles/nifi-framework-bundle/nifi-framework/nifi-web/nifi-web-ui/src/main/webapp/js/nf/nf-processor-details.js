@@ -352,10 +352,11 @@
                                         var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
                                         $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
                                         $('#processor-details').modal('hide');
+                                        $("#processor-details-status-bar").statusbar('showButtons');
                                     };
 
                                     //execute the stop and open the configuration modal
-                                    $("#processor-details-status-bar").statusbar('buttons')[0].addClass('disabled-button');
+                                    $("#processor-details-status-bar").statusbar('hideButtons');
                                     config.nfActions.stopAndConfigure(selection,cb);
                                 }
                             }
@@ -378,10 +379,11 @@
                                         var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
                                         $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
                                         $('#processor-details').modal('hide');
+                                        $("#processor-details-status-bar").statusbar('showButtons');
                                     };
 
                                     //execute the stop and open the configuration modal
-                                    $("#processor-details-status-bar").statusbar('buttons')[0].addClass('disabled-button');
+                                    $("#processor-details-status-bar").statusbar('hideButtons');
                                     config.nfActions.showConfiguration(selection,cb);
                                 }
                             }

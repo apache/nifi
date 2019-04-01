@@ -950,17 +950,17 @@
                                                     dialogContent: 'Terminate threads request was processed, but active threads still persist. Please try again later.',
                                                     headerText: 'Unable to Terminate'
                                                 });
-                                                $('#processor-configuration-status-bar').statusbar('buttons')[0].removeClass('disabled-button');
                                             }
                                             else {
                                                 //refresh the dialog
                                                 $('#processor-configuration-status-bar').statusbar('refreshButtons');
                                                 $('#processor-configuration').modal('refreshButtons');
                                             }
+                                            $('#processor-configuration-status-bar').statusbar('showButtons');
                                         };
 
                                         //execute the terminate call
-                                        $('#processor-configuration-status-bar').statusbar('buttons')[0].addClass('disabled-button');
+                                        $('#processor-configuration-status-bar').statusbar('hideButtons');
                                         var selection = nfCanvasUtils.getSelectionById(processor.id);
                                         config.nfActions.terminate(selection,cb);
                                     }
