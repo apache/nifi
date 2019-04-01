@@ -55,11 +55,6 @@
      */
     var config;
 
-    // key paths to the status objects
-    var ACTIVE_THREAD_COUNT_KEY = 'datum.status.aggregateSnapshot.activeThreadCount',
-        RUN_STATUS_KEY = 'datum.status.aggregateSnapshot.runStatus',
-        BULLETINS_KEY = 'datum.bulletins';
-
     /**
      * Creates an option for the specified relationship name.
      *
@@ -81,15 +76,6 @@
         }
 
         return relationshipContainerElement;
-    };
-
-    /**
-     * Releases the synchronization listener to the components canvas element
-     */
-    var stopCanvasSync = function(){
-        if(config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.listener)){
-            clearTimeout(config.listener);
-        }
     };
 
     return {
@@ -141,13 +127,9 @@
             // configure the processor details dialog
             $('#processor-details').modal({
                 headerText: 'Processor Details',
-                statusBar: config.supportsStatusBar,
                 scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
-                        //stop any synchronization
-                        stopCanvasSync();
-
                         // empty the relationship list
                         $('#read-only-auto-terminate-relationship-names').css('border-width', '0').empty();
 
@@ -171,12 +153,22 @@
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
+
+                        //stop any synchronization on the status bar
+                        if(config.supportsStatusBar){
+                            $("#processor-details-status-bar").statusbar('disconnect');
+                        }
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
+
+            //apply the status bar if indicated
+            if(config.supportsStatusBar){
+                $("#processor-details-status-bar").statusbar();
+            }
 
             // initialize the properties
             $('#read-only-processor-properties').propertytable({
@@ -328,7 +320,13 @@
                 //Populate the status bar if the feature is enabled
                 if (config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
 
-                    //fetch the component from the canvas
+                    //Synchronize the status bar values to the canvas component
+                    var target = function(){
+                        return config.nfCanvasUtils.getSelectionById(processor.id)['datum']();
+                    }
+                    $("#processor-details-status-bar").statusbar('observe',target);
+
+                    //fetch the component as a selection from the canvas
                     selection = config.nfCanvasUtils.getSelectionById(processor.id);
 
                     // Add the stop & configure button if appropriate
@@ -336,12 +334,12 @@
                         config.nfCanvasUtils.isProcessor(selection) &&
                         config.nfCanvasUtils.canModify(selection)){
 
-                        $('#processor-details').modal('statusBar').buttons([{
-                            buttonText: 'Stop & Configure',
-                            clazz: 'fa fa-pencil-square button-icon auto-width',
+                        $("#processor-details-status-bar").statusbar('buttons',[{
+                            buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Stop & Configure</span>',
+                            clazz: 'button button-icon auto-width',
                             color: {
-                                base: '#C7D2D7',
-                                hover: '#004849',
+                                hover: '#C7D2D7',
+                                base: 'transparent',
                                 text: '#004849'
                             },
                             disabled : function() {
@@ -355,26 +353,41 @@
                                         $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
                                         $('#processor-details').modal('hide');
                                     };
-                                    $('#processor-details').modal('statusBar').buttons()[0].addClass('disabled-button');
+
+                                    //execute the stop and open the configuration modal
+                                    $("#processor-details-status-bar").statusbar('buttons')[0].addClass('disabled-button');
                                     config.nfActions.stopAndConfigure(selection,cb);
+                                }
+                            }
+                        },
+                        {
+                            buttonText: 'Configure',
+                            clazz: 'fa fa-cog button-icon',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return config.nfCanvasUtils.isStoppable(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    //Assign a callback when the ProcessorConfiguration window is ready
+                                    var cb = function(){
+                                        var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
+                                        $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
+                                        $('#processor-details').modal('hide');
+                                    };
+
+                                    //execute the stop and open the configuration modal
+                                    $("#processor-details-status-bar").statusbar('buttons')[0].addClass('disabled-button');
+                                    config.nfActions.showConfiguration(selection,cb);
                                 }
                             }
                         }]);
                     }
 
-                    //Synchronize the current component canvas attributes in the status bar
-                    var sync = function(id){
-                        var d = config.nfCanvasUtils.getSelectionById(id)  ,
-                            runStatus = nfCommon.getKeyValue(d,RUN_STATUS_KEY),
-                            activeThreadCount = nfCommon.getKeyValue(d,ACTIVE_THREAD_COUNT_KEY),
-                            bulletins = nfCommon.getKeyValue(d,BULLETINS_KEY);
-
-                        $('#processor-details').modal('statusBar').set(runStatus, activeThreadCount, bulletins);
-                        config.listener = setTimeout(function(){sync(id)},2500);
-                    };
-
-                    //initialize the canvas monitoring
-                    sync(processor.id);
                 }
 
                 // show the dialog

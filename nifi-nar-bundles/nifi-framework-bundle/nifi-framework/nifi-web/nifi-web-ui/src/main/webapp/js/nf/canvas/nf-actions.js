@@ -758,6 +758,8 @@
                                 cb();
                             }
                         });
+                    } else if(typeof cb == 'function'){
+                         cb();
                     }
                 }
             }
@@ -856,14 +858,15 @@
          * Shows the configuration dialog for the specified selection.
          *
          * @param {selection} selection     Selection of the component to be configured
+         * @param {fn} callback             Callback
          */
-        showConfiguration: function (selection) {
+        showConfiguration: function (selection,cb) {
             if (selection.empty()) {
                 nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessor(selection)) {
-                    nfProcessorConfiguration.showConfiguration(selection);
+                    nfProcessorConfiguration.showConfiguration(selection,cb);
                 } else if (nfCanvasUtils.isLabel(selection)) {
                     nfLabelConfiguration.showConfiguration(selection);
                 } else if (nfCanvasUtils.isProcessGroup(selection)) {

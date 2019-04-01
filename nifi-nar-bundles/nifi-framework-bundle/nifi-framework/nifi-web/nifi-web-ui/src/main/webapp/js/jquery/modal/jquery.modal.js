@@ -28,7 +28,6 @@
  *   header: true,
  *   footer: true,
  *   headerText: 'Dialog Header',
- *   statusBar: true,
  *   scrollableContentStyle: 'scrollable',
  *   buttons: [{
  *      buttonText: 'Cancel',
@@ -180,21 +179,6 @@
 
                     //persist data attribute
                     dialog.data('nfDialog', nfDialogData);
-                }
-
-                //determine if the dialog needs a status bar
-                if (!isDefinedAndNotNull(nfDialogData.statusBar) || nfDialogData.statusBar) {
-                    var dialogStatusBar = $(
-                    '<div class="dialog-status-bar">'+
-                        '<text class="run-status-icon"></text>'+
-                        '<span class="dialog-status-bar-state"></span>'+
-                        '<span class="dialog-status-bar-threads" count="0"></span>'+
-                        '<div class="dialog-status-bar-bulletins fa fa-sticky-note-o" count="0">'+
-                            '<div class="dialog-status-bar-bulletins-content"></div>'+
-                        '</div>'+
-                        '<div class="dialog-status-bar-buttons"></div>'+
-                    '</div>');
-                    dialog.prepend(dialogStatusBar);
                 }
 
                 // determine if dialog needs a header
@@ -581,52 +565,6 @@
                     dialog.hide();
                 }
             });
-        },
-
-        /**
-         * Methods that manage the status bar content
-         */
-        statusBar : function () {
-            var dialog = $(this);
-            var statusBar = {
-                buttons : function(buttons){
-                    if(isDefinedAndNotNull(buttons)){
-                        dialog.find('.dialog-status-bar-buttons').children('.dialog-buttons').remove();
-                        addButtons(dialog.find('.dialog-status-bar-buttons'),buttons);
-                    }
-                    var buttons = [];
-                    $.each(dialog.find('.dialog-status-bar-buttons .button'),function(i, button){
-                        buttons.push($(button));
-                    });
-                    return buttons;
-                },
-                set : function(runStatus, activeThreadCount, bulletins){
-                    var bar = dialog.find('.dialog-status-bar'),
-                        bulletinList = $("<ul></ul>");
-
-                    //set the values
-                    if(isDefinedAndNotNull(runStatus) &&
-                        isDefinedAndNotNull(activeThreadCount) &&
-                        isDefinedAndNotNull(bulletins) &&
-                        Array.isArray(bulletins)) {
-
-                        bar.attr('state',runStatus.toUpperCase());
-                        bar.find('.dialog-status-bar-state').text(runStatus);
-                        bar.find('.dialog-status-bar-threads').attr('count',activeThreadCount);
-                        bar.find('.dialog-status-bar-threads').attr('title',activeThreadCount+' active threads');
-                        bar.find('.dialog-status-bar-threads').text('('+activeThreadCount+')');
-                        $.each(bulletins, function(i,item){
-                            if(item.canRead){
-                               bulletinList.append($('<li>'+item.bulletin.timestamp+' '+item.bulletin.level+'<br/>'+item.bulletin.message+'<br>&nbsp;</li>'));
-                            }
-                        });
-                        var bulletinCount = bulletinList.find('li').length;
-                        bar.find('.dialog-status-bar-bulletins-content').html((bulletinCount > 0)?bulletinList:'');
-                        bar.find('.dialog-status-bar-bulletins').attr('count',bulletinCount);
-                    }
-                }
-            };
-            return statusBar;
         }
     };
 

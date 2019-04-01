@@ -526,15 +526,6 @@
         }
     };
 
-    /**
-     * Releases the synchronization listener to the components canvas element
-     */
-    var stopCanvasSync = function(){
-        if(config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.listener)){
-            clearTimeout(config.listener);
-        }
-    };
-
     return {
         /**
          * Initializes the processor properties tab.
@@ -587,12 +578,8 @@
             $('#processor-configuration').modal({
                 scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Processor',
-                statusBar: config.supportsStatusBar,
                 handler: {
                     close: function () {
-                        //stop any synchronization
-                        stopCanvasSync();
-
                         // empty the relationship list
                         $('#auto-terminate-relationship-names').css('border-width', '0').empty();
 
@@ -601,12 +588,22 @@
 
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
+
+                        //stop any synchronization
+                        if(config.supportsStatusBar){
+                            $('#processor-configuration-status-bar').statusbar('disconnect');
+                        }
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
+
+            //if the status bar is supported, initialize it.
+            if(config.supportsStatusBar){
+                $('#processor-configuration-status-bar').statusbar();
+            }
 
             // initialize the bulletin combo
             $('#bulletin-level-combo').combo({
@@ -830,8 +827,8 @@
                             text: '#ffffff'
                         },
                         disabled : function() {
-                            var p = nfProcessor.get(processor.id);
-                            return (nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) != 0);
+                            var selection = nfCanvasUtils.getSelectionById(processor.id);
+                            return !nfCanvasUtils.supportsModification(selection);
                         },
                         handler: {
                             click: function () {
@@ -920,62 +917,51 @@
 
                     //Synchronize the current component canvas attributes in the status bar
                     if(config.supportsStatusBar){
-                        var sync = function(id){
-                            var p = nfProcessor.get(processor.id),
-                                runStatus = nfCommon.getKeyValue(p,RUN_STATUS_KEY),
-                                activeThreadCount = nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY),
-                                bulletins = nfCommon.getKeyValue(p,BULLETINS_KEY);
 
-                            //if the active threads have closed out and terminate button present, refresh/remove
-                            if(activeThreadCount == 0 &&
-                                $('#processor-configuration').modal('statusBar').buttons().length > 0) {
-                                $('#processor-configuration').modal('refreshButtons');
-                                $('#processor-configuration').modal('statusBar').buttons()[0].remove();
-                            }
-
-                            //update the status bar
-                            $('#processor-configuration').modal('statusBar').set(runStatus, activeThreadCount, bulletins);
-                            config.listener = setTimeout(function(){sync(id)},2500);
+                        //initialize the synchronization
+                        var target = function() {
+                            $('#processor-configuration').modal('refreshButtons');
+                            return nfProcessor.get(processor.id);
                         };
-
-                        //initialize the canvas monitoring
-                        sync(processor.id);
+                        $("#processor-configuration-status-bar").statusbar('observe',target);
 
                         //if there are active threads, add the terminate button to the status bar
                         if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
                             nfCommon.getKeyValue(processorResponse,ACTIVE_THREAD_COUNT_KEY) != 0){
 
-                            $('#processor-configuration').modal('statusBar').buttons([{
+                            $("#processor-configuration-status-bar").statusbar('buttons',[{
                                 buttonText: 'Terminate',
                                 clazz: 'fa fa-hourglass-end button-icon',
                                 color: {
-                                    base: '#C7D2D7',
-                                    hover: '#004849',
+                                    hover: '#C7D2D7',
+                                    base: 'transparent',
                                     text: '#004849'
                                 },
                                 disabled : function() {
-                                    var p = nfProcessor.get(processor.id);
-                                    return (nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) == 0);
+                                    var selection = nfCanvasUtils.getSelectionById(processor.id);
+                                    return nfCanvasUtils.supportsModification(selection);
                                 },
                                 handler: {
                                     click: function() {
-                                        $('#processor-configuration').modal('statusBar').buttons()[0].addClass('disabled-button');
-                                        var selection = nfCanvasUtils.getSelectionById(processor.id);
                                         var cb = function(){
-                                            if(nfCommon.getKeyValue(nfProcessor.get(processor.id),ACTIVE_THREAD_COUNT_KEY) != 0){
+                                            var p = nfProcessor.get(processor.id);
+                                            if(nfCommon.getKeyValue(p,ACTIVE_THREAD_COUNT_KEY) != 0){
                                                 nfDialog.showOkDialog({
                                                     dialogContent: 'Terminate threads request was processed, but active threads still persist. Please try again later.',
                                                     headerText: 'Unable to Terminate'
                                                 });
-                                                $('#processor-configuration').modal('statusBar').buttons()[0].removeClass('disabled-button');
+                                                $('#processor-configuration-status-bar').statusbar('buttons')[0].removeClass('disabled-button');
                                             }
                                             else {
-                                                //refresh the sync to reflect the update
-                                                stopCanvasSync();
-                                                sync(processor.id);
+                                                //refresh the dialog
+                                                $('#processor-configuration-status-bar').statusbar('refreshButtons');
+                                                $('#processor-configuration').modal('refreshButtons');
                                             }
                                         };
+
                                         //execute the terminate call
+                                        $('#processor-configuration-status-bar').statusbar('buttons')[0].addClass('disabled-button');
+                                        var selection = nfCanvasUtils.getSelectionById(processor.id);
                                         config.nfActions.terminate(selection,cb);
                                     }
                                 }
