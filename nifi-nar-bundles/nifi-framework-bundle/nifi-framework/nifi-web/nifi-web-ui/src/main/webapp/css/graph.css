@@ -104,7 +104,7 @@ text.stats-value {
     font-weight: bold;
 }
 
-text.stats-value tspan.size, text.stats-value tspan.size {
+text.stats-value tspan.size, text.stats-value tspan.size, text.stats-value tspan.public-ports {
     font-weight: normal;
 }
 

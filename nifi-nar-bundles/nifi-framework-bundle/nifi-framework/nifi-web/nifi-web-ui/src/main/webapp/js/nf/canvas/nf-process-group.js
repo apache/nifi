@@ -722,6 +722,12 @@
                             'class': 'ports'
                         });
 
+                    // in (remote)
+                    inText.append('tspan')
+                        .attrs({
+                            'class': 'public-ports'
+                        });
+
                     // read/write value
                     processGroupStatsValue.append('text')
                         .attrs({
@@ -746,6 +752,12 @@
                     outText.append('tspan')
                         .attrs({
                             'class': 'ports'
+                        });
+
+                    // out ports (remote)
+                    outText.append('tspan')
+                        .attrs({
+                            'class': 'public-ports'
                         });
 
                     // out count
@@ -1319,6 +1331,12 @@
                 return ' ' + String.fromCharCode(8594) + ' ' + d.inputPortCount;
             });
 
+        // in ports value (remote)
+        updated.select('text.process-group-in tspan.public-ports')
+            .text(function (d) {
+                return d.publicInputPortCount > 0 ? ' (' + d.publicInputPortCount + ' remote)' : '';
+            });
+
         // read/write value
         updated.select('text.process-group-read-write')
             .text(function (d) {
@@ -1328,13 +1346,19 @@
         // out ports value
         updated.select('text.process-group-out tspan.ports')
             .text(function (d) {
-                return d.outputPortCount + ' ' + String.fromCharCode(8594) + ' ';
+                return d.outputPortCount;
+            });
+
+        // out ports value (remote)
+        updated.select('text.process-group-out tspan.public-ports')
+            .text(function (d) {
+                return d.publicOutputPortCount > 0 ? ' (' + d.publicOutputPortCount + ' remote) ' : '';
             });
 
         // out count value
         updated.select('text.process-group-out tspan.count')
             .text(function (d) {
-                return nfCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
+                return  ' ' + String.fromCharCode(8594) + ' ' + nfCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
             });
 
         // out size value

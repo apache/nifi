@@ -48,8 +48,10 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private Integer locallyModifiedAndStaleCount;
     private Integer syncFailureCount;
 
-    private Integer inputPortCount;
-    private Integer outputPortCount;
+    private Integer localInputPortCount;
+    private Integer localOutputPortCount;
+    private Integer publicInputPortCount;
+    private Integer publicOutputPortCount;
 
     /**
      * The ProcessGroupDTO that is being serialized.
@@ -84,14 +86,39 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      * @return number of input ports contained in this process group
      */
     @ApiModelProperty(
-        value = "The number of input ports in the process group."
+        value = "The number of input ports in the process group.",
+        readOnly = true
     )
     public Integer getInputPortCount() {
-        return inputPortCount;
+        return localInputPortCount + publicInputPortCount;
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
-        this.inputPortCount = inputPortCount;
+    /**
+     * @return number of local input ports contained in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of local input ports in the process group."
+    )
+    public Integer getLocalInputPortCount() {
+        return localInputPortCount;
+    }
+
+    public void setLocalInputPortCount(Integer localInputPortCount) {
+        this.localInputPortCount = localInputPortCount;
+    }
+
+    /**
+     * @return number of public input ports contained in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of public input ports in the process group."
+    )
+    public Integer getPublicInputPortCount() {
+        return publicInputPortCount;
+    }
+
+    public void setPublicInputPortCount(Integer publicInputPortCount) {
+        this.publicInputPortCount = publicInputPortCount;
     }
 
     /**
@@ -112,14 +139,39 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      * @return number of output ports in this process group
      */
     @ApiModelProperty(
-        value = "The number of output ports in the process group."
+        value = "The number of output ports in the process group.",
+        readOnly = true
     )
     public Integer getOutputPortCount() {
-        return outputPortCount;
+        return localOutputPortCount + publicOutputPortCount;
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
-        this.outputPortCount = outputPortCount;
+    /**
+     * @return number of local output ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of local output ports in the process group."
+    )
+    public Integer getLocalOutputPortCount() {
+        return localOutputPortCount;
+    }
+
+    public void setLocalOutputPortCount(Integer localOutputPortCount) {
+        this.localOutputPortCount = localOutputPortCount;
+    }
+
+    /**
+     * @return number of public output ports in this process group
+     */
+    @ApiModelProperty(
+        value = "The number of public output ports in the process group."
+    )
+    public Integer getPublicOutputPortCount() {
+        return publicOutputPortCount;
+    }
+
+    public void setPublicOutputPortCount(Integer publicOutputPortCount) {
+        this.publicOutputPortCount = publicOutputPortCount;
     }
 
     /**

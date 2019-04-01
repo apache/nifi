@@ -427,8 +427,9 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 portStatus.setInputBytes(inputBytes);
                 portStatus.setInputCount(inputCount);
 
-                flowFilesIn += inputCount;
-                bytesIn += inputBytes;
+                flowFilesIn += port instanceof PublicPort ? entry.getFlowFilesReceived() : inputCount;
+                bytesIn += port instanceof PublicPort ? entry.getBytesReceived() : inputBytes;
+
                 bytesWritten += entry.getBytesWritten();
 
                 flowFilesReceived += entry.getFlowFilesReceived();
@@ -491,8 +492,8 @@ public class StandardEventAccess implements UserAwareEventAccess {
 
                 bytesRead += entry.getBytesRead();
 
-                flowFilesOut += entry.getFlowFilesOut();
-                bytesOut += entry.getContentSizeOut();
+                flowFilesOut += port instanceof PublicPort ? entry.getFlowFilesSent() : entry.getFlowFilesOut();
+                bytesOut += port instanceof PublicPort ? entry.getBytesSent() : entry.getContentSizeOut();
 
                 flowFilesSent = entry.getFlowFilesSent();
                 bytesSent += entry.getBytesSent();

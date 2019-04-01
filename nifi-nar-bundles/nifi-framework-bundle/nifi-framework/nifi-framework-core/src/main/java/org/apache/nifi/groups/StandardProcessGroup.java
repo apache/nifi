@@ -279,8 +279,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroupCounts getCounts() {
-        int inputPortCount = 0;
-        int outputPortCount = 0;
+        int localInputPortCount = 0;
+        int localOutputPortCount = 0;
+        int publicInputPortCount = 0;
+        int publicOutputPortCount = 0;
 
         int running = 0;
         int stopped = 0;
@@ -309,8 +311,12 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            inputPortCount = inputPorts.size();
             for (final Port port : inputPorts.values()) {
+                if (port instanceof PublicPort) {
+                    publicInputPortCount++;
+                } else {
+                    localInputPortCount++;
+                }
                 if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
                     disabled++;
                 } else if (port.isRunning()) {
@@ -322,8 +328,12 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            outputPortCount = outputPorts.size();
             for (final Port port : outputPorts.values()) {
+                if (port instanceof PublicPort) {
+                    publicOutputPortCount++;
+                } else {
+                    localOutputPortCount++;
+                }
                 if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
                     disabled++;
                 } else if (port.isRunning()) {
@@ -404,7 +414,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
 
-        return new ProcessGroupCounts(inputPortCount, outputPortCount, running, stopped, invalid, disabled, activeRemotePorts,
+        return new ProcessGroupCounts(localInputPortCount, localOutputPortCount, publicInputPortCount, publicOutputPortCount,
+                running, stopped, invalid, disabled, activeRemotePorts,
                 inactiveRemotePorts, upToDate, locallyModified, stale, locallyModifiedAndStale, syncFailure);
     }
 

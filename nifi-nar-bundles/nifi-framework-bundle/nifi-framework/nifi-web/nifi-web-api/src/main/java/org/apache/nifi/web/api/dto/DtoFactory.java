@@ -2294,8 +2294,10 @@ public final class DtoFactory {
         dto.setStoppedCount(counts.getStoppedCount());
         dto.setInvalidCount(counts.getInvalidCount());
         dto.setDisabledCount(counts.getDisabledCount());
-        dto.setInputPortCount(counts.getInputPortCount());
-        dto.setOutputPortCount(counts.getOutputPortCount());
+        dto.setLocalInputPortCount(counts.getLocalInputPortCount());
+        dto.setLocalOutputPortCount(counts.getLocalOutputPortCount());
+        dto.setPublicInputPortCount(counts.getPublicInputPortCount());
+        dto.setPublicOutputPortCount(counts.getPublicOutputPortCount());
         dto.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         dto.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
         dto.setUpToDateCount(counts.getUpToDateCount());
@@ -4006,11 +4008,13 @@ public final class DtoFactory {
         copy.setContents(copy(original.getContents(), deep));
         copy.setPosition(original.getPosition());
         copy.setId(original.getId());
-        copy.setInputPortCount(original.getInputPortCount());
+        copy.setLocalInputPortCount(original.getLocalInputPortCount());
+        copy.setPublicInputPortCount(original.getPublicInputPortCount());
         copy.setInvalidCount(original.getInvalidCount());
         copy.setName(original.getName());
         copy.setVersionControlInformation(copy(original.getVersionControlInformation()));
-        copy.setOutputPortCount(original.getOutputPortCount());
+        copy.setLocalOutputPortCount(original.getLocalOutputPortCount());
+        copy.setPublicOutputPortCount(original.getPublicOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setVersionedComponentId(original.getVersionedComponentId());
 
