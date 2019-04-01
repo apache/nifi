@@ -62,6 +62,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
+import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
@@ -2364,12 +2365,10 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
             }
 
-            if (isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports out of the root group");
-            }
-
-            if (destination.isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports into the root group");
+            if (destination.isRootGroup() && (
+                snippet.getInputPorts().keySet().stream().map(this::getInputPort).anyMatch(port -> port instanceof LocalPort)
+                    || snippet.getOutputPorts().keySet().stream().map(this::getOutputPort).anyMatch(port -> port instanceof LocalPort))) {
+                throw new IllegalStateException("Cannot move local Ports into the root group");
             }
 
             onComponentModified();
@@ -2776,10 +2775,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (!isDisconnected(snippet)) {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
-            }
-
-            if (isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports from the Root Group to a Non-Root Group");
             }
 
             for (final String id : snippet.getInputPorts().keySet()) {
