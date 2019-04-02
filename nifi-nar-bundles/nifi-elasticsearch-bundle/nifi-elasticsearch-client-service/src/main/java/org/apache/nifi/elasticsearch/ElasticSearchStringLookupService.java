@@ -88,7 +88,11 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
         try {
             final String id = (String) coordinates.get(ID);
             final Map<String, Object> enums = esClient.get(index, type, id);
-            return Optional.of(mapper.writeValueAsString(enums));
+            if (enums == null) {
+                return Optional.empty();
+            } else {
+                return Optional.ofNullable(mapper.writeValueAsString(enums));
+            }
         } catch (IOException e) {
             throw new LookupFailureException(e);
         }
