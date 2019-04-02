@@ -158,6 +158,8 @@
         <nifi.security.user.oidc.client.id />
         <nifi.security.user.oidc.client.secret />
         <nifi.security.user.oidc.preferred.jwsalgorithm />
+        <nifi.security.user.oidc.additional.scopes />
+        <nifi.security.user.oidc.claim.identifying.user />
 
         <!-- nifi.properties: apache knox -->
         <nifi.security.user.knox.url />

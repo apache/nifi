@@ -349,6 +349,8 @@ To enable authentication via OpenId Connect the following properties must be con
 |`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.secret` | The client secret for NiFi after registration with the OpenId Connect Provider.
 |`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+|`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
+|`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
 by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL.
