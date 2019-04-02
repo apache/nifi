@@ -507,6 +507,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
             return 0L;
         }
 
+        final RecordWriterLease lease = eventWriterLeaseRef.get();
+        final File currentFile = lease == null ? null : lease.getWriter().getFile();
         for (final File eventFile : eventFiles) {
             if (eventFile.equals(currentFile)) {
                 break;
