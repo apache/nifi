@@ -30,7 +30,7 @@ import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.StandardIndexManager;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -39,6 +39,7 @@ import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.store.StorageResult;
+import org.apache.nifi.util.Tuple;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,12 +83,36 @@ public class TestLuceneEventIndex {
         return System.getProperty("os.name").toLowerCase().startsWith("windows");
     }
 
+    @Test
+    public void testGetTimeRange() {
+        final long now = System.currentTimeMillis();
+
+        final List<File> indexFiles = new ArrayList<>();
+        indexFiles.add(new File("index-1000"));
+        indexFiles.add(new File("lucene-8-index-3000"));
+        indexFiles.add(new File("index-4000"));
+        indexFiles.add(new File("index-5000"));
+        indexFiles.add(new File("lucene-8-index-6000"));
+        indexFiles.add(new File("index-7000"));
+
+        assertEquals(new Tuple<>(1000L, 3000L), LuceneEventIndex.getTimeRange(new File("index-1000"), indexFiles));
+
+        assertEquals(new Tuple<>(3000L, 4000L), LuceneEventIndex.getTimeRange(new File("lucene-8-index-3000"), indexFiles));
+        assertEquals(new Tuple<>(4000L, 5000L), LuceneEventIndex.getTimeRange(new File("index-4000"), indexFiles));
+        assertEquals(new Tuple<>(5000L, 6000L), LuceneEventIndex.getTimeRange(new File("index-5000"), indexFiles));
+        assertEquals(new Tuple<>(6000L, 7000L), LuceneEventIndex.getTimeRange(new File("lucene-8-index-6000"), indexFiles));
+
+        assertEquals(7000L, LuceneEventIndex.getTimeRange(new File("index-7000"), indexFiles).getKey().longValue());
+        assertTrue(LuceneEventIndex.getTimeRange(new File("index-7000"), indexFiles).getValue() >= now);
+
+    }
+
     @Test(timeout = 60000)
     public void testGetMinimumIdToReindex() throws InterruptedException {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 20_000, EventReporter.NO_OP);
@@ -112,7 +137,7 @@ public class TestLuceneEventIndex {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
@@ -149,7 +174,7 @@ public class TestLuceneEventIndex {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
@@ -225,7 +250,7 @@ public class TestLuceneEventIndex {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
@@ -301,7 +326,7 @@ public class TestLuceneEventIndex {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
@@ -346,7 +371,7 @@ public class TestLuceneEventIndex {
 
             @Override
             public Set<String> getGroups() {
-                return Collections.EMPTY_SET;
+                return Collections.emptySet();
             }
 
             @Override
@@ -367,10 +392,10 @@ public class TestLuceneEventIndex {
     }
 
     @Test(timeout = 60000)
-    public void testExpiration() throws InterruptedException, IOException {
+    public void testExpiration() throws IOException {
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 1, EventReporter.NO_OP);
 
@@ -381,7 +406,7 @@ public class TestLuceneEventIndex {
         final EventStore eventStore = Mockito.mock(EventStore.class);
         Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
             @Override
-            public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
+            public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) {
                 final Long eventId = invocation.getArgumentAt(0, Long.class);
                 assertEquals(0, eventId.longValue());
                 assertEquals(1, invocation.getArgumentAt(1, Integer.class).intValue());
@@ -411,7 +436,7 @@ public class TestLuceneEventIndex {
     public void addThenQueryWithEmptyQuery() throws InterruptedException {
         assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig();
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 1, EventReporter.NO_OP);
 
@@ -451,7 +476,7 @@ public class TestLuceneEventIndex {
     @Test(timeout = 50000)
     public void testQuerySpecificField() throws InterruptedException {
         final RepositoryConfiguration repoConfig = createConfig();
-        final IndexManager indexManager = new SimpleIndexManager(repoConfig);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
         final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 2, EventReporter.NO_OP);
 

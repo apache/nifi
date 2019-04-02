@@ -17,6 +17,19 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.lucene.util.NamedThreadFactory;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.RepositoryConfiguration;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.authorization.EventTransformer;
+import org.apache.nifi.provenance.store.iterator.AuthorizingEventIterator;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.reporting.Severity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,19 +43,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-
-import org.apache.lucene.util.NamedThreadFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.apache.nifi.provenance.authorization.EventAuthorizer;
-import org.apache.nifi.provenance.authorization.EventTransformer;
-import org.apache.nifi.provenance.store.iterator.AuthorizingEventIterator;
-import org.apache.nifi.provenance.store.iterator.EventIterator;
-import org.apache.nifi.provenance.util.DirectoryUtils;
-import org.apache.nifi.reporting.Severity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class PartitionedEventStore implements EventStore {
     private static final Logger logger = LoggerFactory.getLogger(PartitionedEventStore.class);
@@ -126,7 +126,7 @@ public abstract class PartitionedEventStore implements EventStore {
     @Override
     public long getMaxEventId() {
         return getPartitions().stream()
-            .mapToLong(part -> part.getMaxEventId())
+            .mapToLong(EventStorePartition::getMaxEventId)
             .max()
             .orElse(-1L);
     }
