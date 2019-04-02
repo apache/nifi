@@ -4697,7 +4697,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // Flow ID is the same. We want to publish the Process Group as the next version of the Flow.
                 // In order to do this, we have to ensure that the Process Group is 'current'.
                 final VersionedFlowState state = vci.getStatus().getState();
-                if (state == VersionedFlowState.STALE || state == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE) {
+                if (state == VersionedFlowState.STALE) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
                             + " because the Process Group in the flow is not synchronized with the most recent version of the Flow in the Flow Registry. "
                             + "In order to publish a new version of the Flow, the Process Group must first be in synch with the latest version in the Flow Registry.");
