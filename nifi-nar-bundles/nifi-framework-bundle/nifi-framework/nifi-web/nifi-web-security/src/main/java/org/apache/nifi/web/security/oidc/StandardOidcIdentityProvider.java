@@ -22,7 +22,6 @@ import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.util.DefaultResourceRetriever;
 import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -37,14 +36,8 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
-import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
-import com.nimbusds.openid.connect.sdk.OIDCScopeValue;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
-import com.nimbusds.openid.connect.sdk.UserInfoErrorResponse;
-import com.nimbusds.openid.connect.sdk.UserInfoRequest;
-import com.nimbusds.openid.connect.sdk.UserInfoResponse;
-import com.nimbusds.openid.connect.sdk.UserInfoSuccessResponse;
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
@@ -153,17 +146,6 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 throw new RuntimeException("OpenId Connect Provider metadata does not contain a Token Endpoint.");
             }
 
-            // ensure the required scopes are present
-            if (oidcProviderMetadata.getScopes() == null) {
-                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.OPENID)) {
-                    throw new RuntimeException("OpenId Connect Provider does not support the required scope: " + OIDCScopeValue.OPENID.getValue());
-                }
-
-                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.EMAIL) && oidcProviderMetadata.getUserInfoEndpointURI() == null) {
-                    throw new RuntimeException(String.format("OpenId Connect Provider does not support '%s' scope and does not provide a UserInfo Endpoint.", OIDCScopeValue.EMAIL.getValue()));
-                }
-            }
-
             // ensure the oidc provider supports basic or post client auth
             List<ClientAuthenticationMethod> clientAuthenticationMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
             logger.info("OpenId Connect: Available clientAuthenticationMethods {} ", clientAuthenticationMethods);
@@ -258,13 +240,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        final Scope scope = new Scope("openid");
-
-        // if this provider supports email scope, include it to prevent a subsequent request to the user endpoint
-        if (oidcProviderMetadata.getScopes() != null && oidcProviderMetadata.getScopes().contains(OIDCScopeValue.EMAIL)) {
-            scope.add("email");
-        }
-        return scope;
+        return new Scope("openid", "email");
     }
 
     @Override
@@ -307,17 +283,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 // validate the token - no nonce required for authorization code flow
                 final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
 
-                // attempt to extract the email from the id token if possible
+                // extract the email from the id token
                 String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
                 if (StringUtils.isBlank(email)) {
-                    // extract the bearer access token
-                    final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
-                    if (bearerAccessToken == null) {
-                        throw new IllegalStateException("No access token found in the ID tokens");
-                    }
-
-                    // invoke the UserInfo endpoint
-                    email = lookupEmail(bearerAccessToken);
+                    throw new IllegalStateException("Could not get email from the OIDC token.");
                 }
 
                 // extract expiration details from the claims set
@@ -334,45 +303,6 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             }
         } catch (final ParseException | JOSEException | BadJOSEException e) {
             throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
-        }
-    }
-
-    private String lookupEmail(final BearerAccessToken bearerAccessToken) throws IOException {
-        try {
-            // build the user request
-            final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
-            final HTTPRequest tokenHttpRequest = request.toHTTPRequest();
-            tokenHttpRequest.setConnectTimeout(oidcConnectTimeout);
-            tokenHttpRequest.setReadTimeout(oidcReadTimeout);
-
-            // send the user request
-            final UserInfoResponse response = UserInfoResponse.parse(request.toHTTPRequest().send());
-
-            // interpret the details
-            if (response.indicatesSuccess()) {
-                final UserInfoSuccessResponse successResponse = (UserInfoSuccessResponse) response;
-
-                final JWTClaimsSet claimsSet;
-                if (successResponse.getUserInfo() != null) {
-                    claimsSet = successResponse.getUserInfo().toJWTClaimsSet();
-                } else {
-                    claimsSet = successResponse.getUserInfoJWT().getJWTClaimsSet();
-                }
-
-                final String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
-
-                // ensure we were able to get the user email
-                if (StringUtils.isBlank(email)) {
-                    throw new IllegalStateException("Unable to extract email from the UserInfo token.");
-                } else {
-                    return email;
-                }
-            } else {
-                final UserInfoErrorResponse errorResponse = (UserInfoErrorResponse) response;
-                throw new RuntimeException("An error occurred while invoking the UserInfo endpoint: " + errorResponse.getErrorObject().getDescription());
-            }
-        } catch (final ParseException | java.text.ParseException e) {
-            throw new RuntimeException("Unable to parse the response from the UserInfo token request: " + e.getMessage());
         }
     }
 }
