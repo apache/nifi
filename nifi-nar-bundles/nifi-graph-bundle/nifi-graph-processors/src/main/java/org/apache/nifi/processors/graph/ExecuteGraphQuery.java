@@ -26,13 +26,16 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.StringUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,14 +44,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
 @SupportsBatching
 @Tags({"cypher", "neo4j", "graph", "network", "insert", "update", "delete", "put", "get",
         "node", "relationship", "connection", "executor", "gremlin", "tinkerpop"})
 @CapabilityDescription("This processor is designed to execute queries in either the Cypher query language or the Tinkerpop " +
         "Gremlin DSL. It delegates most of the logic to a configured client service that handles the interaction with the " +
-        "remote data source.")
+        "remote data source. All of the output is written out as JSON data.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractGraphExecutor.ERROR_MESSAGE, description = "GraphDB error message"),
     @WritesAttribute(attribute = GraphClientService.LABELS_ADDED, description = "Number of labels added"),
@@ -71,6 +74,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
     static {
         final Set<Relationship> tempRelationships = new HashSet<>();
         tempRelationships.add(REL_SUCCESS);
+        tempRelationships.add(REL_ORIGINAL);
         tempRelationships.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(tempRelationships);
 
@@ -104,17 +108,14 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
 
-        String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
-
-        try (OutputStream os = session.write(flowFile)) {
+        FlowFile output = flowFile != null ? session.create(flowFile) : session.create();
+        try (OutputStream os = session.write(output)) {
+            String query = getQuery(context, session, flowFile);
             long startTimeMillis = System.currentTimeMillis();
 
             os.write("[".getBytes());
-            Map<String, String> resultAttrs = clientService.executeQuery(query, getParameters(context, flowFile), (record, hasMore) -> {
+            Map<String, String> resultAttrs = clientService.executeQuery(query, getParameters(context, output), (record, hasMore) -> {
                 try {
                     String obj = mapper.writeValueAsString(record);
                     os.write(obj.getBytes());
@@ -132,19 +133,52 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
             String executionTime = String.valueOf((endTimeMillis - startTimeMillis));
             resultAttrs.put(EXECUTION_TIME, executionTime);
-            flowFile = session.putAllAttributes(flowFile, resultAttrs);
-
-            session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().invokeRemoteProcess(flowFile, clientService.getTransitUrl(),
+            resultAttrs.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+            output = session.putAllAttributes(output, resultAttrs);
+            session.transfer(output, REL_SUCCESS);
+            session.getProvenanceReporter().invokeRemoteProcess(output, clientService.getTransitUrl(),
                 String.format("The following query was executed in %s milliseconds: \"%s\"", executionTime, query)
             );
+            if (flowFile != null) {
+                session.transfer(flowFile, REL_ORIGINAL);
+            }
 
         } catch (Exception exception) {
             getLogger().error("Failed to execute graph statement due to {}",
                     new Object[]{exception.getLocalizedMessage()}, exception);
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, String.valueOf(exception.getMessage()));
-            session.transfer(flowFile, REL_FAILURE);
+            if (flowFile != null) {
+                flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, String.valueOf(exception.getMessage()));
+                session.transfer(flowFile, REL_FAILURE);
+            }
             context.yield();
         }
+    }
+
+    protected String getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
+        String query = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
+        if (StringUtils.isEmpty(query) && input != null) {
+            try {
+                if (input.getSize() > (64 * 1024)) {
+                    throw new Exception("Input bigger than 64kb. Cannot assume this is a valid query for Gremlin Server " +
+                            "or Neo4J.");
+                    /*
+                     * Note: Gremlin Server compiles the query down to Java byte code, and queries 64kb and above often
+                     * bounce because they violate Java method size limits. We might want to revist this, but as a starting
+                     * point, it is a sane default to assume that if a flowfile is bigger than about 64kb it is either not a
+                     * query or it is a query likely to be a very poor fit here.
+                     */
+                }
+
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                session.exportTo(input, out);
+                out.close();
+
+
+                query = new String(out.toByteArray());
+            } catch (Exception ex) {
+                throw new ProcessException(ex);
+            }
+        }
+        return query;
     }
 }

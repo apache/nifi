@@ -34,7 +34,7 @@ import org.opencypher.gremlin.neo4j.driver.GremlinDatabase;
 import java.util.HashMap;
 import java.util.Map;
 
-@CapabilityDescription("A client service that uses the OpenCypher implementation of the Cypher query langauge to connect to " +
+@CapabilityDescription("A client service that uses the OpenCypher implementation of the Cypher query language to connect to " +
         "databases other than Neo4J that are on the supported list of OpenCypher-compatible products. For more information, see: " +
         "http://www.opencypher.org/")
 @Tags({ "cypher", "opencypher", "graph", "database", "janus" })

@@ -18,9 +18,9 @@ package org.apache.nifi.processors.graph;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -45,17 +45,23 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
         .name("graph-query")
         .displayName("Graph Query")
-        .description("Specifies the graph query.")
-        .required(true)
+        .description("Specifies the graph query. If it is left blank, the processor will attempt " +
+                "to get the query from body.")
+        .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("Sucessful FlowFiles are routed to this relationship").build();
+            .description("Successful FlowFiles are routed to this relationship").build();
 
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed FlowFiles are routed to this relationship").build();
+
+    static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
+            .description("If there is an input flowfile, the original input flowfile will be " +
+                    "written to this relationship if the operation succeeds.")
+            .build();
 
     public static final String ERROR_MESSAGE = "graph.error.message";
 

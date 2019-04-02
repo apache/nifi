@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,12 +54,31 @@ public class TestExecuteGraphQuery {
     }
 
     @Test
-    public void testExecute() throws Exception {
+    public void testExecuteFromParameter() throws Exception {
         runner.setProperty(AbstractGraphExecutor.QUERY, "MATCH (p:person) RETURN p");
+        testExecute(1, 0, 0);
+    }
 
-        runner.enqueue(new byte[] {});
+    @Test
+    public void testExecuteFromBody() throws Exception {
+        runner.enqueue("MATCH (p:person) RETURN p");
+        testExecute(1, 0, 1);
+    }
+
+    @Test
+    public void testExecuteFromParameterWithEL() throws Exception {
+        runner.setProperty(AbstractGraphExecutor.QUERY, "${query}");
+        runner.enqueue("test-data", new HashMap<String, String>(){{
+            put("query", "MATCH (p:person) RETURN p");
+        }});
+        testExecute(1, 0, 1);
+    }
+
+    private void testExecute(int success, int failure, int original) throws Exception {
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(ExecuteGraphQuery.REL_SUCCESS, 1);
+        runner.assertTransferCount(ExecuteGraphQuery.REL_SUCCESS, success);
+        runner.assertTransferCount(ExecuteGraphQuery.REL_FAILURE, failure);
+        runner.assertTransferCount(ExecuteGraphQuery.REL_ORIGINAL, original);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteGraphQuery.REL_SUCCESS);
         assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.LABELS_ADDED));
         assertEquals("1",flowFiles.get(0).getAttribute(GraphClientService.NODES_CREATED));
