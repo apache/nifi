@@ -1304,13 +1304,35 @@
          */
         saveFlowVersion: function (selection) {
             if (selection.empty()) {
-                nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId());
+                nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId(), 'COMMIT');
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessGroup(selection)) {
-                    nfFlowVersion.showFlowVersionDialog(selectionData.id);
+                    nfFlowVersion.showFlowVersionDialog(selectionData.id, 'COMMIT');
                 }
             }
+        },
+
+        /**
+         * Confirms force save and shows the flow version dialog.
+         */
+        forceSaveFlowVersion: function (selection) {
+            nfDialog.showYesNoDialog({
+                headerText: 'Commit',
+                dialogContent: 'Committing will ignore available upgrades and commit local changes as the next version. Are you sure you want to proceed?',
+                noText: 'Cancel',
+                yesText: 'Yes',
+                yesHandler: function () {
+                    if (selection.empty()) {
+                        nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId(),'FORCE_COMMIT');
+                    } else if (selection.size() === 1) {
+                        var selectionData = selection.datum();
+                        if (nfCanvasUtils.isProcessGroup(selection)) {
+                            nfFlowVersion.showFlowVersionDialog(selectionData.id, 'FORCE_COMMIT');
+                        }
+                    };
+                }
+            });
         },
 
         /**

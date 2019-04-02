@@ -1439,10 +1439,11 @@ public interface NiFiServiceFacade {
      * @param registryId the ID of the Flow Registry
      * @param bucketId the ID of the bucket
      * @param flowId the ID of the flow
+     * @param saveAction the save action being performed
      *
      * @throws IllegalStateException if the Process Group cannot be saved to the flow registry with the coordinates specified
      */
-    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId);
+    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId, String saveAction);
 
     /**
      * Verifies that the Process Group with the given identifier can have its local modifications reverted to the given VersionedFlowSnapshot

@@ -100,6 +100,7 @@
         $('#save-flow-version-change-comments').val('');
 
         $('#save-flow-version-process-group-id').removeData('versionControlInformation').removeData('revision').text('');
+        $('#save-flow-version-action').text('');
     };
 
     /**
@@ -400,7 +401,8 @@
                 registryId: versionControlInformation.registryId,
                 bucketId: versionControlInformation.bucketId,
                 flowId: versionControlInformation.flowId,
-                comments: $('#save-flow-version-change-comments').val()
+                comments: $('#save-flow-version-change-comments').val(),
+                action: $('#save-flow-version-action').text()
             }
         } else {
             var selectedRegistry =  $('#save-flow-version-registry-combo').combo('getSelectedOption');
@@ -411,7 +413,8 @@
                 bucketId: selectedBucket.value,
                 flowName: $('#save-flow-version-name-field').val(),
                 description: $('#save-flow-version-description-field').val(),
-                comments: $('#save-flow-version-change-comments').val()
+                comments: $('#save-flow-version-change-comments').val(),
+                action: $('#save-flow-version-action').text()
             };
         }
 
@@ -1753,7 +1756,7 @@
          *
          * @param processGroupId
          */
-        showFlowVersionDialog: function (processGroupId) {
+        showFlowVersionDialog: function (processGroupId, action) {
             var focusName = true;
 
             return $.Deferred(function (deferred) {
@@ -1764,7 +1767,12 @@
                         // update the registry and bucket visibility
                         $('#save-flow-version-registry').text(versionControlInformation.registryName).show();
                         $('#save-flow-version-bucket').text(versionControlInformation.bucketName).show();
-                        $('#save-flow-version-label').text(versionControlInformation.version + 1);
+
+                        if (action == 'COMMIT') {
+                            $('#save-flow-version-label').text(versionControlInformation.version + 1).show();
+                        } else {
+                            $('#save-flow-version-label').hide();
+                        }
 
                         $('#save-flow-version-name').text(versionControlInformation.flowName).show();
                         nfCommon.populateField('save-flow-version-description', versionControlInformation.flowDescription);
@@ -1772,6 +1780,9 @@
 
                         // record the versionControlInformation
                         $('#save-flow-version-process-group-id').data('versionControlInformation', versionControlInformation);
+
+                        // record the type of action (i.e. commit vs force-commit)
+                        $('#save-flow-version-action').text(action);
 
                         // reposition the version label
                         $('#save-flow-version-label').css('margin-top', '-15px');
@@ -1798,10 +1809,11 @@
                         }).show();
 
                         // set the initial version
-                        $('#save-flow-version-label').text(1);
+                        $('#save-flow-version-label').text(1).show();
 
                         $('#save-flow-version-name-field').show();
                         $('#save-flow-version-description-field').show();
+                        $('#save-flow-version-action').text(action);
 
                         // reposition the version label
                         $('#save-flow-version-label').css('margin-top', '0');
