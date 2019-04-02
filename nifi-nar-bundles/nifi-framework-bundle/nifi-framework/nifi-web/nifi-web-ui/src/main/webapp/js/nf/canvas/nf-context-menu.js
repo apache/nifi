@@ -529,6 +529,46 @@
 
 
     /**
+     * Returns whether the process group support supports force commit.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsForceCommitFlowVersion = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+    };
+
+
+    /**
      * Returns whether the process group supports revert local changes.
      *
      * @param selection
