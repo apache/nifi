@@ -28,7 +28,7 @@ import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.index.lucene.LuceneEventIndex;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.StandardIndexManager;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
@@ -144,7 +144,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
         eventStore = new PartitionedWriteAheadEventStore(config, recordWriterFactory, recordReaderFactory, eventReporter, fileManager);
 
-        final IndexManager indexManager = new SimpleIndexManager(config);
+        final IndexManager indexManager = new StandardIndexManager(config);
         eventIndex = new LuceneEventIndex(config, indexManager, eventReporter);
 
         this.eventReporter = eventReporter;
@@ -154,11 +154,15 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         eventStore.initialize();
         eventIndex.initialize(eventStore);
 
-        try {
-            eventStore.reindexLatestEvents(eventIndex);
-        } catch (final Exception e) {
-            logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
+        if (eventIndex.isReindexNecessary()) {
+            try {
+                eventStore.reindexLatestEvents(eventIndex);
+            } catch (final Exception e) {
+                logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
                     + "events will not be available from the Provenance Repository when a query is issued.", e);
+            }
+        } else {
+            logger.info("Provenance Event Index indicates that no events should be re-indexed upon startup. Will not wait for re-indexing to occur.");
         }
     }
 

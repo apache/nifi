@@ -46,14 +46,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class SimpleIndexManager implements IndexManager {
-    private static final Logger logger = LoggerFactory.getLogger(SimpleIndexManager.class);
+public class StandardIndexManager implements IndexManager {
+    private static final Logger logger = LoggerFactory.getLogger(StandardIndexManager.class);
 
     private final Map<File, IndexWriterCount> writerCounts = new HashMap<>(); // guarded by synchronizing on map itself
     private final ExecutorService searchExecutor;
     private final RepositoryConfiguration repoConfig;
 
-    public SimpleIndexManager(final RepositoryConfiguration repoConfig) {
+    public StandardIndexManager(final RepositoryConfiguration repoConfig) {
         this.repoConfig = repoConfig;
         this.searchExecutor = Executors.newFixedThreadPool(repoConfig.getQueryThreadPoolSize(), new NamedThreadFactory("Search Lucene Index", true));
     }
@@ -105,11 +105,11 @@ public class SimpleIndexManager implements IndexManager {
         final DirectoryReader directoryReader;
         if (writerCount == null) {
             logger.trace("Creating index searcher for {}", indexDir);
-            final Directory directory = FSDirectory.open(indexDir);
+            final Directory directory = FSDirectory.open(indexDir.toPath());
             directoryReader = DirectoryReader.open(directory);
         } else {
             final EventIndexWriter eventIndexWriter = writerCount.getWriter();
-            directoryReader = DirectoryReader.open(eventIndexWriter.getIndexWriter(), false);
+            directoryReader = DirectoryReader.open(eventIndexWriter.getIndexWriter(), false, false);
         }
 
         final IndexSearcher searcher = new IndexSearcher(directoryReader, this.searchExecutor);
@@ -197,14 +197,14 @@ public class SimpleIndexManager implements IndexManager {
 
     private IndexWriterCount createWriter(final File indexDirectory) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
-        final Directory directory = FSDirectory.open(indexDirectory);
+        final Directory directory = FSDirectory.open(indexDirectory.toPath());
         closeables.add(directory);
 
         try {
             final Analyzer analyzer = new StandardAnalyzer();
             closeables.add(analyzer);
 
-            final IndexWriterConfig config = new IndexWriterConfig(LuceneUtil.LUCENE_VERSION, analyzer);
+            final IndexWriterConfig config = new IndexWriterConfig(analyzer);
 
             final ConcurrentMergeScheduler mergeScheduler = new ConcurrentMergeScheduler();
             final int mergeThreads = repoConfig.getConcurrentMergeThreads();
@@ -235,7 +235,7 @@ public class SimpleIndexManager implements IndexManager {
         final File absoluteFile = indexDirectory.getAbsoluteFile();
         logger.trace("Borrowing index writer for {}", indexDirectory);
 
-        IndexWriterCount writerCount = null;
+        IndexWriterCount writerCount;
         synchronized (writerCounts) {
             writerCount = writerCounts.get(absoluteFile);
 
@@ -269,7 +269,7 @@ public class SimpleIndexManager implements IndexManager {
         logger.trace("Returning Index Writer for {} to IndexManager", indexDirectory);
 
         boolean unused = false;
-        IndexWriterCount count = null;
+        IndexWriterCount count;
         boolean close = isCloseable;
         try {
             synchronized (writerCounts) {
