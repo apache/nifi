@@ -49,6 +49,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.util.IPAddress;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -366,7 +367,7 @@ public class TlsHelper {
 
         if (StringUtils.isNotBlank(domainAlternativeNames)) {
             for (String alternativeName : domainAlternativeNames.split(",")) {
-                namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
+                namesList.add(new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName));
             }
         }
 

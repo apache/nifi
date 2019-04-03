@@ -34,6 +34,7 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.bouncycastle.util.IPAddress;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -373,7 +374,9 @@ public class TlsHelperTest {
 
         List<String> extractedSans = extractSanFromCsr(csrWithSan);
         assert extractedSans.size() == SAN_COUNT + 1;
-        List<String> formattedSans = SAN_ENTRIES.stream().map(s -> "DNS: " + s).collect(Collectors.toList());
+        List<String> formattedSans = SAN_ENTRIES.stream()
+                .map(s -> (IPAddress.isValid(s) ? "IP Address: " + new GeneralName(GeneralName.iPAddress, s).getName() : "DNS: " + s))
+                .collect(Collectors.toList());
         assert extractedSans.containsAll(formattedSans);
 
         // We check that the SANs also contain the CN
