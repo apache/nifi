@@ -259,7 +259,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
     public static final PropertyDescriptor INDEX_RETRY_PERIOD = new PropertyDescriptor.Builder()
             .name("druid-cs-index-retry-period")
             .displayName("Index Retry Period")
-            .description("Grace period to allow late arriving events for real time ingest.")
+            .description("Time period, until a transiently failing indexing service overlord call is retried, before giving up.")
             .required(true)
             .allowableValues(PT1M, PT10M, PT60M)
             .defaultValue(PT10M.getValue())
@@ -330,6 +330,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         props.add(AGGREGATOR_JSON);
         props.add(SEGMENT_GRANULARITY);
         props.add(QUERY_GRANULARITY);
+        props.add(INDEX_RETRY_PERIOD);
         props.add(WINDOW_PERIOD);
         props.add(TIMESTAMP_FIELD);
         props.add(MAX_BATCH_SIZE);
