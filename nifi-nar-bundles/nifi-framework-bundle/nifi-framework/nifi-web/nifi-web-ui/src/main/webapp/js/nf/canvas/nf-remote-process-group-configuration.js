@@ -110,25 +110,7 @@
 
                                 // close the details panel
                                 $('#remote-process-group-configuration').modal('hide');
-                            }).fail(function (xhr, status, error) {
-                                if (xhr.status === 400) {
-                                    var errors = xhr.responseText.split('\n');
-
-                                    var content;
-                                    if (errors.length === 1) {
-                                        content = $('<span></span>').text(errors[0]);
-                                    } else {
-                                        content = nfCommon.formatUnorderedList(errors);
-                                    }
-
-                                    nfDialog.showOkDialog({
-                                        dialogContent: content,
-                                        headerText: 'Remote Process Group Configuration'
-                                    });
-                                } else {
-                                    nfErrorHandler.handleAjaxError(xhr, status, error);
-                                }
-                            });
+                            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
                         }
                     }
                 },

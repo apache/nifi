@@ -129,9 +129,6 @@
                             handler: {
                                 click: function () {
                                     addConnection(getSelectedRelationships());
-
-                                    // close the dialog
-                                    $('#connection-configuration').modal('hide');
                                 }
                             }
                         },
@@ -195,9 +192,6 @@
                             click: function () {
                                 // add the connection
                                 addConnection();
-
-                                // close the dialog
-                                $('#connection-configuration').modal('hide');
                             }
                         }
                     },
@@ -971,6 +965,9 @@
                     'selectAll': true
                 });
 
+                // close the dialog
+                $('#connection-configuration').modal('hide');
+
                 // reload the connections source/destination components
                 nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
 
@@ -979,10 +976,7 @@
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(function (xhr, status, error) {
-                // handle the error
-                nfErrorHandler.handleAjaxError(xhr, status, error);
-            });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         }
     };
 
@@ -1051,21 +1045,15 @@
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
+                // close the dialog
+                $('#connection-configuration').modal('hide');
+
                 // update this connection
                 nfConnection.set(response);
 
                 // reload the connections source/destination components
                 nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Connection Configuration',
-                        dialogContent: nfCommon.escapeHtml(xhr.responseText),
-                    });
-                } else {
-                    nfErrorHandler.handleAjaxError(xhr, status, error);
-                }
-            });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();
@@ -1120,7 +1108,7 @@
 
         if (errors.length > 0) {
             nfDialog.showOkDialog({
-                headerText: 'Connection Configuration',
+                headerText: 'Configuration Error',
                 dialogContent: nfCommon.formatUnorderedList(errors)
             });
             return false;
@@ -1495,9 +1483,6 @@
                                         deferred.reject();
                                     });
                                 }
-
-                                // close the dialog
-                                $('#connection-configuration').modal('hide');
                             }
                         }
                     },

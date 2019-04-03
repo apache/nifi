@@ -141,33 +141,6 @@
     };
 
     /**
-     * Handle any expected processor configuration errors.
-     *
-     * @argument {object} xhr       The XmlHttpRequest
-     * @argument {string} status    The status of the request
-     * @argument {string} error     The error
-     */
-    var handleProcessorConfigurationError = function (xhr, status, error) {
-        if (xhr.status === 400) {
-            var errors = xhr.responseText.split('\n');
-
-            var content;
-            if (errors.length === 1) {
-                content = $('<span></span>').text(errors[0]);
-            } else {
-                content = nfCommon.formatUnorderedList(errors);
-            }
-
-            nfDialog.showOkDialog({
-                dialogContent: content,
-                headerText: 'Processor Configuration'
-            });
-        } else {
-            nfErrorHandler.handleAjaxError(xhr, status, error);
-        }
-    };
-
-    /**
      * Creates an option for the specified relationship name.
      *
      * @argument {object} relationship      The relationship
@@ -426,7 +399,7 @@
         if (errors.length > 0) {
             nfDialog.showOkDialog({
                 dialogContent: nfCommon.formatUnorderedList(errors),
-                headerText: 'Processor Configuration'
+                headerText: 'Configuration Error'
             });
             return false;
         } else {
@@ -508,7 +481,7 @@
             }).done(function (response) {
                 // set the new processor state based on the response
                 nfProcessor.set(response);
-            }).fail(handleProcessorConfigurationError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();

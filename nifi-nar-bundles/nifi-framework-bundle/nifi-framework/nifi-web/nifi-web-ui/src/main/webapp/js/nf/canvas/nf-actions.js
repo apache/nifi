@@ -1642,8 +1642,8 @@
                         // ensure the template name is not blank
                         if (nfCommon.isBlank(templateName)) {
                             nfDialog.showOkDialog({
-                                headerText: 'Create Template',
-                                dialogContent: "The template name cannot be blank."
+                                headerText: 'Configuration Error',
+                                dialogContent: "The name of the template must be specified."
                             });
                             return;
                         }

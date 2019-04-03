@@ -252,7 +252,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setName(final String name) {
         if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("The name cannot be blank.");
+            throw new IllegalArgumentException("The name of the process group must be specified.");
         }
 
         this.name.set(name);

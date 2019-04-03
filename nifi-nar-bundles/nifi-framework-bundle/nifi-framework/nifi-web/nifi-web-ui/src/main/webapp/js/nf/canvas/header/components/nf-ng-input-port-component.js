@@ -91,12 +91,15 @@
                     'selectAll': true
                 });
 
+                // hide the dialog
+                inputPortComponent.modal.hide();
+
                 // update component visibility
                 nfGraph.updateVisibility();
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
         function InputPortComponent() {
@@ -216,9 +219,6 @@
                 var addInputPort = function () {
                     // get the name of the input port and clear the textfield
                     var portName = $('#new-port-name').val();
-
-                    // hide the dialog
-                    inputPortComponent.modal.hide();
 
                     // create the input port
                     createInputPort(portName, pt);
