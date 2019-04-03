@@ -144,7 +144,7 @@
             $('#settings-save').off('click').on('click', function () {
                 saveSettings(response.revision.version);
             });
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     }
 
     /**
@@ -519,10 +519,11 @@
             var row = registriesData.getRowById(registryEntity.id);
             nfFilteredDialogCommon.choseRow(registriesGrid, row);
             registriesGrid.scrollRowIntoView(row);
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+
 
         return addRegistry;
     };
@@ -560,10 +561,10 @@
             registriesData.updateItem(registryId, $.extend({
                 type: 'Registry'
             }, registryEntity));
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
         return updateRegistry;
     };

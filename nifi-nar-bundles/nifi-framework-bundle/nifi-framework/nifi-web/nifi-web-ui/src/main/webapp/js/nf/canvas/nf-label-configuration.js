@@ -109,10 +109,11 @@
 
                                 // inform Angular app values have changed
                                 nfNgBridge.digest();
-                            }).fail(nfErrorHandler.handleAjaxError);
 
-                            // reset and hide the dialog
-                            this.modal('hide');
+                                // reset and hide the dialog
+                                this.modal('hide');
+                            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+
                         }
                     }
                 },

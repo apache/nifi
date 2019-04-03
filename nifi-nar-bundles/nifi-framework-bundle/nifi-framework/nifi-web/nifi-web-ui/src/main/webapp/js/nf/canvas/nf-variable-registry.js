@@ -1503,15 +1503,17 @@
                     variableGrid.scrollRowIntoView(matchingRow);
                 }
             }
+
+            // close the new variable dialog
+            $('#new-variable-dialog').modal('hide');
+
         } else {
             nfDialog.showOkDialog({
-                headerText: 'Variable Name',
-                dialogContent: 'Variable name must be specified.'
+                headerText: 'Configuration Error',
+                dialogContent: 'The name of the variable must be specified.'
             });
         }
 
-        // close the new variable dialog
-        $('#new-variable-dialog').modal('hide');
     };
 
     /**

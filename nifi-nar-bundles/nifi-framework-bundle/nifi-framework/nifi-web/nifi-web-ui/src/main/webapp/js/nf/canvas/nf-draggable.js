@@ -295,15 +295,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
-
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             }).promise();
@@ -357,14 +349,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
 
                     deferred.reject();
                 });

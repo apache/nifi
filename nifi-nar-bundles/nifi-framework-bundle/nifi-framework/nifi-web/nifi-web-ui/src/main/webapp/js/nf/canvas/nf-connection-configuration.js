@@ -979,10 +979,7 @@
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(function (xhr, status, error) {
-                // handle the error
-                nfErrorHandler.handleAjaxError(xhr, status, error);
-            });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         }
     };
 

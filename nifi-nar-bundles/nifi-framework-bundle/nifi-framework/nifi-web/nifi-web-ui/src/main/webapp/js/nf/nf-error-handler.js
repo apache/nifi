@@ -142,6 +142,35 @@
                 // show the error pane
                 $('#message-pane').show();
             }
+        },
+
+        /**
+         * Method for handling ajax errors when submitting configuration update (PUT/POST) requests.
+         * In addition to what handleAjaxError does, this function splits
+         * the error message text to display them as an unordered list.
+         *
+         * @argument {object} xhr       The XmlHttpRequest
+         * @argument {string} status    The status of the request
+         * @argument {string} error     The error
+         */
+        handleConfigurationUpdateAjaxError: function (xhr, status, error) {
+            if (xhr.status === 400) {
+                var errors = xhr.responseText.split('\n');
+
+                var content;
+                if (errors.length === 1) {
+                    content = $('<span></span>').text(errors[0]);
+                } else {
+                    content = nfCommon.formatUnorderedList(errors);
+                }
+
+                nfDialog.showOkDialog({
+                    dialogContent: content,
+                    headerText: 'Configuration Error'
+                });
+            } else {
+                this.handleAjaxError(xhr, status, error);
+            }
         }
     };
 }));

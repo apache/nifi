@@ -1614,16 +1614,7 @@
         }).done(function (response) {
             // request was successful, update the entry
             nfConnection.set(response);
-        }).fail(function (xhr, status, error) {
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                nfDialog.showOkDialog({
-                    headerText: 'Connection',
-                    dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                });
-            } else {
-                nfErrorHandler.handleAjaxError(xhr, status, error);
-            }
-        });
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     // removes the specified connections

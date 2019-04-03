@@ -121,32 +121,7 @@
 
                             // close the details panel
                             $('#port-configuration').modal('hide');
-                        }).fail(function (xhr, status, error) {
-                            // handle bad request locally to keep the dialog open, allowing the user
-                            // to make changes. if the request fails for another reason, the dialog
-                            // should be closed so the issue can be addressed (stale flow for instance)
-                            if (xhr.status === 400) {
-                                var errors = xhr.responseText.split('\n');
-
-                                var content;
-                                if (errors.length === 1) {
-                                    content = $('<span></span>').text(errors[0]);
-                                } else {
-                                    content = nfCommon.formatUnorderedList(errors);
-                                }
-
-                                nfDialog.showOkDialog({
-                                    dialogContent: content,
-                                    headerText: 'Port Configuration'
-                                });
-                            } else {
-                                // close the details panel
-                                $('#port-configuration').modal('hide');
-
-                                // handle the error
-                                nfErrorHandler.handleAjaxError(xhr, status, error);
-                            }
-                        });
+                        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
                     }
                 }
             },

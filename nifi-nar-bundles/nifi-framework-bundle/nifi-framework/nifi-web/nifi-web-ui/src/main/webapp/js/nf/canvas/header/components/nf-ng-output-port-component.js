@@ -91,12 +91,15 @@
                     'selectAll': true
                 });
 
+                // hide the dialog
+                outputPortComponent.modal.hide();
+
                 // update component visibility
                 nfGraph.updateVisibility();
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
         function OutputPortComponent() {
@@ -207,9 +210,6 @@
                 var addOutputPort = function () {
                     // get the name of the output port and clear the textfield
                     var portName = $('#new-port-name').val();
-
-                    // hide the dialog
-                    outputPortComponent.modal.hide();
 
                     // create the output port
                     createOutputPort(portName, pt);
