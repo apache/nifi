@@ -18,6 +18,7 @@ package org.apache.nifi.script.impl;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.python.core.PyString;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
@@ -47,7 +48,7 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
             engine.eval("import sys");
             if (modulePaths != null) {
                 for (String modulePath : modulePaths) {
-                    engine.eval("sys.path.append('" + modulePath + "')");
+                    engine.eval("sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")");
                 }
             }
         }
