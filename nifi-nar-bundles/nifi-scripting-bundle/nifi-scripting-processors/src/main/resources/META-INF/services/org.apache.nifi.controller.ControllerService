@@ -16,4 +16,3 @@
 org.apache.nifi.record.script.ScriptedReader
 org.apache.nifi.record.script.ScriptedRecordSetWriter
 org.apache.nifi.lookup.script.ScriptedLookupService
-org.apache.nifi.lookup.script.SimpleScriptedLookupService

@@ -144,6 +144,36 @@ volume to provide certificates on the host system to the container instance.
     -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
+### Standalone Instance, Kerberos
+In this configuration, the user will need to provide certificates and the associated configuration information.
+Of particular note, is the `AUTH` environment variable which is set to `kerberos`.  Additionally, the user must 
+provide a username as provided by the configured kerberos server in the `INITIAL_ADMIN_IDENTITY` environment 
+variable if wants to authenticate by kerberos. This value will be used to seed the instance with an initial user 
+with administrative privileges.  Finally, this command makes use of a volume to provide certificates on the host 
+system to the container instance.  SPNEGO information has to be provided for SSO.
+
+#### For a minimal, connection to an kerberos server using SIMPLE authentication:
+
+    docker run --name nifi \
+      -v /User/dreynolds/certs/localhost:/opt/certs \
+      -v /home/kerberos:/opt/kerberos
+      -p 8443:8443 \
+      -e AUTH=kerberos \
+      -e KEYSTORE_PATH=/opt/certs/keystore.jks \
+      -e KEYSTORE_TYPE=JKS \
+      -e KEYSTORE_PASSWORD=QKZv1hSWAFQYZ+WU1jjF5ank+l4igeOfQRp+OSbkkrs \
+      -e TRUSTSTORE_PATH=/opt/certs/truststore.jks \
+      -e TRUSTSTORE_PASSWORD=rHkWR1gDNW3R9hgbeRsT3OM3Ue0zwGtQqcFKJD2EXWE \
+      -e TRUSTSTORE_TYPE=JKS \
+      -e INITIAL_ADMIN_IDENTITY='nifi-user@EXAMPLE.COM' \
+      -e KRB5_FILE_PATH=/opt/kerberos/krb5.conf \
+      -e DEFAULT_REALM=EXAMPLE.COM \
+      -e SPNEGO_PRINCIPAL=HTTP/nifi.apache.org@EXAMPLE.COM \
+      -e SPNEGO_KEYTAB_PATH=/opt/kerberos/spnego.keytab \
+      -e SPNEGO_AUTH_EXP="12 hours"
+      -d \
+      apache/nifi:latest
+
 #### Clustering can be enabled by using the following properties to Docker environment variable mappings.
 
 ##### nifi.properties
@@ -196,7 +226,7 @@ The JVM Memory initial and maximum heap size can be set using the `NIFI_JVM_HEAP
 
 The JVM Debugger can be enabled by setting the environment variable NIFI_JVM_DEBUGGER to any value.
 
-=======  
+=======
 **NOTE**: If NiFi is proxied at context paths other than the root path of the proxy, the paths need to be set in the 
 _nifi.web.proxy.context.path_ property, which can be assigned via the environment variable _NIFI\_WEB\_PROXY\_CONTEXT\_PATH_.
 

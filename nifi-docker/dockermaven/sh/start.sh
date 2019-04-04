@@ -71,6 +71,11 @@ case ${AUTH} in
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
         ;;
+    kerberos)
+        echo 'Enableing kerberos user authentication'
+        . "${scripts_dir}/secure.sh"
+        . "${scripts_dir}/kerberos_user_auth.sh"
+        ;;
     *)
         if [ ! -z "${NIFI_WEB_PROXY_HOST}" ]; then
             echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode.  Will not update nifi.web.proxy.host.'

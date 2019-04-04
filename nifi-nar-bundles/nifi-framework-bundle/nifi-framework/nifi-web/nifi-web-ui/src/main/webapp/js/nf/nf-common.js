@@ -22,23 +22,20 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
-                'nf.Storage',
-                'lodash-core'],
-            function ($, d3, nfStorage, _) {
-                return (nf.Common = factory($, d3, nfStorage, _));
+                'nf.Storage'],
+            function ($, d3, nfStorage) {
+                return (nf.Common = factory($, d3, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
             require('d3'),
-            require('nf.Storage'),
-            require('lodash-core')));
+            require('nf.Storage')));
     } else {
         nf.Common = factory(root.$,
             root.d3,
-            root.nf.Storage,
-            root._);
+            root.nf.Storage);
     }
-}(this, function ($, d3, nfStorage, _) {
+}(this, function ($, d3, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -1703,17 +1700,6 @@
                 return option.value === value;
             });
             return nfCommon.isDefinedAndNotNull(matchedOption) ? matchedOption.text : undefined;
-        },
-
-        /**
-         * Creates a throttled function that invokes at most once every wait milliseconds.
-         *
-         * @param func                The function to throttle.
-         * @param wait                The number of milliseconds to throttle invocations to.
-         * @returns {function}        The throttled version of the function.
-         */
-        throttle: function (func, wait) {
-            return _.throttle(func, wait);
         }
 
     };
