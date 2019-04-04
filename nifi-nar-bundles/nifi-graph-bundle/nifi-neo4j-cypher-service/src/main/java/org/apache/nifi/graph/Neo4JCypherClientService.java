@@ -50,7 +50,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({ "graph", "neo4j", "cypher" })
-@CapabilityDescription("Provides a client service for managing connections to a Neo4J database.")
+@CapabilityDescription("Provides a client service for managing connections to a Neo4J database. Configuration information for " +
+        "the Neo4J driver that corresponds to most of the settings for this service can be found here: " +
+        "https://neo4j.com/docs/driver-manual/current/client-applications/#driver-configuration")
 public class Neo4JCypherClientService extends AbstractControllerService implements GraphClientService {
     public static final PropertyDescriptor CONNECTION_URL = new PropertyDescriptor.Builder()
             .name("neo4j-connection-url")
