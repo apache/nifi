@@ -211,24 +211,27 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * @see #setProperty(String propertyName, Object propertyValue)
      */
     void setConnectionFactoryProperties(ConfigurationContext context) {
-        String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
-        String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
-        if (connectionFactoryValue.startsWith("org.apache.activemq")) {
-            this.setProperty("brokerURL", brokerValue);
-        } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
-            this.setProperty("serverUrl", brokerValue);
-        } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-            // Try to parse broker URI as colon separated host/port pair
-            String[] hostPort = brokerValue.split(":");
-            if (hostPort.length == 2) {
-                // If broker URI indeed was colon separated host/port pair
-                this.setProperty("hostName", hostPort[0]);
-                this.setProperty("port", hostPort[1]);
+        if (context.getProperty(BROKER_URI).isSet()) {
+            String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
+            String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
+            if (connectionFactoryValue.startsWith("org.apache.activemq")) {
+                this.setProperty("brokerURL", brokerValue);
+            } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
+                this.setProperty("serverUrl", brokerValue);
             } else {
-                // Assuming broker is in hostname(port) format
-                this.setProperty("connectionNameList", brokerValue);
+                // Try to parse broker URI as colon separated host/port pair
+                String[] hostPort = brokerValue.split(":");
+                if (hostPort.length == 2) {
+                    // If broker URI indeed was colon separated host/port pair
+                    this.setProperty("hostName", hostPort[0]);
+                    this.setProperty("port", hostPort[1]);
+                } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
+                    // Assuming broker is in hostname(port) format
+                    this.setProperty("connectionNameList", brokerValue);
+                }
             }
         }
+
 
         SSLContextService sc = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sc != null) {
