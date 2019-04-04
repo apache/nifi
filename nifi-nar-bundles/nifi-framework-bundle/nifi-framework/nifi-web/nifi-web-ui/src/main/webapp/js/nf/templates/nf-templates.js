@@ -100,7 +100,7 @@
                                 deferred.resolve(true);
                             });
                         } else {
-                            deferred.resolve(true);
+                            deferred.resolve(false);
                         }
                     }
                 }).fail(nfErrorHandler.handleAjaxError).fail(function () {
