@@ -232,7 +232,6 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             }
         }
 
-
         SSLContextService sc = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sc != null) {
             SSLContext ssl = sc.createSSLContext(ClientAuth.NONE);

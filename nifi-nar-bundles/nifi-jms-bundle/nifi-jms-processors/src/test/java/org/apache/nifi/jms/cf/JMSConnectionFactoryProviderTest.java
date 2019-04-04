@@ -274,7 +274,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of());
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
     }
 
     @Test
