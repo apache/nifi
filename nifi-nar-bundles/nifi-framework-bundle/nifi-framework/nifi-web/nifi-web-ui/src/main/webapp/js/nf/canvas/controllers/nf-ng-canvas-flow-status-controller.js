@@ -229,6 +229,7 @@
 
                     // configure the new searchAutocomplete jQuery UI widget
                     this.getInputElement().searchAutocomplete({
+                        delay : 1000,
                         appendTo: '#search-flow-results',
                         position: {
                             my: 'right top',
