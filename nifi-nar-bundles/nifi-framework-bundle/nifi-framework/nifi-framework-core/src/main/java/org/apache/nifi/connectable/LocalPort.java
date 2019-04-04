@@ -62,6 +62,14 @@ public class LocalPort extends AbstractPort {
     // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
     static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
 
+    // "_nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
+    // the number of concurrent tasks to schedule for local ports and funnels.
+    static final String MAX_CONCURRENT_TASKS_PROP_NAME = "_nifi.funnel.max.concurrent.tasks";
+
+    // "_nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
+    // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
+    static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
+
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
