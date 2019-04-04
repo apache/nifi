@@ -37,6 +37,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,11 +58,7 @@ import static java.util.Objects.requireNonNull;
 
 public class StandardFunnel implements Funnel {
 
-    public static final long MINIMUM_PENALIZATION_MILLIS = 0L;
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-    public static final long MINIMUM_YIELD_MILLIS = 0L;
-    public static final long DEFAULT_YIELD_PERIOD = 1000L;
-    public static final TimeUnit DEFAULT_YIELD_TIME_UNIT = TimeUnit.MILLISECONDS;
 
     private final String identifier;
     private final Set<Connection> outgoingConnections;
@@ -84,9 +81,12 @@ public class StandardFunnel implements Funnel {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    public StandardFunnel(final String identifier, final ProcessGroup processGroup, final ProcessScheduler scheduler) {
+    final int maxIterations;
+    private final int maxConcurrentTasks;
+
+    public StandardFunnel(final String identifier, final NiFiProperties nifiProperties) {
         this.identifier = identifier;
-        this.processGroupRef = new AtomicReference<>(processGroup);
+        this.processGroupRef = new AtomicReference<>();
 
         outgoingConnections = new HashSet<>();
         incomingConnections = new ArrayList<>();
@@ -104,6 +104,15 @@ public class StandardFunnel implements Funnel {
         schedulingPeriod = new AtomicReference<>("0 millis");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         name = new AtomicReference<>("Funnel");
+
+        // "nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
+        // the number of concurrent tasks to schedule for local ports and funnels.
+        maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty("nifi.funnel.max.concurrent.tasks", "1"));
+
+        // "nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
+        // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
+        int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty("nifi.funnel.max.transferred.flowfiles", "10000"));
+        maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
     }
 
     @Override
@@ -381,9 +390,9 @@ public class StandardFunnel implements Funnel {
                 session.commit();
 
                 // If there are fewer than 1,000 FlowFiles available to transfer, or if we
-                // have hit a cap of 10,000 FlowFiles, we want to stop. This prevents us from
+                // have hit the configured FlowFile cap, we want to stop. This prevents us from
                 // holding the Timer-Driven Thread for an excessive amount of time.
-                if (flowFiles.size() < 1000 || ++iterations >= 10) {
+                if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
                     break;
                 }
 
@@ -403,7 +412,7 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public int getMaxConcurrentTasks() {
-        return 1;
+        return maxConcurrentTasks;
     }
 
     @Override

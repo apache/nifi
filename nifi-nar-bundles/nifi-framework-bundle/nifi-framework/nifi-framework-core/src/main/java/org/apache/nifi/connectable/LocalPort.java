@@ -20,11 +20,11 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,9 +43,20 @@ public class LocalPort extends AbstractPort {
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
+    final int maxIterations;
 
-    public LocalPort(final String id, final String name, final ProcessGroup processGroup, final ConnectableType type, final ProcessScheduler scheduler) {
-        super(id, name, processGroup, type, scheduler);
+    public LocalPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler, final NiFiProperties nifiProperties) {
+        super(id, name, null, type, scheduler);
+
+        // "nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
+        // the number of concurrent tasks to schedule for local ports and funnels.
+        int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty("nifi.funnel.max.concurrent.tasks", "1"));
+        setMaxConcurrentTasks(maxConcurrentTasks);
+
+        // "nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
+        // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
+        int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty("nifi.funnel.max.transferred.flowfiles", "10000"));
+        maxIterations = Math.max(1, (int) Math.ceil(maxTransferredFlowFiles / 1000.0));
     }
 
     @Override
@@ -83,9 +94,9 @@ public class LocalPort extends AbstractPort {
                 session.commit();
 
                 // If there are fewer than 1,000 FlowFiles available to transfer, or if we
-                // have hit a cap of 10,000 FlowFiles, we want to stop. This prevents us from
+                // have hit the configured FlowFile cap, we want to stop. This prevents us from
                 // holding the Timer-Driven Thread for an excessive amount of time.
-                if (flowFiles.size() < 1000 || ++iterations >= 10) {
+                if (flowFiles.size() < 1000 || ++iterations >= maxIterations) {
                     break;
                 }
 

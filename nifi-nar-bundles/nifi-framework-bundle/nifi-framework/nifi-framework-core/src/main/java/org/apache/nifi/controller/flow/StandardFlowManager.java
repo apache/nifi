@@ -186,21 +186,21 @@ public class StandardFlowManager implements FlowManager {
     }
 
     public Funnel createFunnel(final String id) {
-        return new StandardFunnel(id.intern(), null, processScheduler);
+        return new StandardFunnel(id.intern(), nifiProperties);
     }
 
     public Port createLocalInputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new LocalPort(id, name, null, ConnectableType.INPUT_PORT, processScheduler);
+        return new LocalPort(id, name, ConnectableType.INPUT_PORT, processScheduler, nifiProperties);
     }
 
     public Port createLocalOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new LocalPort(id, name, null, ConnectableType.OUTPUT_PORT, processScheduler);
+        return new LocalPort(id, name, ConnectableType.OUTPUT_PORT, processScheduler, nifiProperties);
     }
 
     public ProcessGroup createProcessGroup(final String id) {
