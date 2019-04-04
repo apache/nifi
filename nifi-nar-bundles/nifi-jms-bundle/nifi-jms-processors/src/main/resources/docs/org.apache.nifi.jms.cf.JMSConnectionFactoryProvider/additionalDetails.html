@@ -50,9 +50,9 @@
     <li><b>MQ ConnectionFactory Implementation</b> - A fully qualified name of the JMS <i>ConnectionFactory</i>
         implementation class. For example:
         <ul>
-            <li>Apache ActiveMQ - <a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html">org.apache.activemq.ActiveMQConnectionFactory</a></li>
-            <li>IBM MQ - <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQQueueConnectionFactory.html">com.ibm.mq.jms.MQQueueConnectionFactory</a></li>
-            <li>TIBCO EMS - <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsQueueConnectionFactory.html">com.tibco.tibjms.TibjmsQueueConnectionFactory</a></li>
+            <li>Apache ActiveMQ - <a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html" target="_blank">org.apache.activemq.ActiveMQConnectionFactory</a></li>
+            <li>IBM MQ - <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQQueueConnectionFactory.html" target="_blank">com.ibm.mq.jms.MQQueueConnectionFactory</a></li>
+            <li>TIBCO EMS - <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsQueueConnectionFactory.html" target="_blank">com.tibco.tibjms.TibjmsQueueConnectionFactory</a></li>
         </ul>
     </li>
 </ul>
@@ -81,7 +81,7 @@
 </ul>
 <p>
     The rest of the vendor specific configuration are set through dynamic properties utilizing the
-    <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm">Java Beans</a> convention where a property
+    <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm" target="_blank">Java Beans</a> convention where a property
     name is derived from the <i>set</i> method of the vendor specific <i>ConnectionFactory</i>'s implementation. For
     example, <i>com.ibm.mq.jms.MQConnectionFactory.setChannel(String)</i> would imply 'channel' property and
     <i>com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)</i> would imply 'transportType' property. For the list
@@ -89,13 +89,13 @@
     documentation:
 </p>
 <ul>
-    <li><a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html">Apache
+    <li><a href="http://activemq.apache.org/maven/5.15.9/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html" target="_blank">Apache
         ActiveMQ</a></li>
     <li>
-        <a href="https://www.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html">IBM
+        <a href="https://www.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html" target="_blank">IBM
             MQ</a></li>
     <li>
-        <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html">TIBCO
+        <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html" target="_blank">TIBCO
             EMS</a></li>
 </ul>
 
@@ -123,7 +123,7 @@
         <td>Broker URI</td>
         <td>mqhost01(1414),mqhost02(1414)</td>
         <td>Static</td>
-        <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname">Connection Name List syntax</a>.
+        <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname" target="_blank">Connection Name List syntax</a>.
             If connecting to single instance instead use colon separated host/port pair syntax.</td>
     </tr>
     <tr>
@@ -148,7 +148,7 @@
         <td>transportType</td>
         <td>1</td>
         <td>Dynamic</td>
-        <td>Constant integer value corresponding to the client transport mode. Default value is <a href="https://www.ibm.com/support/knowledgecenter/en/SSEQTP_9.0.0/com.ibm.websphere.base.doc/ae/umj_pjcfm.html">"Bindings, then client"</a></td>
+        <td>Constant integer value corresponding to the client transport mode. Default value is <a href="https://www.ibm.com/support/knowledgecenter/en/SSEQTP_9.0.0/com.ibm.websphere.base.doc/ae/umj_pjcfm.html" target="_blank">"Bindings, then client"</a></td>
     </tr>
 </table>
 </body>
