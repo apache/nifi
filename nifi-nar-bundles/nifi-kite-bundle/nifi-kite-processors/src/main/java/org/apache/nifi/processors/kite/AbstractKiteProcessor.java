@@ -39,6 +39,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.HadoopValidators;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StringUtils;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
@@ -148,7 +149,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected static final Validator SCHEMA_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
-            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue());
+            Configuration conf = getConfiguration(FileExpansionUtil.expandPath(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue()));
             String error = null;
 
             if(StringUtils.isBlank(uri)) {
@@ -183,8 +184,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     @OnScheduled
     protected void setDefaultConfiguration(ProcessContext context)
             throws IOException {
-        DefaultConfiguration.set(getConfiguration(
-                context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue()));
+        DefaultConfiguration.set(getConfiguration(context.getProperty(CONF_XML_FILES).evaluateAttributeExpressions().getValue()));
     }
 
     protected static Configuration getConfiguration(String configFiles) {
@@ -198,7 +198,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             // process each resource only once
             if (conf.getResource(file) == null) {
                 // use Path instead of String to get the file from the FS
-                conf.addResource(new Path(file));
+                conf.addResource(new Path(FileExpansionUtil.expandPath(file)));
             }
         }
 

@@ -15,7 +15,7 @@ public class FileExpansionUtil {
         String result = null;
         String userHome = System.getProperty("user.home");
 
-        if (userHome != null && userHome.trim().equals("")) {
+        if (userHome == null || userHome.trim().equals("")) {
             throw new RuntimeException("Nifi assumes user.home is set to your home directory.  Nifi detected user.home is " +
                     "either null or empty and this means your environment can't determine a value for this information.  " +
                 "You can get around this by specifying a -Duser.home=<your home directory> when running nifi.");

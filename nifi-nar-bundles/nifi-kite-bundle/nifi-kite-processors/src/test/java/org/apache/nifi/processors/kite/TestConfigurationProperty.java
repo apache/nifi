@@ -40,7 +40,7 @@ import org.kitesdk.data.Dataset;
 public class TestConfigurationProperty {
 
     @Rule
-    public final TemporaryFolder temp = new TemporaryFolder();
+    public final TemporaryFolder temp = new TemporaryFolder(new File("target"));
     public File confLocation;
 
     private String datasetUri = null;
