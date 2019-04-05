@@ -807,7 +807,7 @@ public class JdbcCommon {
                             throw new ParseException("Unable to parse binary data using the formatter `" + valueFormat + "`.",0);
                     }
 
-                    stmt.setBinaryStream(parameterIndex, new ByteArrayInputStream(bValue), bValue.length);
+                    stmt.setBytes(parameterIndex, bValue);
 
                     break;
                 case Types.CHAR:
