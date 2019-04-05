@@ -48,6 +48,7 @@ public class TestFileExpansionUtil {
    @Test
    public void  testExpandPath() {
        logger.debug("User Home: " + System.getProperty("user.home"));
+
        // arrange
        System.setProperty("user.home", "/Users/testuser");
 
