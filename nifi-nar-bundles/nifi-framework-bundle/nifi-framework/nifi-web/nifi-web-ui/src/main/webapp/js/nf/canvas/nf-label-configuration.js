@@ -76,6 +76,7 @@
                     },
                     handler: {
                         click: function () {
+                            var self = this;
                             // get the label data
                             var labelData = d3.select('#id-' + labelId).datum();
 
@@ -111,7 +112,7 @@
                                 nfNgBridge.digest();
 
                                 // reset and hide the dialog
-                                this.modal('hide');
+                                self.modal('hide');
                             }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
                         }
