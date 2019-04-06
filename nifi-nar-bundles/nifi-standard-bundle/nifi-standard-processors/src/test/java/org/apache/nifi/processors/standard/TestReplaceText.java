@@ -171,7 +171,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "_");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.PREPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
 
         runner.enqueue("hello\nthere\nmadam".getBytes());
         runner.run();
@@ -186,7 +187,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "_");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.PREPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
 
         runner.enqueue("hello\nthere\nmadam".getBytes());
         runner.run();
@@ -201,7 +203,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "_");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.PREPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
 
         runner.enqueue("hello\nthere\nmadam".getBytes());
         runner.run();
@@ -217,7 +220,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "_");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.PREPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
 
         runner.enqueue("hello\nthere\nmadam".getBytes());
         runner.run();
@@ -262,7 +266,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
 
         runner.enqueue("hello\rthere\rsir".getBytes());
         runner.run();
@@ -277,7 +282,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
 
         runner.enqueue("hello\rthere\rsir".getBytes());
         runner.run();
@@ -292,7 +298,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
 
         runner.enqueue("hello\rthere\rsir".getBytes());
         runner.run();
@@ -307,7 +314,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
 
         runner.enqueue("hello\rthere\rsir".getBytes());
         runner.run();
@@ -352,7 +360,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
 
         runner.enqueue("hello\r\nthere\r\nsir".getBytes());
         runner.run();
@@ -368,7 +377,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
 
         runner.enqueue("hello\r\nthere\r\nsir".getBytes());
         runner.run();
@@ -384,7 +394,8 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
 
         runner.enqueue("hello\r\nthere\r\nsir".getBytes());
         runner.run();
@@ -400,7 +411,9 @@ public class TestReplaceText {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+
 
         runner.enqueue("hello\r\nthere\r\nsir".getBytes());
         runner.run();
@@ -833,6 +846,24 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/food.txt")));
     }
 
+
+    @Test
+    public void testZeroByteContentFileLineByLine() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "odo");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "ood");
+
+        final File zeroByteFile = File.createTempFile("zeroByte", ".txt");
+        runner.enqueue(translateNewLines(zeroByteFile.getPath()));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(zeroByteFile.getPath()));
+    }
+
+
     @Test
     public void testPrependSimpleLineByLine() throws IOException {
         final TestRunner runner = getRunner();
@@ -1036,7 +1067,8 @@ public class TestReplaceText {
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedFirstLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(H)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1$2");
 
@@ -1054,7 +1086,8 @@ public class TestReplaceText {
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedLastLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(O)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1$2");
 
@@ -1073,7 +1106,8 @@ public class TestReplaceText {
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedExceptFirstLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(H)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1$2");
 
@@ -1093,7 +1127,8 @@ public class TestReplaceText {
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedExceptLastLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(O)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$1$2");
 
@@ -1112,7 +1147,8 @@ public class TestReplaceText {
     @Test
     public void testLiteralBackReferenceFistLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "H");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "[$1]");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE);
@@ -1132,7 +1168,8 @@ public class TestReplaceText {
     @Test
     public void testLiteralBackReferenceExceptFirstLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "H");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "[$1]");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE);
@@ -1150,7 +1187,8 @@ public class TestReplaceText {
     @Test
     public void testLiteralBackReferenceLastLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "O");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "[$1]");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE);
@@ -1168,7 +1206,8 @@ public class TestReplaceText {
     @Test
     public void testLiteralBackReferenceExceptLastLine() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "O");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "[$1]");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE);
