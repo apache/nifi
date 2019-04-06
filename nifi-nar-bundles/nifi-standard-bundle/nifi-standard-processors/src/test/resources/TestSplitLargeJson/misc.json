@@ -1,0 +1,39 @@
+{
+  "autumn": "leaves",
+  "fence": {
+    "colors": ["black", "brown"],
+    "materials": ["wood", "hinges", "screws"]
+  },
+  "mixed-arr": [
+    true,
+    false,
+    null,
+    23,
+    3.14,
+    "pi",
+    {"g": 3927}
+  ],
+  "two-d": [
+    [3,7],
+    [3,4,1],
+    [2,0,1,8]
+  ],
+  "nest": {
+    "obj1": {
+      "red": 3,
+      "green": 6
+    },
+    "obj2": {
+      "red": 7,
+      "green": 7
+    },
+    "arr": [
+      { "orange": 9,
+        "white": 10
+      },
+      { "orange": 2,
+        "white": 3
+      }
+    ]
+  }
+}

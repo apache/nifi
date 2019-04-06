@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -72,7 +73,9 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
 @CapabilityDescription("Splits a JSON File into multiple, separate FlowFiles for an array element specified by a JsonPath expression. "
         + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split,' "
         + "with the original file transferred to the 'original' relationship. If the specified JsonPath is not found or "
-        + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
+        + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated. "
+        + "If a designated object in the JSON document is to be split into its key-value pairs, the SplitLargeJson "
+        + "processor can be used. This processor can split arrays and supports the full JSON Path specification.")
 @WritesAttributes({
         @WritesAttribute(attribute = "fragment.identifier",
                 description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
@@ -82,9 +85,12 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
         @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
+@SeeAlso(SplitLargeJson.class)
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a JsonNode object) is read into memory, " +
-        "in addition to all of the generated FlowFiles representing the split JSON. If many splits are generated due to the size of the JSON, or how the JSON is " +
-        "configured to be split, a two-phase approach may be necessary to avoid excessive use of memory.")
+        "in addition to all of the generated FlowFiles representing the split JSON.  If the JSON documents to be " +
+        "split are large, then the SplitLargeJson processor should be considered in order to avoid excessive " +
+        "memory usage.  If a complex JSON Path is required and the JSON documents are large, then a two-phase " +
+        "approach may be necessary.")
 public class SplitJson extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()

@@ -239,6 +239,8 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
     (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON-P (org.glassfish:javax.json:jar:1.1 - https://javaee.github.io/jsonp)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON API (javax.json:jsonx.json-api:jar:1.1 - https://javaee.github.io/jsonp)
 
 *****************
 Common Development and Distribution License v1.0:
