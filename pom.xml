@@ -36,7 +36,7 @@
         <module>nifi-external</module>
         <module>nifi-toolkit</module>
         <module>nifi-docker</module>
-        <module>nifi-fn</module>
+        <module>nifi-stateless</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
