@@ -54,7 +54,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.util.LineDemarcator;
 import org.apache.nifi.util.StopWatch;
 
-import javax.annotation.Nullable;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -419,28 +418,15 @@ public class ReplaceText extends AbstractProcessor {
                     })));
             }
 
-            return flowFile;
-        }
+                        bw.write(replacementValue);
 
-        public void replaceInLine(BufferedWriter bw, String oneLine, @Nullable Matcher matcher, @Nullable Pattern searchPattern, ProcessContext context, FlowFile flowFile) throws IOException {
-            final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
-            final StringBuilder lineEndingBuilder = new StringBuilder(2);
-            // We need to determine what line ending was used and use that after our replacement value.
-            lineEndingBuilder.setLength(0);
-            for (int i = oneLine.length() - 1; i >= 0; i--) {
-                final char c = oneLine.charAt(i);
-                if (c == '\r' || c == '\n') {
-                    lineEndingBuilder.append(c);
-                } else {
-                    break;
-                }
+                        // Preserve original line endings. Reverse string because we iterated over original line ending in reverse order, appending to builder.
+                        // So if builder has multiple characters, they are now reversed from the original string's ordering.
+                        bw.write(lineEndingBuilder.reverse().toString());
+                    })));
             }
 
-            bw.write(replacementValue);
-
-            // Preserve original line endings. Reverse string because we iterated over original line ending in reverse order, appending to builder.
-            // So if builder has multiple characters, they are now reversed from the original string's ordering.
-            bw.write(lineEndingBuilder.reverse().toString());
+            return flowFile;
         }
 
         @Override
@@ -543,9 +529,12 @@ public class ReplaceText extends AbstractProcessor {
                 bw.write(c);
             }
 
-            if (!foundNewLine) {
-                bw.write(replacementValue);
+                        if (!foundNewLine) {
+                            bw.write(replacementValue);
+                        }
+                    }));
             }
+            return flowFile;
         }
 
         @Override
@@ -732,19 +721,23 @@ public class ReplaceText extends AbstractProcessor {
             int lastEnd = 0;
 
 
-            while (matcher.find()) {
-                bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
-                bw.write(replacementValue);
-                matches++;
+                        final Matcher matcher = searchPattern.matcher(oneLine);
+                        while (matcher.find()) {
+                            bw.write(oneLine, lastEnd, matcher.start() - lastEnd);
+                            bw.write(replacementValue);
+                            matches++;
 
-                lastEnd = matcher.end();
-            }
+                            lastEnd = matcher.end();
+                        }
 
-            if (matches > 0) {
-                bw.write(oneLine, lastEnd, oneLine.length() - lastEnd);
-            } else {
-                bw.write(oneLine);
+                        if (matches > 0) {
+                            bw.write(oneLine, lastEnd, oneLine.length() - lastEnd);
+                        } else {
+                            bw.write(oneLine);
+                        }
+                    }));
             }
+            return flowFile;
         }
 
         @Override
@@ -770,49 +763,43 @@ public class ReplaceText extends AbstractProcessor {
         FlowFile replace(FlowFile flowFile, ProcessSession session, ProcessContext context, String evaluateMode, Charset charset, int maxBufferSize);
 
         boolean isAllDataBufferedForEntireText();
+    }
 
-        void replaceInLine(BufferedWriter bw, String oneLine, @Nullable Matcher matcher, @Nullable Pattern searchPattern, ProcessContext context, FlowFile flowFile) throws IOException ;
+    @FunctionalInterface
+    private interface ReplaceLine {
+        void apply(BufferedWriter bw, String oneLine) throws IOException;
     }
 
 
     private class StreamReplaceCallback implements StreamCallback {
         private final Charset charset;
         private final int maxBufferSize;
-        private final ProcessContext context;
-        private final FlowFile flowFile;
-        private final ReplacementStrategyExecutor replacementStrategyExecutor;
-        private final Pattern searchPattern;
+        private final String lineByLineEvaluationMode;
+        private final ReplaceLine replaceLine;
 
-        public StreamReplaceCallback(ReplacementStrategyExecutor replacementStrategyExecutor,
-                                     Charset charset,
+        private StreamReplaceCallback(Charset charset,
                                      int maxBufferSize,
-                                     ProcessContext context,
-                                     FlowFile flowFile,
-                                     @Nullable Pattern searchPattern) {
-            this.replacementStrategyExecutor = replacementStrategyExecutor;
+                                     String lineByLineEvaluationMode,
+                                     ReplaceLine replaceLine) {
             this.charset = charset;
             this.maxBufferSize = maxBufferSize;
-            this.context = context;
-            this.flowFile = flowFile;
-            this.searchPattern = searchPattern;
+            this.lineByLineEvaluationMode = lineByLineEvaluationMode;
+            this.replaceLine = replaceLine;
         }
 
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            final String lineByLineEvaluationMode = context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue();
             try (final LineDemarcator demarcator = new LineDemarcator(in, charset, maxBufferSize, 8192);
                  final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset))) {
 
                 String precedingLine = demarcator.nextLine();
                 String succeedingLine;
-                Matcher matcher = null;
 
                 boolean firstLine = true;
 
                 while (null != (succeedingLine = demarcator.nextLine())) {
-                    matcher = null != searchPattern ? searchPattern.matcher(precedingLine) : null;
                     if(firstLine && lineByLineEvaluationMode.equalsIgnoreCase(FIRST_LINE)){
-                        replacementStrategyExecutor.replaceInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
+                        replaceLine.apply(bw, precedingLine);
                         firstLine = false;
                     } else if(firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE)) {
                         firstLine = false;
@@ -821,7 +808,7 @@ public class ReplaceText extends AbstractProcessor {
                         || lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_LAST_LINE)
                         || lineByLineEvaluationMode.equalsIgnoreCase(ALL)
                         || (!firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
-                        replacementStrategyExecutor.replaceInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
+                        replaceLine.apply(bw, precedingLine);
                     } else {
                         bw.write(precedingLine);
                     }
@@ -835,8 +822,7 @@ public class ReplaceText extends AbstractProcessor {
                         || (firstLine && lineByLineEvaluationMode.equalsIgnoreCase(EXCEPT_FIRST_LINE))) {
                         bw.write(precedingLine);
                     } else {
-                        matcher = null != searchPattern ? searchPattern.matcher(precedingLine) : null;
-                        replacementStrategyExecutor.replaceInLine(bw, precedingLine, matcher, searchPattern, context, flowFile);
+                        replaceLine.apply(bw, precedingLine);
                     }
                 }
             }
