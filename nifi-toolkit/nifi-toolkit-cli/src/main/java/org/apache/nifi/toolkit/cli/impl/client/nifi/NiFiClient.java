@@ -48,6 +48,31 @@ public interface NiFiClient extends Closeable {
      */
     ControllerClient getControllerClientForToken(String token);
 
+    // ----- ControllerServicesClient -----
+
+    /**
+     * @return a ControllerServicesClient
+     */
+    ControllerServicesClient getControllerServicesClient();
+
+    /**
+     * Obtains a ControllerServicesClient for the given proxied entities. Each operation made from this client
+     * will add the appropriate X-ProxiedEntitiesChain header to each request.
+     *
+     * @param proxiedEntity one or more identities to proxy
+     * @return a ControllerServicesClient
+     */
+    ControllerServicesClient getControllerServicesClientForProxiedEntities(String ... proxiedEntity);
+
+    /**
+     * Obtains a ControllerServicesClient that will submit the given token in the Authorization Bearer header
+     * with each request.
+     *
+     * @param token a token to authentication with
+     * @return a ControllerServicesClient
+     */
+    ControllerServicesClient getControllerServicesClientForToken(String token);
+
     // ----- FlowClient -----
 
     FlowClient getFlowClient();
@@ -71,6 +96,38 @@ public interface NiFiClient extends Closeable {
     VersionsClient getVersionsClientForProxiedEntities(String ... proxiedEntity);
 
     VersionsClient getVersionsClientForToken(String token);
+
+    // ----- TenantsClient -----
+
+    TenantsClient getTenantsClient();
+
+    TenantsClient getTenantsClientForProxiedEntities(String ... proxiedEntity);
+
+    TenantsClient getTenantsClientForToken(String token);
+
+    // ----- PoliciesClient -----
+
+    PoliciesClient getPoliciesClient();
+
+    PoliciesClient getPoliciesClientForProxiedEntities(String ... proxiedEntity);
+
+    PoliciesClient getPoliciesClientForToken(String token);
+
+    // ----- TemplatesClient -----
+
+    TemplatesClient getTemplatesClient();
+
+    TemplatesClient getTemplatesClientForProxiedEntities(String ... proxiedEntity);
+
+    TemplatesClient getTemplatesClientForToken(String token);
+
+    // ----- ReportingTasksClient -----
+
+    ReportingTasksClient getReportingTasksClient();
+
+    ReportingTasksClient getReportingTasksClientForProxiedEntities(String ... proxiedEntity);
+
+    ReportingTasksClient getReportingTasksClientForToken(String token);
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

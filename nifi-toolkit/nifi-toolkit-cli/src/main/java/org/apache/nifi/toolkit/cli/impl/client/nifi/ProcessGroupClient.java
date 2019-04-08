@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 
@@ -45,5 +48,10 @@ public interface ProcessGroupClient {
 
     VariableRegistryUpdateRequestEntity deleteVariableRegistryUpdateRequest(String processGroupdId, String requestId)
             throws NiFiClientException, IOException;
+
+    ControllerServiceEntity createControllerService(String processGroupId, ControllerServiceEntity controllerService)
+            throws NiFiClientException, IOException;
+
+    TemplateEntity uploadTemplate(String processGroupId, TemplateDTO templateDTO) throws NiFiClientException, IOException;
 
 }

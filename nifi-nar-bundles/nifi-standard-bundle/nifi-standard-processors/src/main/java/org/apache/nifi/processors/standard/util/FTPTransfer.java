@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -322,7 +323,13 @@ public class FTPTransfer implements FileTransfer {
         final FTPClient client = getClient(flowFile);
         InputStream in = client.retrieveFileStream(remoteFileName);
         if (in == null) {
-            throw new IOException(client.getReplyString());
+            final String response = client.getReplyString();
+            // FTPClient doesn't throw exception if file not found.
+            // Instead, response string will contain: "550 Can't open <absolute_path>: No such file or directory"
+            if (response != null && response.trim().endsWith("No such file or directory")){
+                throw new FileNotFoundException(response);
+            }
+            throw new IOException(response);
         }
         return in;
     }

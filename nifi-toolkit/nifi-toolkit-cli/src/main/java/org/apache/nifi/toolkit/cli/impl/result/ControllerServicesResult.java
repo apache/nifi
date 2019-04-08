@@ -62,12 +62,13 @@ public class ControllerServicesResult extends AbstractWritableResult<ControllerS
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)
                 .column("Name", 5, 40, false)
+                .column("ID", 36, 36, false)
                 .column("State", 5, 40, false)
                 .build();
 
         for (int i=0; i < serviceDTOS.size(); i++) {
             final ControllerServiceDTO serviceDTO = serviceDTOS.get(i);
-            table.addRow(String.valueOf(i+1), serviceDTO.getName(), serviceDTO.getState());
+            table.addRow(String.valueOf(i+1), serviceDTO.getName(), serviceDTO.getId(), serviceDTO.getState());
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();

@@ -651,6 +651,9 @@
                 });
             });
 
+            // don't let the reload action get called more than once every second
+            var throttledCanvasReload = nfCommon.throttle(nfActions.reload, 1000);
+
             // listen for browser resize events to reset the graph size
             $(window).on('resize', function (e) {
                 if (e.target === window) {
@@ -708,7 +711,7 @@
                         nfCommon.toggleScrollable(tabsContent.get(0));
                     });
                 }
-            }).on('keyup', function (evt) {
+            }).on('keydown', function (evt) {
                 // if a dialog is open, disable canvas shortcuts
                 if ($('.dialog').is(':visible') || $('#search-field').is(':focus')) {
                     return;
@@ -726,7 +729,7 @@
                             return;
                         }
                         // ctrl-r
-                        nfActions.reload();
+                        throttledCanvasReload();
 
                         // default prevented in nf-universal-capture.js
                     } else if (evt.keyCode === 65) {
