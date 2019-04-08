@@ -365,6 +365,68 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(proc.REL_SUCCESS.getName(), 1);
     }
 
+    @Test
+    public void test_withInputStream() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "import java.util.stream.*\n"
+                + "def ff = session.get(); if(!ff)return;\n"
+                + "ff.withInputStream{inputStream -> String r = new BufferedReader(new InputStreamReader(inputStream)).lines()"
+                + ".collect(Collectors.joining(\"\\n\")); assert r=='1234' }; REL_SUCCESS << ff; ");
+
+        runner.assertValid();
+
+        runner.enqueue("1234".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+    }
+
+    @Test
+    public void test_withOutputStream() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "import java.util.stream.*\n"
+                + "def ff = session.get(); if(!ff)return;\n"
+                + "ff.withOutputStream{outputStream -> outputStream.write('5678'.bytes)}; REL_SUCCESS << ff; ");
+
+        runner.assertValid();
+
+        runner.enqueue("1234".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("5678");
+    }
+
+    @Test
+    public void test_withReader() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "import java.util.stream.*\n"
+                + "def ff = session.get(); if(!ff)return;\n"
+                + "ff.withReader('UTF-8'){reader -> String r = new BufferedReader(reader).lines()"
+                + ".collect(Collectors.joining(\"\\n\")); assert r=='1234' }; REL_SUCCESS << ff; ");
+
+        runner.assertValid();
+
+        runner.enqueue("1234".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+    }
+
+    @Test
+    public void test_withWriter() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "import java.util.stream.*\n"
+                + "def ff = session.get(); if(!ff)return;\n"
+                + "ff.withWriter('UTF-16LE'){writer -> writer.write('5678')}; REL_SUCCESS << ff; ");
+
+        runner.assertValid();
+
+        runner.enqueue("1234".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("5678".getBytes(StandardCharsets.UTF_16LE));
+    }
+
 
     private HashMap<String, String> map(String key, String value) {
         HashMap<String, String> attrs = new HashMap<>();
