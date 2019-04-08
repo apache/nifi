@@ -85,10 +85,13 @@ public class GetTwitter extends AbstractProcessor {
             .allowableValues(ENDPOINT_SAMPLE, ENDPOINT_FIREHOSE, ENDPOINT_FILTER)
             .defaultValue(ENDPOINT_SAMPLE.getValue())
             .build();
-    public static final PropertyDescriptor MAX_CONNECTION_RETRIES = new PropertyDescriptor.Builder()
-            .name("max-connection-retries")
-            .displayName("Max Connection Retries")
-            .description("The maximum number of connection attempts before giving up")
+    public static final PropertyDescriptor MAX_CLIENT_ERROR_RETRIES = new PropertyDescriptor.Builder()
+            .name("max-client-error-retries")
+            .displayName("Max Client Error Retries")
+            .description("The maximum number of retries to attempt when client experience retryable connection errors."
+                    + " Client continues attempting to reconnect using an exponential back-off pattern until it successfully reconnects"
+                    + " or until it reaches the retry limit."
+                    +"  It is recommended to raise this value when client is getting rate limited by Twitter API. Default value is 5.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("5")
@@ -169,7 +172,7 @@ public class GetTwitter extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(ENDPOINT);
-        descriptors.add(MAX_CONNECTION_RETRIES);
+        descriptors.add(MAX_CLIENT_ERROR_RETRIES);
         descriptors.add(CONSUMER_KEY);
         descriptors.add(CONSUMER_SECRET);
         descriptors.add(ACCESS_TOKEN);
@@ -231,7 +234,7 @@ public class GetTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
-        final int maxRetries = context.getProperty(MAX_CONNECTION_RETRIES).asInteger().intValue();
+        final int maxRetries = context.getProperty(MAX_CLIENT_ERROR_RETRIES).asInteger().intValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),
                 context.getProperty(ACCESS_TOKEN).getValue(),
@@ -351,12 +354,8 @@ public class GetTwitter extends AbstractProcessor {
                     break;
                 case CONNECTION_ERROR:
                 case HTTP_ERROR:
-                    if (event.getMessage().endsWith("420 Enhance Your Calm")) {
-                        getLogger().warn("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
-                    } else {
-                        getLogger().error("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
-                        client.reconnect();
-                    }
+                    getLogger().error("Received error {}: {}. Will attempt to reconnect", new Object[]{event.getEventType(), event.getMessage()});
+                    client.reconnect();
                     break;
                 default:
                     break;
