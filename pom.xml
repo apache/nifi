@@ -35,8 +35,8 @@
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
         <module>nifi-toolkit</module>
+        <module>nifi-stateless</module>
         <module>nifi-docker</module>
-        <module>nifi-fn</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
