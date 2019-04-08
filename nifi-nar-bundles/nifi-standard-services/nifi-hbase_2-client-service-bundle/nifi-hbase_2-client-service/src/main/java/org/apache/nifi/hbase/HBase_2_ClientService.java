@@ -133,9 +133,9 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
     static final PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
         .name("HBase Client Retries")
-        .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
+        .description("The number of times the HBase client will retry all retryable operations. Required if Hadoop Configuration Files are not provided.")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .defaultValue("1")
+        .defaultValue("15")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
