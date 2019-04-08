@@ -50,20 +50,28 @@ public class LocalPort extends AbstractPort {
 
     @Override
     public boolean isValid() {
-        return !getConnections(Relationship.ANONYMOUS).isEmpty();
+        return !getConnections(Relationship.ANONYMOUS).isEmpty() && hasIncomingConnection();
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
-        if (!isValid()) {
-            final ValidationResult error = new ValidationResult.Builder()
-                    .explanation(String.format("Output connection for port '%s' is not defined.", getName()))
-                    .subject(String.format("Port '%s'", getName()))
-                    .valid(false)
-                    .build();
-            validationErrors.add(error);
+        if (getConnections(Relationship.ANONYMOUS).isEmpty()) {
+            validationErrors.add(new ValidationResult.Builder()
+                .explanation("Port has no outgoing connections")
+                .subject(String.format("Port '%s'", getName()))
+                .valid(false)
+                .build());
         }
+
+        if (!hasIncomingConnection()) {
+            validationErrors.add(new ValidationResult.Builder()
+                .explanation("Port has no incoming connections")
+                .subject(String.format("Port '%s'", getName()))
+                .valid(false)
+                .build());
+        }
+
         return validationErrors;
     }
 
