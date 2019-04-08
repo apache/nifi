@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
@@ -307,7 +308,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         // update the repository.
         final int partitionIndex = wal.update(recordsForWal, sync);
+        updateContentClaims(records, partitionIndex);
+    }
 
+    private void updateContentClaims(Collection<RepositoryRecord> repositoryRecords, final int partitionIndex) {
         // The below code is not entirely thread-safe, but we are OK with that because the results aren't really harmful.
         // Specifically, if two different threads call updateRepository with DELETE records for the same Content Claim,
         // it's quite possible for claimant count to be 0 below, which results in two different threads adding the Content
@@ -321,7 +325,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final Set<String> swapLocationsAdded = new HashSet<>();
         final Set<String> swapLocationsRemoved = new HashSet<>();
 
-        for (final RepositoryRecord record : records) {
+        for (final RepositoryRecord record : repositoryRecords) {
+            updateClaimCounts(record);
+
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if claim is destructible, mark it so
                 if (record.getCurrentClaim() != null && isDestructable(record.getCurrentClaim())) {
@@ -380,6 +386,30 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             claimQueue.addAll(claimsToAdd);
         }
     }
+
+    private void updateClaimCounts(final RepositoryRecord record) {
+        final ContentClaim currentClaim = record.getCurrentClaim();
+        final ContentClaim originalClaim = record.getOriginalClaim();
+        final boolean claimChanged = !Objects.equals(currentClaim, originalClaim);
+
+        if (record.getType() == RepositoryRecordType.DELETE || record.getType() == RepositoryRecordType.CONTENTMISSING) {
+            decrementClaimCount(currentClaim);
+        }
+
+        if (claimChanged) {
+            // records which have been updated - remove original if exists
+            decrementClaimCount(originalClaim);
+        }
+    }
+
+    private void decrementClaimCount(final ContentClaim claim) {
+        if (claim == null) {
+            return;
+        }
+
+        claimManager.decrementClaimantCount(claim.getResourceClaim());
+    }
+
 
     protected static String getLocationSuffix(final String swapLocation) {
         if (swapLocation == null) {

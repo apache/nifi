@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -445,7 +446,7 @@ public class PutS3Object extends AbstractS3Processor {
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         final ObjectMetadata objectMetadata = new ObjectMetadata();
-                        objectMetadata.setContentDisposition(ff.getAttribute(CoreAttributes.FILENAME.key()));
+                        objectMetadata.setContentDisposition(URLEncoder.encode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8"));
                         objectMetadata.setContentLength(ff.getSize());
 
                         final String contentType = context.getProperty(CONTENT_TYPE)

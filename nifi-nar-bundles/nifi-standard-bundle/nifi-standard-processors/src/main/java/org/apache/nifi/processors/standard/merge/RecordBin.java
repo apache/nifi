@@ -63,6 +63,7 @@ public class RecordBin {
     private RecordSetWriter recordWriter;
     private ByteCountingOutputStream out;
     private int recordCount = 0;
+    private int fragmentCount = 0;
     private volatile boolean complete = false;
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
@@ -114,7 +115,7 @@ public class RecordBin {
         }
 
         boolean flowFileMigrated = false;
-
+        this.fragmentCount++;
         try {
             if (isComplete()) {
                 logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
@@ -202,26 +203,7 @@ public class RecordBin {
                 return false;
             }
 
-            int maxRecords;
-            final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
-            if (recordCountAttribute.isPresent()) {
-                final Optional<String> recordCountValue = flowFiles.stream()
-                    .filter(ff -> ff.getAttribute(recordCountAttribute.get()) != null)
-                    .map(ff -> ff.getAttribute(recordCountAttribute.get()))
-                    .findFirst();
-
-                if (!recordCountValue.isPresent()) {
-                    return false;
-                }
-
-                try {
-                    maxRecords = Integer.parseInt(recordCountValue.get());
-                } catch (final NumberFormatException e) {
-                    maxRecords = 1;
-                }
-            } else {
-                maxRecords = thresholds.getMaxRecords();
-            }
+            int maxRecords = thresholds.getMaxRecords();
 
             if (recordCount >= maxRecords) {
                 return true;
@@ -231,6 +213,22 @@ public class RecordBin {
                 return true;
             }
 
+            Optional<String> fragmentCountAttribute = thresholds.getFragmentCountAttribute();
+            if(fragmentCountAttribute != null && fragmentCountAttribute.isPresent()) {
+                final Optional<String> fragmentCountValue = flowFiles.stream()
+                        .filter(ff -> ff.getAttribute(fragmentCountAttribute.get()) != null)
+                        .map(ff -> ff.getAttribute(fragmentCountAttribute.get()))
+                        .findFirst();
+                if (fragmentCountValue.isPresent()) {
+                    try {
+                        int expectedFragments = Integer.parseInt(fragmentCountValue.get());
+                        if (this.fragmentCount == expectedFragments)
+                            return true;
+                    } catch (NumberFormatException nfe) {
+                        this.logger.error(nfe.getMessage(), nfe);
+                    }
+                }
+            }
             return false;
         } finally {
             readLock.unlock();
@@ -243,18 +241,7 @@ public class RecordBin {
             return currentCount;
         }
 
-        int requiredCount;
-        final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
-        if (recordCountAttribute.isPresent()) {
-            final String recordCountValue = flowFiles.get(0).getAttribute(recordCountAttribute.get());
-            try {
-                requiredCount = Integer.parseInt(recordCountValue);
-            } catch (final NumberFormatException e) {
-                requiredCount = 1;
-            }
-        } else {
-            requiredCount = thresholds.getMinRecords();
-        }
+        int requiredCount = thresholds.getMinRecords();
 
         this.requiredRecordCount = requiredCount;
         return requiredCount;
@@ -347,7 +334,7 @@ public class RecordBin {
             }
 
             // If using defragment mode, and we don't have enough FlowFiles, then we need to fail this bin.
-            final Optional<String> countAttr = thresholds.getRecordCountAttribute();
+            final Optional<String> countAttr = thresholds.getFragmentCountAttribute();
             if (countAttr.isPresent()) {
                 // Ensure that at least one FlowFile has a fragment.count attribute and that they all have the same value, if they have a value.
                 Integer expectedBinCount = null;

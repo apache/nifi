@@ -201,35 +201,8 @@ public class DataTypeUtils {
             case LONG:
                 return isLongTypeCompatible(value);
             case RECORD: {
-                if (value == null) {
-                    return false;
-                }
-                if (!(value instanceof Record)) {
-                    return false;
-                }
-
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                if (schema == null) {
-                    return true;
-                }
-
-                final Record record = (Record) value;
-                for (final RecordField childField : schema.getFields()) {
-                    final Object childValue = record.getValue(childField);
-                    if (childValue == null && !childField.isNullable()) {
-                        logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                        return false;
-                    }
-                    if (childValue == null) {
-                        continue; // consider compatible
-                    }
-
-                    if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                        return false;
-                    }
-                }
-
-                return true;
+                return isRecordTypeCompatible(schema, value);
             }
             case SHORT:
                 return isShortTypeCompatible(value);
@@ -515,8 +488,47 @@ public class DataTypeUtils {
         return RecordFieldType.RECORD.getRecordDataType(schema);
     }
 
-    public static boolean isRecordTypeCompatible(final Object value) {
-        return value instanceof Record;
+    /**
+     * Check if the given record structured object compatible with the schema.
+     * @param schema record schema, schema validation will not be performed if schema is null
+     * @param value the record structured object, i.e. Record or Map
+     * @return True if the object is compatible with the schema
+     */
+    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
+
+        if (value == null) {
+            return false;
+        }
+
+        if (!(value instanceof Record) && !(value instanceof Map)) {
+            return false;
+        }
+
+        if (schema == null) {
+            return true;
+        }
+
+        for (final RecordField childField : schema.getFields()) {
+            final Object childValue;
+            if (value instanceof Record) {
+                childValue = ((Record) value).getValue(childField);
+            } else {
+                childValue = ((Map) value).get(childField.getFieldName());
+            }
+
+            if (childValue == null && !childField.isNullable()) {
+                logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
+                return false;
+            }
+            if (childValue == null) {
+                continue; // consider compatible
+            }
+
+            if (!isCompatibleDataType(childValue, childField.getDataType())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType) {
@@ -687,6 +699,9 @@ public class DataTypeUtils {
             return convertRecordMapToJavaMap((Map) value, ((MapDataType) dataType).getValueType());
         } else if (dataType != null && isScalarValue(dataType, value)) {
             return value;
+        } else if (value instanceof Object[] && dataType instanceof ArrayDataType) {
+            // This is likely a Map whose values are represented as an array. Return a new array with each element converted to a Java object
+            return convertRecordArrayToJavaArray((Object[]) value, ((ArrayDataType) dataType).getElementType());
         }
 
         throw new IllegalTypeConversionException("Cannot convert value of class " + value.getClass().getName() + " because the type is not supported");
@@ -1065,15 +1080,25 @@ public class DataTypeUtils {
         if (value instanceof BigInteger) {
             return (BigInteger) value;
         }
-        if (value instanceof Long) {
-            return BigInteger.valueOf((Long) value);
+
+        if (value instanceof Number) {
+            return BigInteger.valueOf(((Number) value).longValue());
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
-        return value == null && (value instanceof BigInteger || value instanceof Long);
+        return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
@@ -1244,7 +1269,10 @@ public class DataTypeUtils {
         return false;
     }
 
-    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+    /**
+     * Check if the value is an integral.
+     */
+    private static boolean isIntegral(final String value) {
         if (value == null || value.isEmpty()) {
             return false;
         }
@@ -1265,6 +1293,18 @@ public class DataTypeUtils {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if the value is an integral within a value range.
+     */
+    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+
+        if (!isIntegral(value)) {
+            return false;
+        }
+
         try {
             final long longValue = Long.parseLong(value);
             return longValue >= minValue && longValue <= maxValue;
@@ -1273,7 +1313,6 @@ public class DataTypeUtils {
             return false;
         }
     }
-
 
     public static Integer toInteger(final Object value, final String fieldName) {
         if (value == null) {

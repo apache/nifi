@@ -19,8 +19,10 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -104,6 +107,34 @@ public class TestDataTypeUtils {
         assertNotNull(resultArray);
         for(Object o : resultArray) {
             assertTrue(o instanceof String);
+        }
+    }
+
+    @Test
+    public void testConvertArrayOfRecordsToJavaArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("stringField", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("intField", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values1 = new HashMap<>();
+        values1.put("stringField", "hello");
+        values1.put("intField", 5);
+        final Record inputRecord1 = new MapRecord(schema, values1);
+
+        final Map<String, Object> values2 = new HashMap<>();
+        values2.put("stringField", "world");
+        values2.put("intField", 50);
+        final Record inputRecord2 = new MapRecord(schema, values2);
+
+        Object[] recordArray = {inputRecord1, inputRecord2};
+        Object resultObj = DataTypeUtils.convertRecordFieldtoObject(recordArray, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(schema)));
+        assertNotNull(resultObj);
+        assertTrue(resultObj instanceof Object[]);
+        Object[] resultArray = (Object[]) resultObj;
+        for(Object o : resultArray) {
+            assertTrue(o instanceof Map);
         }
     }
 
@@ -251,5 +282,46 @@ public class TestDataTypeUtils {
                 }
             }
         }
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeMap() {
+        Map<String,Object> testMap = new HashMap<>();
+        testMap.put("Hello", "World");
+        assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeBigint() {
+        final DataType dataType = RecordFieldType.BIGINT.getDataType();
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
+    public void testConvertDataTypeBigint() {
+        final Function<Object, BigInteger> toBigInteger = v -> (BigInteger) DataTypeUtils.convertType(v, RecordFieldType.BIGINT.getDataType(), "field");
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply(new BigInteger("12345678901234567890")));
+        assertEquals(new BigInteger("1234567890123456789"), toBigInteger.apply(1234567890123456789L));
+        assertEquals(new BigInteger("1"), toBigInteger.apply(1));
+        assertEquals(new BigInteger("1"), toBigInteger.apply((short) 1));
+        // Decimals are truncated.
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.4f));
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.9f));
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply("12345678901234567890"));
+        Exception e = null;
+        try {
+            toBigInteger.apply("1234567XYZ");
+        } catch (IllegalTypeConversionException itce) {
+            e = itce;
+        }
+        assertNotNull(e);
     }
 }

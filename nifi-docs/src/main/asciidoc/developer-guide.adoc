@@ -75,7 +75,7 @@ high-level description of the most common extension points:
       that is most effective for a particular use case.
 
 - AuthorityProvider
-    * An AuthorityProvide is responsible for determining which privileges and roles, if any,
+    * An AuthorityProvider is responsible for determining which privileges and roles, if any,
       a given user should be granted.
 
 
@@ -601,7 +601,7 @@ A Processor, Controller Service, or Reporting Task can be marked with the @Restr
 will result in the component being treated as restricted and will require a user to be explicitly added to the
 list of users who can access restricted components. Once a user is permitted to access restricted components,
 they will be allowed to create and modify those components assuming all other permissions are permitted.
-Without access to restricted components, a user will be still be aware these types of components exist but will
+Without access to restricted components, a user will still be aware these types of components exist but will
 be unable to create or modify them even with otherwise sufficient permissions.
 
 [[state_manager]]
@@ -1321,7 +1321,7 @@ relationships for a given input FlowFile.
 Additionally, some Processors may need to "group" the data that is
 sent to each Relationship so that each FlowFile
 that is sent to a relationship has the same value. In our example, we
-may wan to allow the Regular Expression
+may want to allow the Regular Expression
 to have a Capturing Group and if two different lines in the CSV match
 the Regular Expression but have different
 values for the Capturing Group, we want them to be added to two
@@ -1415,7 +1415,7 @@ preferred
 to use the `clone(FlowFile, long, long)` method instead of the
 `create(FlowFile)` method of the ProcessSession. In this case, the
 offset
-of the original FlwoFile at which the new FlowFile's content should
+of the original FlowFile at which the new FlowFile's content should
 begin is passed as the second argument to the `clone` method. The
 length
 of the new FlowFile is passed as the third argument to the `clone`

@@ -119,6 +119,23 @@ public class ITPutS3Object extends AbstractS3IT {
         }
     }
 
+    @Test
+    public void testSimplePutFilenameWithNationalCharacters() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "Iñtërnâtiônàližætiøn.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+    }
+
     private void testPutThenFetch(String sseAlgorithm) throws IOException {
 
         // Put

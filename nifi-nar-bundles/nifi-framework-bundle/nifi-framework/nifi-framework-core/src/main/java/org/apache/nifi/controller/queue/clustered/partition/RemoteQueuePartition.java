@@ -261,11 +261,6 @@ public class RemoteQueuePartition implements QueuePartition {
 
         flowFileRepoRecords.addAll(abortedRecords);
 
-        // Decrement claimant count for each FlowFile.
-        flowFileRepoRecords.stream()
-                .map(RepositoryRecord::getCurrentClaim)
-                .forEach(contentRepo::decrementClaimantCount);
-
         try {
             flowFileRepo.updateRepository(flowFileRepoRecords);
         } catch (final Exception e) {
