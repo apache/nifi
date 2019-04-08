@@ -503,7 +503,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
     @Override
     public void delete(String tableName, List<byte[]> rowIds) throws IOException {
-        delete(tableName, rowIds);
+        delete(tableName, rowIds, null);
     }
 
     @Override
