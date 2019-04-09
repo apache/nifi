@@ -49,7 +49,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         // create the SSL properties, which basically store keystore / trustore information
         // this is used by the StandardSSLContextService and the Jetty Server
         serverSslProperties = createServerSslProperties(false);
-        sslProperties = createSslProperties(false);
+        sslProperties = createClientSslProperties(false);
 
         // create a Jetty server on a random port
         server = createServer();
@@ -103,28 +103,36 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
             map.put(TestServer.NEED_CLIENT_AUTH, Boolean.toString(false));
         }
         // keystore is always required for the server SSL properties
-        map.putAll(getKeystoreProperties());
+        map.putAll(getServerKeystoreProperties());
 
         return map;
     }
 
 
-    static Map<String, String> createSslProperties(boolean clientAuth) {
+    static Map<String, String> createClientSslProperties(boolean clientAuth) {
         final Map<String, String> map = new HashMap<>();
         // if requesting client auth then we must provide a keystore
         if (clientAuth) {
-            map.putAll(getKeystoreProperties());
+            map.putAll(getClientKeystoreProperties());
         }
         // truststore is always required for the client SSL properties
         map.putAll(getTruststoreProperties());
         return map;
     }
 
-    private static Map<String, String> getKeystoreProperties() {
+    private static Map<String, String> getServerKeystoreProperties() {
         final Map<String, String> map = new HashMap<>();
         map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
         map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        return map;
+    }
+
+    private static Map<String, String> getClientKeystoreProperties() {
+        final Map<String, String> map = new HashMap<>();
+        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/client-keystore.p12");
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
+        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
         return map;
     }
 

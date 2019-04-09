@@ -67,6 +67,11 @@ public class TlsCertificateAuthorityService {
         sslContextFactory.setKeyStore(keyStore);
         sslContextFactory.setKeyManagerPassword(keyPassword);
 
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
+        // not a client.  Server does not need to perform hostname verification on the client.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
+        sslContextFactory.setEndpointIdentificationAlgorithm(null);
+
         HttpConfiguration httpsConfig = new HttpConfiguration();
         httpsConfig.addCustomizer(new SecureRequestCustomizer());
 

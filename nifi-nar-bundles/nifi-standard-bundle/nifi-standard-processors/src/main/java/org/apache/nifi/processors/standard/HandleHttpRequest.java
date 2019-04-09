@@ -506,6 +506,11 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         sslFactory.setProtocol(sslService.getSslAlgorithm());
 
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
+        // not a client.  Server does not need to perform hostname verification on the client.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null.
+        sslFactory.setEndpointIdentificationAlgorithm(null);
+
         if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
             sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());

@@ -171,7 +171,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
         SslContextFactory sslContextFactory = null;
         if (sslService != null) {
-            sslContextFactory = createSslFactory(sslService, false, false);
+            sslContextFactory = createSslFactory(sslService, false, false, "HTTPS");
         }
         client = new WebSocketClient(sslContextFactory);
 
