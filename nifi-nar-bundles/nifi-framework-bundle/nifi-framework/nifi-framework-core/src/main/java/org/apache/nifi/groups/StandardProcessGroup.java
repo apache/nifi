@@ -2849,13 +2849,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 return;
             }
 
-            for (final ProcessorNode processor : findAllProcessors()) {
+            // Determine any Processors that references the variable
+            for (final ProcessorNode processor : getProcessors()) {
                 if (!processor.isRunning()) {
                     continue;
                 }
 
-                for (final String variableName : updatedVariableNames) {
-                    for (final VariableImpact impact : getVariableImpact(processor)) {
+                for (final VariableImpact impact : getVariableImpact(processor)) {
+                    for (final String variableName : updatedVariableNames) {
                         if (impact.isImpacted(variableName)) {
                             throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + processor + ", which is currently running");
                         }
@@ -2863,15 +2864,34 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            for (final ControllerServiceNode service : findAllControllerServices()) {
+            // Determine any Controller Service that references the variable.
+            for (final ControllerServiceNode service : getControllerServices(false)) {
                 if (!service.isActive()) {
                     continue;
                 }
 
-                for (final String variableName : updatedVariableNames) {
-                    for (final VariableImpact impact : getVariableImpact(service)) {
+                for (final VariableImpact impact : getVariableImpact(service)) {
+                    for (final String variableName : updatedVariableNames) {
                         if (impact.isImpacted(variableName)) {
                             throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + service + ", which is currently running");
+                        }
+                    }
+                }
+            }
+
+            // For any child Process Group that does not override the variable, also include its references.
+            // If a child group has a value for the same variable, though, then that means that the child group
+            // is overriding the variable and its components are actually referencing a different variable.
+            for (final ProcessGroup childGroup : getProcessGroups()) {
+                for (final String variableName : updatedVariableNames) {
+                    final ComponentVariableRegistry childRegistry = childGroup.getVariableRegistry();
+                    final VariableDescriptor descriptor = childRegistry.getVariableKey(variableName);
+                    final boolean overridden = childRegistry.getVariableMap().containsKey(descriptor);
+                    if (!overridden) {
+                        final Set<ComponentNode> affectedComponents = childGroup.getComponentsAffectedByVariable(variableName);
+                        if (!affectedComponents.isEmpty()) {
+                            throw new IllegalStateException("Cannot update variable '" + variableName + "' because it is referenced by " + affectedComponents.size() + " components that are " +
+                                "currently running.");
                         }
                     }
                 }
@@ -2987,8 +3007,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final Map<VariableDescriptor, String> variableMap = new HashMap<>();
-            variables.entrySet() // cannot use Collectors.toMap because value may be null
-                .forEach(entry -> variableMap.put(new VariableDescriptor(entry.getKey()), entry.getValue()));
+            // cannot use Collectors.toMap because value may be null
+            variables.forEach((key, value) -> variableMap.put(new VariableDescriptor(key), value));
 
             variableRegistry.setVariables(variableMap);
         } finally {
