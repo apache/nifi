@@ -91,6 +91,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -246,7 +247,7 @@ public class TestStandardProcessScheduler {
     }
 
     @Test(timeout = 60000)
-    public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
+    public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException, ExecutionException {
         final String uuid = UUID.randomUUID().toString();
         final Processor proc = new ServiceReferencingProcessor();
         proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
@@ -280,13 +281,8 @@ public class TestStandardProcessScheduler {
         scheduler.stopProcessor(procNode);
         assertTrue(service.isActive());
         assertSame(service.getState(), ControllerServiceState.ENABLING);
-        scheduler.disableControllerService(service);
-        assertSame(service.getState(), ControllerServiceState.DISABLING);
+        scheduler.disableControllerService(service).get();
         assertFalse(service.isActive());
-
-        while (service.getState() != ControllerServiceState.DISABLED) {
-            Thread.sleep(5L);
-        }
         assertSame(service.getState(), ControllerServiceState.DISABLED);
     }
 
@@ -356,7 +352,7 @@ public class TestStandardProcessScheduler {
                 @Override
                 public void run() {
                     try {
-                        scheduler.enableControllerService(serviceNode);
+                        scheduler.enableControllerService(serviceNode).get();
                         assertTrue(serviceNode.isActive());
                     } catch (final Exception e) {
                         e.printStackTrace();
