@@ -1802,11 +1802,9 @@
                 if (!nfCanvasUtils.isConnection(selected)) {
                     if (nfCommon.isUndefined(origin.x) || d.position.x < origin.x) {
                         origin.x = d.position.x;
-                        origin.dimensions = d.dimensions;
                     }
                     if (nfCommon.isUndefined(origin.y) || d.position.y < origin.y) {
                         origin.y = d.position.y;
-                        origin.dimensions = d.dimensions;
                     }
                 }
             });
