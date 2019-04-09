@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.ClusterMetrics;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
@@ -112,30 +112,29 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
     static final PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
         .name("ZooKeeper Quorum")
-        .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
+        .description("Comma-separated list of ZooKeeper hosts for HBase. Required if HBase Configuration Files are not provided.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     static final PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
         .name("ZooKeeper Client Port")
-        .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
+        .description("The port on which ZooKeeper is accepting client connections.")
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     static final PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
         .name("ZooKeeper ZNode Parent")
-        .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
+        .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase).")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     static final PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
         .name("HBase Client Retries")
-        .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
+        .description("The number of times the HBase client will retry all retryable operations.")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .defaultValue("1")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
@@ -217,9 +216,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         boolean confFileProvided = validationContext.getProperty(HADOOP_CONF_FILES).isSet();
         boolean zkQuorumProvided = validationContext.getProperty(ZOOKEEPER_QUORUM).isSet();
-        boolean zkPortProvided = validationContext.getProperty(ZOOKEEPER_CLIENT_PORT).isSet();
-        boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
-        boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
 
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
@@ -237,12 +233,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
 
         final List<ValidationResult> problems = new ArrayList<>();
 
-        if (!confFileProvided && (!zkQuorumProvided || !zkPortProvided || !znodeParentProvided || !retriesProvided)) {
+        if (!confFileProvided && !zkQuorumProvided) {
             problems.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(this.getClass().getSimpleName())
-                    .explanation("ZooKeeper Quorum, ZooKeeper Client Port, ZooKeeper ZNode Parent, and HBase Client Retries are required " +
-                            "when Hadoop Configuration Files are not provided.")
+                    .explanation("Either HBase Configuration files (e.g. hbase-site.xml) or an explicit ZooKeeper Quorum are required.")
                     .build());
         }
 
@@ -311,11 +306,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             if (admin != null) {
                 admin.listTableNames();
 
-                final ClusterStatus clusterStatus = admin.getClusterStatus();
-                if (clusterStatus != null) {
-                    final ServerName master = clusterStatus.getMaster();
+                final ClusterMetrics clusterMetrics = admin.getClusterMetrics();
+                if (clusterMetrics != null) {
+                    final ServerName master = clusterMetrics.getMasterName();
                     if (master != null) {
-                        masterAddress = master.getHostAndPort();
+                        masterAddress = master.getAddress().toString();
                     } else {
                         masterAddress = null;
                     }
@@ -445,7 +440,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             // Create one Put per row....
             final Map<String, List<PutColumn>> sorted = new HashMap<>();
-            final List<Put> newPuts = new ArrayList<>();
 
             for (final PutFlowFile putFlowFile : puts) {
                 final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
@@ -458,6 +452,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
                 columns.addAll(putFlowFile.getColumns());
             }
 
+            final List<Put> newPuts = new ArrayList<>();
             for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
                 newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
             }
@@ -469,7 +464,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     @Override
     public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            table.put(buildPuts(rowId, new ArrayList(columns)));
+            table.put(buildPuts(rowId, new ArrayList<>(columns)));
         }
     }
 
@@ -481,7 +476,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
                 column.getColumnFamily(),
                 column.getColumnQualifier(),
                 column.getBuffer());
-            return table.checkAndPut(rowId, family, qualifier, value, put);
+            return table.checkAndMutate(rowId, family).qualifier(qualifier).ifEquals(value).thenPut(put);
         }
     }
 
@@ -509,10 +504,9 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     @Override
     public void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException {
         List<Delete> deleteRequests = new ArrayList<>();
-        for (int index = 0; index < deletes.size(); index++) {
-            DeleteRequest req = deletes.get(index);
+        for (DeleteRequest req : deletes) {
             Delete delete = new Delete(req.getRowId())
-                .addColumn(req.getColumnFamily(), req.getColumnQualifier());
+                    .addColumn(req.getColumnFamily(), req.getColumnQualifier());
             if (!StringUtils.isEmpty(req.getVisibilityLabel())) {
                 delete.setCellVisibility(new CellVisibility(req.getVisibilityLabel()));
             }
@@ -524,8 +518,8 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     @Override
     public void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException {
         List<Delete> deletes = new ArrayList<>();
-        for (int index = 0; index < rowIds.size(); index++) {
-            Delete delete = new Delete(rowIds.get(index));
+        for (byte[] rowId : rowIds) {
+            Delete delete = new Delete(rowId);
             if (!StringUtils.isBlank(visibilityLabel)) {
                 delete.setCellVisibility(new CellVisibility(visibilityLabel));
             }
@@ -651,17 +645,16 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             final Integer limitRows, final Boolean isReversed, final Boolean blockCache, final Collection<Column> columns, List<String> authorizations)  throws IOException {
         final Scan scan = new Scan();
         if (!StringUtils.isBlank(startRow)){
-            scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
+            scan.withStartRow(startRow.getBytes(StandardCharsets.UTF_8));
         }
         if (!StringUtils.isBlank(endRow)){
-            scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+            scan.withStopRow(endRow.getBytes(StandardCharsets.UTF_8));
         }
 
         if (authorizations != null && authorizations.size() > 0) {
             scan.setAuthorizations(new Authorizations(authorizations));
         }
 
-        Filter filter = null;
         if (columns != null) {
             for (Column col : columns) {
                 if (col.getQualifier() == null) {
@@ -671,6 +664,8 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
                 }
             }
         }
+
+        Filter filter = null;
         if (!StringUtils.isBlank(filterExpression)) {
             ParseFilter parseFilter = new ParseFilter();
             filter = parseFilter.parseFilterString(filterExpression);
@@ -700,8 +695,8 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     // protected and extracted into separate method for testing
     protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations) throws IOException {
         final Scan scan = new Scan();
-        scan.setStartRow(startRow);
-        scan.setStopRow(endRow);
+        scan.withStartRow(startRow);
+        scan.withStopRow(endRow);
 
         if (authorizations != null && authorizations.size() > 0) {
             scan.setAuthorizations(new Authorizations(authorizations));
@@ -765,16 +760,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         resultCell.setQualifierLength(cell.getQualifierLength());
 
         resultCell.setTimestamp(cell.getTimestamp());
-        resultCell.setTypeByte(cell.getTypeByte());
-        resultCell.setSequenceId(cell.getSequenceId());
 
         resultCell.setValueArray(cell.getValueArray());
         resultCell.setValueOffset(cell.getValueOffset());
         resultCell.setValueLength(cell.getValueLength());
 
-        resultCell.setTagsArray(cell.getTagsArray());
-        resultCell.setTagsOffset(cell.getTagsOffset());
-        resultCell.setTagsLength(cell.getTagsLength());
         return resultCell;
     }
 

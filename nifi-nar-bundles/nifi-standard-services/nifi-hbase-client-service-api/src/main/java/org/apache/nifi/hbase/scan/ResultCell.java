@@ -31,16 +31,10 @@ public class ResultCell {
     int qualifierLength;
 
     long timestamp;
-    byte typeByte;
-    long sequenceId;
 
     byte[] valueArray;
     int valueOffset;
     int valueLength;
-
-    byte[] tagsArray;
-    int tagsOffset;
-    int tagsLength;
 
     public byte[] getRowArray() {
         return rowArray;
@@ -122,22 +116,6 @@ public class ResultCell {
         this.timestamp = timestamp;
     }
 
-    public byte getTypeByte() {
-        return typeByte;
-    }
-
-    public void setTypeByte(byte typeByte) {
-        this.typeByte = typeByte;
-    }
-
-    public long getSequenceId() {
-        return sequenceId;
-    }
-
-    public void setSequenceId(long sequenceId) {
-        this.sequenceId = sequenceId;
-    }
-
     public byte[] getValueArray() {
         return valueArray;
     }
@@ -162,27 +140,4 @@ public class ResultCell {
         this.valueLength = valueLength;
     }
 
-    public byte[] getTagsArray() {
-        return tagsArray;
-    }
-
-    public void setTagsArray(byte[] tagsArray) {
-        this.tagsArray = tagsArray;
-    }
-
-    public int getTagsOffset() {
-        return tagsOffset;
-    }
-
-    public void setTagsOffset(int tagsOffset) {
-        this.tagsOffset = tagsOffset;
-    }
-
-    public int getTagsLength() {
-        return tagsLength;
-    }
-
-    public void setTagsLength(int tagsLength) {
-        this.tagsLength = tagsLength;
-    }
 }
