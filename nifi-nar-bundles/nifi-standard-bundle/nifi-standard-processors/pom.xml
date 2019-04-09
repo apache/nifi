@@ -552,6 +552,8 @@
                         <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/nested-map-input.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/nested-map-schema.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>
