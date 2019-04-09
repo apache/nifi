@@ -101,21 +101,21 @@ public class TestHBase_2_ClientService {
         runner.assertValid(service);
         runner.removeControllerService(service);
 
-        // only quorum and no conf file should be invalid
+        // only quorum and no conf file should be valid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
 
-        runner.assertNotValid(service);
+        runner.assertValid(service);
         runner.removeControllerService(service);
 
-        // quorum and port, no znode, no conf file, should be invalid
+        // quorum and port, no znode, no conf file, should be valid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
         runner.setProperty(service, HBase_2_ClientService.ZOOKEEPER_CLIENT_PORT, "${zk-client-port}");
 
-        runner.assertNotValid(service);
+        runner.assertValid(service);
         runner.removeControllerService(service);
 
         // quorum, port, and znode, no conf file, should be valid
