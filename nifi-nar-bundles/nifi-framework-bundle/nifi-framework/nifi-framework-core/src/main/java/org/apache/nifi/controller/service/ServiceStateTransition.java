@@ -99,7 +99,7 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             state = ControllerServiceState.DISABLED;
-            disabledFutures.stream().forEach(future -> future.complete(null));
+            disabledFutures.forEach(future -> future.complete(null));
         } finally {
             writeLock.unlock();
         }
