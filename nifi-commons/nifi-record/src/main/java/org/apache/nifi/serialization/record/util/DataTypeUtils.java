@@ -736,7 +736,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
-        return value != null && value instanceof Map;
+        return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
 
