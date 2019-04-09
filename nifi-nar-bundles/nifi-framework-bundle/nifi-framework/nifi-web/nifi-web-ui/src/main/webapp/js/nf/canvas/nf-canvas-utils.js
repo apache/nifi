@@ -599,10 +599,12 @@
         /**
          * Determines if a bounding box is fully in the current viewable canvas area.
          *
-         * @param {type} boundingBox
+         * @param {type} boundingBox       Bounding box to check.
+         * @param {boolean} strict         If true, the entire bounding box must be in the viewport.
+         *                                 If false, only part of the bounding box must be in the viewport.
          * @returns {boolean}
          */
-        isBoundingBoxInViewport: function (boundingBox) {
+        isBoundingBoxInViewport: function (boundingBox, strict) {
             var scale = nfCanvas.View.getScale();
             if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
                 scale = boundingBox.scale;
@@ -619,7 +621,12 @@
             var top = boundingBox.y + (translate[1] / scale);
             var bottom = top + (boundingBox.height / scale);
 
-            return !(left < 0 || right > screenWidth || top < 0 || bottom > screenHeight);
+            if (strict) {
+                return !(left < 0 || right > screenWidth || top < 0 || bottom > screenHeight);
+            } else {
+                return ((left > 0 && left < screenWidth) || (right > 0 && right < screenWidth)) &&
+                    ((top > 0 && top < screenHeight) || (bottom > 0 && bottom < screenHeight));
+            }
         },
 
         /**
@@ -1805,6 +1812,48 @@
             });
 
             return origin;
+        },
+
+        /**
+         * Get a BoundingClientRect (scaled and translated to the active canvas) that encompasses all
+         * nodes in a given selection
+         *
+         * @param selection
+         * @returns {*} BoundingClientRect scaled and translated to the active canvas that encompasses all
+         */
+        getSelectionBoundingClientRect: function (selection) {
+            var scale = nfCanvas.View.getScale();
+            var translate = nfCanvas.View.getTranslate();
+
+            var initialBBox = {
+                x: Number.MAX_VALUE,
+                y: Number.MAX_VALUE,
+                right: Number.MIN_VALUE,
+                bottom: Number.MIN_VALUE,
+            };
+
+            var bbox = selection.nodes().reduce(function (aggregateBBox, node) {
+                var rect = node.getBoundingClientRect();
+                aggregateBBox.x = Math.min(rect.x, aggregateBBox.x);
+                aggregateBBox.y = Math.min(rect.y, aggregateBBox.y);
+                aggregateBBox.right = Math.max(rect.right, aggregateBBox.right);
+                aggregateBBox.bottom = Math.max(rect.bottom, aggregateBBox.bottom);
+
+                return aggregateBBox;
+            }, initialBBox);
+
+            // adjust for scale and offset
+            bbox.x = (bbox.x - translate[0]) / scale;
+            bbox.y = (bbox.y - translate[1]) / scale;
+            bbox.right = (bbox.right - translate[0]) / scale;
+            bbox.bottom = (bbox.bottom - translate[1]) / scale;
+
+            bbox.width = bbox.right - bbox.x;
+            bbox.height = bbox.bottom - bbox.y;
+            bbox.top = bbox.y;
+            bbox.left = bbox.x;
+
+            return bbox;
         },
 
         /**

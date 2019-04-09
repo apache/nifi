@@ -1722,12 +1722,14 @@
 
             // determine the origin of the bounding box of the selection
             var origin = nfCanvasUtils.getOrigin(selection);
+            var selectionDimensions = nfCanvasUtils.getSelectionBoundingClientRect(selection);
 
             // copy the snippet details
             var parentGroupId = nfCanvasUtils.getGroupId();
             nfClipboard.copy({
                 snippet: nfSnippet.marshal(selection, parentGroupId),
-                origin: origin
+                origin: origin,
+                dimensions: selectionDimensions
             });
         },
 
@@ -1771,25 +1773,27 @@
                         // determine the origin of the bounding box of the copy
                         var origin = pasteLocation;
                         var snippetOrigin = data['origin'];
+                        var dimensions = data['dimensions'];
 
                         // determine the appropriate origin
                         if (!nfCommon.isDefinedAndNotNull(origin)) {
                             var box = {
-                                x: snippetOrigin.x,
-                                y: snippetOrigin.y,
-                                width: snippetOrigin.dimensions.width,
-                                height: snippetOrigin.dimensions.height
+                                x: dimensions.x,
+                                y: dimensions.y,
+                                width: dimensions.width,
+                                height: dimensions.height
                             };
 
                             // if the copied item(s) are from a different group or the origin item is not in the viewport, center the pasted item(s)
-                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(box)) {
+                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(box, false)) {
                                 // put it in the center of the screen
                                 var center = nfCanvasUtils.getCenterForBoundingBox(box);
                                 var translate = nfCanvasUtils.getCanvasTranslate();
                                 var scale = nfCanvasUtils.getCanvasScale();
-                                snippetOrigin.x = center[0] - (translate[0] / scale);
-                                snippetOrigin.y = center[1] - (translate[1] / scale);
-                                origin = snippetOrigin;
+                                origin = {
+                                    x: center[0] - (translate[0] / scale),
+                                    y: center[1] - (translate[1] / scale)
+                                };
                             } else {
                                 // paste it just offset from the original
                                 snippetOrigin.x += 25;
