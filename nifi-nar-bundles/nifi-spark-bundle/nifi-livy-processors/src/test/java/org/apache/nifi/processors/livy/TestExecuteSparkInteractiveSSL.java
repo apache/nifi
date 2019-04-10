@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.livy;
 
 import org.apache.nifi.controller.livy.LivySessionController;
+import org.apache.nifi.controller.livy.utilities.LivyHelpers;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
@@ -73,14 +74,11 @@ public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestB
         // Allow time for the controller service to fully initialize
         Thread.sleep(500);
 
-        LivySessionController livyControllerService = new LivySessionController();
+        livyControllerService = new LivySessionController();
         runner.addControllerService("livyCS", livyControllerService);
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_HOST, url.substring(url.indexOf("://") + 3, url.lastIndexOf(":")));
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_PORT, url.substring(url.lastIndexOf(":") + 1));
-        runner.setProperty(livyControllerService, LivySessionController.SSL_CONTEXT_SERVICE, "ssl-context");
-        runner.enableControllerService(livyControllerService);
-
-        runner.setProperty(ExecuteSparkInteractive.LIVY_CONTROLLER_SERVICE, "livyCS");
+        runner.setProperty(livyControllerService, LivyHelpers.LIVY_HOST, url.substring(url.indexOf("://") + 3, url.lastIndexOf(":")));
+        runner.setProperty(livyControllerService, LivyHelpers.LIVY_PORT, url.substring(url.lastIndexOf(":") + 1));
+        runner.setProperty(livyControllerService, LivyHelpers.SSL_CONTEXT_SERVICE, "ssl-context");
 
         server.clearHandlers();
     }

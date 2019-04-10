@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.controller.livy.LivySessionController
+org.apache.nifi.controller.livy.LivyBatchController

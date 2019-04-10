@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.livy;
 
 import org.apache.nifi.controller.livy.LivySessionController;
+import org.apache.nifi.controller.livy.utilities.LivyHelpers;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
@@ -52,12 +53,10 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
     @Before
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(ExecuteSparkInteractive.class);
-        LivySessionController livyControllerService = new LivySessionController();
+        livyControllerService = new LivySessionController();
         runner.addControllerService("livyCS", livyControllerService);
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_HOST, url.substring(url.indexOf("://") + 3, url.lastIndexOf(":")));
-        runner.setProperty(livyControllerService, LivySessionController.LIVY_PORT, url.substring(url.lastIndexOf(":") + 1));
-        runner.enableControllerService(livyControllerService);
-        runner.setProperty(ExecuteSparkInteractive.LIVY_CONTROLLER_SERVICE, "livyCS");
+        runner.setProperty(livyControllerService, LivyHelpers.LIVY_HOST, url.substring(url.indexOf("://") + 3, url.lastIndexOf(":")));
+        runner.setProperty(livyControllerService, LivyHelpers.LIVY_PORT, url.substring(url.lastIndexOf(":") + 1));
 
         server.clearHandlers();
     }
@@ -79,5 +78,15 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
     @Test
     public void testSparkSessionWithSpecialChars() throws Exception {
         testCode(server, "print \"/'?!<>[]{}()$&*=%;.|_-\\\"");
+    }
+
+    @Test
+    public void testSparkSessionCleanup() throws Exception {
+        runner.setProperty(livyControllerService, LivySessionController.CLEANUP_SESSIONS, "true");
+
+        testCode(server, "print \"hello world\"");
+
+        // Disable controller service
+        runner.disableControllerService(livyControllerService);
     }
 }
