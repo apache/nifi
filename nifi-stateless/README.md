@@ -15,13 +15,13 @@
 # Stateless NiFi
 
 ### Build:
-`mvn package`
+`mvn package -P docker`
 
-Docker image will be tagged nifi-stateless:1.10.0-SNAPSHOT
+Docker image will be tagged apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven
 
 ### Usage:
-After building, the Program can be run from the `target` directory:
-`java -cp "lib/*" org.apache.nifi.stateless.NiFiStateless <lib dir> <nar working directory> <arguments>`
+After building, the image can be used as follows
+`docker run <options> apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven <arguments>`
 
 Where the arguments dictate the runtime to use:
 ```
@@ -39,14 +39,14 @@ Where the arguments dictate the runtime to use:
 
 ### Examples:
 ```
-1) java -cp "lib/*" org.apache.nifi.stateless.NiFiStateless lib/ work/ \
+1) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
     "DestinationDirectory-/tmp/nifistateless/output2/" "" "absolute.path-/tmp/nifistateless/input/;filename-test.txt" "absolute.path-/tmp/nifistateless/input/;filename-test2.txt"
-2) java -cp "lib/*" org.apache.nifi.stateless.NiFiStateless lib/ work/ \
+2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
-3) java -cp "lib/*" org.apache.nifi.stateless.NiFiStateless lib/ work/ \
+3) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json
-4) java -cp "lib/*" org.apache.nifi.stateless.NiFiStateless lib/ work/ \
+4) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunOpenwhiskActionServer 8080
 ```
 

@@ -1,3 +1,4 @@
+#@IgnoreInspection BashAddShebang
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
 # distributed with this work for additional information
@@ -19,19 +20,38 @@
 FROM openjdk:8-jre-alpine
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
-EXPOSE 8080
-ENTRYPOINT ["/usr/bin/java", "-cp", "/usr/share/nifi-1.8.0/lib/*:/usr/share/nifistateless/lib/*:/usr/share/nifistateless/nifistateless.jar", "org.apache.nifi.stateless.runtimes.Program"]
-CMD ["RunOpenwhiskActionServer", "8080"]
+ARG UID=1000
+ARG GID=1000
+ARG NIFI_VERSION
+ARG STATELESS_LIB_DIR
+ARG WORKING_DIR
 
-# Add NiFi libraries
-RUN wget -qO- https://www-us.apache.org/dist/nifi/1.8.0/nifi-1.8.0-bin.tar.gz | tar xvz -C /usr/share/
+ENV NIFI_BASE_DIR /opt/nifi
+ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 
-# Add Maven dependencies (not shaded into the artifact; Docker-cached)
-ADD target/lib           /usr/share/nifistateless/lib
 
-# Add the service itself
-ARG JAR_FILE
-ADD target/${JAR_FILE} /usr/share/nifistateless/nifistateless.jar
+#Use Maven-Ant until Docker squash is stable
+#COPY $NIFI_BINARY $NIFI_BASE_DIR
+#RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
+#    && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip \
+#    && mv ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION} ${NIFI_HOME}
+#
+#COPY $NIFI_STATELESS_BINARY $NIFI_BASE_DIR
+#RUN unzip ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
+#    && rm ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}-bin.zip \
+#    && mv ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}/lib ${NIFI_HOME}/stateless-lib \
+#    && rm -r ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}
+#
+#RUN java -cp "${NIFI_HOME}/stateless-lib/*" org.apache.nifi.stateless.NiFiStateless ExtractNars
+#RUN rm -r ${NIFI_HOME}/lib
+
+# Setup NiFi user
+RUN addgroup -g ${GID} nifi && adduser -s /bin/sh -u ${UID} -G nifi -D nifi
+
+RUN mkdir -p $NIFI_HOME
+COPY --chown=nifi:nifi $STATELESS_LIB_DIR ${NIFI_HOME}/stateless-lib/
+COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/working/
+
 
 #NiFi's HDFS processors require core-site.xml or hdfs-site.xml to exist on disk before they can be started...
 RUN echo '<configuration> \n\
@@ -45,3 +65,11 @@ RUN echo '<configuration> \n\
                 </property> \n\
             </configuration>' > /tmp/core-site.xml
 RUN chmod 666 /tmp/core-site.xml
+
+USER nifi
+
+EXPOSE 8080
+
+WORKDIR ${NIFI_HOME}
+ENTRYPOINT ["/usr/bin/java", "-cp", "stateless-lib/*", "org.apache.nifi.stateless.NiFiStateless"]
+CMD ["RunOpenwhiskActionServer", "8080"]
