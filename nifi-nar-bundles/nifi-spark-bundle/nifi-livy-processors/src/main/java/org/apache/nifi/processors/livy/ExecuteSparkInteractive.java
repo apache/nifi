@@ -39,6 +39,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -104,6 +105,17 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor DROP_SESSIONS_WITH_ERROR = new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-session-error-drop")
+            .displayName("Drop Sessions On Error")
+            .description("If a statement ends in an error, should the session be dropped and replaced with a new one?" +
+                    "Some code will cause a session to be left in an unstable state if it errors, and it's better to " +
+                    "start over.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor STATUS_CHECK_INTERVAL = new PropertyDescriptor.Builder()
             .name("exec-spark-iactive-status-check-interval")
             .displayName("Status Check Interval")
@@ -139,6 +151,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         properties.add(CODE);
         properties.add(CHARSET);
         properties.add(STATUS_CHECK_INTERVAL);
+        properties.add(DROP_SESSIONS_WITH_ERROR);
         this.properties = Collections.unmodifiableList(properties);
 
         Set<Relationship> relationships = new HashSet<>();
@@ -185,9 +198,9 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         }
         final long statusCheckInterval = context.getProperty(STATUS_CHECK_INTERVAL).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
         Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
-
-        String sessionId = livyController.get("sessionId");
-        String livyUrl = livyController.get("livyUrl");
+        final boolean dropSessionOnError = context.getProperty(DROP_SESSIONS_WITH_ERROR).asBoolean();
+        final String sessionId = livyController.get("sessionId");
+        final String livyUrl = livyController.get("livyUrl");
         String code = context.getProperty(CODE).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isEmpty(code)) {
             try (InputStream inputStream = session.read(flowFile)) {
@@ -202,28 +215,51 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         }
 
         code = StringEscapeUtils.escapeJson(code);
-        String payload = "{\"code\":\"" + code + "\"}";
+        final String payload = "{\"code\":\"" + code + "\"}";
         try {
             final JSONObject result = submitAndHandleJob(livyUrl, livySessionService, sessionId, payload, statusCheckInterval);
-            log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
+
             if (result == null) {
+                log.debug("ExecuteSparkInteractive No Job Result received: Session ID" + sessionId);
                 session.transfer(flowFile, REL_FAILURE);
+            }
+
+            log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
+
+            final int statementid = result.getInt("id");
+            final String jobState = result.getString("state");
+
+            flowFile = session.putAttribute(flowFile, "livy.sessionid", sessionId);
+            flowFile = session.putAttribute(flowFile, "livy.statementid", Integer.toString(statementid));
+
+            // Route error/cancel states to failure
+            if (jobState.equalsIgnoreCase("error")
+                    || jobState.equalsIgnoreCase("cancelled")
+                    || jobState.equalsIgnoreCase("cancelling")) {
+                throw new IOException(jobState);
             } else {
+                final JSONObject output = result.getJSONObject("output");
+
                 try {
-                    final JSONObject output = result.getJSONObject("data");
-                    flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes(charset)));
+                    final JSONObject data = output.getJSONObject("data");
+                    flowFile = session.write(flowFile, out -> out.write(data.toString().getBytes(charset)));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
                     session.transfer(flowFile, REL_SUCCESS);
                 } catch (JSONException je) {
                     // The result doesn't contain the data, just send the output object as the flow file content to failure (after penalizing)
                     log.error("Spark Session returned an error, sending the output JSON object as the flow file content to failure (after penalizing)");
-                    flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes(charset)));
+                    flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes(charset)));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
+
+                    // If we are supposed to drop sessions that caused failures, run it here
+                    if(dropSessionOnError) {
+                        deleteSession(livyUrl, livySessionService, sessionId);
+                    }
                 }
             }
-        } catch (IOException | SessionManagerException e) {
+        } catch (IOException | SessionManagerException | JSONException e) {
             log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", new Object[]{flowFile, e.getMessage()}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -253,7 +289,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             Thread.sleep(statusCheckInterval);
             if (jobState.equalsIgnoreCase("available")) {
                 log.debug("submitAndHandleJob() Job status is: " + jobState + ". returning output...");
-                output = jobInfo.getJSONObject("output");
+                output = jobInfo;
             } else if (jobState.equalsIgnoreCase("running") || jobState.equalsIgnoreCase("waiting")) {
                 while (!jobState.equalsIgnoreCase("available")) {
                     log.debug("submitAndHandleJob() Job status is: " + jobState + ". Waiting for job to complete...");
@@ -261,17 +297,48 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                     jobInfo = readJSONObjectFromUrl(statementUrl, livySessionService, headers);
                     jobState = jobInfo.getString("state");
                 }
-                output = jobInfo.getJSONObject("output");
+                output = jobInfo;
             } else if (jobState.equalsIgnoreCase("error")
                     || jobState.equalsIgnoreCase("cancelled")
                     || jobState.equalsIgnoreCase("cancelling")) {
                 log.debug("Job status is: " + jobState + ". Job did not complete due to error or has been cancelled. Check SparkUI for details.");
-                throw new IOException(jobState);
+
+                // Return the job Info even if it ended in an error or cancel state
+                output = jobInfo;
             }
         } catch (JSONException | InterruptedException e) {
             throw new IOException(e);
         }
         return output;
+    }
+
+    private JSONObject deleteSession(String livyUrl, LivySessionService livySessionService, String sessionId) throws IOException, SessionManagerException {
+        String sessionUrl = livyUrl + "/sessions/" + sessionId;
+        JSONObject sessionInfo;
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", LivySessionService.APPLICATION_JSON);
+        headers.put("X-Requested-By", LivySessionService.USER);
+
+        try {
+            sessionInfo = readJSONFromUrlDELETE(sessionUrl, livySessionService, headers);
+        } catch (JSONException e) {
+            throw new IOException(e);
+        }
+
+        return sessionInfo;
+    }
+
+    private JSONObject readJSONFromUrlDELETE(String urlString, LivySessionService livySessionService, Map<String, String> headers) throws IOException, JSONException, SessionManagerException {
+        HttpClient httpClient = livySessionService.getConnection();
+
+        HttpDelete request = new HttpDelete(urlString);
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            request.addHeader(entry.getKey(), entry.getValue());
+        }
+        HttpResponse response = httpClient.execute(request);
+
+        InputStream content = response.getEntity().getContent();
+        return readAllIntoJSONObject(content);
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, LivySessionService livySessionService, Map<String, String> headers, String payload)

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.livy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.controller.livy.LivySessionController;
 import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -56,16 +57,16 @@ class ExecuteSparkInteractiveTestBase {
                 } else if ("/sessions/1/statements/7".equalsIgnoreCase(target)) {
                     switch (session1Requests) {
                         case 0:
-                            responseBody = "{\"state\": \"waiting\"}";
+                            responseBody = "{\"id\": 7, \"state\": \"waiting\"}";
                             break;
                         case 1:
-                            responseBody = "{\"state\": \"running\"}";
+                            responseBody = "{\"id\": 7, \"state\": \"running\"}";
                             break;
                         case 2:
-                            responseBody = "{\"state\": \"available\", \"output\": {\"data\": {\"text/plain\": \"Hello world\"}}}";
+                            responseBody = "{\"id\": 7, \"state\": \"available\", \"output\": {\"data\": {\"text/plain\": \"Hello world\"}}}";
                             break;
                         default:
-                            responseBody = "{\"state\": \"error\"}";
+                            responseBody = "{\"id\": 7, \"state\": \"error\"}";
                             break;
                     }
                     session1Requests++;
@@ -81,8 +82,28 @@ class ExecuteSparkInteractiveTestBase {
                     responseContentType = "application/json";
                     if ("/sessions".equalsIgnoreCase(target)) {
                         responseBody = "{\"id\": 1, \"kind\": \"spark\", \"state\": \"idle\"}";
-                    } else if ("/sessions/1/statements".equalsIgnoreCase(target)) {
+                    } else if ("/sessions/1/connect".equalsIgnoreCase(target)) {
+                        responseBody = "{\"id\": 1, \"kind\": \"spark\", \"state\": \"idle\"}";
+                    }
+                    else if ("/sessions/1/statements".equalsIgnoreCase(target)) {
                         responseBody = "{\"id\": 7}";
+                    }
+                } catch (JsonProcessingException e) {
+                    responseStatus = 400;
+                    responseContentType = "text/plain";
+                    responseBody = "Bad request";
+                }
+            } else if ("DELETE".equalsIgnoreCase(request.getMethod())) {
+                String requestBody = IOUtils.toString(request.getReader());
+                try {
+                    // validate JSON payload
+                    new ObjectMapper().readTree(requestBody);
+
+                    responseStatus = 200;
+                    responseBody = "{}";
+                    responseContentType = "application/json";
+                    if ("/sessions/1".equalsIgnoreCase(target)) {
+                        responseBody = "{\"msg\":\"deleted\"}";
                     }
                 } catch (JsonProcessingException e) {
                     responseStatus = 400;
@@ -104,8 +125,12 @@ class ExecuteSparkInteractiveTestBase {
     }
 
     TestRunner runner;
+    LivySessionController livyControllerService;
 
     void testCode(TestServer server, String code) throws Exception {
+        runner.enableControllerService(livyControllerService);
+        runner.setProperty(ExecuteSparkInteractive.LIVY_CONTROLLER_SERVICE, "livyCS");
+
         server.addHandler(new LivyAPIHandler());
 
         runner.enqueue(code);

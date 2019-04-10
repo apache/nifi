@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.processors.livy.ExecuteSparkInteractive
+org.apache.nifi.processors.livy.ExecuteSparkBatch
