@@ -65,8 +65,20 @@
             // shut off the auto refresh
             nfCanvas.stopPolling();
 
-            // allow page refresh with ctrl-r
+            // disable page refresh with ctrl-r
             nfCanvas.disableRefreshHotKey();
+        },
+
+        /**
+         * Method for handling ajax errors when submitting configuration update (PUT/POST) requests.
+         * This method delegates error handling to ajaxErrorHandler.
+         *
+         * @argument {object} xhr       The XmlHttpRequest
+         * @argument {string} status    The status of the request
+         * @argument {string} error     The error
+         */
+        handleConfigurationUpdateAjaxError: function (xhr, status, error) {
+            ajaxErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
         }
     };
 }));

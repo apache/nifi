@@ -307,7 +307,7 @@
                 if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                     processorRelationships.css('border-width', '1px');
                 }
-            }).fail(nfErrorHandler.handleAjaxError(xhr, status, error));
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

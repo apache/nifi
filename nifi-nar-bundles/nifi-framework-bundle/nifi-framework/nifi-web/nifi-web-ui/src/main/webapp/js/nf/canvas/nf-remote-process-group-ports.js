@@ -151,14 +151,11 @@
                             }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
                         } else {
                             nfDialog.showOkDialog({
-                                headerText: 'Remote Process Group Ports',
+                                headerText: 'Configuration Error',
                                 dialogContent: portValidationErrors.reduce(function (prev, curr) {
                                     return typeof(prev) === 'string' ? prev + ' ' + curr : curr;
                                 })
                             });
-
-                            // close the dialog
-                            $('#remote-port-configuration').modal('hide');
                         }
                     }
                 }

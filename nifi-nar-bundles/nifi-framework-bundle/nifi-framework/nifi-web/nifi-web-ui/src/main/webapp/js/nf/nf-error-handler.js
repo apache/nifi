@@ -37,7 +37,7 @@
 }(this, function ($, nfDialog, nfCommon) {
     'use strict';
 
-    return {
+    var self = {
         /**
          * Method for handling ajax errors.
          *
@@ -169,8 +169,9 @@
                     headerText: 'Configuration Error'
                 });
             } else {
-                this.handleAjaxError(xhr, status, error);
+                self.handleAjaxError(xhr, status, error);
             }
         }
     };
+    return self;
 }));

@@ -158,7 +158,7 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
         List<String> validationErrors = new ArrayList<>();
 
         if (isNotNull(portDTO.getName()) && portDTO.getName().trim().isEmpty()) {
-            validationErrors.add("Port name cannot be blank.");
+            validationErrors.add("The name of the port must be specified.");
         }
         if (isNotNull(portDTO.getConcurrentlySchedulableTaskCount()) && portDTO.getConcurrentlySchedulableTaskCount() <= 0) {
             validationErrors.add("Concurrent tasks must be a positive integer.");
