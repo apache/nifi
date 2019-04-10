@@ -445,6 +445,8 @@
                     $('#connection-source-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
+                    $('#connection-source-group div.setting-name').text('Remote NiFi Instance')
+                    $('#connection-remote-source-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-source-group-id').val(remoteProcessGroup.id);
                     $('#connection-source-group-name').text(remoteProcessGroup.name);
 
@@ -672,6 +674,8 @@
                     $('#connection-destination-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
+                    $('#connection-destination-group div.setting-name').text('Remote NiFi Instance')
+                    $('#connection-remote-destination-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-destination-group-id').val(remoteProcessGroup.id);
                     $('#connection-destination-group-name').text(remoteProcessGroup.name);
 
@@ -716,6 +720,13 @@
             // populate the group details
             $('#connection-source-group-id').val(sourceData.id);
             $('#connection-source-group-name').text(sourceName);
+
+            if (nfCanvasUtils.isRemoteProcessGroup(source)) {
+                $('#connection-source-group div.setting-name').text('Remote NiFi Instance');
+                if (sourceData.permissions.canRead) {
+                    $('#connection-remote-source-url').text(sourceData.component.targetUri).show();
+                }
+            }
 
             // resolve the deferred
             deferred.resolve();
@@ -1327,6 +1338,12 @@
                 return;
             }
 
+            // reset labels
+            $('#connection-source-group div.setting-name').text('Within Group')
+            $('#connection-destination-group div.setting-name').text('Within Group')
+            $('#connection-remote-source-url').hide();
+            $('#connection-remote-destination-url').hide();
+
             // initialize the connection dialog
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
@@ -1378,6 +1395,12 @@
                     var destinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionEntry);
                     destination = d3.select('#id-' + destinationComponentId);
                 }
+
+                // reset labels
+                $('#connection-source-group div.setting-name').text('Within Group')
+                $('#connection-destination-group div.setting-name').text('Within Group')
+                $('#connection-remote-source-url').hide();
+                $('#connection-remote-destination-url').hide();
 
                 // initialize the connection dialog
                 $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination, connection.destination)).done(function () {
