@@ -114,9 +114,13 @@
                     if (clusterSummary.connectedToCluster) {
                         deferred.resolve(false);
                     } else {
-                        nfDialog.showDisconnectedFromClusterMessage(function () {
-                            deferred.resolve(true);
-                        });
+                        if (clusterSummary.clustered) {
+                            nfDialog.showDisconnectedFromClusterMessage(function () {
+                                deferred.resolve(true);
+                            });
+                        } else {
+                            deferred.resolve(false);
+                        }
                     }
                 }).fail(nfErrorHandler.handleAjaxError).fail(function () {
                     deferred.reject();
