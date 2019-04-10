@@ -649,7 +649,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * Adds an Output Port to this Remote Process Group that is described by
      * this DTO.
      *
-     * @param descriptor
+     * @param descriptor the RPG port descriptor
      * @throws IllegalStateException if an Output Port already exists with the
      *                               ID given by dto.getId()
      */
