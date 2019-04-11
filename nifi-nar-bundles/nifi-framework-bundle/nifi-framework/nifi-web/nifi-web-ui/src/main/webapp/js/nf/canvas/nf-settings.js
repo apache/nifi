@@ -174,10 +174,6 @@
                     saveSettings(response.revision.version);
                 });
             }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
-        } else {
-            return $.Deferred(function (deferred) {
-                deferred.reject();
-            }).promise();
         }
     }
 
