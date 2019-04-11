@@ -1777,15 +1777,12 @@
 
                         // determine the appropriate origin
                         if (!nfCommon.isDefinedAndNotNull(origin)) {
-                            var translatedDimensions = nfCanvasUtils.translateBoundingClientRect(dimensions);
-
                             // if the copied item(s) are from a different group or the origin item is not in the viewport, center the pasted item(s)
-                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(translatedDimensions, false)) {
+                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(dimensions, false)) {
                                 var scale = nfCanvasUtils.getCanvasScale();
-                                // scale the width and height of the copied dimensions
                                 var boxToCenter = $.extend({}, dimensions, {
-                                    width: dimensions.width / scale,
-                                    height: dimensions.height / scale
+                                    width: dimensions.width,
+                                    height: dimensions.height
                                 });
 
                                 // put it in the center of the screen
@@ -1795,6 +1792,7 @@
                                     x: center[0] - (translate[0] / scale),
                                     y: center[1] - (translate[1] / scale)
                                 };
+
                             } else {
                                 // paste it just offset from the original
                                 snippetOrigin.x += 25;

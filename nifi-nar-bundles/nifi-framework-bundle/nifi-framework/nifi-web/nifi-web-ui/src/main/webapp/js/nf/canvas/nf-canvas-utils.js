@@ -618,10 +618,10 @@
             var screenRight = screenLeft + screenWidth;
             var screenBottom = screenTop + screenHeight;
 
-            var left = Math.ceil(boundingBox.x / scale);
-            var right = Math.floor((boundingBox.x + boundingBox.width) / scale);
-            var top = Math.ceil((boundingBox.y - offset) / scale);
-            var bottom = Math.floor((boundingBox.y - offset + boundingBox.height) / scale);
+            var left = Math.ceil(boundingBox.x);
+            var right = Math.floor(boundingBox.x + boundingBox.width);
+            var top = Math.ceil(boundingBox.y - (offset) / scale);
+            var bottom = Math.floor(boundingBox.y - (offset / scale) + boundingBox.height);
 
             if (strict) {
                 return !(left < screenLeft || right > screenRight || top < screenTop || bottom > screenBottom);
@@ -1815,12 +1815,15 @@
         },
 
         /**
-         * Get a BoundingClientRect that encompasses all nodes in a given selection.
+         * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
          *
          * @param selection
          * @returns {*} BoundingClientRect
          */
         getSelectionBoundingClientRect: function (selection) {
+            var scale = nfCanvas.View.getScale();
+            var translate = nfCanvas.View.getTranslate();
+
             var initialBBox = {
                 x: Number.MAX_VALUE,
                 y: Number.MAX_VALUE,
@@ -1838,6 +1841,12 @@
 
                 return aggregateBBox;
             }, initialBBox);
+
+            // normalize the bounding box with scale and translate
+            bbox.x = (bbox.x - translate[0]) / scale;
+            bbox.y = (bbox.y - translate[1]) / scale;
+            bbox.right = (bbox.right - translate[0]) / scale;
+            bbox.bottom = (bbox.bottom - translate[1]) / scale;
 
             bbox.width = bbox.right - bbox.x;
             bbox.height = bbox.bottom - bbox.y;
