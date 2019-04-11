@@ -606,26 +606,32 @@
          */
         isBoundingBoxInViewport: function (boundingBox, strict) {
             var scale = nfCanvas.View.getScale();
-            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
-                scale = boundingBox.scale;
-            }
             var translate = nfCanvas.View.getTranslate();
+            var offset = nfCanvas.CANVAS_OFFSET;
 
             // get the canvas normalized width and height
             var canvasContainer = $('#canvas-container');
-            var screenWidth = canvasContainer.width() / scale;
-            var screenHeight = canvasContainer.height() / scale;
+            var screenWidth = Math.floor(canvasContainer.width() / scale);
+            var screenHeight = Math.floor(canvasContainer.height() / scale);
+            var screenLeft = Math.ceil(-translate[0] / scale);
+            var screenTop = Math.ceil(-translate[1] / scale);
+            var screenRight = screenLeft + screenWidth;
+            var screenBottom = screenTop + screenHeight;
 
-            var left = boundingBox.x + (translate[0] / scale);
-            var right = left + (boundingBox.width / scale);
-            var top = boundingBox.y + (translate[1] / scale);
-            var bottom = top + (boundingBox.height / scale);
+            var left = Math.ceil(boundingBox.x / scale);
+            var right = Math.floor((boundingBox.x + boundingBox.width) / scale);
+            var top = Math.ceil((boundingBox.y - offset) / scale);
+            var bottom = Math.floor((boundingBox.y - offset + boundingBox.height) / scale);
+
+            console.log('Bounding Box', boundingBox);
+            console.log('Canvas', {scale, translate, screenWidth, screenHeight, screenBottom, screenLeft, screenRight, screenTop});
+            console.log('Scaled', { horizontal: {left, right}, vertical: {top, bottom}});
 
             if (strict) {
                 return !(left < 0 || right > screenWidth || top < 0 || bottom > screenHeight);
             } else {
-                return ((left > 0 && left < screenWidth) || (right > 0 && right < screenWidth)) &&
-                    ((top > 0 && top < screenHeight) || (bottom > 0 && bottom < screenHeight));
+                return ((left > screenLeft && left < screenRight) || (right < screenRight && right > screenLeft)) &&
+                    ((top > screenTop && top < screenBottom) || (bottom < screenBottom && bottom > screenTop));
             }
         },
 
@@ -1813,21 +1819,18 @@
         },
 
         /**
-         * Get a BoundingClientRect (scaled and translated to the active canvas) that encompasses all
-         * nodes in a given selection
+         * Get a BoundingClientRect that encompasses all nodes in a given selection.
          *
          * @param selection
-         * @returns {*} BoundingClientRect scaled and translated to the active canvas that encompasses all
+         * @returns {*} BoundingClientRect
          */
         getSelectionBoundingClientRect: function (selection) {
-            var scale = nfCanvas.View.getScale();
-            var translate = nfCanvas.View.getTranslate();
-
             var initialBBox = {
                 x: Number.MAX_VALUE,
                 y: Number.MAX_VALUE,
                 right: Number.MIN_VALUE,
                 bottom: Number.MIN_VALUE,
+                translate: nfCanvas.View.getTranslate()
             };
 
             var bbox = selection.nodes().reduce(function (aggregateBBox, node) {
@@ -1840,18 +1843,39 @@
                 return aggregateBBox;
             }, initialBBox);
 
-            // adjust for scale and offset
-            bbox.x = (bbox.x - translate[0]) / scale;
-            bbox.y = (bbox.y - translate[1]) / scale;
-            bbox.right = (bbox.right - translate[0]) / scale;
-            bbox.bottom = (bbox.bottom - translate[1]) / scale;
-
             bbox.width = bbox.right - bbox.x;
             bbox.height = bbox.bottom - bbox.y;
             bbox.top = bbox.y;
             bbox.left = bbox.x;
 
             return bbox;
+        },
+
+        /**
+         * Applies a translation to BoundingClientRect.
+         *
+         * @param boundingClientRect
+         * @param translate
+         * @returns {{top: number, left: number, bottom: number, x: number, width: number, y: number, right: number, height: number}}
+         */
+        translateBoundingClientRect: function (boundingClientRect, translate) {
+            if (nfCommon.isUndefinedOrNull(translate)) {
+                if (nfCommon.isDefinedAndNotNull(boundingClientRect.translate)) {
+                    translate = boundingClientRect.translate;
+                } else {
+                    translate = nfCanvas.View.getTranslate();
+                }
+            }
+            return {
+                x: boundingClientRect.x - translate[0],
+                y: boundingClientRect.y - translate[1],
+                left: boundingClientRect.left - translate[0],
+                right: boundingClientRect.right - translate[0],
+                top: boundingClientRect.top - translate[1],
+                bottom: boundingClientRect.bottom - translate[1],
+                width: boundingClientRect.width,
+                height: boundingClientRect.height
+            }
         },
 
         /**
