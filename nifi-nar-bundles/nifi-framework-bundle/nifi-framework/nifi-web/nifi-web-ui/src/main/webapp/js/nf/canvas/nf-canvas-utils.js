@@ -623,12 +623,8 @@
             var top = Math.ceil((boundingBox.y - offset) / scale);
             var bottom = Math.floor((boundingBox.y - offset + boundingBox.height) / scale);
 
-            console.log('Bounding Box', boundingBox);
-            console.log('Canvas', {scale, translate, screenWidth, screenHeight, screenBottom, screenLeft, screenRight, screenTop});
-            console.log('Scaled', { horizontal: {left, right}, vertical: {top, bottom}});
-
             if (strict) {
-                return !(left < 0 || right > screenWidth || top < 0 || bottom > screenHeight);
+                return !(left < screenLeft || right > screenRight || top < screenTop || bottom > screenBottom);
             } else {
                 return ((left > screenLeft && left < screenRight) || (right < screenRight && right > screenLeft)) &&
                     ((top > screenTop && top < screenBottom) || (bottom < screenBottom && bottom > screenTop));
