@@ -22,6 +22,7 @@ import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.util.DefaultResourceRetriever;
 import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -36,8 +37,13 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
+import com.nimbusds.openid.connect.sdk.UserInfoErrorResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoRequest;
+import com.nimbusds.openid.connect.sdk.UserInfoResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoSuccessResponse;
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
@@ -283,10 +289,17 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 // validate the token - no nonce required for authorization code flow
                 final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
 
-                // extract the email from the id token
+                // attempt to extract the email from the id token if possible
                 String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
                 if (StringUtils.isBlank(email)) {
-                    throw new IllegalStateException("Could not get email from the OIDC token.");
+                    // extract the bearer access token
+                    final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
+                    if (bearerAccessToken == null) {
+                        throw new IllegalStateException("No access token found in the ID tokens");
+                    }
+
+                    // invoke the UserInfo endpoint
+                    email = lookupEmail(bearerAccessToken);
                 }
 
                 // extract expiration details from the claims set
@@ -303,6 +316,45 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             }
         } catch (final ParseException | JOSEException | BadJOSEException e) {
             throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
+        }
+    }
+
+    private String lookupEmail(final BearerAccessToken bearerAccessToken) throws IOException {
+        try {
+            // build the user request
+            final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
+            final HTTPRequest tokenHttpRequest = request.toHTTPRequest();
+            tokenHttpRequest.setConnectTimeout(oidcConnectTimeout);
+            tokenHttpRequest.setReadTimeout(oidcReadTimeout);
+
+            // send the user request
+            final UserInfoResponse response = UserInfoResponse.parse(request.toHTTPRequest().send());
+
+            // interpret the details
+            if (response.indicatesSuccess()) {
+                final UserInfoSuccessResponse successResponse = (UserInfoSuccessResponse) response;
+
+                final JWTClaimsSet claimsSet;
+                if (successResponse.getUserInfo() != null) {
+                    claimsSet = successResponse.getUserInfo().toJWTClaimsSet();
+                } else {
+                    claimsSet = successResponse.getUserInfoJWT().getJWTClaimsSet();
+                }
+
+                final String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
+
+                // ensure we were able to get the user email
+                if (StringUtils.isBlank(email)) {
+                    throw new IllegalStateException("Unable to extract email from the UserInfo token.");
+                } else {
+                    return email;
+                }
+            } else {
+                final UserInfoErrorResponse errorResponse = (UserInfoErrorResponse) response;
+                throw new RuntimeException("An error occurred while invoking the UserInfo endpoint: " + errorResponse.getErrorObject().getDescription());
+            }
+        } catch (final ParseException | java.text.ParseException e) {
+            throw new RuntimeException("Unable to parse the response from the UserInfo token request: " + e.getMessage());
         }
     }
 }
