@@ -158,6 +158,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_CLIENT_ID = "nifi.security.user.oidc.client.id";
     public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
+    public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -945,6 +946,20 @@ public abstract class NiFiProperties {
      */
     public String getOidcPreferredJwsAlgorithm() {
         return getProperty(SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM);
+    }
+
+    /**
+     * Returns additional scopes to be sent when requesting the access token from the IDP.
+     *
+     * @return List of additional scopes to be sent
+     */
+    public List<String> getOidcAdditionalScopes() {
+        String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
+        if (rawProperty.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
+        return additionalScopes.stream().map(String::trim).collect(Collectors.toList());
     }
 
     /**

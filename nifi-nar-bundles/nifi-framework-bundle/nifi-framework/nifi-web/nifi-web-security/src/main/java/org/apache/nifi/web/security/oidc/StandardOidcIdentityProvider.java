@@ -246,7 +246,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        return new Scope("openid", "email");
+        Scope scope = new Scope("openid", "email");
+
+        for (String additionalScope : properties.getOidcAdditionalScopes()) {
+            // Scope automatically prevents duplicated entries
+            scope.add(additionalScope);
+        }
+
+        return scope;
     }
 
     @Override
