@@ -189,14 +189,9 @@ public class ExtensionBuilder {
         try {
             loggableComponent = createLoggableProcessor();
         } catch (final ProcessorInstantiationException pie) {
-            String errorMessage = "Could not create Processor of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation";
-
-            // If the reason the processor can't be instantiated is because the bundle is missing, don't print the entire stacktrace
-            if (isBundleUnavailable(pie)) {
-                String missingBundle = getMissingBundleCoordinates(pie);
-                logger.error(errorMessage + " because the bundle " + missingBundle + " is missing");
-            } else {
-                logger.error(errorMessage, pie);
+            logger.error("Could not create Processor of type " + type + " for ID " + identifier + " due to: " + pie.getMessage() + "; creating \"Ghost\" implementation");
+            if (logger.isDebugEnabled()) {
+                logger.debug(pie.getMessage(), pie);
             }
 
             final GhostProcessor ghostProc = new GhostProcessor();
@@ -208,44 +203,6 @@ public class ExtensionBuilder {
 
         final ProcessorNode processorNode = createProcessorNode(loggableComponent, creationSuccessful);
         return processorNode;
-    }
-
-    /**
-     * Returns the bundle coordinates for the missing bundle identified in this exception (for processors, a {@link ProcessorInstantiationException}).
-     * This method is only called from a safe context (the right exception was thrown), so there are no null or index checks.
-     *
-     * @param e the exception thrown because the component could not be instantiated
-     * @return the bundle coordinates as a String
-     */
-    private String getMissingBundleCoordinates(Throwable e) {
-        // Find the root cause
-        while (e.getCause() != null) {
-            e = e.getCause();
-        }
-
-        // Get the bundle coordinate from a specific position in the error message
-        return e.getLocalizedMessage().substring(37);
-    }
-
-    /**
-     * Returns true if the root cause of this exception (often {@link ProcessorInstantiationException}) is that the bundle containing the processor cannot be found.
-     *
-     * @param e the exception thrown when trying to instantiate the processor
-     * @return
-     */
-    private boolean isBundleUnavailable(Throwable e) {
-        // Edge case condition
-        if (e == null) {
-            return false;
-        }
-
-        if (e instanceof IllegalStateException && e.getLocalizedMessage().contains("Unable to find bundle for coordinate")) {
-            return true;
-        } else if (e.getCause() != null) {
-            return isBundleUnavailable(e.getCause());
-        } else {
-            return false;
-        }
     }
 
     public ReportingTaskNode buildReportingTask() {
@@ -326,14 +283,9 @@ public class ExtensionBuilder {
         try {
             return createControllerServiceNode();
         } catch (final Exception e) {
-            String errorMessage = "Could not create Controller Service of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation";
-
-            // If the reason the controller service can't be instantiated is because the bundle is missing, don't print the entire stacktrace
-            if (isBundleUnavailable(e)) {
-                String missingBundle = getMissingBundleCoordinates(e);
-                logger.error(errorMessage + " because the bundle " + missingBundle + " is missing");
-            } else {
-                logger.error(errorMessage, e);
+            logger.error("Could not create Controller Service of type " + type + " for ID " + identifier + " due to: " + e.getMessage() + "; creating \"Ghost\" implementation");
+            if (logger.isDebugEnabled()) {
+                logger.debug(e.getMessage(), e);
             }
 
             return createGhostControllerServiceNode();
