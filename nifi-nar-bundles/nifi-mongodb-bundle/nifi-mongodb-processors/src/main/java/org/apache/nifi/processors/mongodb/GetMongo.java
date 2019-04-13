@@ -264,7 +264,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             }
 
             if (sent == 0 && sendEmpty) {
-                FlowFile empty = session.create(input);
+                FlowFile empty = input != null ? session.create(input) : session.create();
                 empty = session.putAllAttributes(empty, attributes);
                 session.transfer(empty, REL_SUCCESS);
             }
