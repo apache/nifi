@@ -31,7 +31,7 @@ import java.util.List;
 
 public abstract class AbstractTinkerpopClientService extends AbstractControllerService {
     public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
-            .name("opencypher-contact-points")
+            .name("tinkerpop-contact-points")
             .displayName("Contact Points")
             .description("A comma-separated list of hostnames or IP addresses where an OpenCypher-enabled server can be found.")
             .required(true)
@@ -40,7 +40,8 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
+            .name("tinkerpop-ssl-context-service")
+            .displayName("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections.")
             .required(false)
