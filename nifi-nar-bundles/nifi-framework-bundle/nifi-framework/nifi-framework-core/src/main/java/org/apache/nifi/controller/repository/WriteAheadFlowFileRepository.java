@@ -420,7 +420,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             return null;
         }
 
-        final String withoutTrailing = (swapLocation.endsWith("/") && swapLocation.length() > 1) ? swapLocation.substring(0, swapLocation.length() - 1) : swapLocation;
+        final String normalizedPath = swapLocation.replace("\\", "/");
+        final String withoutTrailing = (normalizedPath.endsWith("/") && normalizedPath.length() > 1) ? normalizedPath.substring(0, normalizedPath.length() - 1) : normalizedPath;
         final int lastIndex = withoutTrailing.lastIndexOf("/");
         if (lastIndex < 0 || lastIndex >= withoutTrailing.length() - 1) {
             return withoutTrailing;
