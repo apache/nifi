@@ -41,17 +41,10 @@
 }(this, function (ajaxErrorHandler, nfCommon, nfCanvas, nfContextMenu) {
     'use strict';
 
-    return {
-
-        /**
-         * Method for handling ajax errors. This also closes the canvas.
-         *
-         * @argument {object} xhr       The XmlHttpRequest
-         * @argument {string} status    The status of the request
-         * @argument {string} error     The error
-         */
-        handleAjaxError: function (xhr, status, error) {
-            ajaxErrorHandler.handleAjaxError(xhr, status, error);
+     var disableCanvas = function() {
+        // In case no further requests will be successful based on the status,
+        // the canvas is disabled, and the message pane is shown.
+        if ($('#message-pane').is(':visible')) {
             nfCommon.showLogoutLink();
 
             // hide the splash screen if required
@@ -67,6 +60,21 @@
 
             // disable page refresh with ctrl-r
             nfCanvas.disableRefreshHotKey();
+        }
+    }
+
+    return {
+
+        /**
+         * Method for handling ajax errors. This also closes the canvas if necessary.
+         *
+         * @argument {object} xhr       The XmlHttpRequest
+         * @argument {string} status    The status of the request
+         * @argument {string} error     The error
+         */
+        handleAjaxError: function (xhr, status, error) {
+            ajaxErrorHandler.handleAjaxError(xhr, status, error);
+            disableCanvas();
         },
 
         /**
@@ -79,6 +87,7 @@
          */
         handleConfigurationUpdateAjaxError: function (xhr, status, error) {
             ajaxErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
+            disableCanvas();
         }
     };
 }));
