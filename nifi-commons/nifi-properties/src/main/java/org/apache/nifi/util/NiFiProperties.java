@@ -159,6 +159,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
     public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
+    public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -960,6 +961,16 @@ public abstract class NiFiProperties {
         }
         List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
         return additionalScopes.stream().map(String::trim).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the claim to be used to identify a user.
+     * Claim must be requested by adding the scope for it.
+     * Default is 'email'.
+     * @return The claim to be used to identify the user.
+     */
+    public String getOidcClaimIdentifyingUser() {
+        return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
     }
 
     /**

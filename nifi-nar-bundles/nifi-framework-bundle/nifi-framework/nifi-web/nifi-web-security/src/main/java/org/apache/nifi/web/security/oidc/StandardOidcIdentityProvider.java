@@ -296,9 +296,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 // validate the token - no nonce required for authorization code flow
                 final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
 
-                // attempt to extract the email from the id token if possible
-                String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
-                if (StringUtils.isBlank(email)) {
+                // attempt to extract the configured claim to access the user's identity; default is 'email'
+                String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
+                if (StringUtils.isBlank(identity)) {
+                    // explicitly try to get the identity from the UserInfo endpoint with the 'email' claim
+                    logger.warn("The identity of the user was tried to get with the claim '" +
+                            properties.getOidcClaimIdentifyingUser() + "'. The according additional scope is not " +
+                            "configured correctly. Trying to get it with the 'email' claim.");
+
                     // extract the bearer access token
                     final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
                     if (bearerAccessToken == null) {
@@ -306,7 +311,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                     }
 
                     // invoke the UserInfo endpoint
-                    email = lookupEmail(bearerAccessToken);
+                    identity = lookupEmail(bearerAccessToken);
                 }
 
                 // extract expiration details from the claims set
@@ -315,11 +320,13 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
                 // convert into a nifi jwt for retrieval later
-                final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(email, email, expiresIn, claimsSet.getIssuer().getValue());
+                final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(identity, identity, expiresIn,
+                        claimsSet.getIssuer().getValue());
                 return jwtService.generateSignedToken(loginToken);
             } else {
                 final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
-                throw new RuntimeException("An error occurred while invoking the Token endpoint: " + errorResponse.getErrorObject().getDescription());
+                throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
+                        errorResponse.getErrorObject().getDescription());
             }
         } catch (final ParseException | JOSEException | BadJOSEException e) {
             throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
