@@ -445,7 +445,7 @@
                     $('#connection-source-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
-                    $('#connection-source-group div.setting-name').text('Within Remote NiFi')
+                    $('#connection-source-group div.setting-name').text('Within Remote Group')
                     $('#connection-remote-source-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-source-group-id').val(remoteProcessGroup.id);
                     $('#connection-source-group-name').text(remoteProcessGroup.name);
@@ -674,7 +674,7 @@
                     $('#connection-destination-component-id').val(remoteProcessGroup.id);
 
                     // populate the group details
-                    $('#connection-destination-group div.setting-name').text('Within Remote NiFi')
+                    $('#connection-destination-group div.setting-name').text('Within Remote Group')
                     $('#connection-remote-destination-url').text(remoteProcessGroup.targetUri).show();
                     $('#connection-destination-group-id').val(remoteProcessGroup.id);
                     $('#connection-destination-group-name').text(remoteProcessGroup.name);
@@ -722,7 +722,7 @@
             $('#connection-source-group-name').text(sourceName);
 
             if (nfCanvasUtils.isRemoteProcessGroup(source)) {
-                $('#connection-source-group div.setting-name').text('Within Remote NiFi');
+                $('#connection-source-group div.setting-name').text('Within Remote Group');
                 if (sourceData.permissions.canRead) {
                     $('#connection-remote-source-url').text(sourceData.component.targetUri).show();
                 }
