@@ -152,7 +152,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             .description("The HDFS directory where the files will be moved to")
             .required(true)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor OPERATION = new PropertyDescriptor.Builder()
