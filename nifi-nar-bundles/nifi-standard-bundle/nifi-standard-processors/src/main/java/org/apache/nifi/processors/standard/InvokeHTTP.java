@@ -30,7 +30,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.internal.tls.OkHostnameVerifier;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -77,7 +76,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -360,15 +358,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Trusted Hostname")
-            .description("Bypass the normal truststore hostname verifier to allow the specified remote hostname as trusted. "
-                    + "Enabling this property has MITM security implications, use wisely. Will still accept other connections based "
-                    + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
             .name("Add Response Headers to Request")
             .description("Enabling this property saves all the response headers to the original request. This may be when the response headers are needed "
@@ -438,7 +427,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_PUT_ATTRIBUTE_MAX_LENGTH,
             PROP_DIGEST_AUTH,
             PROP_OUTPUT_RESPONSE_REGARDLESS,
-            PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
@@ -629,12 +617,6 @@ public final class InvokeHTTP extends AbstractProcessor {
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
             setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
-        }
-
-        // check the trusted hostname property and override the HostnameVerifier
-        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).getValue());
-        if (!trustedHostname.isEmpty()) {
-            okHttpClientBuilder.hostnameVerifier(new OverrideHostnameVerifier(trustedHostname, OkHostnameVerifier.INSTANCE));
         }
 
         setAuthenticator(okHttpClientBuilder, context);
