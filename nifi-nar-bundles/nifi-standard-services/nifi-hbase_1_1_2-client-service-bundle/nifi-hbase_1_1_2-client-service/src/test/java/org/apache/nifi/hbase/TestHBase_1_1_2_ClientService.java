@@ -61,6 +61,10 @@ public class TestHBase_1_1_2_ClientService {
 
     @Before
     public void setup() {
+        // forcing user.home to be the location of the test resources for this class.
+        // in this way we can use and test the ~ expansion happens correctly.
+        System.setProperty("user.home", "src/test/resources");
+
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
         System.setProperty("java.security.krb5.realm", "nifi.com");
@@ -86,8 +90,6 @@ public class TestHBase_1_1_2_ClientService {
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
-//        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
-        System.setProperty("user.home", "src/test/resources");
         runner.setVariable("hadoop-conf-files", "~/hbase-site.xml");
         runner.setVariable("zk-quorum", "localhost");
         runner.setVariable("zk-client-port", "2181");
