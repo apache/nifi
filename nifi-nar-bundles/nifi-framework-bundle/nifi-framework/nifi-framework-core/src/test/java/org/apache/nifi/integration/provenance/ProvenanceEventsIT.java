@@ -420,4 +420,62 @@ public class ProvenanceEventsIT extends FrameworkIntegrationTest {
         final ProvenanceEventRecord thirdEvent = provRepo.getEvent(2L);
         assertEquals(ProvenanceEventType.DROP, thirdEvent.getEventType());
     }
+
+    @Test
+    public void testCloneOnMultipleConnectionsForRelationship() throws ExecutionException, InterruptedException, IOException {
+        final ProcessorNode generateProcessor = createGenerateProcessor(0);
+        final ProcessorNode passThroughProcessor = createProcessorNode((context, session) -> {
+            FlowFile original = session.get();
+            session.transfer(original, REL_SUCCESS);
+        }, REL_SUCCESS);
+
+        connect(generateProcessor, passThroughProcessor, REL_SUCCESS);
+        connect(passThroughProcessor, getTerminateProcessor(), REL_SUCCESS);
+        connect(passThroughProcessor, getTerminateAllProcessor(), REL_SUCCESS);
+
+        triggerOnce(generateProcessor);
+        triggerOnce(passThroughProcessor);
+
+        final ProvenanceEventRepository provRepo = getProvenanceRepository();
+        assertEquals(1L, provRepo.getMaxEventId().longValue());
+
+        final ProvenanceEventRecord firstEvent = provRepo.getEvent(0L);
+        assertEquals(ProvenanceEventType.CREATE, firstEvent.getEventType());
+
+        final ProvenanceEventRecord secondEvent = provRepo.getEvent(1L);
+        assertEquals(ProvenanceEventType.CLONE, secondEvent.getEventType());
+        assertEquals(1, secondEvent.getParentUuids().size());
+        assertEquals(1, secondEvent.getChildUuids().size());
+    }
+
+    @Test
+    public void testCloneOnMultipleConnectionsForRelationshipIncludesUpdatedAttributes() throws ExecutionException, InterruptedException, IOException {
+        final ProcessorNode generateProcessor = createGenerateProcessor(0);
+        final ProcessorNode passThroughProcessor = createProcessorNode((context, session) -> {
+            FlowFile original = session.get();
+            original = session.putAttribute(original, "test", "integration");
+
+            session.transfer(original, REL_SUCCESS);
+        }, REL_SUCCESS);
+
+        connect(generateProcessor, passThroughProcessor, REL_SUCCESS);
+        connect(passThroughProcessor, getTerminateProcessor(), REL_SUCCESS);
+        connect(passThroughProcessor, getTerminateAllProcessor(), REL_SUCCESS);
+
+        triggerOnce(generateProcessor);
+        triggerOnce(passThroughProcessor);
+
+        final ProvenanceEventRepository provRepo = getProvenanceRepository();
+        assertEquals(1L, provRepo.getMaxEventId().longValue());
+
+        final ProvenanceEventRecord firstEvent = provRepo.getEvent(0L);
+        assertEquals(ProvenanceEventType.CREATE, firstEvent.getEventType());
+
+        final ProvenanceEventRecord secondEvent = provRepo.getEvent(1L);
+        assertEquals(ProvenanceEventType.CLONE, secondEvent.getEventType());
+        assertEquals(1, secondEvent.getParentUuids().size());
+        assertEquals(1, secondEvent.getChildUuids().size());
+        assertEquals("integration", secondEvent.getAttribute("test"));
+    }
+
 }

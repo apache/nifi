@@ -325,6 +325,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     newRecord.setTransferRelationship(record.getTransferRelationship());
                     // put the mapping into toAdd because adding to records now will cause a ConcurrentModificationException
                     toAdd.put(clone.getId(), newRecord);
+
+                    createdFlowFiles.add(newUuid);
                 }
             }
         }
@@ -639,6 +641,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             recordsToSubmit.add(event);
             addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
+
+            final List<String> childUuids = event.getChildUuids();
+            if (childUuids != null) {
+                for (final String childUuid : childUuids) {
+                    addEventType(eventTypesPerFlowFileId, childUuid, event.getEventType());
+                }
+            }
         }
 
         // Finally, add any other events that we may have generated.
@@ -684,6 +693,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (registeredTypes != null) {
                     if (registeredTypes.get(ProvenanceEventType.CREATE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.FORK.ordinal())
+                        || registeredTypes.get(ProvenanceEventType.CLONE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.JOIN.ordinal())
                         || registeredTypes.get(ProvenanceEventType.RECEIVE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.FETCH.ordinal())) {
@@ -770,6 +780,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         provenanceRepo.registerEvents(iterable);
     }
+
 
     private void updateEventContentClaims(final ProvenanceEventBuilder builder, final FlowFile flowFile, final StandardRepositoryRecord repoRecord) {
         final ContentClaim originalClaim = repoRecord.getOriginalClaim();
@@ -1676,6 +1687,97 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
         return fFile;
     }
+
+    @Override
+    public FlowFile create(FlowFile parent) {
+        verifyTaskActive();
+        parent = getMostRecent(parent);
+
+        final String uuid = UUID.randomUUID().toString();
+
+        final Map<String, String> newAttributes = new HashMap<>(3);
+        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
+        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
+        newAttributes.put(CoreAttributes.UUID.key(), uuid);
+
+        final StandardFlowFileRecord.Builder fFileBuilder = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence());
+
+        // copy all attributes from parent except for the "special" attributes. Copying the special attributes
+        // can cause problems -- especially the ALTERNATE_IDENTIFIER, because copying can cause Provenance Events
+        // to be incorrectly created.
+        for (final Map.Entry<String, String> entry : parent.getAttributes().entrySet()) {
+            final String key = entry.getKey();
+            final String value = entry.getValue();
+            if (CoreAttributes.ALTERNATE_IDENTIFIER.key().equals(key)
+                || CoreAttributes.DISCARD_REASON.key().equals(key)
+                || CoreAttributes.UUID.key().equals(key)) {
+                continue;
+            }
+            newAttributes.put(key, value);
+        }
+
+        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
+        fFileBuilder.addAttributes(newAttributes);
+
+        final FlowFileRecord fFile = fFileBuilder.build();
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        record.setWorking(fFile, newAttributes);
+        records.put(fFile.getId(), record);
+        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
+
+        registerForkEvent(parent, fFile);
+        return fFile;
+    }
+
+    @Override
+    public FlowFile create(Collection<FlowFile> parents) {
+        verifyTaskActive();
+
+        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
+
+        final Map<String, String> newAttributes = intersectAttributes(parents);
+        newAttributes.remove(CoreAttributes.UUID.key());
+        newAttributes.remove(CoreAttributes.ALTERNATE_IDENTIFIER.key());
+        newAttributes.remove(CoreAttributes.DISCARD_REASON.key());
+
+        // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
+        // and use the earliest lineage start date
+        long lineageStartDate = 0L;
+        for (final FlowFile parent : parents) {
+
+            final long parentLineageStartDate = parent.getLineageStartDate();
+            if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
+                lineageStartDate = parentLineageStartDate;
+            }
+        }
+
+        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
+        long lineageStartIndex = 0L;
+        for (final FlowFile parent : parents) {
+            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
+                lineageStartIndex = parent.getLineageStartIndex();
+            }
+        }
+
+        final String uuid = UUID.randomUUID().toString();
+        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
+        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
+        newAttributes.put(CoreAttributes.UUID.key(), uuid);
+
+        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
+            .addAttributes(newAttributes)
+            .lineageStart(lineageStartDate, lineageStartIndex)
+            .build();
+
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        record.setWorking(fFile, newAttributes);
+        records.put(fFile.getId(), record);
+        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
+
+        registerJoinEvent(fFile, parents);
+        return fFile;
+    }
+
 
     @Override
     public FlowFile clone(FlowFile example) {
@@ -3171,95 +3273,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return existingRecord == null ? flowFile : existingRecord.getCurrent();
     }
 
-    @Override
-    public FlowFile create(FlowFile parent) {
-        verifyTaskActive();
-        parent = getMostRecent(parent);
-
-        final String uuid = UUID.randomUUID().toString();
-
-        final Map<String, String> newAttributes = new HashMap<>(3);
-        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
-        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
-        newAttributes.put(CoreAttributes.UUID.key(), uuid);
-
-        final StandardFlowFileRecord.Builder fFileBuilder = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence());
-
-        // copy all attributes from parent except for the "special" attributes. Copying the special attributes
-        // can cause problems -- especially the ALTERNATE_IDENTIFIER, because copying can cause Provenance Events
-        // to be incorrectly created.
-        for (final Map.Entry<String, String> entry : parent.getAttributes().entrySet()) {
-            final String key = entry.getKey();
-            final String value = entry.getValue();
-            if (CoreAttributes.ALTERNATE_IDENTIFIER.key().equals(key)
-                || CoreAttributes.DISCARD_REASON.key().equals(key)
-                || CoreAttributes.UUID.key().equals(key)) {
-                continue;
-            }
-            newAttributes.put(key, value);
-        }
-
-        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
-        fFileBuilder.addAttributes(newAttributes);
-
-        final FlowFileRecord fFile = fFileBuilder.build();
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(fFile, newAttributes);
-        records.put(fFile.getId(), record);
-        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
-
-        registerForkEvent(parent, fFile);
-        return fFile;
-    }
-
-    @Override
-    public FlowFile create(Collection<FlowFile> parents) {
-        verifyTaskActive();
-
-        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
-
-        final Map<String, String> newAttributes = intersectAttributes(parents);
-        newAttributes.remove(CoreAttributes.UUID.key());
-        newAttributes.remove(CoreAttributes.ALTERNATE_IDENTIFIER.key());
-        newAttributes.remove(CoreAttributes.DISCARD_REASON.key());
-
-        // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
-        // and use the earliest lineage start date
-        long lineageStartDate = 0L;
-        for (final FlowFile parent : parents) {
-
-            final long parentLineageStartDate = parent.getLineageStartDate();
-            if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
-                lineageStartDate = parentLineageStartDate;
-            }
-        }
-
-        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
-        long lineageStartIndex = 0L;
-        for (final FlowFile parent : parents) {
-            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
-                lineageStartIndex = parent.getLineageStartIndex();
-            }
-        }
-
-        final String uuid = UUID.randomUUID().toString();
-        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
-        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
-        newAttributes.put(CoreAttributes.UUID.key(), uuid);
-
-        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
-            .addAttributes(newAttributes)
-            .lineageStart(lineageStartDate, lineageStartIndex)
-            .build();
-
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(fFile, newAttributes);
-        records.put(fFile.getId(), record);
-        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
-
-        registerJoinEvent(fFile, parents);
-        return fFile;
-    }
 
     /**
      * Returns the attributes that are common to every FlowFile given. The key
