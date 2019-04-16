@@ -48,8 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,9 +64,6 @@ public class TestHBase_1_1_2_ClientService {
     @Before
     public void setup() {
         originalHome = System.getProperty("user.home");
-        // forcing user.home to be the location of the test resources for this class.
-        // in this way we can use and test the ~ expansion happens correctly.
-        System.setProperty("user.home", "src/test/resources");
 
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -99,6 +95,8 @@ public class TestHBase_1_1_2_ClientService {
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
+//        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
+        System.setProperty("user.home", "src/test/resources");
         runner.setVariable("hadoop-conf-files", "~/hbase-site.xml");
         runner.setVariable("zk-quorum", "localhost");
         runner.setVariable("zk-client-port", "2181");
@@ -413,6 +411,7 @@ public class TestHBase_1_1_2_ClientService {
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
+        System.setProperty("user.home", "src/test/resources");
         final MockHBaseClientService service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
 
         runner.addControllerService("hbaseClient", service);
