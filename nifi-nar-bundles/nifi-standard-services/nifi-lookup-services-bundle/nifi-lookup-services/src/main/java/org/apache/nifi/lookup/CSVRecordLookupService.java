@@ -37,6 +37,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
@@ -149,7 +150,8 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                 }
 
                 ConcurrentHashMap<String, Record> cache = new ConcurrentHashMap<>();
-                try (final InputStream is = new FileInputStream(csvFile)) {
+                String expandedCsvFile = FileExpansionUtil.expandPath(csvFile);
+                try (final InputStream is = new FileInputStream(expandedCsvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
                         final CSVParser records = csvFormat.withFirstRecordAsHeader().parse(reader);
                         RecordSchema lookupRecordSchema = null;
@@ -157,11 +159,11 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                             final String key = record.get(lookupKeyColumn);
 
                             if (StringUtils.isBlank(key)) {
-                                throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
+                                throw new IllegalStateException("Empty lookup key encountered in: " + expandedCsvFile);
                             } else if (!ignoreDuplicates && cache.containsKey(key)) {
-                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
+                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + expandedCsvFile);
                             } else if (ignoreDuplicates && cache.containsKey(key)) {
-                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, expandedCsvFile});
                             }
 
                             // Put each key/value pair (except the lookup) into the properties

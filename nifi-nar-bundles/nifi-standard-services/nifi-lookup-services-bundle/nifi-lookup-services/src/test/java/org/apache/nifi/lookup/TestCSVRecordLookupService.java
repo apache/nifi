@@ -86,5 +86,35 @@ public class TestCSVRecordLookupService {
         assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
     }
 
+    @Test
+    public void testSimpleCsvFileLookupServiceHonorsPathExpansion() throws InitializationException, LookupFailureException {
+        System.setProperty("user.home", "src/test/resources");
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final CSVRecordLookupService service = new CSVRecordLookupService();
 
+        runner.addControllerService("csv-file-lookup-service", service);
+        runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "~/test.csv");
+        runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        final CSVRecordLookupService lookupService =
+                (CSVRecordLookupService) runner.getProcessContext()
+                        .getControllerServiceLookup()
+                        .getControllerService("csv-file-lookup-service");
+
+        assertThat(lookupService, instanceOf(LookupService.class));
+
+        final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
+        assertEquals("this is property 1", property1.get().getAsString("value"));
+        assertEquals("2017-04-01", property1.get().getAsString("created_at"));
+
+        final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "property.2"));
+        assertEquals("this is property 2", property2.get().getAsString("value"));
+        assertEquals("2017-04-02", property2.get().getAsString("created_at"));
+
+        final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
+        assertEquals(EMPTY_RECORD, property3);
+    }
 }
