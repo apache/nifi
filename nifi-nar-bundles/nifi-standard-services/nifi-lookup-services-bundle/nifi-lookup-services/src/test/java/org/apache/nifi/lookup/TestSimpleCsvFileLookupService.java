@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.lookup;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,7 +34,7 @@ public class TestSimpleCsvFileLookupService {
     final static Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
-    public void testSimpleCsvFileLookupService() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvFileLookupService() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 
@@ -66,7 +64,7 @@ public class TestSimpleCsvFileLookupService {
     }
 
     @Test
-    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 
@@ -83,4 +81,36 @@ public class TestSimpleCsvFileLookupService {
         assertThat(property1.isPresent(), is(true));
         assertThat(property1.get(), is("this is property \uff11"));
     }
+
+    @Test
+    public void testSimpleCsvFileLookupServiceExpandsTildeExpressionToHomeDirectory() throws InitializationException, LookupFailureException {
+        System.setProperty("user.home", "src/test/resources");
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
+
+        runner.addControllerService("csv-file-lookup-service", service);
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "~/test.csv");
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_VALUE_COLUMN, "value");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        final SimpleCsvFileLookupService lookupService =
+                (SimpleCsvFileLookupService) runner.getProcessContext()
+                        .getControllerServiceLookup()
+                        .getControllerService("csv-file-lookup-service");
+
+        assertThat(lookupService, instanceOf(LookupService.class));
+
+        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
+        assertEquals(Optional.of("this is property 1"), property1);
+
+        final Optional<String> property2 = lookupService.lookup(Collections.singletonMap("key", "property.2"));
+        assertEquals(Optional.of("this is property 2"), property2);
+
+        final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
+        assertEquals(EMPTY_STRING, property3);
+    }
+
 }

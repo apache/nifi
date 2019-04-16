@@ -51,6 +51,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
@@ -151,18 +152,19 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
                 }
 
                 final Map<String, String> properties = new HashMap<>();
-                try (final InputStream is = new FileInputStream(csvFile)) {
+                String expandedCsvFile = FileExpansionUtil.expandPath(csvFile);
+                try (final InputStream is = new FileInputStream(expandedCsvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
                         final Iterable<CSVRecord> records = csvFormat.withFirstRecordAsHeader().parse(reader);
                         for (final CSVRecord record : records) {
                             final String key = record.get(lookupKeyColumn);
                             final String value = record.get(lookupValueColumn);
                             if (StringUtils.isBlank(key)) {
-                                throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
+                                throw new IllegalStateException("Empty lookup key encountered in: " + expandedCsvFile);
                             } else if (!ignoreDuplicates && properties.containsKey(key)) {
-                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
+                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + expandedCsvFile);
                             } else if (ignoreDuplicates && properties.containsKey(key)) {
-                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, expandedCsvFile});
                             }
                             properties.put(key, value);
                         }
@@ -172,7 +174,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
                 this.cache = new ConcurrentHashMap<>(properties);
 
                 if (cache.isEmpty()) {
-                    logger.warn("Lookup table is empty after reading file: " + csvFile);
+                    logger.warn("Lookup table is empty after reading file: " + expandedCsvFile);
                 }
             } finally {
                 lock.unlock();
@@ -205,7 +207,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
         this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
-        this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
+        this.watcher = new SynchronousFileWatcher(Paths.get(FileExpansionUtil.expandPath(csvFile)), new LastModifiedMonitor(), 30000L);
         try {
             loadCache();
         } catch (final IllegalStateException e) {
