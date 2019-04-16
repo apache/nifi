@@ -58,13 +58,13 @@ class TestScriptedLookupService {
 
     @Before
     void setUp() {
+        System.setProperty("user.home", "target/test/resources")
         scriptedLookupService = new MockScriptedLookupService()
         scriptingComponent = (AccessibleScriptingComponentHelper) scriptedLookupService
     }
 
     @Test
     void testLookupServiceGroovyScript() {
-
         def properties = [:] as Map<PropertyDescriptor, String>
         scriptedLookupService.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
             properties.put(descriptor, descriptor.getDefaultValue())
@@ -76,6 +76,45 @@ class TestScriptedLookupService {
                 .thenReturn(new MockPropertyValue('Groovy'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_lookup_inline.groovy'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
+                .thenReturn(new MockPropertyValue(null))
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
+                .thenReturn(new MockPropertyValue(null))
+
+        def logger = mock(ComponentLog)
+        def initContext = mock(ControllerServiceInitializationContext)
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
+        when(initContext.getLogger()).thenReturn(logger)
+
+        scriptedLookupService.initialize initContext
+        scriptedLookupService.onEnabled configurationContext
+
+        MockFlowFile mockFlowFile = new MockFlowFile(1L)
+        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
+
+        Optional opt = scriptedLookupService.lookup(['key':'Hello'])
+        assertTrue(opt.present)
+        assertEquals('Hi', opt.get())
+        opt = scriptedLookupService.lookup(['key':'World'])
+        assertTrue(opt.present)
+        assertEquals('there', opt.get())
+        opt = scriptedLookupService.lookup(['key':'Not There'])
+        assertFalse(opt.present)
+    }
+
+    @Test
+    void testLookupServiceHonorsFileExpansionGroovyScript() {
+        def properties = [:] as Map<PropertyDescriptor, String>
+        scriptedLookupService.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
+            properties.put(descriptor, descriptor.getDefaultValue())
+        }
+
+        // Mock the ConfigurationContext for setup(...)
+        def configurationContext = mock(ConfigurationContext)
+        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
+                .thenReturn(new MockPropertyValue('Groovy'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
+                .thenReturn(new MockPropertyValue('~/groovy/test_lookup_inline.groovy'))
         when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
         when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))

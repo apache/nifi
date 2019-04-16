@@ -51,6 +51,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StringUtils;
 
 /**
@@ -292,7 +293,7 @@ public class ScriptingComponentHelper {
 
     public void setupVariables(ProcessContext context) {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptPath = FileExpansionUtil.expandPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
         String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(modulePath)) {
@@ -304,7 +305,7 @@ public class ScriptingComponentHelper {
 
     public void setupVariables(ConfigurationContext context) {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptPath = FileExpansionUtil.expandPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
         String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(modulePath)) {
