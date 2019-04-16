@@ -40,7 +40,6 @@ public class TestSimpleCsvFileLookupService {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources");
     }
 
     @After
@@ -99,6 +98,8 @@ public class TestSimpleCsvFileLookupService {
 
     @Test
     public void testSimpleCsvFileLookupServiceExpandsTildeExpressionToHomeDirectory() throws InitializationException, LookupFailureException {
+        System.setProperty("user.home", "src/test/resources");
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 
