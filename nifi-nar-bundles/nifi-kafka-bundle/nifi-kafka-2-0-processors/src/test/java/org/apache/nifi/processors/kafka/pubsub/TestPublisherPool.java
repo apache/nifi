@@ -17,16 +17,21 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.internals.TransactionManager;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.Whitebox;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TestPublisherPool {
 
@@ -37,7 +42,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();
@@ -54,7 +59,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();
@@ -65,4 +70,40 @@ public class TestPublisherPool {
         assertEquals(0, pool.available());
     }
 
+    @Test
+    public void testUseTransactionWithUUID() {
+        final Map<String, Object> kafkaProperties = new HashMap<>();
+        kafkaProperties.put("bootstrap.servers", "localhost:1111");
+        kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
+        kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
+
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, true, null, null, StandardCharsets.UTF_8);
+        PublisherLease publisherLease = pool.obtainPublisher();
+
+        Producer producer = (Producer) Whitebox.getInternalState(publisherLease, "producer");
+        TransactionManager transactionManager = (TransactionManager) Whitebox.getInternalState(producer, "transactionManager");
+        String transactionalId = (String) Whitebox.getInternalState(transactionManager, "transactionalId");
+        try {
+            UUID uuid = UUID.fromString(transactionalId);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUseTransactionWithProvidedTransactionalId() {
+        final Map<String, Object> kafkaProperties = new HashMap<>();
+        kafkaProperties.put("bootstrap.servers", "localhost:1111");
+        kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
+        kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
+
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, true, "myTransactionalId", null, StandardCharsets.UTF_8);
+        PublisherLease publisherLease = pool.obtainPublisher();
+
+        Producer producer = (Producer) Whitebox.getInternalState(publisherLease, "producer");
+        TransactionManager transactionManager = (TransactionManager) Whitebox.getInternalState(producer, "transactionManager");
+        String transactionalId = (String) Whitebox.getInternalState(transactionManager, "transactionalId");
+
+        assertEquals(transactionalId, "myTransactionalId");
+    }
 }

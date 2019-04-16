@@ -39,11 +39,12 @@ public class PublisherPool implements Closeable {
     private final boolean useTransactions;
     private final Pattern attributeNameRegex;
     private final Charset headerCharacterSet;
+    private final String transactionalId;
 
     private volatile boolean closed = false;
 
     PublisherPool(final Map<String, Object> kafkaProperties, final ComponentLog logger, final int maxMessageSize, final long maxAckWaitMillis,
-        final boolean useTransactions, final Pattern attributeNameRegex, final Charset headerCharacterSet) {
+        final boolean useTransactions, final String transactionalId, final Pattern attributeNameRegex, final Charset headerCharacterSet) {
         this.logger = logger;
         this.publisherQueue = new LinkedBlockingQueue<>();
         this.kafkaProperties = kafkaProperties;
@@ -52,6 +53,7 @@ public class PublisherPool implements Closeable {
         this.useTransactions = useTransactions;
         this.attributeNameRegex = attributeNameRegex;
         this.headerCharacterSet = headerCharacterSet;
+        this.transactionalId = transactionalId;
     }
 
     public PublisherLease obtainPublisher() {
@@ -71,7 +73,7 @@ public class PublisherPool implements Closeable {
     private PublisherLease createLease() {
         final Map<String, Object> properties = new HashMap<>(kafkaProperties);
         if (useTransactions) {
-            properties.put("transactional.id", UUID.randomUUID().toString());
+            properties.put("transactional.id", getTransactionalId());
         }
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
@@ -88,6 +90,10 @@ public class PublisherPool implements Closeable {
         };
 
         return lease;
+    }
+
+    private String getTransactionalId() {
+        return transactionalId != null ? transactionalId : UUID.randomUUID().toString();
     }
 
     public synchronized boolean isClosed() {
