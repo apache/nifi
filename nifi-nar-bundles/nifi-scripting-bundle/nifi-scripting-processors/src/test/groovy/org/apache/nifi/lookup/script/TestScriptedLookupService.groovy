@@ -61,7 +61,6 @@ class TestScriptedLookupService {
     @Before
     void setUp() {
         originalHome = System.getProperty("user.home")
-        System.setProperty("user.home", "target/test/resources")
 
         scriptedLookupService = new MockScriptedLookupService()
         scriptingComponent = (AccessibleScriptingComponentHelper) scriptedLookupService
@@ -113,6 +112,8 @@ class TestScriptedLookupService {
 
     @Test
     void testLookupServiceHonorsFileExpansionGroovyScript() {
+        System.setProperty("user.home", "target/test/resources")
+
         def properties = [:] as Map<PropertyDescriptor, String>
         scriptedLookupService.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
             properties.put(descriptor, descriptor.getDefaultValue())
@@ -156,5 +157,6 @@ class TestScriptedLookupService {
         ScriptingComponentHelper getScriptingComponentHelper() {
             return this.@scriptingComponentHelper
         }
+
     }
 }
