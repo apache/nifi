@@ -95,8 +95,6 @@ public class TestHBase_1_1_2_ClientService {
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
-//        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
-        System.setProperty("user.home", "src/test/resources");
         runner.setVariable("hadoop-conf-files", "~/hbase-site.xml");
         runner.setVariable("zk-quorum", "localhost");
         runner.setVariable("zk-client-port", "2181");
