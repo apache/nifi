@@ -43,7 +43,6 @@ public class TestCSVRecordLookupService {
     @Before
     public void beforeEach() {
         originalHome = System.getProperty("user.home");
-        System.setProperty("user.home", "src/test/resources");
     }
 
     @After
@@ -103,6 +102,8 @@ public class TestCSVRecordLookupService {
 
     @Test
     public void testSimpleCsvFileLookupServiceHonorsPathExpansion() throws InitializationException, LookupFailureException {
+        System.setProperty("user.home", "src/test/resources");
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final CSVRecordLookupService service = new CSVRecordLookupService();
 
