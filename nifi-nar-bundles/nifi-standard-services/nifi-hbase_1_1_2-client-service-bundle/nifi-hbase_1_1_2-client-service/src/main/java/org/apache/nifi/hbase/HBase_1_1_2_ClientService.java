@@ -64,6 +64,7 @@ import org.apache.nifi.hbase.validate.ConfigFilesValidator;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -385,7 +386,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         final Configuration hbaseConfig = HBaseConfiguration.create();
         if (StringUtils.isNotBlank(configFiles)) {
             for (final String configFile : configFiles.split(",")) {
-                hbaseConfig.addResource(new Path(configFile.trim()));
+                hbaseConfig.addResource(new Path(FileExpansionUtil.expandPath(configFile.trim())));
             }
         }
         return hbaseConfig;
