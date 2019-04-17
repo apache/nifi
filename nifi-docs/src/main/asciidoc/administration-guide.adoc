@@ -51,6 +51,9 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 **** `service nifi start`
 **** `service nifi stop`
 **** `service nifi status`
+** When necessary, enable remote debugging via:
+*** shell parameter:  `NIFI_DEBUG=y nifi.sh start`
+*** `java.arg.debug` (see <<bootstrap_properties>> below)
 
 * Windows
 ** Decompress into the desired installation directory

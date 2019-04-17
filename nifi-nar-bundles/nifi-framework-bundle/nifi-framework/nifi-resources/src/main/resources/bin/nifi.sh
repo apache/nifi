@@ -116,6 +116,25 @@ unlimitFD() {
     fi
 }
 
+debugJava() {
+    # Configure for remote debugging; adapted from kafka/bin/kafka-run-class.sh
+
+    if [ "x$NIFI_DEBUG" != "x" ] && { [ "$1" = "start" ] || [ "$1" = "run" ]; }; then
+
+        DEFAULT_JAVA_DEBUG_PORT="8000"
+        if [ -z "$JAVA_DEBUG_PORT" ]; then
+            JAVA_DEBUG_PORT="$DEFAULT_JAVA_DEBUG_PORT"
+        fi
+
+        # Mirrors  bootstrap.conf values
+        DEFAULT_JAVA_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=${JAVA_DEBUG_SUSPEND:-n},address=$JAVA_DEBUG_PORT"
+        if [ -z "$JAVA_DEBUG_OPTS" ]; then
+            JAVA_DEBUG_OPTS="$DEFAULT_JAVA_DEBUG_OPTS"
+        fi
+
+        warn "JAVA_DEBUG_OPTS=${JAVA_DEBUG_OPTS}"
+    fi
+}
 
 
 locateJava() {
@@ -160,6 +179,9 @@ init() {
 
     # Unlimit the number of file descriptors if possible
     unlimitFD
+
+    # Allow for various debugging variables
+    debugJava "$1"
 
     # Locate the Java VM to execute
     locateJava "$1"
@@ -308,7 +330,7 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi $@"
+    run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} ${JAVA_DEBUG_OPTS} org.apache.nifi.bootstrap.RunNiFi $@"
 
     if [ -n "${run_as_user}" ]; then
       # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
@@ -316,7 +338,7 @@ run() {
     fi
 
     if [ "$1" = "run" ]; then
-      # Use exec to handover PID to RunNiFi java process, instead of foking it as a child process
+      # Use exec to handover PID to RunNiFi java process, instead of forking it as a child process
       run_nifi_cmd="exec ${run_nifi_cmd}"
     fi
 

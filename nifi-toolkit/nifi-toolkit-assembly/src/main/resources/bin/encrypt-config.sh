@@ -61,6 +61,26 @@ detectOS() {
     fi
 }
 
+debugJava() {
+    # Configure for remote debugging; adapted from kafka/bin/kafka-run-class.sh
+
+    if [ "x$NIFI_DEBUG" != "x" ]; then
+
+        DEFAULT_JAVA_DEBUG_PORT="8000"
+        if [ -z "$JAVA_DEBUG_PORT" ]; then
+            JAVA_DEBUG_PORT="$DEFAULT_JAVA_DEBUG_PORT"
+        fi
+
+        # Mirrors  bootstrap.conf values
+        DEFAULT_JAVA_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=${JAVA_DEBUG_SUSPEND:-n},address=$JAVA_DEBUG_PORT"
+        if [ -z "$JAVA_DEBUG_OPTS" ]; then
+            JAVA_DEBUG_OPTS="$DEFAULT_JAVA_DEBUG_OPTS"
+        fi
+
+        warn "JAVA_DEBUG_OPTS=${JAVA_DEBUG_OPTS}"
+    fi
+}
+
 locateJava() {
     # Setup the Java Virtual Machine
     if $cygwin ; then
@@ -92,6 +112,9 @@ init() {
     # Determine if there is special OS handling we must perform
     detectOS
 
+    # Allow for various debugging variables
+    debugJava
+
     # Locate the Java VM to execute
     locateJava
 }
@@ -111,7 +134,7 @@ run() {
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
 
    umask 0077
-   exec "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS:--Xms128m -Xmx256m} org.apache.nifi.toolkit.encryptconfig.EncryptConfigMain "$@"
+   exec "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS:--Xms128m -Xmx256m} ${JAVA_DEBUG_OPTS} org.apache.nifi.toolkit.encryptconfig.EncryptConfigMain "$@"
 }
 
 
