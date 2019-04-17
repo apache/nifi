@@ -483,8 +483,8 @@
                     // finish populating the dialog once the source and destination have been loaded
                     $.when(connectionSource, connectionDestination).done(function () {
                         // process the relationships
-                        var availableRelationships = connection.availableRelationships;
-                        var selectedRelationships = connection.selectedRelationships;
+                        var availableRelationships = connection.availableRelationships.sort();
+                        var selectedRelationships = connection.selectedRelationships.sort();
 
                         // show the available relationship if applicable
                         if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {

@@ -102,7 +102,7 @@
                 initializeSourceProcessor(source).done(function (processor) {
                     if (!nfCommon.isEmpty(processor.relationships)) {
                         // populate the available connections
-                        $.each(processor.relationships, function (i, relationship) {
+                        $.each(processor.relationships.sort(), function (i, relationship) {
                             createRelationshipOption(relationship.name);
                         });
                         
@@ -1385,8 +1385,8 @@
 
                 // initialize the connection dialog
                 $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination, connection.destination)).done(function () {
-                    var availableRelationships = connection.availableRelationships;
-                    var selectedRelationships = connection.selectedRelationships;
+                    var availableRelationships = connection.availableRelationships.sort();
+                    var selectedRelationships = connection.selectedRelationships.sort();
 
                     // show the available relationship if applicable
                     if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {
