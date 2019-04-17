@@ -204,32 +204,46 @@
             });
         }
 
-        // add an actions column when the user can access provenance
-        if (nfCommon.canAccessProvenance()) {
-            // function for formatting actions
-            var actionsFormatter = function () {
-                return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
-            };
+        // function for formatting actions column
+        var actionsFormatter = function (row,cell,value,columnDef,dataContext) {
+            var formatted = '';
 
-            queueListingColumns.push({
-                id: 'actions',
-                name: '&nbsp;',
-                resizable: false,
-                formatter: actionsFormatter,
-                sortable: false,
-                width: 50,
-                maxWidth: 50
-            });
-        }
+            var disabled = (dataContext.size > 0)?'':'disabled';
+            formatted += '<div class="pointer icon download-flowfile-content fa fa-download '+disabled+'" title="Download Content" aria-hidden="true"></div>';
+
+            if(nfCommon.isContentViewConfigured()){
+                formatted += '<div class="pointer icon view-flowfile-content fa fa-eye '+disabled+'" title="View Content" aria-hidden="true"></div>';
+            }
+
+            if(nfCommon.canAccessProvenance()){
+                formatted += '<div title="Provenance" class="pointer icon icon-provenance view-provenance" aria-hidden="true"></div>';
+            }
+
+            return formatted;
+        };
+
+        // add an actions column to the column model
+        queueListingColumns.push({
+            id: 'actions',
+            name: '&nbsp;',
+            resizable: false,
+            formatter: actionsFormatter,
+            sortable: false,
+            width: 75,
+            maxWidth: 75
+        });
+
 
         return queueListingColumns;
     };
 
     /**
      * Downloads the content for the flowfile currently being viewed.
+     *
+     * @param flowFileSummary|{flowfile} (optional) -  the flowfile summary
      */
-    var downloadContent = function () {
-        var dataUri = $('#flowfile-uri').text() + '/content';
+    var downloadContent = function (flowFileSummary) {
+        var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
         // perform the request once we've received a token
         nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
@@ -241,7 +255,7 @@
             }
 
             // conditionally include the cluster node id
-            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
             if (!nfCommon.isBlank(clusterNodeId)) {
                 parameters['clusterNodeId'] = clusterNodeId;
             }
@@ -262,9 +276,12 @@
 
     /**
      * Views the content for the flowfile currently being viewed.
+     *
+     * @param flowFileSummary|{flowfile} (optional) -  the flowfile summary
      */
-    var viewContent = function () {
-        var dataUri = $('#flowfile-uri').text() + '/content';
+    var viewContent = function (flowFileSummary) {
+
+        var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -301,7 +318,7 @@
             var dataUriParameters = {};
 
             // conditionally include the cluster node id
-            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
             if (!nfCommon.isBlank(clusterNodeId)) {
                 dataUriParameters['clusterNodeId'] = clusterNodeId;
             }
@@ -675,6 +692,15 @@
                         nfShell.showPage('provenance?' + $.param({
                                 flowFileUuid: item.uuid
                             }));
+                    } else if (target.hasClass('disabled')) {
+                        nfDialog.showOkDialog({
+                            headerText: 'Empty FlowFile',
+                            dialogContent: 'This FlowFile contains no content to complete this action.'
+                        });
+                    } else if (target.hasClass('download-flowfile-content')) {
+                        downloadContent(item);
+                    } else if (target.hasClass('view-flowfile-content')) {
+                        viewContent(item);
                     }
                 }
             });
