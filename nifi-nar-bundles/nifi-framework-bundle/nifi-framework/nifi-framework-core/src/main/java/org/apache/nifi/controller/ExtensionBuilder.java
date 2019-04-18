@@ -381,7 +381,7 @@ public class ExtensionBuilder {
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
             final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
-                    serviceProvider, stateManager, kerberosConfig);
+                    serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
             serviceImpl.initialize(initContext);
 
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(serviceImpl, bundleCoordinate, terminationAwareLogger);

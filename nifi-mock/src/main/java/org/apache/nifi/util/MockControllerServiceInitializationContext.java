@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.state.MockStateManager;
 
@@ -68,6 +69,11 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     @Override
     public StateManager getStateManager() {
         return stateManager;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return null;
     }
 
     @Override
