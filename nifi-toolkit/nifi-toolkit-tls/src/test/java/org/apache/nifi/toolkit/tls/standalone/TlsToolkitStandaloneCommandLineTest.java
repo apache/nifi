@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.stubbing.defaultanswers.ForwardsInvocations;
 
@@ -38,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyStoreException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.util.Collections;
@@ -52,8 +54,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -62,15 +64,24 @@ public class TlsToolkitStandaloneCommandLineTest {
     private SecureRandom secureRandom;
     private TlsToolkitStandaloneCommandLine tlsToolkitStandaloneCommandLine;
 
+
+    final String CHANGEIT = "changeit";
+    final String keyPass = CHANGEIT;
+    final String keystorePass = CHANGEIT;
+    final String wrongPass = "wrongpass";
+    private File outputFolder = null;
+    final String keystoreFile = getClass().getClassLoader().getResource("keystore.jks").getFile();
+
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
+
         secureRandom = mock(SecureRandom.class);
         doAnswer(new ForwardsInvocations(new Random())).when(secureRandom).nextBytes(any(byte[].class));
         tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine(new PasswordUtil(secureRandom));
-
+        outputFolder = tempFolder.newFolder("splitKeystoreOutputDir");
     }
 
     @Test
@@ -456,11 +467,7 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testSplitKeystore() throws Exception {
-
-        String keyPass = "changeit";
-        String keystorePass = "changeit";
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
         System.out.println(standaloneConfig.getKeyPassword());
 
@@ -470,17 +477,16 @@ public class TlsToolkitStandaloneCommandLineTest {
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
         toolkit.splitKeystore(standaloneConfig);
 
-        assertTrue(folder.listFiles().length > 0);
-        for(File file : folder.listFiles()) {
+        assertTrue(outputFolder.listFiles().length == 3);
+
+        for(File file : outputFolder.listFiles()) {
             assertTrue(file.length() > 0);
         }
     }
 
     @Test(expected = CommandLineParseException.class)
     public void testSplitKeystoreMissingPasswords() throws Exception {
-
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-o", folder.getPath());
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
@@ -488,11 +494,8 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
-    public void testSplitKeystoreWithKeystoreAndKeyPasswordTheSame() throws Exception {
-
-        String keystorePass = "changeit";
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass,  "-o", folder.getPath());
+    public void testSplitKeystoreWithSameKeystoreAndKeyPassword() throws Exception {
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", keystorePass,  "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
@@ -501,11 +504,7 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test(expected = UnrecoverableKeyException.class)
     public void testSplitKeystoreWrongKeyPass() throws Exception {
-
-        String keyPass = "wrongpass";
-        String keystorePass = "changeit";
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", keystorePass, "-K", wrongPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
@@ -514,14 +513,42 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test(expected = IOException.class)
     public void testSplitKeystoreWrongKeystorePass() throws Exception {
-
-        String keyPass = "changeit";
-        String keystorePass = "wrongpass";
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
-        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", folder.getPath());
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", keystoreFile, "-S", wrongPass, "-K", keyPass, "-o", outputFolder.getPath());
         StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
 
         TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
         toolkit.splitKeystore(standaloneConfig);
     }
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
+
+    @Test
+    public void testSplitKeystoreNoKeystore() throws Exception {
+        expectedEx.expect(CommandLineParseException.class);
+        expectedEx.expectMessage("Error parsing command line. (Missing argument for option: splitKeystore)");
+
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+    }
+
+    @Test
+    public void testSplitKeystoreEmptyKeystore() throws Exception {
+        expectedEx.expect(KeyStoreException.class);
+        expectedEx.expectMessage("was empty. No cert/key pairs to output to file.");
+
+        tlsToolkitStandaloneCommandLine.parse("-splitKeystore", getClass().getClassLoader().getResource("empty-keystore.jks").getFile(), "-S", keystorePass, "-K", keyPass, "-o", outputFolder.getPath());
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createSplitKeystoreConfig();
+        System.out.println(standaloneConfig.getKeyPassword());
+
+        assertTrue(standaloneConfig.isSplitKeystore());
+        assertEquals(keyPass, standaloneConfig.getKeyPassword());
+        assertEquals(keystorePass, standaloneConfig.getKeyStorePassword());
+        TlsToolkitStandalone toolkit = new TlsToolkitStandalone();
+        toolkit.splitKeystore(standaloneConfig);
+    }
+
 }

@@ -17,18 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -41,6 +29,19 @@ import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Command line parser for a StandaloneConfig object and a main entry point to invoke the parser and run the standalone generator
@@ -118,7 +119,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         addOptionWithArg(null, NIFI_DN_SUFFIX_ARG, "String to append to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_SUFFIX);
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
         addOptionWithArg(null, ADDITIONAL_CA_CERTIFICATE_ARG, "Path to additional CA certificate (used to sign toolkit CA certificate) in PEM format if necessary");
-        addOptionWithArg("splitKeystore", SPLIT_KEYSTORE_ARG, "Split out a given keystore into its unencrypted key and certificates. Use -S and -K to specify the keystore and key passwords.");
+        addOptionWithArg(null, SPLIT_KEYSTORE_ARG, "Split out a given keystore into its unencrypted key and certificates. Use -S and -K to specify the keystore and key passwords.");
 
     }
 
