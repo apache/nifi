@@ -122,4 +122,25 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
         }
         isPrimaryNode = primaryNode;
     }
+
+    @Override
+    public boolean isClustered() {
+        return isClustered;
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return isPrimaryNode;
+    }
+
+    public void setClustered(boolean clustered) {
+        isClustered = clustered;
+    }
+
+    public void setPrimaryNode(boolean primaryNode) {
+        if (!isClustered && primaryNode) {
+            throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
+        }
+        isPrimaryNode = primaryNode;
+    }
 }
