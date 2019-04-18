@@ -21,14 +21,17 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.state.MockStateManager;
 
-public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup {
+public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup, NodeTypeProvider {
 
     private final String identifier;
     private final ComponentLog logger;
     private final StateManager stateManager;
+    private volatile boolean isClustered;
+    private volatile boolean isPrimaryNode;
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
         this(controllerService, identifier, new MockStateManager(controllerService));
@@ -71,6 +74,11 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     }
 
     @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return this;
+    }
+
+    @Override
     public String getKerberosServicePrincipal() {
         return null; //this needs to be wired in.
     }
@@ -83,5 +91,26 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     @Override
     public File getKerberosConfigurationFile() {
         return null; //this needs to be wired in.
+    }
+
+    @Override
+    public boolean isClustered() {
+        return isClustered;
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return isPrimaryNode;
+    }
+
+    public void setClustered(boolean clustered) {
+        isClustered = clustered;
+    }
+
+    public void setPrimaryNode(boolean primaryNode) {
+        if (!isClustered && primaryNode) {
+            throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
+        }
+        isPrimaryNode = primaryNode;
     }
 }
