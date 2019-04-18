@@ -208,11 +208,13 @@
         var actionsFormatter = function (row,cell,value,columnDef,dataContext) {
             var formatted = '';
 
-            var disabled = (dataContext.size > 0)?'':'disabled';
-            formatted += '<div class="pointer icon download-flowfile-content fa fa-download '+disabled+'" title="Download Content" aria-hidden="true"></div>';
+            var disabled = (dataContext.size > 0)?false:true;
+            formatted += '<div class="icon download-flowfile-content fa fa-download '+((disabled)?'disabled':'pointer')+'"'+
+                ' title="'+((disabled)?'No content available to download':'Download content')+'" aria-hidden="true"></div>';
 
             if(nfCommon.isContentViewConfigured()){
-                formatted += '<div class="pointer icon view-flowfile-content fa fa-eye '+disabled+'" title="View Content" aria-hidden="true"></div>';
+                formatted += '<div class="icon view-flowfile-content fa fa-eye '+((disabled)?'disabled':'pointer')+'"'+
+                    ' title="'+((disabled)?'No content available to view':'View content')+'" aria-hidden="true"></div>';
             }
 
             if(nfCommon.canAccessProvenance()){
@@ -692,14 +694,9 @@
                         nfShell.showPage('provenance?' + $.param({
                                 flowFileUuid: item.uuid
                             }));
-                    } else if (target.hasClass('disabled')) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Empty FlowFile',
-                            dialogContent: 'This FlowFile contains no content to complete this action.'
-                        });
-                    } else if (target.hasClass('download-flowfile-content')) {
+                    } else if (target.hasClass('download-flowfile-content') && !target.hasClass('disabled')) {
                         downloadContent(item);
-                    } else if (target.hasClass('view-flowfile-content')) {
+                    } else if (target.hasClass('view-flowfile-content') && !target.hasClass('disabled')) {
                         viewContent(item);
                     }
                 }
