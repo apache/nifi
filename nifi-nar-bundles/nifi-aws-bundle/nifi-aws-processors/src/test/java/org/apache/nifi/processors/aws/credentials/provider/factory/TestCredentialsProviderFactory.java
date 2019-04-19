@@ -32,7 +32,9 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
@@ -40,6 +42,22 @@ import static org.junit.Assert.assertEquals;
  * Tests of the validation and credentials provider capabilities of CredentialsProviderFactory.
  */
 public class TestCredentialsProviderFactory {
+
+
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+
+        String HOME_PATH = "src/test/resources";
+        System.setProperty("user.home", HOME_PATH);
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testImpliedDefaultCredentials() throws Throwable {
@@ -110,6 +128,20 @@ public class TestCredentialsProviderFactory {
     public void testFileCredentials() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
+        runner.assertValid();
+
+        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final CredentialsProviderFactory factory = new CredentialsProviderFactory();
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        Assert.assertNotNull(credentialsProvider);
+        assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
+                credentialsProvider.getClass());
+    }
+
+    @Test
+    public void testFileCredentialsHonorsPathExpansion() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "~/mock-aws-credentials.properties");
         runner.assertValid();
 
         Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
