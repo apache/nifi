@@ -19,6 +19,8 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -32,6 +34,19 @@ import static org.junit.Assert.assertThat;
 public class TestSimpleCsvFileLookupService {
 
     final static Optional<String> EMPTY_STRING = Optional.empty();
+
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testSimpleCsvFileLookupService() throws InitializationException, LookupFailureException {
@@ -84,7 +99,6 @@ public class TestSimpleCsvFileLookupService {
 
     @Test
     public void testSimpleCsvFileLookupServiceExpandsTildeExpressionToHomeDirectory() throws InitializationException, LookupFailureException {
-        System.setProperty("user.home", "src/test/resources");
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
 

@@ -28,6 +28,8 @@ import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.ZooKeeper
 import org.apache.zookeeper.data.Stat
 import org.apache.zookeeper.server.auth.DigestAuthenticationProvider
+import org.junit.After
+import org.junit.Before
 import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -36,6 +38,20 @@ import java.nio.charset.StandardCharsets
 
 @Unroll
 class ZooKeeperMigratorTest extends Specification {
+
+    private String originalHome = ""
+
+    @Before
+    def "setup before class" () {
+        originalHome = System.getProperty("user.home")
+
+        System.setProperty("user.home", "target/home")
+    }
+
+    @After
+    def "after class" () {
+        System.setProperty("user.home", originalHome)
+    }
 
     def "Test auth and jaas usage simultaneously"() {
         when:
@@ -294,7 +310,6 @@ class ZooKeeperMigratorTest extends Specification {
         def connectString = "$server.connectString"
         def dataPath = '~/test-data-different-path.json'
 
-        System.setProperty("user.home", "target/home")
         File homedir = new File(System.getProperty("user.home"))
         homedir.mkdir()
 

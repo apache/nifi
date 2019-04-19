@@ -1,6 +1,8 @@
 package org.apache.nifi;
 
 import org.apache.nifi.util.FileExpansionUtil;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -14,16 +16,24 @@ import static org.junit.Assert.assertNull;
 public class TestFileExpansionUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(TestFileExpansionUtil.class);
+    private String originalHome = "";
 
     @Rule public ExpectedException exception = ExpectedException.none();
 
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "/Users/testuser");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
    @Test
    public void  testExpandPath() {
        logger.debug("User Home: " + System.getProperty("user.home"));
-
-       // arrange
-       System.setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath("~/somedirectory");
@@ -35,9 +45,6 @@ public class TestFileExpansionUtil {
    @Test
     public void testExpandPathShouldReturnNullWhenNullIsInput() {
        logger.debug("User Home: " + System.getProperty("user.home"));
-
-       // arrange
-       System.setProperty("user.home", "/Users/testuser");
 
        // act
        String result = FileExpansionUtil.expandPath(null);

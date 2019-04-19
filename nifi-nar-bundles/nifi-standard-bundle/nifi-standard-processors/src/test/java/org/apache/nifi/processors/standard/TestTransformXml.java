@@ -31,9 +31,23 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestTransformXml {
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources/TestTransformXml");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testStylesheetNotFound() throws IOException {
@@ -76,7 +90,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformMathWithFileExpansion() throws IOException {
-        System.setProperty("user.home", "src/test/resources/TestTransformXml");
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "~/math.xsl");

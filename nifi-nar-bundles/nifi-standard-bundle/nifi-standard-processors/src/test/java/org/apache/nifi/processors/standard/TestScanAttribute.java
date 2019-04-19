@@ -21,9 +21,23 @@ import java.util.Map;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestScanAttribute {
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources/ScanAttribute");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testSingleMatch() {
@@ -101,7 +115,6 @@ public class TestScanAttribute {
 
     @Test
     public void testAllMatchWithFileExpansion() {
-        System.setProperty("user.home", "src/test/resources/ScanAttribute");
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
         runner.setProperty(ScanAttribute.DICTIONARY_FILE, "~/dictionary1");
         runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);

@@ -26,6 +26,7 @@ import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockPropertyValue
+import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -47,6 +48,7 @@ class TestScriptedLookupService {
     ScriptedLookupService scriptedLookupService
     def scriptingComponent
 
+    String originalHome = ""
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -58,9 +60,16 @@ class TestScriptedLookupService {
 
     @Before
     void setUp() {
+        originalHome = System.getProperty("user.home")
         System.setProperty("user.home", "target/test/resources")
+
         scriptedLookupService = new MockScriptedLookupService()
         scriptingComponent = (AccessibleScriptingComponentHelper) scriptedLookupService
+    }
+
+    @After
+    void afterTest() {
+        System.setProperty("user.home", originalHome)
     }
 
     @Test

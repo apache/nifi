@@ -29,6 +29,7 @@ import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -60,11 +61,14 @@ public class TestHBase_2_ClientService {
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
 
+    private String originalHome = "";
+
     @Before
     public void setup() {
         // forcing user.home to be the location of the test resources for this class.
         // in this way we can use and test the ~ expansion happens correctly.
         System.setProperty("user.home", "src/test/resources");
+        originalHome = System.getProperty("user.home");
 
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -74,6 +78,11 @@ public class TestHBase_2_ClientService {
         kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
 
         kerberosPropsWithoutFile = new KerberosProperties(null);
+    }
+
+    @After
+    public void after() {
+        System.setProperty("user.home", originalHome);
     }
 
     @Test

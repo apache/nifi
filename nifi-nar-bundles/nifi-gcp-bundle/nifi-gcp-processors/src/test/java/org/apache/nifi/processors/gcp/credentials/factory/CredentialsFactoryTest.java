@@ -25,6 +25,8 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
@@ -44,6 +46,18 @@ public class CredentialsFactoryTest {
 
     private static final HttpTransport TRANSPORT = new NetHttpTransport();
     private static final HttpTransportFactory TRANSPORT_FACTORY = () -> TRANSPORT;
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testCredentialPropertyDescriptorClassCannotBeInvoked() throws Exception {
@@ -104,8 +118,6 @@ public class CredentialsFactoryTest {
 
     @Test
     public void testJsonFileCredentialsExpandsTildeToUsersHomeDirectory() throws Exception {
-        System.setProperty("user.home", "src/test/resources");
-
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
                 "~/mock-gcp-service-account.json");

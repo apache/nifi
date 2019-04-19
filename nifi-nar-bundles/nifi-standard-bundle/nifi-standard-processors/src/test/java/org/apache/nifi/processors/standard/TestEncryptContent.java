@@ -32,10 +32,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +40,21 @@ public class TestEncryptContent {
 
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContent.class);
 
+    private String originalHome = "";
+
     @Before
-    public void setUp() {
+    public void beforeEach() {
         Security.addProvider(new BouncyCastleProvider());
+
+        originalHome = System.getProperty("user.home");
+
+        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
+        System.setProperty("user.home", HOME_PATH);
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
     }
 
     @Test
@@ -246,9 +255,6 @@ public class TestEncryptContent {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
-
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
-        System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
@@ -454,9 +460,6 @@ public class TestEncryptContent {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
-
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
-        System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.removeProperty(EncryptContent.PUBLIC_KEYRING);

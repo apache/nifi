@@ -20,6 +20,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,9 +35,19 @@ public class TestExtractGrok {
     private final static Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
     private final static Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
 
+    private String originalHome = "";
+
     @Before
     public void init() {
         testRunner = TestRunners.newTestRunner(ExtractGrok.class);
+
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources/TestExtractGrok");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
     }
 
     @Test
@@ -67,8 +78,6 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokWithMatchedContentExpandsTilde() throws IOException {
-        System.setProperty("user.home", "src/test/resources/TestExtractGrok");
-
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "~/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);

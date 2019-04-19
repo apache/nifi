@@ -25,6 +25,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -35,6 +37,19 @@ import static org.junit.Assert.assertThat;
 public class TestCSVRecordLookupService {
 
     private final static Optional<Record> EMPTY_RECORD = Optional.empty();
+
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testSimpleCsvFileLookupService() throws InitializationException, IOException, LookupFailureException {
@@ -88,7 +103,6 @@ public class TestCSVRecordLookupService {
 
     @Test
     public void testSimpleCsvFileLookupServiceHonorsPathExpansion() throws InitializationException, LookupFailureException {
-        System.setProperty("user.home", "src/test/resources");
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final CSVRecordLookupService service = new CSVRecordLookupService();
 

@@ -23,6 +23,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -32,6 +34,18 @@ import static org.junit.Assert.assertThat;
 public class TestPropertiesFileLookupService {
 
     final static Optional<String> EMPTY_STRING = Optional.empty();
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testPropertiesFileLookupService() throws InitializationException, LookupFailureException {
@@ -65,7 +79,6 @@ public class TestPropertiesFileLookupService {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PropertiesFileLookupService service = new PropertiesFileLookupService();
 
-        System.setProperty("user.home", "src/test/resources");
 
         runner.addControllerService("properties-file-lookup-service", service);
         runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "~/test.properties");

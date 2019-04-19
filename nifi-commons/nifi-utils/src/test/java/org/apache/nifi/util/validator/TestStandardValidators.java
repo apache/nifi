@@ -20,6 +20,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -30,6 +32,19 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestStandardValidators {
+
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testNonBlankValidator() {
@@ -140,8 +155,6 @@ public class TestStandardValidators {
         Validator val = new StandardValidators.FileExistsValidator(false);
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-
-        System.setProperty("user.home", "src/test/resources");
 
         ValidationResult vr = val.validate("", "~/this_file_exists.txt", validationContext);
 
@@ -271,8 +284,6 @@ public class TestStandardValidators {
     public void testCreateURLorFileValidator() {
         Validator val = StandardValidators.createURLorFileValidator();
         ValidationResult vr;
-
-        System.setProperty("user.home", "src/test/resources");
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 

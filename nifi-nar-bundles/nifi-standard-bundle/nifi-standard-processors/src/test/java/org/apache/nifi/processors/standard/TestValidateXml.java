@@ -21,10 +21,24 @@ import java.nio.file.Paths;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
 public class TestValidateXml {
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources/TestXml");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testValid() throws IOException, SAXException {
@@ -75,8 +89,6 @@ public class TestValidateXml {
 
     @Test
     public void testSchemaFileSupportsTildePathExpansion() throws IOException {
-        System.setProperty("user.home", "src/test/resources/TestXml/");
-
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "~/XmlBundle.xsd");
 

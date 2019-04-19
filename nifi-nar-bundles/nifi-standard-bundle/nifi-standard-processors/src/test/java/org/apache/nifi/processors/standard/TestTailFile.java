@@ -64,8 +64,13 @@ public class TestTailFile {
     private TailFile processorFromHome;
     private TestRunner runner;
 
+    private String originalHome = "";
+
     @Before
     public void setup() throws IOException {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "target");
+
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
         clean();
 
@@ -94,7 +99,6 @@ public class TestTailFile {
         otherFile.delete();
         assertTrue(otherFile.createNewFile());
 
-        System.setProperty("user.home", "target");
         processorFromHome = new TailFile();
         runner = TestRunners.newTestRunner(processorFromHome);
         runner.setProperty(TailFile.FILENAME, "~/log.txt");
@@ -121,6 +125,8 @@ public class TestTailFile {
 
         processorFromHome.cleanup();
         processor.cleanup();
+
+        System.setProperty("user.home", originalHome);
     }
 
     @Test

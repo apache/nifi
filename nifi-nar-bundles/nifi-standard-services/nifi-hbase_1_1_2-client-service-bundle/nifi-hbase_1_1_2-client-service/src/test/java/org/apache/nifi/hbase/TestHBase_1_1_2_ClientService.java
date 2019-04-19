@@ -29,6 +29,7 @@ import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -58,9 +59,11 @@ public class TestHBase_1_1_2_ClientService {
 
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
+    private String originalHome = "";
 
     @Before
     public void setup() {
+        originalHome = System.getProperty("user.home");
         // forcing user.home to be the location of the test resources for this class.
         // in this way we can use and test the ~ expansion happens correctly.
         System.setProperty("user.home", "src/test/resources");
@@ -73,6 +76,11 @@ public class TestHBase_1_1_2_ClientService {
         kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
 
         kerberosPropsWithoutFile = new KerberosProperties(null);
+    }
+
+    @After
+    public void after() {
+        System.setProperty("user.home", originalHome);
     }
 
     @Test
@@ -404,7 +412,6 @@ public class TestHBase_1_1_2_ClientService {
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
-        System.setProperty("user.home", "src/test/resources");
         final MockHBaseClientService service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
 
         runner.addControllerService("hbaseClient", service);
