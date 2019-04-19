@@ -23,7 +23,9 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPro
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -33,6 +35,18 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
 
 public class AWSCredentialsProviderControllerServiceTest {
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+        System.setProperty("user.home", "src/test/resources");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testDefaultAWSCredentialsProviderChain() throws Throwable {
@@ -222,6 +236,25 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, CredentialPropertyDescriptors.CREDENTIALS_FILE,
                 "src/test/resources/mock-aws-credentials.properties");
+        runner.enableControllerService(serviceImpl);
+
+        runner.assertValid(serviceImpl);
+        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+        Assert.assertNotNull(service);
+        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        Assert.assertNotNull(credentialsProvider);
+        assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
+                credentialsProvider.getClass());
+    }
+
+    @Test
+    public void testFileCredentialsProviderHonorsFileExpansion() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, CredentialPropertyDescriptors.CREDENTIALS_FILE,
+                "~/mock-aws-credentials.properties");
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
