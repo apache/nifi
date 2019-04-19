@@ -161,6 +161,20 @@ public class TestCredentialsProviderFactory {
     }
 
     @Test
+    public void testFileCredentialsHonorsPathExpansion() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "~/mock-aws-credentials.properties");
+        runner.assertValid();
+
+        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final CredentialsProviderFactory factory = new CredentialsProviderFactory();
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        Assert.assertNotNull(credentialsProvider);
+        assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
+                credentialsProvider.getClass());
+    }
+
+    @Test
     public void testAssumeRoleCredentials() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
