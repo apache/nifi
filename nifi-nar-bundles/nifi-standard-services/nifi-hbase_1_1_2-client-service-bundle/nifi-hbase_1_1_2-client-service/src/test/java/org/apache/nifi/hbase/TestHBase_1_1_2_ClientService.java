@@ -82,6 +82,10 @@ public class TestHBase_1_1_2_ClientService {
 
     @Test
     public void testCustomValidate() throws InitializationException, IOException {
+        // forcing user.home to be the location of the test resources for this class.
+        // in this way we can use and test the ~ expansion happens correctly.
+        System.setProperty("user.home", "src/test/resources");
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
         final String tableName = "nifi";
@@ -409,7 +413,10 @@ public class TestHBase_1_1_2_ClientService {
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
+        // forcing user.home to be the location of the test resources for this class.
+        // in this way we can use and test the ~ expansion happens correctly.
         System.setProperty("user.home", "src/test/resources");
+
         final MockHBaseClientService service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
 
         runner.addControllerService("hbaseClient", service);

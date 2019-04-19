@@ -53,9 +53,6 @@ public class TestEncryptContent {
         Security.addProvider(new BouncyCastleProvider());
 
         originalHome = System.getProperty("user.home");
-
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
-        System.setProperty("user.home", HOME_PATH);
     }
 
     @After
@@ -257,13 +254,12 @@ public class TestEncryptContent {
 
     @Test
     public void testShouldValidateEncryptContentExpandsTildeToUsersHomeDirectory() {
+        System.setProperty("user.home", "src/test/resources/TestEncryptContent/user/testuser");
+
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
-
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
-        System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
@@ -466,12 +462,11 @@ public class TestEncryptContent {
 
     @Test
     public void testShouldValidateEncryptContentExpandsTildeToPrivateKeyRingStoredInHomeDirectory() {
+        System.setProperty("user.home", "src/test/resources/TestEncryptContent/user/testuser");
+
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
         MockProcessContext pc;
-
-        String HOME_PATH = "src/test/resources/TestEncryptContent/user/testuser";
-        System.setProperty("user.home", HOME_PATH);
 
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
         runner.removeProperty(EncryptContent.PUBLIC_KEYRING);

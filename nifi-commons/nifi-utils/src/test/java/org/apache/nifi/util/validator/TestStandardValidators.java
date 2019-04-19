@@ -151,10 +151,11 @@ public class TestStandardValidators {
 
     @Test
     public void testFileExistsValidatorPerformsExpansion() {
-        System.setProperty("user.home", "src/test/resources");
         Validator val = new StandardValidators.FileExistsValidator(false);
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+
+        System.setProperty("user.home", "src/test/resources");
 
         ValidationResult vr = val.validate("", "~/this_file_exists.txt", validationContext);
 
@@ -298,8 +299,6 @@ public class TestStandardValidators {
         System.setProperty("user.home", "src/test/resources");
         Validator val = StandardValidators.createURLorFileValidator();
         ValidationResult vr;
-
-        System.setProperty("user.home", "src/test/resources");
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 

@@ -75,10 +75,11 @@ public class TestPropertiesFileLookupService {
 
     @Test
     public void testPropertiesFileLookupServiceHonorsPathExpansion() throws InitializationException, LookupFailureException {
+        System.setProperty("user.home", "src/test/resources");
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PropertiesFileLookupService service = new PropertiesFileLookupService();
 
-        System.setProperty("user.home", "src/test/resources");
 
         runner.addControllerService("properties-file-lookup-service", service);
         runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "~/test.properties");
