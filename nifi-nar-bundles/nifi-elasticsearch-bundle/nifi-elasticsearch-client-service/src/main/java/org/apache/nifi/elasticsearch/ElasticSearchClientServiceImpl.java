@@ -119,25 +119,31 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private SSLContext buildSslContext(SSLContextService sslService) throws IOException, CertificateException,
             NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
-        KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
-        KeyStore trustStore = KeyStore.getInstance("JKS");
-
-        try (final InputStream is = new FileInputStream(sslService.getKeyStoreFile())) {
-            keyStore.load(is, sslService.getKeyStorePassword().toCharArray());
+        KeyManagerFactory kmf = null;
+        if (sslService.isKeyStoreConfigured()) {
+            KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
+            try (final InputStream is = new FileInputStream(sslService.getKeyStoreFile())) {
+                keyStore.load(is, sslService.getKeyStorePassword().toCharArray());
+            }
+            kmf = KeyManagerFactory.getInstance(KeyManagerFactory
+                    .getDefaultAlgorithm());
+            kmf.init(keyStore, sslService.getKeyStorePassword().toCharArray());
         }
 
-        try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
-            trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
-        }
+        TrustManagerFactory tmf = null;
+        if (sslService.isTrustStoreConfigured()) {
+            KeyStore trustStore = KeyStore.getInstance("JKS");
 
-        final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
-                .getDefaultAlgorithm());
-        kmf.init(keyStore, sslService.getKeyStorePassword().toCharArray());
-        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
-                .getDefaultAlgorithm());
-        tmf.init(keyStore);
+            try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
+                trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
+            }
+
+            tmf = TrustManagerFactory.getInstance(TrustManagerFactory
+                    .getDefaultAlgorithm());
+            tmf.init(trustStore);
+        }
         SSLContext context1 = SSLContext.getInstance(sslService.getSslAlgorithm());
-        context1.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+        context1.init(kmf != null ? kmf.getKeyManagers() : null, tmf != null ? tmf.getTrustManagers() : null, new SecureRandom());
         return context1;
     }
 
