@@ -449,7 +449,7 @@ public class ProvenanceEventsIT extends FrameworkIntegrationTest {
     }
 
     @Test
-    public void testCloneOnMultipleConnectionsForRelationshipIncludesUpToDateAttributes() throws ExecutionException, InterruptedException, IOException {
+    public void testCloneOnMultipleConnectionsForRelationshipIncludesUpdatedAttributes() throws ExecutionException, InterruptedException, IOException {
         final ProcessorNode generateProcessor = createGenerateProcessor(0);
         final ProcessorNode passThroughProcessor = createProcessorNode((context, session) -> {
             FlowFile original = session.get();
@@ -471,11 +471,11 @@ public class ProvenanceEventsIT extends FrameworkIntegrationTest {
         final ProvenanceEventRecord firstEvent = provRepo.getEvent(0L);
         assertEquals(ProvenanceEventType.CREATE, firstEvent.getEventType());
 
-        final ProvenanceEventRecord thirdEvent = provRepo.getEvent(1L);
-        assertEquals(ProvenanceEventType.CLONE, thirdEvent.getEventType());
-        assertEquals(1, thirdEvent.getParentUuids().size());
-        assertEquals(1, thirdEvent.getChildUuids().size());
-        assertEquals("integration", thirdEvent.getAttribute("test"));
+        final ProvenanceEventRecord secondEvent = provRepo.getEvent(1L);
+        assertEquals(ProvenanceEventType.CLONE, secondEvent.getEventType());
+        assertEquals(1, secondEvent.getParentUuids().size());
+        assertEquals(1, secondEvent.getChildUuids().size());
+        assertEquals("integration", secondEvent.getAttribute("test"));
     }
 
 }
