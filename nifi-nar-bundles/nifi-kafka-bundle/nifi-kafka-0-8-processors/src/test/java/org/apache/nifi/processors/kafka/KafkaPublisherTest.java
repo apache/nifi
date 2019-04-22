@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.kafka;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
@@ -34,6 +32,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;

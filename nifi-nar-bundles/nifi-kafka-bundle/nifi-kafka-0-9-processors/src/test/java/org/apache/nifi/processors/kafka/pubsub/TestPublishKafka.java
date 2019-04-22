@@ -17,8 +17,10 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import static org.apache.nifi.processors.kafka.pubsub.PublishKafka.DELIVERY_REPLICATED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -67,7 +69,7 @@ public class TestPublishKafka {
             }
         });
 
-        runner.setProperty(PublishKafka.TOPIC, TOPIC_NAME);
+        runner.setProperty(KafkaProcessorUtils.PRODUCER_TOPIC, TOPIC_NAME);
     }
 
     @Test
@@ -116,6 +118,44 @@ public class TestPublishKafka {
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
+    }
+
+    @Test
+    public void validateKafkaTopicName() throws Exception {
+        runner = TestRunners.newTestRunner(new PublishKafka() {
+            @Override
+            protected PublisherPool createPublisherPool(final ProcessContext context) {
+                return mockPool;
+            }
+        });
+
+        runner.setProperty(PublishKafka.DELIVERY_GUARANTEE, DELIVERY_REPLICATED);
+        runner.setProperty(KafkaProcessorUtils.PRODUCER_TOPIC, "foo");
+
+        runner.removeProperty(KafkaProcessorUtils.PRODUCER_TOPIC);
+        try {
+            runner.assertValid();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("invalid because Topic Name is required"));
+        }
+
+        runner.setProperty(KafkaProcessorUtils.PRODUCER_TOPIC, "${kafka.topic.name}");
+        final Map<String,String> flowFileAttributes1 = new HashMap<>();
+        flowFileAttributes1.put("kafka.topic.name", "topic1,topic2");
+
+        final Map<String,String> flowFileAttributes2 = new HashMap<>();
+        flowFileAttributes2.put("kafka.topic.name", "topic1=");
+
+        final Map<String,String> flowFileAttributes3 = new HashMap<>();
+        flowFileAttributes3.put("kafka.topic.name", "topic1()");
+
+        final Set<FlowFile> flowFiles = new HashSet<>();
+        flowFiles.add(runner.enqueue("trigger", flowFileAttributes3));
+        flowFiles.add(runner.enqueue("trigger", flowFileAttributes1));
+        flowFiles.add(runner.enqueue("trigger", flowFileAttributes2));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafka.REL_FAILURE, 3);
     }
 
     @Test

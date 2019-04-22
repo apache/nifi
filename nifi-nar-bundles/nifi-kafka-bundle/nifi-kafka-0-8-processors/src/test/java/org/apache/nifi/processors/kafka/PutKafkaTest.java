@@ -26,11 +26,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.HashSet;
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.apache.nifi.util.TestRunner;
@@ -115,6 +118,36 @@ public class PutKafkaTest {
         assertEquals("5", new String(consumer.next().message(), StandardCharsets.UTF_8));
 
         runner.shutdown();
+    }
+
+    @Test
+    public void validateKafkaTopicName() throws Exception {
+        PutKafka putKafka = new PutKafka();
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.CLIENT_NAME, "foo");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.PARTITION, "1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
+
+        runner.removeProperty(PutKafka.TOPIC);
+        try {
+            runner.assertValid();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("invalid because Topic Name is required"));
+        }
+
+
+        runner.setProperty(PutKafka.TOPIC, "${kafka.topic.name}");
+        final Map<String,String> flowFileAttributes1 = new HashMap<>();
+        flowFileAttributes1.put("kafka.topic.name", "topic1,topic2");
+
+        final Set<FlowFile> flowFiles = new HashSet<>();
+        flowFiles.add(runner.enqueue("trigger", flowFileAttributes1));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutKafka.REL_FAILURE, 1);
     }
 
     @Test

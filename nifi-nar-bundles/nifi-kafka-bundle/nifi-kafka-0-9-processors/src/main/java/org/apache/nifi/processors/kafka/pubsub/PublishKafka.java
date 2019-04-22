@@ -97,15 +97,6 @@ public class PublishKafka extends AbstractProcessor {
     static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
         "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
 
-    static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
-        .name("topic")
-        .displayName("Topic Name")
-        .description("The name of the Kafka Topic to publish to.")
-        .required(true)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .build();
-
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
         .name(ProducerConfig.ACKS_CONFIG)
         .displayName("Delivery Guarantee")
@@ -218,7 +209,7 @@ public class PublishKafka extends AbstractProcessor {
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
-        properties.add(TOPIC);
+        properties.add(KafkaProcessorUtils.PRODUCER_TOPIC);
         properties.add(DELIVERY_GUARANTEE);
         properties.add(KEY);
         properties.add(KEY_ATTRIBUTE_ENCODING);
@@ -322,7 +313,11 @@ public class PublishKafka extends AbstractProcessor {
                 }
 
                 final byte[] messageKey = getMessageKey(flowFile, context);
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                final String topic = context.getProperty(KafkaProcessorUtils.PRODUCER_TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                if(!KafkaProcessorUtils.kafkaProducerTopicNameValidator(topic)) {
+                    session.transfer(flowFiles, REL_FAILURE);
+                    return;
+                }
                 final byte[] demarcatorBytes;
                 if (useDemarcator) {
                     demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8);
@@ -346,7 +341,7 @@ public class PublishKafka extends AbstractProcessor {
             // Transfer any successful FlowFiles.
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
             for (FlowFile success : publishResult.getSuccessfulFlowFiles()) {
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
+                final String topic = context.getProperty(KafkaProcessorUtils.PRODUCER_TOPIC).evaluateAttributeExpressions(success).getValue();
 
                 final int msgCount = publishResult.getSuccessfulMessageCount(success);
                 success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));

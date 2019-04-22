@@ -77,7 +77,7 @@ public class TestPublishKafkaRecord_0_10 {
             }
         });
 
-        runner.setProperty(PublishKafkaRecord_0_10.TOPIC, TOPIC_NAME);
+        runner.setProperty(KafkaProcessorUtils.PRODUCER_TOPIC, TOPIC_NAME);
 
         final String readerId = "record-reader";
         final MockRecordParser readerService = new MockRecordParser();

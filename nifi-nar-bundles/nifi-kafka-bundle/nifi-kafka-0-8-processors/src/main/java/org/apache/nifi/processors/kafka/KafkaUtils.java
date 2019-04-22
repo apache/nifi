@@ -33,7 +33,6 @@ import scala.collection.JavaConversions;
  */
 class KafkaUtils {
 
-
     /**
      * Will retrieve the amount of partitions for a given Kafka topic.
      */

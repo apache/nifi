@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -102,14 +103,6 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
     static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
         "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
 
-    static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
-        .name("topic")
-        .displayName("Topic Name")
-        .description("The name of the Kafka Topic to publish to.")
-        .required(true)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("record-reader")
@@ -248,7 +241,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
-        properties.add(TOPIC);
+        properties.add(KafkaProcessorUtils.PRODUCER_TOPIC);
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
         properties.add(USE_TRANSACTIONS);
@@ -399,7 +392,11 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                     continue;
                 }
 
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                final String topic = context.getProperty(KafkaProcessorUtils.PRODUCER_TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                if(!KafkaProcessorUtils.kafkaProducerTopicNameValidator(topic)) {
+                    session.transfer(flowFiles, REL_FAILURE);
+                    return;
+                }
                 final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
 
                 try {
@@ -436,7 +433,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
             // Transfer any successful FlowFiles.
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
             for (FlowFile success : flowFiles) {
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
+                final String topic = context.getProperty(KafkaProcessorUtils.PRODUCER_TOPIC).evaluateAttributeExpressions(success).getValue();
 
                 final int msgCount = publishResult.getSuccessfulMessageCount(success);
                 success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));

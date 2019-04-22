@@ -46,7 +46,7 @@ public class ConsumeKafkaTest {
         ConsumeKafka consumeKafka = new ConsumeKafka();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
@@ -66,7 +66,7 @@ public class ConsumeKafkaTest {
         ConsumeKafka consumeKafka = new ConsumeKafka();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
 
@@ -93,5 +93,35 @@ public class ConsumeKafkaTest {
         } catch (AssertionError e) {
             assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
         }
+    }
+
+    @Test
+    public void validateKafkaTopicName() throws Exception {
+        ConsumeKafka consumeKafka = new ConsumeKafka();
+        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
+        runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
+
+        runner.removeProperty(KafkaProcessorUtils.CONSUMER_TOPICS);
+        try {
+            runner.assertValid();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("invalid because Topic Name(s) is required"));
+        }
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic1,topic2");
+        runner.assertValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "  ");
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic_12092_10");
+        runner.assertValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic(),topic1");
+        runner.assertNotValid();
     }
 }

@@ -84,15 +84,6 @@ public class ConsumeKafka extends AbstractProcessor {
 
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
 
-    static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
-            .name("topic")
-            .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name(ConsumerConfig.GROUP_ID_CONFIG)
             .displayName("Group ID")
@@ -175,7 +166,7 @@ public class ConsumeKafka extends AbstractProcessor {
     static {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
-        descriptors.add(TOPICS);
+        descriptors.add(KafkaProcessorUtils.CONSUMER_TOPICS);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
@@ -239,7 +230,7 @@ public class ConsumeKafka extends AbstractProcessor {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        final String topicListing = context.getProperty(ConsumeKafka.TOPICS).evaluateAttributeExpressions().getValue();
+        final String topicListing = context.getProperty(KafkaProcessorUtils.CONSUMER_TOPICS).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
         for (final String topic : topicListing.split(",", 100)) {
             final String trimmedName = topic.trim();

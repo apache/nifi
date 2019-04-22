@@ -65,7 +65,7 @@ public class ITConsumeKafka {
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.run(1, false);
@@ -95,7 +95,7 @@ public class ITConsumeKafka {
         };
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
-        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.run(1, false);

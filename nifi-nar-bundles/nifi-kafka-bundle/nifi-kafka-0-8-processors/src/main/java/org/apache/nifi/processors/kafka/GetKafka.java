@@ -37,6 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -49,6 +50,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -87,6 +90,8 @@ public class GetKafka extends AbstractProcessor {
 
     public static final String SMALLEST = "smallest";
     public static final String LARGEST = "largest";
+    public static final Pattern TOPIC_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\._\\-]");
+
 
     public static final PropertyDescriptor ZOOKEEPER_CONNECTION_STRING = new PropertyDescriptor.Builder()
             .name("ZooKeeper Connection String")
@@ -100,7 +105,7 @@ public class GetKafka extends AbstractProcessor {
             .name("Topic Name")
             .description("The Kafka Topic to pull messages from")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new KafkaTopicNameValidator(ConsumerConfig.class))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor ZOOKEEPER_COMMIT_DELAY = new PropertyDescriptor.Builder()
@@ -482,4 +487,25 @@ public class GetKafka extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
+
+    static final class KafkaTopicNameValidator implements Validator {
+
+        final Class<?> classType;
+
+        public KafkaTopicNameValidator(final Class<?> classType) {
+            this.classType = classType;
+        }
+
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            final String topicName = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
+            boolean isValidTopicName = true;
+            if(topicName != null) {
+                if (topicName.isEmpty() || TOPIC_NAME_PATTERN.matcher(topicName).replaceAll("").length() != 0) {
+                    isValidTopicName = false;
+                }
+            }
+            return new ValidationResult.Builder().subject(subject).explanation(topicName + " is not a valid topic name.").valid(isValidTopicName).build();
+        }
+    };
 }

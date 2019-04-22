@@ -78,7 +78,7 @@ public class TestConsumeKafkaRecord_0_11 {
 
     @Test
     public void validateCustomValidatorSettings() throws Exception {
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
@@ -95,7 +95,7 @@ public class TestConsumeKafkaRecord_0_11 {
 
     @Test
     public void validatePropertiesValidation() throws Exception {
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
 
@@ -132,7 +132,7 @@ public class TestConsumeKafkaRecord_0_11 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "foo,bar");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
         runner.run(1, false);
@@ -154,8 +154,8 @@ public class TestConsumeKafkaRecord_0_11 {
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "(fo.*)|(ba)");
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPIC_TYPE, "pattern");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "(fo.*)|(ba)");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPIC_TYPE, "pattern");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
         runner.run(1, false);
@@ -177,7 +177,7 @@ public class TestConsumeKafkaRecord_0_11 {
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "foo,bar");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo,bar");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, groupName);
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
         runner.run(1, false);
@@ -193,7 +193,7 @@ public class TestConsumeKafkaRecord_0_11 {
 
     @Test
     public void testJaasConfiguration() throws Exception {
-        runner.setProperty(ConsumeKafkaRecord_0_11.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_0_11.AUTO_OFFSET_RESET, ConsumeKafkaRecord_0_11.OFFSET_EARLIEST);
 

@@ -80,27 +80,6 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
 
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
 
-    static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
-
-    static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
-
-    static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
-            .name("topic")
-            .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
-            .name("topic_type")
-            .displayName("Topic Name Format")
-            .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
-            .required(true)
-            .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
-            .defaultValue(TOPIC_NAME.getValue())
-            .build();
 
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name(ConsumerConfig.GROUP_ID_CONFIG)
@@ -180,8 +159,8 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
     static {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
-        descriptors.add(TOPICS);
-        descriptors.add(TOPIC_TYPE);
+        descriptors.add(KafkaProcessorUtils.CONSUMER_TOPICS);
+        descriptors.add(KafkaProcessorUtils.CONSUMER_TOPIC_TYPE);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
@@ -244,13 +223,13 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        final String topicListing = context.getProperty(ConsumeKafka_0_10.TOPICS).evaluateAttributeExpressions().getValue();
-        final String topicType = context.getProperty(ConsumeKafka_0_10.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
+        final String topicListing = context.getProperty(KafkaProcessorUtils.CONSUMER_TOPICS).evaluateAttributeExpressions().getValue();
+        final String topicType = context.getProperty(KafkaProcessorUtils.CONSUMER_TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
-        if (topicType.equals(TOPIC_NAME.getValue())) {
+        if (topicType.equals(KafkaProcessorUtils.TOPIC_NAME.getValue())) {
           for (final String topic : topicListing.split(",", 100)) {
               final String trimmedName = topic.trim();
               if (!trimmedName.isEmpty()) {
@@ -258,7 +237,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
               }
           }
           return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol, bootstrapServers, log);
-        } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
+        } else if (topicType.equals(KafkaProcessorUtils.TOPIC_PATTERN.getValue())) {
           final Pattern topicPattern = Pattern.compile(topicListing.trim());
           return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol, bootstrapServers, log);
         } else {

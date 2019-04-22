@@ -30,14 +30,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.*;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -107,6 +108,8 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
     static final AllowableValue USER_DEFINED_PARTITIONING = new AllowableValue("User-Defined", "User-Defined",
             "The <Partition> property will be used to determine the partition. All messages within the same FlowFile will be "
                     + "assigned to the same partition.");
+
+    static final Pattern TOPIC_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\._\\-]");
 
     public static final PropertyDescriptor SEED_BROKERS = new PropertyDescriptor.Builder()
             .name("Known Brokers")
@@ -286,6 +289,11 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
         boolean processed = false;
         FlowFile flowFile = session.get();
         if (flowFile != null) {
+            final String topicName = context.getProperty(PutKafka.TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+            if(!kafkaProducerTopicNameValidator(topicName)) {
+                session.transfer(flowFile, REL_FAILURE);
+                return processed;
+            }
             flowFile = this.doRendezvousWithKafka(flowFile, context, session);
             if (!this.isFailedFlowFile(flowFile)) {
                 session.getProvenanceReporter().send(flowFile,
@@ -506,5 +514,12 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             }
         }
         return properties;
+    }
+
+    static public Boolean kafkaProducerTopicNameValidator(final String topicName) {
+        if (topicName.isEmpty() || TOPIC_NAME_PATTERN.matcher(topicName).replaceAll("").length() != 0) {
+            return false;
+        }
+        return true;
     }
 }

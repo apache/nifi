@@ -34,6 +34,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.components.AllowableValue;
@@ -71,6 +72,37 @@ final class KafkaProcessorUtils {
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
     static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
     static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
+    static final Pattern TOPIC_NAME_PATTERN = Pattern.compile("[a-zA-Z0-9\\._\\-]");
+    static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
+
+    static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
+
+    static final PropertyDescriptor CONSUMER_TOPICS = new PropertyDescriptor.Builder()
+            .name("topic")
+            .displayName("Topic Name(s)")
+            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
+            .required(true)
+            .addValidator(new KafkaConsumerTopicNameValidator(TopicConfig.class))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor CONSUMER_TOPIC_TYPE = new PropertyDescriptor.Builder()
+            .name("topic_type")
+            .displayName("Topic Name Format")
+            .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
+            .required(true)
+            .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
+            .defaultValue(TOPIC_NAME.getValue())
+            .build();
+
+    static final PropertyDescriptor PRODUCER_TOPIC = new PropertyDescriptor.Builder()
+            .name("topic")
+            .displayName("Topic Name")
+            .description("The name of the Kafka Topic to publish to.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
@@ -271,6 +303,40 @@ final class KafkaProcessorUtils {
             return new ValidationResult.Builder().subject(subject).explanation("Must be a known configuration parameter for this kafka client").valid(knownValue).build();
         }
     };
+
+
+    static final class KafkaConsumerTopicNameValidator implements Validator {
+
+        final Class<?> classType;
+
+        public KafkaConsumerTopicNameValidator(final Class<?> classType) {
+            this.classType = classType;
+        }
+
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            final String topicType = context.getProperty(CONSUMER_TOPIC_TYPE).evaluateAttributeExpressions().getValue();
+            final String topicListing = context.getProperty(CONSUMER_TOPICS).evaluateAttributeExpressions().getValue();
+            boolean isValidTopicName = true;
+            String topicName = "";
+            if (topicListing != null && topicType.equals(TOPIC_NAME.getValue())) {
+                for (final String topic : topicListing.split(",", 100)) {
+                    if(topic.isEmpty() || TOPIC_NAME_PATTERN.matcher(topic).replaceAll("").length() != 0 ) {
+                        isValidTopicName = false;
+                        topicName = topic;
+                    }
+                }
+            }
+            return new ValidationResult.Builder().subject(subject).explanation(topicName + " is not a valid topic name.").valid(isValidTopicName).build();
+        }
+    };
+
+    static public Boolean kafkaProducerTopicNameValidator(final String topicName) {
+        if (topicName.isEmpty() || TOPIC_NAME_PATTERN.matcher(topicName).replaceAll("").length() != 0) {
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Builds transit URI for provenance event. The transit URI will be in the

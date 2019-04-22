@@ -43,7 +43,7 @@ public class ConsumeKafkaTest {
         ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
@@ -63,7 +63,7 @@ public class ConsumeKafkaTest {
         ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
 
@@ -93,11 +93,42 @@ public class ConsumeKafkaTest {
     }
 
     @Test
+    public void validateKafkaTopicName() throws Exception {
+        ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
+        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPIC_TYPE, KafkaProcessorUtils.TOPIC_NAME);
+        runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
+
+        runner.removeProperty(KafkaProcessorUtils.CONSUMER_TOPICS);
+        try {
+            runner.assertValid();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("invalid because Topic Name(s) is required"));
+        }
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic1,topic2");
+        runner.assertValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "  ");
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic_12092_10");
+        runner.assertValid();
+
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "topic(),topic1");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testJaasConfiguration() throws Exception {
         ConsumeKafka_0_10 consumeKafka = new ConsumeKafka_0_10();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
-        runner.setProperty(ConsumeKafka_0_10.TOPICS, "foo");
+        runner.setProperty(KafkaProcessorUtils.CONSUMER_TOPICS, "foo");
         runner.setProperty(ConsumeKafka_0_10.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_0_10.AUTO_OFFSET_RESET, ConsumeKafka_0_10.OFFSET_EARLIEST);
 

@@ -37,6 +37,9 @@ import org.mockito.stubbing.Answer;
 import kafka.consumer.ConsumerIterator;
 import kafka.message.MessageAndMetadata;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class TestGetKafka {
 
     @BeforeClass
@@ -107,6 +110,36 @@ public class TestGetKafka {
         runner.assertAllFlowFilesTransferred(GetKafka.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetKafka.REL_SUCCESS).get(0);
         mff.assertContentEquals("Hello\nGood-bye");
+    }
+
+    @Test
+    public void validateKafkaTopicName() throws Exception {
+        GetKafka consumeKafka = new GetKafka();
+        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "okeydokey:1234");
+        runner.setProperty(GetKafka.TOPIC, "foo");
+        runner.setProperty(GetKafka.GROUP_ID, "foo");
+        runner.setProperty(GetKafka.AUTO_OFFSET_RESET, GetKafka.SMALLEST);
+
+        runner.removeProperty(GetKafka.TOPIC);
+        try {
+            runner.assertValid();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("invalid because Topic Name is required"));
+        }
+
+        runner.setProperty(GetKafka.TOPIC, "topic1,topic2");
+        runner.assertNotValid();
+
+        runner.setProperty(GetKafka.TOPIC, "  ");
+        runner.assertNotValid();
+
+        runner.setProperty(GetKafka.TOPIC, "topic_12092_10");
+        runner.assertValid();
+
+        runner.setProperty(GetKafka.TOPIC, "topic(),topic1");
+        runner.assertNotValid();
     }
 
     private static class TestableProcessor extends GetKafka {
