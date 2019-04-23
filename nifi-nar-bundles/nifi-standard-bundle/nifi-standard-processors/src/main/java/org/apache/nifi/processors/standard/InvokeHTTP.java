@@ -91,6 +91,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
@@ -558,6 +559,13 @@ public class InvokeHTTP extends AbstractProcessor {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(RFC_1123).withLocale(Locale.US).withZoneUTC();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    protected void init(ProcessorInitializationContext context) {
+        excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
+                             "Update processor to use the SSLContextService instead. " +
+                             "See the Access Policies section in the System Administrator's Guide.");
+
+    }
 
     @Override
     protected void init(ProcessorInitializationContext context) {
