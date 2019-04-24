@@ -69,7 +69,7 @@ public class KerberosProvider implements LoginIdentityProvider {
         }
 
         defaultRealm = configurationContext.getProperty("Default Realm");
-        if (defaultRealm.contains("@")) {
+        if (StringUtils.isNotBlank(defaultRealm) && defaultRealm.contains("@")) {
             throw new ProviderCreationException(String.format("The Default Realm '%s' must not contain \"@\"", defaultRealm));
         }
 
