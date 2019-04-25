@@ -39,7 +39,10 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -86,6 +89,12 @@ import java.util.stream.Collectors;
         value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute "
         + "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile "
         + "content will be updated to any JSON objects that match the JsonPath.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description =
+        "The entirety of the incoming FlowFile's content is kept in memory while processing, in addition to all " +
+        "of the generated FlowFiles or attributes resulting from the evaluation.  If the JSON documents to be " +
+        "processed are large, then the SelectJson processor should be considered in order to avoid excessive " +
+        "memory usage.")
+@SeeAlso(SelectJson.class)
 public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
