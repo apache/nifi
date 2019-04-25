@@ -1556,7 +1556,14 @@ class ConfigEncryptionTool {
                     String newAlgorithm = tool.newFlowAlgorithm ?: existingAlgorithm
                     String newProvider = tool.newFlowProvider ?: existingProvider
 
-                    tool.flowXml = tool.migrateFlowXmlContent(tool.flowXml, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
+                    try {
+                        tool.flowXml = tool.migrateFlowXmlContent(tool.flowXml, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
+                    } catch (Exception e) {
+                        if (tool.isVerbose) {
+                            logger.error("Encountered an error", e, "Check your password?")
+                        }
+                        tool.printUsageAndThrow("Encountered an error migrating flow content", ExitCode.ERROR_MIGRATING_FLOW)
+                    }
 
                     // If the new key is the hard-coded internal value, don't persist it to nifi.properties
                     if (newFlowPassword != DEFAULT_NIFI_SENSITIVE_PROPS_KEY && newFlowPassword != existingFlowPassword) {
