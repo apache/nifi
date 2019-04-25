@@ -47,9 +47,11 @@ public class TestMSSQLDatabaseAdapter {
         db.getSelectStatement("", "some(set),of(columns),that,might,contain,methods,a.*","","",null,null);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPagingNoOrderBy() throws Exception {
-        db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","",10L,0L);
+        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","","",10L,0L);
+        String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename ORDER BY newid() OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY";
+        Assert.assertEquals(sql1,expected1);
     }
 
     @Test
