@@ -827,7 +827,6 @@
                             text: '#ffffff'
                         },
                         disabled : function() {
-                            var selection = nfCanvasUtils.getSelectionById(processor.id);
                             return !nfCanvasUtils.supportsModification(selection);
                         },
                         handler: {
@@ -918,12 +917,10 @@
                     //Synchronize the current component canvas attributes in the status bar
                     if(config.supportsStatusBar){
 
-                        //initialize the synchronization
-                        var target = function() {
+                        //initialize the canvas synchronization
+                        $("#processor-configuration-status-bar").statusbar('observe',processor.id, function(){
                             $('#processor-configuration').modal('refreshButtons');
-                            return nfProcessor.get(processor.id);
-                        };
-                        $("#processor-configuration-status-bar").statusbar('observe',target);
+                        });
 
                         //if there are active threads, add the terminate button to the status bar
                         if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
@@ -938,7 +935,6 @@
                                     text: '#004849'
                                 },
                                 disabled : function() {
-                                    var selection = nfCanvasUtils.getSelectionById(processor.id);
                                     return nfCanvasUtils.supportsModification(selection);
                                 },
                                 handler: {
@@ -961,7 +957,6 @@
 
                                         //execute the terminate call
                                         $('#processor-configuration-status-bar').statusbar('hideButtons');
-                                        var selection = nfCanvasUtils.getSelectionById(processor.id);
                                         config.nfActions.terminate(selection,cb);
                                     }
                                 }

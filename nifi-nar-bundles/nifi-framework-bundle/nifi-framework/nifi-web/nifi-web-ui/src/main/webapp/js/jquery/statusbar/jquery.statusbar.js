@@ -93,19 +93,23 @@
         /**
          * Initializes the synchronization process to the canvas element
          *
-         * @param {object/fn} current selectionObject to observe
+         * @param id - id value of the processor to observe
+         * @param cb - callback to execute when a mutation is detected
          */
-        observe: function(statusObj) {
+        observe: function(id,cb) {
             var bar = $(this);
-            var selector = getKeyValue(((typeof statusObj == 'function')?statusObj():statusObj),PROCESSOR_ID_KEY);
-            var g = document.querySelector('g[id="id-'+selector+'"]');
+            //var selector = getKeyValue(((typeof statusObj == 'function')?statusObj():statusObj),PROCESSOR_ID_KEY);
+            var g = document.querySelector('g[id="id-'+id+'"]');
 
             //perform the initial set
-            bar.statusbar('set',statusObj);
+            bar.statusbar('set',id);
 
             //create and store an observer
             bar.data('observer',new MutationObserver(function(mutations){
-                bar.statusbar('set',statusObj);
+                bar.statusbar('set',id);
+                if(typeof cb == 'function'){
+                    cb();
+                }
             }));
 
             //initialize the observer
@@ -237,13 +241,11 @@
         /**
          * Set the status bar display values
          *
-         * @param {string} Run status value
-         * @param {number} Thread count value
-         * @param {object} Bulletin object
+         * @param id - processor id to evaluate
          */
-        set : function(statusObj) {
+        set : function(id) {
             var bar = $(this),
-                obj = ((typeof statusObj == 'function')?statusObj():statusObj),
+                obj = d3.select('#id-' + id).datum(),
                 bulletinList = $("<ul></ul>"),
                 runStatus = getKeyValue(obj,RUN_STATUS_KEY),
                 activeThreadCount = getKeyValue(obj,ACTIVE_THREAD_COUNT_KEY),

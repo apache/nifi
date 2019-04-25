@@ -320,19 +320,24 @@
                 //Populate the status bar if the feature is enabled
                 if (config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
 
-                    //Synchronize the status bar values to the canvas component
-                    var target = function(){
-                        return config.nfCanvasUtils.getSelectionById(processor.id)['datum']();
-                    }
-                    $("#processor-details-status-bar").statusbar('observe',target);
+                    //initialize the canvas synchronization
+                    $("#processor-details-status-bar").statusbar('observe',processor.id);
 
-                    //fetch the component as a selection from the canvas
+                    //Fetch the component as a selection from the canvas
                     selection = config.nfCanvasUtils.getSelectionById(processor.id);
 
-                    // Add the stop & configure button if appropriate
+                    //Add the stop & configure button if appropriate
                     if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
                         config.nfCanvasUtils.isProcessor(selection) &&
                         config.nfCanvasUtils.canModify(selection)){
+
+                        //Declare a callback handler to perform should ProcessorConfiguration be invoked
+                        var cb = function(){
+                            var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
+                            $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
+                            $('#processor-details').modal('hide');
+                            $("#processor-details-status-bar").statusbar('showButtons');
+                        };
 
                         $("#processor-details-status-bar").statusbar('buttons',[{
                             buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Stop & Configure</span>',
@@ -347,14 +352,6 @@
                             },
                             handler: {
                                 click: function() {
-                                    //Assign a callback when the ProcessorConfiguration window is ready
-                                    var cb = function(){
-                                        var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
-                                        $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
-                                        $('#processor-details').modal('hide');
-                                        $("#processor-details-status-bar").statusbar('showButtons');
-                                    };
-
                                     //execute the stop and open the configuration modal
                                     $("#processor-details-status-bar").statusbar('hideButtons');
                                     config.nfActions.stopAndConfigure(selection,cb);
@@ -374,14 +371,6 @@
                             },
                             handler: {
                                 click: function() {
-                                    //Assign a callback when the ProcessorConfiguration window is ready
-                                    var cb = function(){
-                                        var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
-                                        $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
-                                        $('#processor-details').modal('hide');
-                                        $("#processor-details-status-bar").statusbar('showButtons');
-                                    };
-
                                     //execute the stop and open the configuration modal
                                     $("#processor-details-status-bar").statusbar('hideButtons');
                                     config.nfActions.showConfiguration(selection,cb);
