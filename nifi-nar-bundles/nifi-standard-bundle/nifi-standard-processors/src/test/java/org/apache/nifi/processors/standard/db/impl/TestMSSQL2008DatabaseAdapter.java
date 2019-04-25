@@ -48,6 +48,14 @@ public class TestMSSQL2008DatabaseAdapter {
     }
 
     @Test
+    public void testPagingNoOrderBy() throws Exception {
+        String sql1 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*","",null,10L,0L);
+        String expected1 = "SELECT * FROM (SELECT TOP 10 some(set),of(columns),that,might,contain,methods,a.*, ROW_NUMBER() OVER(ORDER BY newid() asc) rnum "
+                + "FROM database.tablename) A WHERE rnum > 0 AND rnum <= 10";
+        Assert.assertEquals(sql1,expected1);
+    }
+
+    @Test
     public void testTOPQuery() throws Exception {
         String sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "", "", 100L, null);
         String expected1 = "SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
