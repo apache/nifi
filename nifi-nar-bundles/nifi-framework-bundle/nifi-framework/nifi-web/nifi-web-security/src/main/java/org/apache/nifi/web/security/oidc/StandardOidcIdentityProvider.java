@@ -299,10 +299,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 // attempt to extract the configured claim to access the user's identity; default is 'email'
                 String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
                 if (StringUtils.isBlank(identity)) {
-                    // explicitly try to get the identity from the UserInfo endpoint with the 'email' claim
+                    // explicitly try to get the identity from the UserInfo endpoint with the configured claim
                     logger.warn("The identity of the user was tried to get with the claim '" +
                             properties.getOidcClaimIdentifyingUser() + "'. The according additional scope is not " +
-                            "configured correctly. Trying to get it with the 'email' claim.");
+                            "configured correctly. Trying to get it from the UserInfo endpoint.");
 
                     // extract the bearer access token
                     final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
@@ -311,7 +311,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                     }
 
                     // invoke the UserInfo endpoint
-                    identity = lookupEmail(bearerAccessToken);
+                    identity = lookupIdentityInUserInfo(bearerAccessToken);
                 }
 
                 // extract expiration details from the claims set
@@ -333,7 +333,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
     }
 
-    private String lookupEmail(final BearerAccessToken bearerAccessToken) throws IOException {
+    private String lookupIdentityInUserInfo(final BearerAccessToken bearerAccessToken) throws IOException {
         try {
             // build the user request
             final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
@@ -355,13 +355,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                     claimsSet = successResponse.getUserInfoJWT().getJWTClaimsSet();
                 }
 
-                final String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
+                final String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
 
-                // ensure we were able to get the user email
-                if (StringUtils.isBlank(email)) {
-                    throw new IllegalStateException("Unable to extract email from the UserInfo token.");
+                // ensure we were able to get the user's identity
+                if (StringUtils.isBlank(identity)) {
+                    throw new IllegalStateException("Unable to extract identity from the UserInfo token using the claim '" +
+                            properties.getOidcClaimIdentifyingUser() + "'.");
                 } else {
-                    return email;
+                    return identity;
                 }
             } else {
                 final UserInfoErrorResponse errorResponse = (UserInfoErrorResponse) response;
