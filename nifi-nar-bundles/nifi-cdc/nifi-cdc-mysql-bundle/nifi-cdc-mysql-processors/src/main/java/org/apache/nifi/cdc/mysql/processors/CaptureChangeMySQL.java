@@ -23,6 +23,8 @@ import com.github.shyiko.mysql.binlog.event.EventType;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
+import com.github.shyiko.mysql.binlog.network.SSLMode;
+import com.github.shyiko.mysql.binlog.network.SSLSocketFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -74,11 +76,27 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.Socket;
+import java.net.SocketException;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -337,6 +355,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+        .name("SSL Context Service")
+        .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
+
     private static List<PropertyDescriptor> propDescriptors;
 
     private volatile ProcessSession currentSession;
@@ -410,6 +435,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(INIT_SEQUENCE_ID);
         pds.add(INIT_BINLOG_FILENAME);
         pds.add(INIT_BINLOG_POSITION);
+        pds.add(PROP_SSL_CONTEXT_SERVICE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -522,7 +548,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
 
-            connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout);
+            connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout, context);
         } catch (IOException | IllegalStateException e) {
             context.yield();
             binlogClient = null;
@@ -639,7 +665,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId, boolean createEnrichmentConnection,
-                           String driverLocation, String driverName, long connectTimeout) throws IOException {
+                           String driverLocation, String driverName, long connectTimeout, ProcessContext context) throws IOException {
 
         int connectionAttempts = 0;
         final int numHosts = hosts.size();
@@ -665,6 +691,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 connectedHost = hosts.get(currentHost);
                 binlogClient = createBinlogClient(connectedHost.getHostString(), connectedHost.getPort(), username, password);
             }
+
+            setSSLConnectionFactory(binlogClient, context);
 
             // Add an event listener and lifecycle listener for binlog and client events, respectively
             if (eventListener == null) {
@@ -925,6 +953,17 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
+    private void setSSLConnectionFactory(BinaryLogClient binlogClient, ProcessContext context) {
+        final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE)
+            .asControllerService(SSLContextService.class);
+
+        if (sslService != null) {
+            final SSLSocketFactory socketFactory = new MySQLSSLSocketFactory(sslService);
+            binlogClient.setSslSocketFactory(socketFactory);
+            binlogClient.setSSLMode(SSLMode.REQUIRED);
+        }
+    }
+
     protected void stop(StateManager stateManager) throws CDCException {
         try {
             if (binlogClient != null) {
@@ -1149,5 +1188,74 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return driver.getParentLogger();
         }
 
+    }
+
+    public class MySQLSSLSocketFactory implements SSLSocketFactory {
+
+        private final SSLContextService sslService;
+
+        public MySQLSSLSocketFactory(SSLContextService sslService) {
+            this.sslService = sslService;
+        }
+
+        @Override
+        public SSLSocket createSocket(Socket socket) throws SocketException {
+            SSLContext sslContext;
+            try {
+                sslContext = SSLContext.getInstance("TLSv1");
+                initSSLContext(sslContext);
+            } catch (GeneralSecurityException | IOException e) {
+                throw new SocketException(e.getMessage());
+            }
+            try {
+                return (SSLSocket) sslContext.getSocketFactory()
+                    .createSocket(socket, socket.getInetAddress().getHostName(), socket.getPort(), true);
+            } catch (IOException e) {
+                throw new SocketException(e.getMessage());
+            }
+        }
+
+        private void initSSLContext(SSLContext sslContext)
+            throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
+
+            if (sslContext == null) {
+                return;
+            }
+
+            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
+            KeyManager[] keyManagers = null;
+
+            // we will only initialize the keystore if properties have been supplied by the SSLContextService
+            if (sslService.isKeyStoreConfigured()) {
+                final String keystoreLocation = sslService.getKeyStoreFile();
+                final String keystorePass = sslService.getKeyStorePassword();
+                final String keystoreType = sslService.getKeyStoreType();
+
+                // prepare the keystore
+                final KeyStore keyStore = KeyStore.getInstance(keystoreType);
+
+                try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+                    keyStore.load(keyStoreStream, keystorePass.toCharArray());
+                }
+
+                keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+                keyManagers = keyManagerFactory.getKeyManagers();
+            }
+
+            // we will only initialize the truststure if properties have been supplied by the SSLContextService
+            if (sslService.isTrustStoreConfigured()) {
+                // load truststore
+                final String truststoreLocation = sslService.getTrustStoreFile();
+                final String truststorePass = sslService.getTrustStorePassword();
+                final String truststoreType = sslService.getTrustStoreType();
+
+                KeyStore truststore = KeyStore.getInstance(truststoreType);
+                truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
+                trustManagerFactory.init(truststore);
+            }
+
+            sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
+        }
     }
 }
