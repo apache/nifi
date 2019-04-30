@@ -47,22 +47,12 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -117,30 +107,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.url = null;
     }
 
-    private SSLContext buildSslContext(SSLContextService sslService) throws IOException, CertificateException,
-            NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
-        KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
-        KeyStore trustStore = KeyStore.getInstance("JKS");
-
-        try (final InputStream is = new FileInputStream(sslService.getKeyStoreFile())) {
-            keyStore.load(is, sslService.getKeyStorePassword().toCharArray());
-        }
-
-        try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
-            trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
-        }
-
-        final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
-                .getDefaultAlgorithm());
-        kmf.init(keyStore, sslService.getKeyStorePassword().toCharArray());
-        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
-                .getDefaultAlgorithm());
-        tmf.init(keyStore);
-        SSLContext context1 = SSLContext.getInstance(sslService.getSslAlgorithm());
-        context1.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
-        return context1;
-    }
-
     private void setupClient(ConfigurationContext context) throws MalformedURLException, InitializationException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
         String[] hostsSplit = hosts.split(",[\\s]*");
@@ -162,10 +128,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         final SSLContext sslContext;
         try {
-            sslContext = (sslService != null && sslService.isKeyStoreConfigured() && sslService.isTrustStoreConfigured())
-                ? buildSslContext(sslService) : null;
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException
-                | KeyStoreException | KeyManagementException e) {
+            sslContext = (sslService != null && sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured())
+                ? sslService.createSSLContext(SSLContextService.ClientAuth.NONE) : null;
+        } catch (Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);
         }
