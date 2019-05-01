@@ -48,7 +48,8 @@ public class TestGrokReader {
 
         runner.addControllerService("grok-schema-registry-service", reader);
 
-        runner.setProperty(reader, GrokReader.PATTERN_FILE, "src/test/resources/grok/grok-pattern-file");
+        runner.setProperty(reader, GrokReader.PATTERN_FILE, "src/test/resources/grok/grok-pattern-file.txt");
+
         runner.setProperty(reader, GrokReader.GROK_EXPRESSION, "%{GREEDYDATA:message}");
         runner.setProperty(reader, GrokReader.NO_MATCH_BEHAVIOR, GrokReader.SKIP_LINE);
         runner.enableControllerService(reader);
@@ -71,7 +72,8 @@ public class TestGrokReader {
 
         runner.addControllerService("grok-schema-registry-service", reader);
 
-        runner.setProperty(reader, GrokReader.PATTERN_FILE, "~/grok-pattern-file");
+        runner.setProperty(reader, GrokReader.PATTERN_FILE, "~/grok-pattern-file.txt");
+
         runner.setProperty(reader, GrokReader.GROK_EXPRESSION, "%{GREEDYDATA:message}");
         runner.setProperty(reader, GrokReader.NO_MATCH_BEHAVIOR, GrokReader.SKIP_LINE);
         runner.enableControllerService(reader);
