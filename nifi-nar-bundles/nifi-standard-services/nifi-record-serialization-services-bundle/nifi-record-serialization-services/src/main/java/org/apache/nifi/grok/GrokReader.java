@@ -45,6 +45,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.FileExpansionUtil;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -134,8 +135,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
-            try (final InputStream in = new FileInputStream(context.getProperty(PATTERN_FILE)
-                    .evaluateAttributeExpressions().getValue()); final Reader reader = new InputStreamReader(in)) {
+            try (final InputStream in = new FileInputStream(FileExpansionUtil.expandPath(context.getProperty(PATTERN_FILE)
+                    .evaluateAttributeExpressions().getValue())); final Reader reader = new InputStreamReader(in)) {
                 grokCompiler.register(reader);
             }
         }
@@ -175,7 +176,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                     .build());
         }
 
-        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).getValue(),grokCompiler);
+        validator = new GrokExpressionValidator(
+                FileExpansionUtil.expandPath(validationContext.getProperty(PATTERN_FILE).getValue()),grokCompiler);
         results.add(validator.validate(subject,input,validationContext));
         return results;
     }
