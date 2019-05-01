@@ -58,7 +58,7 @@ public class TlsCertificateSigningRequestPerformer {
     private final Supplier<HttpClientBuilder> httpClientBuilderSupplier;
     private final String caHostname;
     private final String dn;
-    private final String domainAlternativeNames;
+    private final List<String> domainAlternativeNames;
     private final String token;
     private final int port;
     private final ObjectMapper objectMapper;
@@ -75,7 +75,7 @@ public class TlsCertificateSigningRequestPerformer {
     }
 
     private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname,
-                                                  String dn, String domainAlternativeNames, String token, int port, String signingAlgorithm) {
+                                                  String dn, List<String> domainAlternativeNames, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
         this.dn = CertificateUtils.reorderDn(dn);

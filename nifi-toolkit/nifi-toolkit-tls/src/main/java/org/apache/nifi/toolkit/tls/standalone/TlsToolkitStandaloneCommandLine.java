@@ -88,7 +88,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
     private boolean overwrite;
     private String dnPrefix;
     private String dnSuffix;
-    private String domainAlternativeNames;
+    private List<InstanceDefinition> domainAlternativeNames;
     private String additionalCACertificatePath;
 
     public TlsToolkitStandaloneCommandLine() {
@@ -139,7 +139,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
 
         dnPrefix = commandLine.getOptionValue(NIFI_DN_PREFIX_ARG, TlsConfig.DEFAULT_DN_PREFIX);
         dnSuffix = commandLine.getOptionValue(NIFI_DN_SUFFIX_ARG, TlsConfig.DEFAULT_DN_SUFFIX);
-        domainAlternativeNames = commandLine.getOptionValue(SUBJECT_ALTERNATIVE_NAMES_ARG);
 
         Stream<String> globalOrderExpressions = null;
         if (commandLine.hasOption(GLOBAL_PORT_SEQUENCE_ARG)) {
@@ -155,6 +154,17 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
                             parsePasswordSupplier(commandLine, TRUST_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier())));
         } else {
             instanceDefinitions = Collections.emptyList();
+        }
+
+        if (commandLine.hasOption(SUBJECT_ALTERNATIVE_NAMES_ARG)) {
+            domainAlternativeNames = Collections.unmodifiableList(
+                    InstanceDefinition.createDefinitions(globalOrderExpressions,
+                            Arrays.stream(commandLine.getOptionValues(SUBJECT_ALTERNATIVE_NAMES_ARG)).flatMap(s -> Arrays.stream(s.split(",")).map(String::trim)),
+                            parsePasswordSupplier(commandLine, KEY_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier()),
+                            parsePasswordSupplier(commandLine, KEY_PASSWORD_ARG, commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG) ? passwordUtil.passwordSupplier() : null),
+                            parsePasswordSupplier(commandLine, TRUST_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier())));
+        } else {
+            domainAlternativeNames = Collections.emptyList();
         }
 
         String[] clientDnValues = commandLine.getOptionValues(CLIENT_CERT_DN_ARG);
@@ -237,7 +247,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseTlsToolkitCommandLine {
         standaloneConfig.setDays(getDays());
         standaloneConfig.setDnPrefix(dnPrefix);
         standaloneConfig.setDnSuffix(dnSuffix);
-        standaloneConfig.setDomainAlternativeNames(domainAlternativeNames);
+        standaloneConfig.setDomainAlternativeNames(domainAlternativeNames.stream().map(InstanceDefinition::getHostname).collect(Collectors.toList()));
         standaloneConfig.setAdditionalCACertificate(additionalCACertificatePath);
         standaloneConfig.initDefaults();
 
