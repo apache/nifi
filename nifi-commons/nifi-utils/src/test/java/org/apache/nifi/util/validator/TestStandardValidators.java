@@ -176,34 +176,6 @@ public class TestStandardValidators {
         assertTrue(vr.toString(), vr.isValid());
     }
 
-    @Test
-    public void testFileExistsValidatorPerformsExpansionWhenExpressionLanguageIsSupported() {
-        System.setProperty("user.home", "src/test/resources");
-        Validator val = new StandardValidators.FileExistsValidator(true);
-
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-
-        ValidationResult vr = val.validate("user-properties", "~/this_file_exists.txt", validationContext);
-
-        assertTrue(vr.toString(), vr.isValid());
-    }
-
-    // @TODO I need to figure out how to properly make the VariableRegistry available to the ValidationContext.
-    //  In the test below I'm not
-//    @Test
-//    public void testFileExistsValidatorPerformsExpansionWhenExpressionLanguageIsSupportedAndPresent() {
-//        System.setProperty("user.home", "src/test");
-//        System.setProperty("directory-fragment", "resources");
-//        Validator val = new StandardValidators.FileExistsValidator(true);
-//
-//        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-//        validationContext.
-//        Mockito.when(validationContext.isExpressionLanguagePresent("${directory-fragment}/this_file_exists.txt")).thenReturn(true);
-//
-//        ValidationResult vr = val.validate("user-properties", "~/${directory-fragment}/this_file_exists.txt", validationContext);
-//
-//        assertTrue(vr.toString(), vr.isValid());
-//    }
 
     @Test
     public void testDataSizeBoundsValidator() {
