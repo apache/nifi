@@ -48,6 +48,7 @@ import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.StopWatch;
 
 import com.maxmind.db.InvalidDatabaseException;
@@ -152,7 +153,8 @@ public class IPLookupService extends AbstractControllerService implements Record
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws IOException {
-        databaseFile = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().getValue();
+        databaseFile = FileExpansionUtil.expandPath(
+                context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().getValue());
 
         final File dbFile = new File(databaseFile);
         final String dbFileChecksum = getChecksum(dbFile);
