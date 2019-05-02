@@ -23,6 +23,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPro
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
+import org.apache.nifi.util.FileExpansionUtil;
 
 
 /**
@@ -47,7 +48,7 @@ public class FileCredentialsStrategy extends AbstractCredentialsStrategy {
     @Override
     public AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties) {
         String credsFile = properties.get(CredentialPropertyDescriptors.CREDENTIALS_FILE);
-        return new PropertiesFileCredentialsProvider(credsFile);
+        return new PropertiesFileCredentialsProvider(FileExpansionUtil.expandPath(credsFile));
     }
 
 }

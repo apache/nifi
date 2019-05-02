@@ -136,6 +136,10 @@ public class TestCredentialsProviderFactory {
         Assert.assertNotNull(credentialsProvider);
         assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
                 credentialsProvider.getClass());
+
+        AWSCredentials credentials = credentialsProvider.getCredentials();
+        assertEquals("awsAccessKey", credentials.getAWSAccessKeyId());
+        assertEquals("awsSecretKeyId", credentials.getAWSSecretKey());
     }
 
     @Test
@@ -150,6 +154,10 @@ public class TestCredentialsProviderFactory {
         Assert.assertNotNull(credentialsProvider);
         assertEquals("credentials provider should be equal", PropertiesFileCredentialsProvider.class,
                 credentialsProvider.getClass());
+
+        AWSCredentials credentials = credentialsProvider.getCredentials();
+        assertEquals("awsAccessKey", credentials.getAWSAccessKeyId());
+        assertEquals("awsSecretKeyId", credentials.getAWSSecretKey());
     }
 
     @Test
