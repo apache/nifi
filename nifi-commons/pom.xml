@@ -40,5 +40,6 @@
     	<module>nifi-record</module>
         <module>nifi-record-path</module>
         <module>nifi-metrics</module>
+        <module>nifi-parameter</module>
     </modules>
 </project>

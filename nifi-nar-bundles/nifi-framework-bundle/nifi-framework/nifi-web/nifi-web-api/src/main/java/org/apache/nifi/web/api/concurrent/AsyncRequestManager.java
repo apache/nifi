@@ -42,12 +42,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class AsyncRequestManager<T> implements RequestManager<T> {
+public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
     private static final Logger logger = LoggerFactory.getLogger(AsyncRequestManager.class);
 
     private final long requestExpirationMillis;
     private final int maxConcurrentRequests;
-    private final ConcurrentMap<String, AsynchronousWebRequest<T>> requests = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, AsynchronousWebRequest<R, T>> requests = new ConcurrentHashMap<>();
 
     private final ExecutorService threadPool;
 
@@ -57,7 +57,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
         this.maxConcurrentRequests = maxConcurrentRequests;
 
         this.threadPool = new ThreadPoolExecutor(1, 50, 5L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(maxConcurrentRequests),
+            new ArrayBlockingQueue<>(maxConcurrentRequests),
             new ThreadFactory() {
                 private final AtomicLong counter = new AtomicLong(0L);
 
@@ -77,7 +77,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
     }
 
     @Override
-    public void submitRequest(final String type, final String requestId, final AsynchronousWebRequest<T> request, final Consumer<AsynchronousWebRequest<T>> task) {
+    public void submitRequest(final String type, final String requestId, final AsynchronousWebRequest<R, T> request, final Consumer<AsynchronousWebRequest<R, T>> task) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(requestId);
         Objects.requireNonNull(request);
@@ -92,7 +92,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
 
-        completedRequestIds.stream().forEach(id -> requests.remove(id));
+        completedRequestIds.forEach(requests::remove);
 
         final int requestCount = requests.size();
         if (requestCount > maxConcurrentRequests) {
@@ -101,7 +101,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
         }
 
         final String key = getKey(type, requestId);
-        final AsynchronousWebRequest<T> existing = this.requests.putIfAbsent(key, request);
+        final AsynchronousWebRequest<R, T> existing = this.requests.putIfAbsent(key, request);
         if (existing != null) {
             throw new IllegalArgumentException("A requests already exists with this ID and type");
         }
@@ -117,7 +117,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
                     task.accept(request);
                 } catch (final Exception e) {
                     logger.error("Failed to perform asynchronous task", e);
-                    request.setFailureReason("Encountered unexpected error when performing asynchronous task: " + e);
+                    request.fail("Encountered unexpected error when performing asynchronous task: " + e);
                 } finally {
                     // clear the authentication token
                     SecurityContextHolder.getContext().setAuthentication(null);
@@ -128,13 +128,13 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
 
 
     @Override
-    public AsynchronousWebRequest<T> removeRequest(final String type, final String id, final NiFiUser user) {
+    public AsynchronousWebRequest<R, T> removeRequest(final String type, final String id, final NiFiUser user) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(id);
         Objects.requireNonNull(user);
 
         final String key = getKey(type, id);
-        final AsynchronousWebRequest<T> request = requests.get(key);
+        final AsynchronousWebRequest<R, T> request = requests.get(key);
         if (request == null) {
             throw new ResourceNotFoundException("Could not find a Request with identifier " + id);
         }
@@ -151,13 +151,13 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
     }
 
     @Override
-    public AsynchronousWebRequest<T> getRequest(final String type, final String id, final NiFiUser user) {
+    public AsynchronousWebRequest<R, T> getRequest(final String type, final String id, final NiFiUser user) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(id);
         Objects.requireNonNull(user);
 
         final String key = getKey(type, id);
-        final AsynchronousWebRequest<T> request = requests.get(key);
+        final AsynchronousWebRequest<R, T> request = requests.get(key);
         if (request == null) {
             throw new ResourceNotFoundException("Could not find a Request with identifier " + id);
         }

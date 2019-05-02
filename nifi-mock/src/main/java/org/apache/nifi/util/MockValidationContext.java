@@ -16,12 +16,8 @@
  */
 package org.apache.nifi.util;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
@@ -32,8 +28,18 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.registry.VariableRegistry;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MockValidationContext extends MockControllerServiceLookup implements ValidationContext, ControllerServiceLookup {
 
@@ -70,7 +76,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(variableRegistry);
+        return new StandardExpressionLanguageCompiler(variableRegistry, ParameterLookup.EMPTY);
     }
 
     @Override
@@ -158,6 +164,25 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     @Override
     public String getProcessGroupIdentifier() {
         return "unit test";
+    }
+
+    @Override
+    public Collection<String> getReferencedParameters(final String propertyName) {
+        final String rawPropertyValue = context.getProperty(propertyName).getValue();
+        final boolean elSupported = isExpressionLanguageSupported(propertyName);
+
+        final ParameterParser parser = elSupported ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
+
+        final List<ParameterReference> references = parser.parseTokens(rawPropertyValue).toReferenceList();
+        return references.stream()
+            .map(ParameterReference::getParameterName)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean isParameterDefined(final String parameterName) {
+        // TODO: Implement
+        return false;
     }
 
 }

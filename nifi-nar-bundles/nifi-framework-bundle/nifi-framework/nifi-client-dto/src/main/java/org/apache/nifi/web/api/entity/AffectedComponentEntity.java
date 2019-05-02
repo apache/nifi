@@ -41,4 +41,9 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     public void setComponent(AffectedComponentDTO component) {
         this.component = component;
     }
+
+    @Override
+    public String toString() {
+        return component == null ? "AffectedComponent[No Component]" : component.toString();
+    }
 }

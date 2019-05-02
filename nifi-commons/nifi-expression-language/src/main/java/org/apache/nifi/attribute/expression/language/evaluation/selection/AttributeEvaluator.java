@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -33,9 +31,9 @@ public class AttributeEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String nameValue = nameEvaluator.evaluate(attributes, context).getValue();
-        final String attributeValue = attributes.get(nameValue);
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final String nameValue = nameEvaluator.evaluate(evaluationContext).getValue();
+        final String attributeValue = evaluationContext.getExpressionValue(nameValue);
         return new StringQueryResult(attributeValue);
     }
 

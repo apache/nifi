@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.script.impl;
 
-import java.util.Map;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+
+import java.util.Collection;
+import java.util.Map;
 
 public abstract class ValidationContextAdapter implements ValidationContext {
 
@@ -94,4 +95,13 @@ public abstract class ValidationContextAdapter implements ValidationContext {
         return innerValidationContext.getProcessGroupIdentifier();
     }
 
+    @Override
+    public boolean isParameterDefined(final String parameterName) {
+        return innerValidationContext.isParameterDefined(parameterName);
+    }
+
+    @Override
+    public Collection<String> getReferencedParameters(final String propertyName) {
+        return innerValidationContext.getReferencedParameters(propertyName);
+    }
 }

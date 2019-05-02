@@ -27,6 +27,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -35,6 +36,7 @@ import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -76,6 +78,12 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setPosition(new Position(processGroup.getPosition().getX(), processGroup.getPosition().getY()));
         }
 
+        final ParameterContextReferenceDTO parameterContextReference = processGroup.getParameterContext();
+        if (parameterContextReference != null && parameterContextReference.getId() != null) {
+            final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextReference.getId());
+            group.setParameterContext(parameterContext);
+        }
+
         // add the process group
         group.setParent(parentGroup);
         parentGroup.addProcessGroup(group);
@@ -90,6 +98,28 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyUpdate(final ProcessGroupDTO processGroup) {
+        final ParameterContextReferenceDTO parameterContextReference = processGroup.getParameterContext();
+        if (parameterContextReference == null) {
+            return;
+        }
+
+        final ParameterContext parameterContext = locateParameterContext(parameterContextReference.getId());
+        final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
+        group.verifyCanSetParameterContext(parameterContext);
+    }
+
+    private ParameterContext locateParameterContext(final String id) {
+        final ParameterContext parameterContext;
+        if (id == null) {
+            return null;
+        } else {
+            parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(id);
+            if (parameterContext == null) {
+                throw new IllegalStateException("Cannot update Process Group's Parameter Context because no Parameter Context exists with ID " + id);
+            }
+
+            return parameterContext;
+        }
     }
 
     @Override
@@ -305,6 +335,21 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final String name = processGroupDTO.getName();
         final String comments = processGroupDTO.getComments();
+
+        final ParameterContextReferenceDTO parameterContextReference = processGroupDTO.getParameterContext();
+        if (parameterContextReference != null) {
+            final String parameterContextId = parameterContextReference.getId();
+            if (parameterContextId == null) {
+                group.setParameterContext(null);
+            } else {
+                final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
+                if (parameterContext == null) {
+                    throw new IllegalStateException("Cannot set Process Group's Parameter Context because no Parameter Context exists with ID " + parameterContextId);
+                }
+
+                group.setParameterContext(parameterContext);
+            }
+        }
 
         if (isNotNull(name)) {
             group.setName(name);

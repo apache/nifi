@@ -79,7 +79,7 @@ public class EventIndexTask implements Runnable {
         // call #drainTo on the queue. So we call poll, blocking for up to 1 second. If we get any event, then
         // we will call drainTo to gather the rest. If we get no events, then we just return, having gathered
         // no events.
-        StoredDocument firstDoc = documentQueue.poll(1, TimeUnit.SECONDS);
+        StoredDocument firstDoc = documentQueue.poll(10, TimeUnit.MILLISECONDS);
         if (firstDoc == null) {
             return;
         }

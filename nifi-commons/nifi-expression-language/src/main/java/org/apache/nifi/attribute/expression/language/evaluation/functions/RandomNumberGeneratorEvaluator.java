@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-import java.util.Random;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
+
+import java.util.Random;
 
 public class RandomNumberGeneratorEvaluator extends WholeNumberEvaluator {
 
@@ -31,7 +30,7 @@ public class RandomNumberGeneratorEvaluator extends WholeNumberEvaluator {
 
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         return new WholeNumberQueryResult(Math.abs(RNG.nextLong()));
     }
 

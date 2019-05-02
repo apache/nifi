@@ -52,7 +52,7 @@ public class StreamingIT {
         ///////////////////////////////////////////
         VariableRegistry registry = VariableRegistry.EMPTY_REGISTRY;
         boolean materializeData = true;
-        StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup();
+        StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(null);
         File file = new File("/tmp/nifistateless/input/test.txt");
         file.getParentFile().mkdirs();
         file.createNewFile();
@@ -130,7 +130,7 @@ public class StreamingIT {
 
     private StatelessProcessorWrapper wrapProcessor(final Processor processor, StatelessControllerServiceLookup serviceLookup, final VariableRegistry registry)
         throws InvocationTargetException, IllegalAccessException {
-        return new StatelessProcessorWrapper(UUID.randomUUID().toString(), processor, null, serviceLookup, registry, true, ClassLoader.getSystemClassLoader());
+        return new StatelessProcessorWrapper(UUID.randomUUID().toString(), processor, null, serviceLookup, registry, true, ClassLoader.getSystemClassLoader(), null);
     }
 
 }

@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -33,8 +31,8 @@ public class IsNullEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final Object subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final Object subjectValue = subject.evaluate(evaluationContext).getValue();
         return new BooleanQueryResult(subjectValue == null);
     }
 

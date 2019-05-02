@@ -18,6 +18,7 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -30,6 +31,7 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -82,6 +84,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getProperties(), getReportingTask(), getVariableRegistry());
+        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getEffectivePropertyValues(), getReportingTask(), getVariableRegistry(), ParameterLookup.EMPTY);
+    }
+
+    @Override
+    protected ParameterContext getParameterContext() {
+        return null;
     }
 }

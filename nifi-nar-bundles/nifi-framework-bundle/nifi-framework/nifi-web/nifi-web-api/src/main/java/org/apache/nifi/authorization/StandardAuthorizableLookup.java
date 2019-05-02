@@ -22,11 +22,11 @@ import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
-import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -56,6 +56,7 @@ import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
+import org.apache.nifi.web.dao.ParameterContextDAO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
@@ -158,6 +159,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
+
+
     // nifi core components
     private ControllerFacade controllerFacade;
 
@@ -175,6 +178,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private ReportingTaskDAO reportingTaskDAO;
     private TemplateDAO templateDAO;
     private AccessPolicyDAO accessPolicyDAO;
+    private ParameterContextDAO parameterContextDAO;
 
     @Override
     public Authorizable getController() {
@@ -266,6 +270,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getOutputPort(final String id) {
         return outputPortDAO.getPort(id);
+    }
+
+    @Override
+    public Authorizable getParameterContext(final String id) {
+        return parameterContextDAO.getParameterContext(id);
     }
 
     @Override
@@ -372,8 +381,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         return new SnippetAuthorizable() {
             @Override
-            public Authorizable getParentProcessGroup() {
-                return processGroup;
+            public ProcessGroupAuthorizable getParentProcessGroup() {
+                return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
             }
 
             @Override
@@ -567,6 +576,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case Template:
                 authorizable = getTemplate(componentId);
                 break;
+            case ParameterContext:
+                authorizable = getParameterContext(componentId);
+                break;
         }
 
         if (authorizable == null) {
@@ -649,6 +661,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case Tenant:
                 authorizable = getTenant();
                 break;
+            case ParameterContext:
+                authorizable = getParameterContexts();
+                break;
         }
 
         if (authorizable == null) {
@@ -697,7 +712,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         if (snippet.getProcessGroups() != null) {
-            snippet.getProcessGroups().stream().forEach(group -> createTemporaryProcessorsAndControllerServices(group.getContents(), processors, controllerServices, extensionManager));
+            snippet.getProcessGroups().forEach(group -> createTemporaryProcessorsAndControllerServices(group.getContents(), processors, controllerServices, extensionManager));
         }
     }
 
@@ -754,6 +769,21 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return SYSTEM_AUTHORIZABLE;
     }
 
+    @Override
+    public Authorizable getParameterContexts() {
+        return new Authorizable() {
+            @Override
+            public Authorizable getParentAuthorizable() {
+                return getController();
+            }
+
+            @Override
+            public Resource getResource() {
+                return ResourceFactory.getParameterContextsResource();
+            }
+        };
+    }
+
     /**
      * ComponentAuthorizable for a ConfigurableComponent. This authorizable is intended only to be used when
      * creating new components.
@@ -788,6 +818,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return null;
+        }
+
+        @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
             return configurableComponent.getPropertyDescriptor(propertyName);
         }
@@ -800,6 +835,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public void cleanUpResources() {
             extensionManager.removeInstanceClassLoader(configurableComponent.getIdentifier());
+        }
+
+        @Override
+        public Authorizable getParameterContext() {
+            return null;
         }
     }
 
@@ -831,8 +871,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getParameterContext() {
+            return processorNode.getProcessGroup().getParameterContext();
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
-            return processorNode.getProperty(propertyDescriptor);
+            return processorNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return processorNode.getRawPropertyValue(propertyDescriptor);
         }
 
         @Override
@@ -879,8 +929,19 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getParameterContext() {
+            final ProcessGroup processGroup = controllerServiceNode.getProcessGroup();
+            return processGroup == null ? null : processGroup.getParameterContext(); // will be null if Controller-level Controller Service.
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
-            return controllerServiceNode.getProperty(propertyDescriptor);
+            return controllerServiceNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return controllerServiceNode.getRawPropertyValue(propertyDescriptor);
         }
 
         @Override
@@ -927,8 +988,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getParameterContext() {
+            return null;
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
-            return reportingTaskNode.getProperty(propertyDescriptor);
+            return reportingTaskNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return reportingTaskNode.getRawPropertyValue(propertyDescriptor);
         }
 
         @Override
@@ -962,6 +1033,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public ProcessGroup getProcessGroup() {
+            return processGroup;
+        }
+
+        @Override
         public Set<ComponentAuthorizable> getEncapsulatedProcessors() {
             return processGroup.findAllProcessors().stream().map(
                     processorNode -> new ProcessorComponentAuthorizable(processorNode, extensionManager)).collect(Collectors.toSet());
@@ -970,27 +1046,27 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Set<ConnectionAuthorizable> getEncapsulatedConnections() {
             return processGroup.findAllConnections().stream().map(
-                    connection -> new StandardConnectionAuthorizable(connection)).collect(Collectors.toSet());
+                StandardConnectionAuthorizable::new).collect(Collectors.toSet());
         }
 
         @Override
         public Set<Authorizable> getEncapsulatedInputPorts() {
-            return processGroup.findAllInputPorts().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllInputPorts());
         }
 
         @Override
         public Set<Authorizable> getEncapsulatedOutputPorts() {
-            return processGroup.findAllOutputPorts().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllOutputPorts());
         }
 
         @Override
         public Set<Authorizable> getEncapsulatedFunnels() {
-            return processGroup.findAllFunnels().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllFunnels());
         }
 
         @Override
         public Set<Authorizable> getEncapsulatedLabels() {
-            return processGroup.findAllLabels().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllLabels());
         }
 
         @Override
@@ -1001,12 +1077,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public Set<Authorizable> getEncapsulatedRemoteProcessGroups() {
-            return processGroup.findAllRemoteProcessGroups().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllRemoteProcessGroups());
         }
 
         @Override
         public Set<Authorizable> getEncapsulatedTemplates() {
-            return processGroup.findAllTemplates().stream().collect(Collectors.toSet());
+            return new HashSet<>(processGroup.findAllTemplates());
         }
 
         @Override
@@ -1104,6 +1180,10 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
+    }
+
+    public void setParameterContextDAO(ParameterContextDAO parameterContextDAO) {
+        this.parameterContextDAO = parameterContextDAO;
     }
 
     public void setControllerFacade(ControllerFacade controllerFacade) {

@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Base64;
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.io.UnsupportedEncodingException;
+import java.util.Base64;
 
 public class Base64DecodeEvaluator extends StringEvaluator {
 
@@ -35,8 +34,8 @@ public class Base64DecodeEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }

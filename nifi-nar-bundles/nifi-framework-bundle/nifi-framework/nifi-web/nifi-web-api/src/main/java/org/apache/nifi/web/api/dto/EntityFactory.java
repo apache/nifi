@@ -41,6 +41,7 @@ import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
+import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
@@ -50,6 +51,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntit
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -370,6 +372,21 @@ public final class EntityFactory {
         return entity;
     }
 
+    public ComponentValidationResultEntity createComponentValidationResultEntity(final ComponentValidationResultDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final ComponentValidationResultEntity entity = new ComponentValidationResultEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
+
     public UserGroupEntity createUserGroupEntity(final UserGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final UserGroupEntity entity = new UserGroupEntity();
         entity.setRevision(revision);
@@ -498,6 +515,21 @@ public final class EntityFactory {
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
+            }
+        }
+
+        return entity;
+    }
+
+    public ParameterContextEntity createParameterContextEntity(final ParameterContextDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final ParameterContextEntity entity = new ParameterContextEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);;
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
             }
         }
 

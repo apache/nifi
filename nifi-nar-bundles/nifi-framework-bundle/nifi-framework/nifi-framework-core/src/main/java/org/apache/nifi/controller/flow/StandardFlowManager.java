@@ -61,6 +61,12 @@ import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
@@ -101,6 +107,7 @@ public class StandardFlowManager implements FlowManager {
     private final SSLContext sslContext;
     private final FlowController flowController;
     private final FlowFileEventRepository flowFileEventRepository;
+    private final ParameterContextManager parameterContextManager;
 
     private final boolean isSiteToSiteSecure;
 
@@ -114,7 +121,8 @@ public class StandardFlowManager implements FlowManager {
     private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
 
-    public StandardFlowManager(final NiFiProperties nifiProperties, final SSLContext sslContext, final FlowController flowController, final FlowFileEventRepository flowFileEventRepository) {
+    public StandardFlowManager(final NiFiProperties nifiProperties, final SSLContext sslContext, final FlowController flowController,
+                               final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager) {
         this.nifiProperties = nifiProperties;
         this.flowController = flowController;
         this.bulletinRepository = flowController.getBulletinRepository();
@@ -122,6 +130,7 @@ public class StandardFlowManager implements FlowManager {
         this.authorizer = flowController.getAuthorizer();
         this.sslContext = sslContext;
         this.flowFileEventRepository = flowFileEventRepository;
+        this.parameterContextManager = parameterContextManager;
 
         this.isSiteToSiteSecure = Boolean.TRUE.equals(nifiProperties.isSiteToSiteSecure());
     }
@@ -582,7 +591,7 @@ public class StandardFlowManager implements FlowManager {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null) {
                 final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
@@ -638,7 +647,7 @@ public class StandardFlowManager implements FlowManager {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : service.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : service.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null) {
                 final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
@@ -656,7 +665,7 @@ public class StandardFlowManager implements FlowManager {
 
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
-        logger.info("{} removed from Flow Controller", service, this);
+        logger.info("{} removed from Flow Controller", service);
     }
 
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
@@ -719,6 +728,27 @@ public class StandardFlowManager implements FlowManager {
 
     public ControllerServiceNode getControllerServiceNode(final String id) {
         return flowController.getControllerServiceProvider().getControllerServiceNode(id);
+    }
+
+    @Override
+    public ParameterContextManager getParameterContextManager() {
+        return parameterContextManager;
+    }
+
+    @Override
+    public ParameterContext createParameterContext(final String id, final String name, final Set<Parameter> parameters) {
+        final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
+            .anyMatch(paramContext -> paramContext.getName().equals(name));
+
+        if (namingConflict) {
+            throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
+        }
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
+        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, flowController);
+        parameterContext.setParameters(parameters);
+        parameterContextManager.addParameterContext(parameterContext);
+        return parameterContext;
     }
 
 }

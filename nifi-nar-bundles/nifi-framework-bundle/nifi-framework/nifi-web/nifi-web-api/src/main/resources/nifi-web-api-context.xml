@@ -133,6 +133,9 @@
     <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
         <constructor-arg ref="authorizer"/>
     </bean>
+    <bean id="parameterContextDAO" class="org.apache.nifi.web.dao.impl.StandardParameterContextDAO">
+        <property name="flowController" ref="flowController" />
+    </bean>
     <bean id="controllerSearchService" class="org.apache.nifi.web.controller.ControllerSearchService">
         <property name="flowController" ref="flowController"/>
         <property name="authorizer" ref="authorizer"/>
@@ -162,6 +165,7 @@
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="parameterContextDAO" ref="parameterContextDAO" />
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
         <property name="authorizableLookup" ref="authorizableLookup" />
@@ -194,6 +198,7 @@
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryClient" ref="flowRegistryClient" />
         <property name="registryDAO" ref="flowRegistryDAO" />
+        <property name="parameterContextDAO" ref="parameterContextDAO" />
     </bean>
 
     <!-- component ui extension configuration context -->
@@ -451,6 +456,17 @@
         <constructor-arg ref="clusterCoordinator"/>
         <constructor-arg ref="requestReplicator" />
         <constructor-arg ref="flowController" />
+    </bean>
+    <bean id="parameterContextResource" class="org.apache.nifi.web.api.ParameterContextResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="authorizer" ref="authorizer" />
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="flowController" ref="flowController" />
+        <property name="dtoFactory" ref="dtoFactory" />
+        <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
+        <property name="localComponentLifecycle" ref="localComponentLifecycle" />
     </bean>
 
     <!-- enable aop -->

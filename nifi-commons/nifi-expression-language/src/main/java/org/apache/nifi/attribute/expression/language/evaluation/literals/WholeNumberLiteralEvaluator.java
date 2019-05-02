@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
@@ -33,7 +31,7 @@ public class WholeNumberLiteralEvaluator extends WholeNumberEvaluator {
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         return new WholeNumberQueryResult(literal);
     }
 

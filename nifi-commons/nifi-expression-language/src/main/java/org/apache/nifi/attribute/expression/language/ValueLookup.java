@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.VariableRegistry;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,9 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.VariableRegistry;
 
 /**
  * A convenience class to encapsulate the logic of variable substitution
@@ -35,8 +36,8 @@ import org.apache.nifi.registry.VariableRegistry;
  */
 final class ValueLookup implements Map<String, String> {
 
-    final List<Map<String, String>> maps = new ArrayList<>();
-    final VariableRegistry registry;
+    private final List<Map<String, String>> maps = new ArrayList<>();
+    private final VariableRegistry registry;
 
     /**
      * Constructs a ValueLookup where values are looked up first based any
@@ -56,6 +57,7 @@ final class ValueLookup implements Map<String, String> {
                 maps.add(map);
             }
         }
+
         if (flowFile != null) {
             maps.add(ValueLookup.extractFlowFileProperties(flowFile));
             maps.add(flowFile.getAttributes());
@@ -144,6 +146,14 @@ final class ValueLookup implements Map<String, String> {
     @Override
     public void clear() {
         throw new UnsupportedOperationException();
+    }
+
+    public Set<String> getKeysAddressableByMultiMatch() {
+        final Set<String> keys = new HashSet<>();
+        for (final Map<String, String> map : maps) {
+            keys.addAll(map.keySet());
+        }
+        return keys;
     }
 
     @Override

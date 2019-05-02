@@ -16,7 +16,23 @@
  */
 package org.apache.nifi.controller.service;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
+import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.Severity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,23 +51,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.Severity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Objects.requireNonNull;
 
 public class StandardControllerServiceProvider implements ControllerServiceProvider {
 
@@ -338,16 +339,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return orderedNodeLists;
     }
 
-    private static void determineEnablingOrder(
-            final Map<String, ControllerServiceNode> serviceNodeMap,
-            final ControllerServiceNode contextNode,
-            final List<ControllerServiceNode> orderedNodes,
-            final Set<ControllerServiceNode> visited) {
+    private static void determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap, final ControllerServiceNode contextNode,
+            final List<ControllerServiceNode> orderedNodes, final Set<ControllerServiceNode> visited) {
+
         if (visited.contains(contextNode)) {
             return;
         }
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getEffectivePropertyValues().entrySet()) {
             if (entry.getKey().getControllerServiceDefinition() != null) {
                 final String referencedServiceId = entry.getValue();
                 if (referencedServiceId != null) {

@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -35,13 +33,13 @@ public class PlusEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final Number subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<Number> evaluate(final EvaluationContext evaluationContext) {
+        final Number subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Number plus = plusValue.evaluate(attributes, context).getValue();
+        final Number plus = plusValue.evaluate(evaluationContext).getValue();
         if (plus == null) {
             return new NumberQueryResult(null);
         }

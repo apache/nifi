@@ -48,6 +48,11 @@ public interface ComponentAuthorizable {
     Set<Authorizable> getRestrictedAuthorizables();
 
     /**
+     * @return the Parameter Context that is bound to this component's Process Group, as an Authorizable, or <code>null</code> if no Parameter Context is bound
+     */
+    Authorizable getParameterContext();
+
+    /**
      * Returns the property descriptor for the specified property.
      *
      * @param propertyName property name
@@ -69,6 +74,14 @@ public interface ComponentAuthorizable {
      * @return value
      */
     String getValue(PropertyDescriptor propertyDescriptor);
+
+    /**
+     * Returns the currently configured value of the specified property without performing Parameter substitution
+     *
+     * @param propertyDescriptor property descriptor
+     * @return value
+     */
+    String getRawValue(PropertyDescriptor propertyDescriptor);
 
     /**
      * Cleans up any resources resulting from the creation of these temporary components.

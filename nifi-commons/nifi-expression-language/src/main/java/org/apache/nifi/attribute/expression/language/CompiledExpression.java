@@ -17,12 +17,11 @@
 
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.expression.AttributeValueDecorator;
+
+import java.util.Set;
 
 public class CompiledExpression implements Expression {
     private final Evaluator<?> rootEvaluator;
@@ -54,7 +53,7 @@ public class CompiledExpression implements Expression {
     }
 
     @Override
-    public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
-        return Query.evaluateExpression(tree, rootEvaluator, expression, variables, decorator, stateVariables);
+    public String evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
+        return Query.evaluateExpression(tree, rootEvaluator, expression, evaluationContext, decorator);
     }
 }

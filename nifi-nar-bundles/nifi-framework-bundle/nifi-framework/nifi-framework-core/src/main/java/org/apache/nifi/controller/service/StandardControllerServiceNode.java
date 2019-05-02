@@ -43,6 +43,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -238,10 +240,18 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
     }
 
+
+    @Override
+    protected ParameterContext getParameterContext() {
+        final ProcessGroup processGroup = getProcessGroup();
+        return processGroup == null ? null : processGroup.getParameterContext();
+    }
+
+
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
         Set<ControllerServiceNode> requiredServices = new HashSet<>();
-        for (Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+        for (Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
             PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
                 ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(entry.getValue());
@@ -392,11 +402,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 this.active.set(true);
             }
 
+            final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
             final StandardControllerServiceNode service = this;
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
+                    final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null, getVariableRegistry());
+
                     if (!isActive()) {
                         LOG.debug("{} is no longer active so will not attempt to enable it", StandardControllerServiceNode.this);
                         stateTransition.disable();
@@ -567,5 +579,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 ", processGroup=" + processGroup +
                 ", active=" + active +
                 '}';
+    }
+
+    @Override
+    public ParameterLookup getParameterLookup() {
+        return getParameterContext();
     }
 }

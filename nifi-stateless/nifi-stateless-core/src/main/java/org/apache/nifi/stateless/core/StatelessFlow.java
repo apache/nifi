@@ -24,6 +24,9 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
@@ -67,7 +70,9 @@ public class StatelessFlow implements RunnableFlow {
     public static final String FAILUREPORTS = "failurePortIds";
     public static final String FLOWFILES = "flowFiles";
     public static final String CONTENT = "nifi_content";
-    public static final String VARIABLES = "variables";
+    public static final String PARAMETERS = "parameters";
+    public static final String PARAMETER_SENSITIVE = "sensitive";
+    public static final String PARAMETER_VALUE = "value";
 
     public static final String SSL = "ssl";
     public static final String KEYSTORE = "keystore";
@@ -78,7 +83,6 @@ public class StatelessFlow implements RunnableFlow {
     public static final String TRUSTSTORE_PASS = "truststorePass";
     public static final String TRUSTSTORE_TYPE = "truststoreType";
 
-    private static final String DEFAULT_WORKING_DIR = "./work";
 
     private List<StatelessComponent> roots;
     private volatile boolean stopRequested = false;
@@ -96,8 +100,8 @@ public class StatelessFlow implements RunnableFlow {
     }
 
 
-    public StatelessFlow(final VersionedProcessGroup flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry,
-                         final List<String> failureOutputPorts, final boolean materializeContent, final SSLContext sslContext) throws ProcessorInstantiationException,  InitializationException {
+    public StatelessFlow(final VersionedProcessGroup flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
+                         final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
 
         this.componentFactory = new ComponentFactory(extensionManager);
 
@@ -115,18 +119,19 @@ public class StatelessFlow implements RunnableFlow {
             throw new IllegalArgumentException("Only one input port per flow is allowed");
         }
 
-        final StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup();
+        final StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(parameterContext);
 
         final Set<VersionedControllerService> controllerServices = flow.getControllerServices();
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final StateManager stateManager = new StatelessStateManager();
 
-            final ControllerService service = componentFactory.createControllerService(versionedControllerService, variableRegistry, serviceLookup, stateManager);
+            final ControllerService service = componentFactory.createControllerService(versionedControllerService, variableRegistry, serviceLookup, stateManager, parameterContext);
             serviceLookup.addControllerService(service, versionedControllerService.getName());
             serviceLookup.setControllerServiceAnnotationData(service, versionedControllerService.getAnnotationData());
 
             final SLF4JComponentLog logger = new SLF4JComponentLog(service);
-            final StatelessProcessContext processContext = new StatelessProcessContext(service, serviceLookup, versionedControllerService.getName(), logger, stateManager, variableRegistry);
+            final StatelessProcessContext processContext = new StatelessProcessContext(service, serviceLookup, versionedControllerService.getName(),
+                logger, stateManager, variableRegistry, parameterContext);
 
             final Map<String, String> versionedPropertyValues = versionedControllerService.getProperties();
             for (final Map.Entry<String, String> entry : versionedPropertyValues.entrySet()) {
@@ -166,7 +171,7 @@ public class StatelessFlow implements RunnableFlow {
                         if (processor == null) {
                             throw new IllegalArgumentException("Unknown input processor. " + source.getId());
                         } else {
-                            sourceComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null);
+                            sourceComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
                             componentMap.put(source.getId(), sourceComponent);
                         }
                         break;
@@ -207,7 +212,7 @@ public class StatelessFlow implements RunnableFlow {
                             return;
                         }
 
-                        destinationComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null);
+                        destinationComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
                         destinationComponent.addParent(sourceComponent);
                         componentMap.put(destination.getId(), destinationComponent);
                     }
@@ -416,16 +421,52 @@ public class StatelessFlow implements RunnableFlow {
             }
         }
 
-        if (args.has(VARIABLES)) {
-            final JsonElement variablesElement = args.get(VARIABLES);
-            final JsonObject variablesObject = variablesElement.getAsJsonObject();
-            variablesObject.entrySet()
-                .forEach(entry -> inputVariables.put(new VariableDescriptor(entry.getKey()), entry.getValue().getAsString()));
+        final Set<Parameter> parameters = new HashSet<>();
+        final Set<String> parameterNames = new HashSet<>();
+        if (args.has(PARAMETERS)) {
+            final JsonElement parametersElement = args.get(PARAMETERS);
+            final JsonObject parametersObject = parametersElement.getAsJsonObject();
+
+            for (final Map.Entry<String, JsonElement> entry : parametersObject.entrySet()) {
+                final String parameterName = entry.getKey();
+                final JsonElement valueElement = entry.getValue();
+
+                if (parameterNames.contains(parameterName)) {
+                    throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' has been defined twice");
+                }
+
+                parameterNames.add(parameterName);
+
+                if (valueElement.isJsonObject()) {
+                    final JsonObject valueObject = valueElement.getAsJsonObject();
+
+                    final boolean sensitive;
+                    if (valueObject.has(PARAMETER_SENSITIVE)) {
+                        sensitive = valueObject.get(PARAMETER_SENSITIVE).getAsBoolean();
+                    } else {
+                        sensitive = false;
+                    }
+
+                    if (valueObject.has(PARAMETER_VALUE)) {
+                        final String value = valueObject.get(PARAMETER_VALUE).getAsString();
+                        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(sensitive).build();
+                        final Parameter parameter = new Parameter(descriptor, value);
+                        parameters.add(parameter);
+                    } else {
+                        throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' does not have a value associated with it");
+                    }
+                } else {
+                    final String parameterValue = entry.getValue().getAsString();
+                    final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+                    final Parameter parameter = new Parameter(descriptor, parameterValue);
+                    parameters.add(parameter);
+                }
+            }
         }
 
+        final ParameterContext parameterContext = new StatelessParameterContext(parameters);
         final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
-
-        final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext);
+        final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
         flow.enqueueFromJSON(args);
         return flow;
     }

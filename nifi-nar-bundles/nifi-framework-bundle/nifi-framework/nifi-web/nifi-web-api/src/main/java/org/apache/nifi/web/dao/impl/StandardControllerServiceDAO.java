@@ -242,6 +242,16 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final List<String> validationErrors = new ArrayList<>();
+
+        final Map<String, String> properties = controllerServiceDTO.getProperties();
+        if (isNotNull(properties)) {
+            try {
+                controllerService.verifyCanUpdateProperties(properties);
+            } catch (final IllegalArgumentException | IllegalStateException iae) {
+                validationErrors.add(iae.getMessage());
+            }
+        }
+
         return validationErrors;
     }
 

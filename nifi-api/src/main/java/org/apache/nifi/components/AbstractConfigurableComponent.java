@@ -84,12 +84,14 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         // goes through supported properties
         final Collection<ValidationResult> results = new ArrayList<>();
         final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
+
         if (null != supportedDescriptors) {
             for (final PropertyDescriptor descriptor : supportedDescriptors) {
                 String value = context.getProperty(descriptor).getValue();
                 if (value == null) {
                     value = descriptor.getDefaultValue();
                 }
+
                 if (value == null && descriptor.isRequired()) {
                     String displayName = descriptor.getDisplayName();
                     ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());

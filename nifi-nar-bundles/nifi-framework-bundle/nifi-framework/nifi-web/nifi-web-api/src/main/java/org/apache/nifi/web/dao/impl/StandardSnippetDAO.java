@@ -294,7 +294,7 @@ public class StandardSnippetDAO implements SnippetDAO {
                 }
 
                 // look for sensitive properties get the actual value
-                for (Entry<PropertyDescriptor, String> entry : processorNode.getProperties().entrySet()) {
+                for (Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
                     final PropertyDescriptor descriptor = entry.getKey();
 
                     if (descriptor.isSensitive()) {
@@ -319,7 +319,7 @@ public class StandardSnippetDAO implements SnippetDAO {
                 }
 
                 // look for sensitive properties get the actual value
-                for (Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
+                for (Entry<PropertyDescriptor, String> entry : serviceNode.getRawPropertyValues().entrySet()) {
                     final PropertyDescriptor descriptor = entry.getKey();
 
                     if (descriptor.isSensitive()) {

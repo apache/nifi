@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
@@ -422,7 +422,7 @@ public class StandardManagedAuthorizerTest {
         final StandardManagedAuthorizer managedAuthorizer = new StandardManagedAuthorizer();
 
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty("Access Policy Provider")).thenReturn(new StandardPropertyValue("access-policy-provider", null));
+        when(configurationContext.getProperty("Access Policy Provider")).thenReturn(new StandardPropertyValue("access-policy-provider", null, ParameterLookup.EMPTY));
 
         final AccessPolicyProviderLookup accessPolicyProviderLookup = mock(AccessPolicyProviderLookup.class);
         when(accessPolicyProviderLookup.getAccessPolicyProvider("access-policy-provider")).thenReturn(accessPolicyProvider);
