@@ -17,14 +17,29 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.ValidationResult;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 
 public class TestJettyWebSocketServer {
+
+    String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @Test
     public void testValidationRequiredProperties() throws Exception {
@@ -61,4 +76,20 @@ public class TestJettyWebSocketServer {
         assertEquals(0, results.size());
     }
 
+    @Test
+    public void testValidationSuccessUponFileExpansion() throws Exception {
+        System.setProperty("user.home", "src/test/resources");
+        final JettyWebSocketServer service = new JettyWebSocketServer();
+        final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
+        context.setCustomValue(JettyWebSocketServer.LISTEN_PORT, "9001");
+        context.setCustomValue(JettyWebSocketServer.BASIC_AUTH, "true");
+        context.setCustomValue(JettyWebSocketServer.USERS_PROPERTIES_FILE, "~/users.properties");
+        service.initialize(context.getInitializationContext());
+        final Collection<ValidationResult> results = service.validate(context.getValidationContext());
+
+        if (results.size() > 0) {
+            final ValidationResult result = results.iterator().next();
+            fail(result.toString());
+        }
+    }
 }

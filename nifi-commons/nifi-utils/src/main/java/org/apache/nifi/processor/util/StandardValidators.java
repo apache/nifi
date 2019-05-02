@@ -23,6 +23,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.FormatUtils;
 
@@ -37,6 +38,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -822,7 +824,11 @@ public class StandardValidators {
             final String substituted;
             if (allowEL) {
                 try {
-                    substituted = context.newPropertyValue(value).evaluateAttributeExpressions().getValue();
+                    if (value.startsWith("~/")) {
+                        substituted = value;
+                    } else {
+                        substituted = context.newPropertyValue(value).evaluateAttributeExpressions().getValue();
+                    }
                 } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(value).valid(false)
                             .explanation("Not a valid Expression Language value: " + e.getMessage()).build();

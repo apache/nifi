@@ -29,6 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
 import org.apache.nifi.websocket.WebSocketServerService;
@@ -289,7 +290,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             final LoginService loginService;
             final String loginServiceValue = context.getProperty(LOGIN_SERVICE).getValue();
             if (LOGIN_SERVICE_HASH.equals(loginServiceValue)) {
-                final String usersFilePath = context.getProperty(USERS_PROPERTIES_FILE).evaluateAttributeExpressions().getValue();
+                final String usersFilePath = resolveUserPropertiesPath(context);
                 loginService = new HashLoginService("HashLoginService", usersFilePath);
             } else {
                 throw new IllegalArgumentException("Unsupported Login Service: " + loginServiceValue);
@@ -320,6 +321,15 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         server.start();
 
         portToControllerService.put(listenPort, this);
+    }
+
+    private String resolveUserPropertiesPath(final ConfigurationContext context) {
+        String tempFilePath = context.getProperty(USERS_PROPERTIES_FILE).getValue();
+        if (tempFilePath.startsWith("~/")) {
+           return FileExpansionUtil.expandPath(context.getProperty(USERS_PROPERTIES_FILE).getValue());
+        }
+
+        return context.getProperty(USERS_PROPERTIES_FILE).evaluateAttributeExpressions().getValue();
     }
 
     private ServerConnector createConnector(final SslContextFactory sslContextFactory, final Integer listenPort) {
