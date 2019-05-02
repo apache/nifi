@@ -16,21 +16,21 @@
  */
 package org.apache.nifi.stateless.runtimes;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
-import org.apache.nifi.stateless.bootstrap.RunnableFlowFactory;
 import org.apache.nifi.stateless.core.StatelessFlow;
 import org.apache.nifi.stateless.runtimes.openwhisk.StatelessNiFiOpenWhiskAction;
 import org.apache.nifi.stateless.runtimes.yarn.YARNServiceUtil;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class Program {
 
@@ -40,6 +40,25 @@ public class Program {
 
 
     public static void launch(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
+
+        //Workaround for YARN
+        //TODO make configurable
+        String hadoopTokenFileLocation = System.getenv("HADOOP_TOKEN_FILE_LOCATION");
+        if(hadoopTokenFileLocation != null && !hadoopTokenFileLocation.equals("")) {
+            File targetFile = new File(hadoopTokenFileLocation);
+            File parent = targetFile.getParentFile();
+            if (!parent.exists() && !parent.mkdirs()) {
+                throw new IllegalStateException("Couldn't create dir: " + parent);
+            }
+            try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                fos.write("HDTS".getBytes(StandardCharsets.UTF_8));
+                fos.write((byte) 0x00);
+                fos.write((byte) 0x00);
+                fos.write((byte) 0x00);
+            }
+            System.out.println("Created empty hadoop token file: " + System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
+        }
+
         if (args.length == 0) {
             printUsage();
             System.exit(1);
@@ -48,7 +67,7 @@ public class Program {
         } else if (args[0].equals(RUN_YARN_SERVICE_FROM_REGISTRY) && args.length >= 7) {
             runOnYarn(args);
         } else if (args[0].equals(RUN_OPENWHISK_ACTION_SERVER) && args.length == 2) {
-            runOnOpenWhisk(args);
+            runOnOpenWhisk(args, systemClassLoader, narWorkingDirectory);
         } else {
             System.out.println("Invalid input: " + String.join(",", args));
             printUsage();
@@ -56,8 +75,8 @@ public class Program {
         }
     }
 
-    private static void runOnOpenWhisk(final String[] args) throws IOException {
-        StatelessNiFiOpenWhiskAction action = new StatelessNiFiOpenWhiskAction(Integer.parseInt(args[1]));
+    private static void runOnOpenWhisk(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws IOException {
+        StatelessNiFiOpenWhiskAction action = new StatelessNiFiOpenWhiskAction(Integer.parseInt(args[1]), systemClassLoader, narWorkingDirectory);
         action.start();
     }
 
@@ -66,48 +85,51 @@ public class Program {
         String imageName = args[2];
         String serviceName = args[3];
         int numberOfContainers = Integer.parseInt(args[4]);
-        List<String> launchCommand = Arrays.asList(RUN_FROM_REGISTRY, "Continuous");
+        String json;
 
         if (args[5].equals("--file")) {
-            launchCommand.add("--json");
-            launchCommand.add(new String(Files.readAllBytes(Paths.get(args[6]))));
+            json = new String(Files.readAllBytes(Paths.get(args[6])));
         } else if (args[5].equals("--json")) {
-            launchCommand.add("--json");
-            launchCommand.add(args[6]);
-        }
-
-        if (args.length >= 9) {
-            for (int i = 5; i < args.length; i++) {
-                launchCommand.add(args[i]);
-            }
-        } else {
-            System.out.println("Invalid input: " + String.join(",", args));
-            printUsage();
-            System.exit(1);
-        }
-
-        StringBuilder message = new StringBuilder();
-        YARNServiceUtil yarnServiceUtil = new YARNServiceUtil(YARNUrl, imageName);
-        yarnServiceUtil.launchYARNService(serviceName, numberOfContainers, launchCommand.toArray(new String[0]), message);
-        System.out.println(message);
-    }
-
-    private static void runLocal(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
-        final boolean once = args[1].equalsIgnoreCase("Once");
-
-        final RunnableFlow flow;
-        if (args[2].equals("--file")) {
-            flow = RunnableFlowFactory.fromJsonFile(args[3], systemClassLoader, narWorkingDirectory);
-        } else if (args[2].equals("--json")) {
-            flow = RunnableFlowFactory.fromJson(args[3]);
-        } else if (args.length >= 5) {
-            flow = RunnableFlowFactory.fromCommandLineArgs(args);
+            json = args[6];
         } else {
             System.out.println("Invalid input: " + String.join(",", args));
             printUsage();
             System.exit(1);
             return;
         }
+        String[] launchCommand = {
+                RUN_FROM_REGISTRY,
+                "Continuous",
+                "--json",
+                new JsonParser().parse(json).toString() //validate and minify
+        };
+
+        StringBuilder message = new StringBuilder();
+        YARNServiceUtil yarnServiceUtil = new YARNServiceUtil(YARNUrl, imageName);
+        yarnServiceUtil.launchYARNService(serviceName, numberOfContainers, launchCommand, message);
+        System.out.println(message);
+    }
+
+    private static void runLocal(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
+        final boolean once = args[1].equalsIgnoreCase("Once");
+
+        final String json;
+        if (args[2].equals("--file")) {
+            json = new String(Files.readAllBytes(Paths.get(args[3])));
+        } else if (args[2].equals("--json")) {
+            json = args[3];
+        }  else if (args[2].equals("--yarnjson")) {
+            json = args[3].replace(';',',');
+        } else {
+            System.out.println("Invalid input: " + String.join(",", args));
+            printUsage();
+            System.exit(1);
+            return;
+        }
+        JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+        System.out.println("Running from json:");
+        System.out.println(jsonObject.toString());
+        final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, systemClassLoader, narWorkingDirectory);
 
         // Run Flow
         final Queue<InMemoryFlowFile> outputFlowFiles = new LinkedList<>();
@@ -131,33 +153,22 @@ public class Program {
 
     private static void printUsage() {
         System.out.println("Usage:");
-        System.out.println("    1) " + RUN_FROM_REGISTRY + " [Once|Continuous] <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]");
         System.out.println("       " + RUN_FROM_REGISTRY + " [Once|Continuous] --json <JSON>");
         System.out.println("       " + RUN_FROM_REGISTRY + " [Once|Continuous] --file <File Name>");
         System.out.println();
-        System.out.println("    2) " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> \\");
-        System.out.println("                                               <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]");
         System.out.println("       " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>");
         System.out.println("       " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --file <File Name>");
         System.out.println();
         System.out.println("    3) " + RUN_OPENWHISK_ACTION_SERVER + "          <Port>");
         System.out.println();
         System.out.println("Examples:");
-        System.out.println("    1) " + RUN_FROM_REGISTRY + " Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \\");
-        System.out.println("             \"DestinationDirectory-/tmp/nifistateless/output2/\" \"\" \"absolute.path-/tmp/nifistateless/input/;filename-test.txt\" \"absolute.path-/tmp/nifistateless/input/;" +
-            "filename-test2.txt\"");
-        System.out.println("    2) " + RUN_FROM_REGISTRY + " Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \\");
-        System.out.println("             \"DestinationDirectory-/tmp/nifistateless/output2/\" \"f25c9204-6c95-3aa9-b0a8-c556f5f61849\" \"absolute.path-/tmp/nifistateless/input/;filename-test.txt\"");
-        System.out.println("    3) " + RUN_YARN_SERVICE_FROM_REGISTRY + " http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json");
-        System.out.println("    4) " + RUN_OPENWHISK_ACTION_SERVER + " 8080");
+        System.out.println("    1) " + RUN_FROM_REGISTRY + " Once --json \"{\\\"registryUrl\\\":\\\"http://172.26.198.107:61080\\\",\\\"bucketId\\\":\\\"5eec8794-01b3-4cd7-8536-0167c8b4ce8c\\\",\\\"flowId\\\": \\\"c5fa1d4f-b453-4bf5-8ff3-352352c418f3\\\"}\"");
+        System.out.println("    2) " + RUN_YARN_SERVICE_FROM_REGISTRY + " http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json");
+        System.out.println("    3) " + RUN_OPENWHISK_ACTION_SERVER + " 8080");
         System.out.println();
         System.out.println("Notes:");
-        System.out.println("    1) <Input Variables> will be split on ';' and '-' then injected into the flow using the variable registry interface.");
-        System.out.println("    2) <Failure Output Ports> will be split on ';'. FlowFiles routed to matching output ports will immediately fail the flow.");
-        System.out.println("    3) <Input FlowFile> will be split on ';' and '-' then injected into the flow using the \"" + StatelessFlow.CONTENT + "\" field as the FlowFile content.");
-        System.out.println("    4) Multiple <Input FlowFile> arguments can be provided.");
-        System.out.println("    5) The configuration file must be in JSON format. ");
-        System.out.println("    6) When providing configurations via JSON, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID + ", " + StatelessFlow.FLOWID + ".");
+        System.out.println("    1) The configuration file must be in JSON format. ");
+        System.out.println("    2) When providing configurations via JSON, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID + ", " + StatelessFlow.FLOWID + ".");
         System.out.println("          All other attributes will be passed to the flow using the variable registry interface");
         System.out.println();
     }

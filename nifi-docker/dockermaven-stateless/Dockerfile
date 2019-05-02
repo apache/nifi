@@ -48,9 +48,11 @@ ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 # Setup NiFi user
 RUN addgroup -g ${GID} nifi && adduser -s /bin/sh -u ${UID} -G nifi -D nifi
 
-RUN mkdir -p $NIFI_HOME
+RUN mkdir -p $NIFI_HOME && chown nifi:nifi $NIFI_HOME
+RUN mkdir -p ${NIFI_HOME}/work/ && chown nifi:nifi ${NIFI_HOME}/work/ && chmod 777 ${NIFI_HOME}/work/
+
+COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work/
 COPY --chown=nifi:nifi $STATELESS_LIB_DIR ${NIFI_HOME}/stateless-lib/
-COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/working/
 
 
 #NiFi's HDFS processors require core-site.xml or hdfs-site.xml to exist on disk before they can be started...
@@ -63,13 +65,15 @@ RUN echo '<configuration> \n\
                     <name>fs.hdfs.impl</name> \n\
                     <value>org.apache.hadoop.hdfs.DistributedFileSystem</value> \n\
                 </property> \n\
-            </configuration>' > /tmp/core-site.xml
-RUN chmod 666 /tmp/core-site.xml
+            </configuration>' > /tmp/core-site.xml && chown nifi /tmp/core-site.xml && chmod 777 /tmp/core-site.xml
+
+RUN mkdir -p /hadoop/yarn/local && chown nifi /hadoop/yarn/local && chmod 777 /hadoop/yarn/local
 
 USER nifi
 
 EXPOSE 8080
 
 WORKDIR ${NIFI_HOME}
+
 ENTRYPOINT ["/usr/bin/java", "-cp", "stateless-lib/*", "org.apache.nifi.stateless.NiFiStateless"]
 CMD ["RunOpenwhiskActionServer", "8080"]

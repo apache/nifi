@@ -347,10 +347,6 @@ public class StatelessFlow implements RunnableFlow {
         return null;
     }
 
-    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args) throws InitializationException, IOException, ProcessorInstantiationException, NiFiRegistryException {
-        return createAndEnqueueFromJSON(args, ClassLoader.getSystemClassLoader(), new File(DEFAULT_WORKING_DIR));
-    }
-
     public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
             throws InitializationException, IOException, ProcessorInstantiationException, NiFiRegistryException {
         if (args == null) {

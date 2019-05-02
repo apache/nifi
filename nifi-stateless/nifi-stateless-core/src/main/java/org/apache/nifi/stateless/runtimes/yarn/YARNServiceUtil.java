@@ -36,12 +36,23 @@ public class YARNServiceUtil {
         this.imageName = imageName;
     }
 
-    public boolean launchYARNService(String name, int containerCount, String[] launchCommand, StringBuilder outMessage) {
+    public boolean launchYARNService(String name, int containerCount, String[] argLaunchCommand, StringBuilder outMessage) {
+
+        //YARN cannot handle commas in a launch command...
+        String[] updatedLaunchCommand = new String[argLaunchCommand.length];
+        for(int i = 0; i < argLaunchCommand.length; i++){
+            if(argLaunchCommand[i].equals("--json"))
+                updatedLaunchCommand[i] = "--yarnjson";
+            else
+                updatedLaunchCommand[i] = argLaunchCommand[i]
+                        .replace(',',';')
+                        .replace("}}","} }");
+        }
 
         JsonObject spec = new JsonObject();
-        spec.addProperty("name", name.substring(0, 25));
+        spec.addProperty("name", name.substring(0, Math.min(name.length(), 25))); //truncate name
         spec.addProperty("version", "1.0.0");
-        spec.addProperty("description", "Stateless NiFi service launched with the following command: " + String.join(",", launchCommand));
+        spec.addProperty("description", "Stateless NiFi service");
 
         JsonObject component = new JsonObject();
         component.addProperty("name", "mc");
@@ -52,11 +63,11 @@ public class YARNServiceUtil {
         artifact.addProperty("type", "DOCKER");
         component.add("artifact", artifact);
 
-        component.addProperty("launch_command", String.join(",", launchCommand));
+        component.addProperty("launch_command", String.join(",", updatedLaunchCommand));
 
         JsonObject resource = new JsonObject();
         resource.addProperty("cpus", 1);
-        resource.addProperty("memory", "256");
+        resource.addProperty("memory", "512");
         component.add("resource", resource);
 
         JsonObject env = new JsonObject();
@@ -72,6 +83,10 @@ public class YARNServiceUtil {
         HttpPost request = new HttpPost(
             this.YARNUrl + "/app/v1/services?user.name=" + System.getProperty("user.name")
         );
+        System.out.println("Running YARN service with the following definition:");
+        System.out.println(spec);
+        System.out.println("Launch Command");
+        System.out.println(String.join(",", updatedLaunchCommand));
 
         try {
             request.setEntity(new StringEntity(spec.toString(), " application/json", StandardCharsets.UTF_8.toString()));

@@ -48,9 +48,9 @@ public class NiFiStateless {
 
         final File libDir = new File(nifi_home+"/lib");
         final File statelesslibDir = new File(nifi_home+"/stateless-lib");
-        final File narWorkingDirectory = new File(nifi_home+"/working");
+        final File narWorkingDirectory = new File(nifi_home+"/work");
 
-        if(args[0].equals(EXTRACT_NARS)){
+        if(args.length >= 1 && args[0].equals(EXTRACT_NARS)){
             if (!libDir.exists()) {
                 System.out.println("Specified lib directory <" + libDir + "> does not exist");
                 return;

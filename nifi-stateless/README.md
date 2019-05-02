@@ -12,8 +12,10 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-# Stateless NiFi
+# Stateless NiFi 
+Similar to other stream processing frameworks, receipt of incoming data is not acknowledged until it is written to a destination. In the event of failure, data can be replayed from the source rather than relying on a stateful content repository. This will not work for all cases (e.g. fire-and-forget HTTP/tcp), but a large portion of use cases have a resilient source to retry from.
 
+Note: Provenance, metrics, logs are not extracted at this time. Docker and other container engines can be used for logs and metrics.
 ### Build:
 `mvn package -P docker`
 
@@ -25,40 +27,30 @@ After building, the image can be used as follows
 
 Where the arguments dictate the runtime to use:
 ```
-1) RunFromRegistry [Once|Continuous] <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]
-   RunFromRegistry [Once|Continuous] --json <JSON>
+1) RunFromRegistry [Once|Continuous] --json <JSON>
    RunFromRegistry [Once|Continuous] --file <File Name>   # Filename of JSON file that matches the examples below.
 
-2) RunYARNServiceFromRegistry        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> \
-                                           <NiFi registry URL> <Bucket ID> <Flow ID> <Input Variables> [<Failure Output Ports>] [<Input FlowFile>]
-   RunYARNServiceFromRegistry        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>
-   RunYARNServiceFromRegistry        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --file <File Name>
+2) RunYARNServiceFromRegistry <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>
+   RunYARNServiceFromRegistry <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --file <File Name>
 
-3) RunOpenwhiskActionServer          <Port>
+3) RunOpenwhiskActionServer   <Port>
 ```
 
 ### Examples:
 ```
 1) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
-    RunFromRegistry Once http://172.0.0.1:61080 e53b8a0d-5c85-4fcd-912a-1c549a586c83 6cf8277a-c402-4957-8623-0fa9890dd45d \
-    "DestinationDirectory-/tmp/nifistateless/output2/" "" "absolute.path-/tmp/nifistateless/input/;filename-test.txt" "absolute.path-/tmp/nifistateless/input/;filename-test2.txt"
-2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
-3) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json
-4) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+3) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunOpenwhiskActionServer 8080
 ```
 
 ###Notes:
 ```
-1) <Input Variables> will be split on ';' and '-' then injected into the flow using the variable registry interface.
-    2) <Failure Output Ports> will be split on ';'. FlowFiles routed to matching output ports will immediately fail the flow.
-    3) <Input FlowFile> will be split on ';' and '-' then injected into the flow using the "nifi_content" field as the FlowFile content.
-    4) Multiple <Input FlowFile> arguments can be provided.
-    5) The configuration file must be in JSON format.
-    6) When providing configurations via JSON, the following attributes must be provided: nifi_registry, nifi_bucket, nifi_flow.
-          All other attributes will be passed to the flow using the variable registry interface
+1) The configuration file must be in JSON format.
+2) When providing configurations via JSON, the following attributes must be provided: nifi_registry, nifi_bucket, nifi_flow.
+      All other attributes will be passed to the flow using the variable registry interface
 ```
 
 ### JSON Format

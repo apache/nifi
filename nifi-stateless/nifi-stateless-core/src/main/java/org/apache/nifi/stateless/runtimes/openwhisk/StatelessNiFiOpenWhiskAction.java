@@ -22,25 +22,30 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 import org.apache.nifi.stateless.core.StatelessFlow;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
+import java.util.stream.Collectors;
 
 public class StatelessNiFiOpenWhiskAction {
 
     private HttpServer server;
     private boolean initialized = false;
-    private StatelessFlow flow = null;
+    private RunnableFlow flow = null;
+    private ClassLoader systemClassLoader;
+    private File narWorkingDirectory;
 
-    public StatelessNiFiOpenWhiskAction(int port) throws IOException {
+    public StatelessNiFiOpenWhiskAction(int port, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws IOException {
+
+        this.systemClassLoader = systemClassLoader;
+        this.narWorkingDirectory = narWorkingDirectory;
+
         this.server = HttpServer.create(new InetSocketAddress(port), -1);
 
         this.server.createContext("/init", new InitHandler());
@@ -48,24 +53,23 @@ public class StatelessNiFiOpenWhiskAction {
         this.server.setExecutor(null); // creates a default executor
     }
 
+
     public void start() {
         server.start();
     }
 
     private static void writeResponse(HttpExchange t, int code, String content) throws IOException {
-        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        if(content.isEmpty())
+            content = "success";
+
+        JsonObject message = new JsonObject();
+        message.addProperty("result", content);
+        byte[] bytes = message.toString().getBytes(StandardCharsets.UTF_8);
         t.sendResponseHeaders(code, bytes.length);
         OutputStream os = t.getResponseBody();
         os.write(bytes);
         os.close();
     }
-
-    private static void writeError(HttpExchange t, String errorMessage) throws IOException {
-        JsonObject message = new JsonObject();
-        message.addProperty("error", errorMessage);
-        writeResponse(t, 502, message.toString());
-    }
-
     private static void writeLogMarkers() {
         System.out.println("XXX_THE_END_OF_A_WHISK_ACTIVATION_XXX");
         System.err.println("XXX_THE_END_OF_A_WHISK_ACTIVATION_XXX");
@@ -75,28 +79,34 @@ public class StatelessNiFiOpenWhiskAction {
 
     private class InitHandler implements HttpHandler {
         public void handle(HttpExchange t) throws IOException {
-            initialized = true;
-            writeResponse(t, 200, "Initialized");
+            System.out.println("Initializing");
 
-            InputStream is = t.getRequestBody();
-            JsonParser parser = new JsonParser();
-            JsonObject body = parser.parse(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))).getAsJsonObject();
-            System.out.println("Init input: " + body);
-            String code = body.get("value").getAsJsonObject().get("code").getAsString();
+            try {
+                InputStream is = t.getRequestBody();
+                JsonParser parser = new JsonParser();
+                JsonObject body = parser.parse(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))).getAsJsonObject();
+                System.out.println("Init input: " + body);
+                String code = body.get("value").getAsJsonObject().get("code").getAsJsonPrimitive().getAsString();
+                System.out.println("Code input: " + code);
 
-            if (code.equals("GENERIC")) {
-                initialized = true;
-                writeResponse(t, 200, "Initialized Generic Action");
-            } else {
-                JsonObject flowDefinition = parser.parse(code).getAsJsonObject();
-                try {
-                    flow = StatelessFlow.createAndEnqueueFromJSON(flowDefinition);
+                if (code.equals("GENERIC")) {
                     initialized = true;
-                    writeResponse(t, 200, "Initialized " + flow);
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                    writeResponse(t, 400, "Error: " + e.getMessage());
+                    writeResponse(t, 200, "Initialized Generic Action");
+                } else {
+
+                    final JsonObject config = new JsonParser().parse(code).getAsJsonObject();
+                    flow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
+
+                    initialized = true;
+                    writeResponse(t, 200, "Initialized Flow");
                 }
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                String sStackTrace = sw.toString();
+                writeResponse(t, 500, "Error: " + e.getMessage()+"\n"+sStackTrace);
             }
         }
     }
@@ -104,7 +114,7 @@ public class StatelessNiFiOpenWhiskAction {
     private class RunHandler implements HttpHandler {
         public void handle(HttpExchange t) throws IOException {
             if (!initialized) {
-                StatelessNiFiOpenWhiskAction.writeError(t, "Cannot invoke an uninitialized action.");
+                writeResponse(t, 500, "Cannot invoke an uninitialized action.");
                 return;
             }
 
@@ -119,7 +129,7 @@ public class StatelessNiFiOpenWhiskAction {
                         "activation_id":"e212d293aa73479d92d293aa73c79dc9",
                         "action_name":"/guest/nifistateless",
                         "deadline":"1541729057462",
-                        "api_key":"23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
+                        "api_key":"23bc46b1-71f6-4ed5-8c54-816aa4f8c500:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP",
                         "value":{"registry":"http://172.26.224.116:61080","SourceCluster":"hdfs://172.26.224.119:8020","SourceFile":"test.txt",
                         "SourceDirectory":"hdfs://172.26.224.119:8020/tmp/nifistateless/input/","flow":"6cf8277a-c402-4957-8623-0fa9890dd45d","bucket":"e53b8a0d-5c85-4fcd-912a-1c549a586c83",
                         "DestinationDirectory":"hdfs://172.26.224.119:8020/tmp/nifistateless/output"},
@@ -139,10 +149,19 @@ public class StatelessNiFiOpenWhiskAction {
                 Queue<InMemoryFlowFile> output = new LinkedList<>();
                 boolean successful;
                 if (flow == null) {
-                    StatelessFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(inputObject);
+                    System.out.println(inputObject.toString());
+
+                    final JsonObject config = new JsonParser().parse(inputObject.get("code").getAsJsonPrimitive().getAsString()).getAsJsonObject();
+                    RunnableFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
                     successful = tempFlow.runOnce(output);
                 } else {
-                    flow.enqueueFromJSON(inputObject);
+                    System.out.println("Input:");
+                    inputObject.entrySet().forEach(item -> System.out.println(item.getKey()+":"+item.getValue().getAsString()));
+
+                    Map<String,String> Attributes = inputObject.entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(item -> item.getKey(), item -> item.getValue().getAsString()));
+                    ((StatelessFlow)flow).enqueueFlowFile(new byte[0],Attributes);
                     successful = flow.runOnce(output);
                 }
 
@@ -151,11 +170,15 @@ public class StatelessNiFiOpenWhiskAction {
                     response.append("\n").append(flowFile);
                 }
 
-                StatelessNiFiOpenWhiskAction.writeResponse(t, successful ? 200 : 400, response.toString());
+                writeResponse(t, successful ? 200 : 500, response.toString());
 
             } catch (Exception e) {
                 e.printStackTrace(System.err);
-                StatelessNiFiOpenWhiskAction.writeError(t, "An error has occurred (see logs for details): " + e);
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                String sStackTrace = sw.toString();
+                writeResponse(t, 500, "An error has occurred (see logs for details): " + e.getMessage()+"\n"+sStackTrace);
             } finally {
                 writeLogMarkers();
             }
