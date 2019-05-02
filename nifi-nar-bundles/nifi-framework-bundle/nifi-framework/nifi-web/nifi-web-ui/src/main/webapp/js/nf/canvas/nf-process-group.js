@@ -1649,6 +1649,9 @@
             // hide the context menu
             nfContextMenu.hide();
 
+            // capture the current group id to reset to in case of failure
+            var currentGroupId = nfCanvasUtils.getGroupId();
+
             // set the new group id
             nfCanvasUtils.setGroupId(groupId);
 
@@ -1666,7 +1669,12 @@
                 // update URL deep linking params
                 nfCanvasUtils.setURLParameters(groupId, d3.select());
 
-            }).fail(function () {
+            }).fail(function (xhr, status, reason) {
+                // set the group id back to what it was set to before the attempted change
+                if (reason === 'RELOAD_PROCESS_GROUP_FAILED') {
+                    nfCanvasUtils.setGroupId(currentGroupId);
+                }
+
                 nfDialog.showOkDialog({
                     headerText: 'Process Group',
                     dialogContent: 'Unable to enter the selected group.'

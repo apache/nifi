@@ -293,16 +293,23 @@
                     nfNgBridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
                 });
 
-                // wait for all requests to complete
-                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
-                    // inform Angular app values have changed
-                    nfNgBridge.digest();
+                // process group first, if it fails, consumers of this reload function want to know about it specifically
+                processGroupXhr.done(function(result) {
+                    var processGroupResult = result;
 
-                    // resolve the deferred
-                    deferred.resolve(processGroupResult);
-                }).fail(function (xhr, status, error) {
-                    deferred.reject(xhr, status, error);
-                });
+                    // now wait for the other requests to complete
+                    $.when(statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function () {
+                        // inform Angular app values have changed
+                        nfNgBridge.digest();
+
+                        // resolve the deferred
+                        deferred.resolve(processGroupResult);
+                    }).fail(function(xhr, status, error) {
+                        deferred.reject(xhr, status, error)
+                    });
+                }).fail(function(xhr, status, error) {
+                    deferred.reject(xhr, status, 'RELOAD_PROCESS_GROUP_FAILED');
+                })
             }).promise();
         },
 
