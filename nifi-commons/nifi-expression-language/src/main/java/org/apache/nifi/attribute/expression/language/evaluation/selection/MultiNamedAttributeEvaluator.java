@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
 
@@ -36,11 +36,11 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
+        State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluationContext.getEvaluatorState().putState(this, state);
         }
         state.matchingAttributeNames = new ArrayList<>(attributeNames);
 
@@ -48,15 +48,16 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
             return new StringQueryResult(null);
         }
 
-        return new StringQueryResult(attributes.get(state.matchingAttributeNames.get(state.evaluationCount++)));
+        return new StringQueryResult(evaluationContext.getExpressionValue(state.matchingAttributeNames.get(state.evaluationCount++)));
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public int getEvaluationsRemaining(final EvaluationContext context) {
+        final EvaluatorState evaluatorState = context.getEvaluatorState();
+        State state = evaluatorState.getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluatorState.putState(this, state);
         }
         return state.matchingAttributeNames.size() - state.evaluationCount;
     }

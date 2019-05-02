@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
@@ -36,20 +34,20 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluationContext.getEvaluatorState().putState(this, state);
         }
         if (state.delineatedValues == null) {
-            final QueryResult<String> subjectValue = subjectEvaluator.evaluate(attributes, context);
+            final QueryResult<String> subjectValue = subjectEvaluator.evaluate(evaluationContext);
             if (subjectValue.getValue() == null) {
                 state.evaluationsLeft = 0;
                 return new StringQueryResult(null);
             }
 
-            final QueryResult<String> delimiterValue = delimiterEvaluator.evaluate(attributes, context);
+            final QueryResult<String> delimiterValue = delimiterEvaluator.evaluate(evaluationContext);
             if (delimiterValue.getValue() == null) {
                 state.evaluationsLeft = 0;
                 return new StringQueryResult(null);
@@ -74,11 +72,11 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public int getEvaluationsRemaining(final EvaluationContext evaluationContext) {
+        State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluationContext.getEvaluatorState().putState(this, state);
         }
         return state.evaluationsLeft;
     }
@@ -93,7 +91,7 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
         return evaluationType;
     }
 
-    private class State {
+    private static class State {
         private String[] delineatedValues;
         private int evaluationCount = 0;
         private int evaluationsLeft = 1;

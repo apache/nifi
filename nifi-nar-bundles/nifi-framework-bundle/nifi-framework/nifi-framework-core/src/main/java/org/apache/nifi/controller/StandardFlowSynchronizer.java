@@ -58,6 +58,9 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -81,6 +84,8 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -152,14 +157,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final Element rootElement = document.getDocumentElement();
 
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement);
+        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
         final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, null, encodingVersion);
 
         final NodeList reportingTasks = rootElement.getElementsByTagName("reportingTask");
-        final ReportingTaskDTO reportingTaskDTO = reportingTasks.getLength() == 0 ? null : FlowFromDOMFactory.getReportingTask((Element)reportingTasks.item(0),null);
+        final ReportingTaskDTO reportingTaskDTO = reportingTasks.getLength() == 0 ? null : FlowFromDOMFactory.getReportingTask((Element)reportingTasks.item(0),null, encodingVersion);
 
         final NodeList controllerServices = rootElement.getElementsByTagName("controllerService");
-        final ControllerServiceDTO controllerServiceDTO = controllerServices.getLength() == 0 ? null : FlowFromDOMFactory.getControllerService((Element)controllerServices.item(0),null);
+        final ControllerServiceDTO controllerServiceDTO = controllerServices.getLength() == 0 ? null :
+            FlowFromDOMFactory.getControllerService((Element)controllerServices.item(0),null, encodingVersion);
 
         return isEmpty(rootGroupDto) && isEmpty(reportingTaskDTO) && isEmpty(controllerServiceDTO);
     }
@@ -238,13 +244,23 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         registriesPresent = !flowRegistryElems.isEmpty();
                     }
 
+                    final boolean parametersPresent;
+                    final Element parameterContextsElement = DomUtils.getChild(rootElement, "parameterContexts");
+                    if (parameterContextsElement == null) {
+                        parametersPresent = false;
+                    } else {
+                        final List<Element> contextList = DomUtils.getChildElementsByTagName(parameterContextsElement, "parameterContext");
+                        parametersPresent = !contextList.isEmpty();
+                    }
+
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
                     final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
                     existingFlowEmpty = taskElements.isEmpty()
                         && unrootedControllerServiceElements.isEmpty()
                         && isEmpty(rootGroupDto)
-                        && !registriesPresent;
+                        && !registriesPresent
+                        && !parametersPresent;
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -353,6 +369,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                                 client.addFlowRegistry(registryId, registryName, registryUrl, description);
                             }
                         }
+
+                        final Element parameterContextsElement = DomUtils.getChild(rootElement, "parameterContexts");
+                        if (parameterContextsElement != null) {
+                            final List<Element> contextElements = DomUtils.getChildElementsByTagName(parameterContextsElement, "parameterContext");
+                            for (final Element contextElement : contextElements) {
+                                final ParameterContextDTO parameterContextDto = FlowFromDOMFactory.getParameterContext(contextElement, encryptor);
+                                createParameterContext(parameterContextDto, controller.getFlowManager());
+                            }
+                        }
                     }
 
                     // if this controller isn't initialized or its empty, add the root group, otherwise update
@@ -391,7 +416,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     // get/create all the reporting task nodes and DTOs, but don't apply their scheduled state yet
                     final Map<ReportingTaskNode, ReportingTaskDTO> reportingTaskNodesToDTOs = new HashMap<>();
                     for (final Element taskElement : reportingTaskElements) {
-                        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElement, encryptor);
+                        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElement, encryptor, encodingVersion);
                         final ReportingTaskNode reportingTask = getOrCreateReportingTask(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
                         reportingTaskNodesToDTOs.put(reportingTask, dto);
                     }
@@ -406,14 +431,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             // to the root Group. Otherwise, we want to use a null group, which indicates a Controller-level
                             // Controller Service.
                             final ProcessGroup group = (encodingVersion == null) ? rootGroup : null;
-                            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceElements, controller, group, encryptor);
+                            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(
+                                serviceElements, controller, group, encryptor, encodingVersion);
 
                             // If we are moving controller services to the root group we also need to see if any reporting tasks
                             // reference them, and if so we need to clone the CS and update the reporting task reference
                             if (group != null) {
                                 // find all the controller service ids referenced by reporting tasks
                                 final Set<String> controllerServicesInReportingTasks = reportingTaskNodesToDTOs.keySet().stream()
-                                        .flatMap(r -> r.getProperties().entrySet().stream())
+                                        .flatMap(r -> r.getEffectivePropertyValues().entrySet().stream())
                                         .filter(e -> e.getKey().getControllerServiceDefinition() != null)
                                         .map(Map.Entry::getValue)
                                         .collect(Collectors.toSet());
@@ -439,7 +465,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             }
 
                             // enable all the original controller services
-                            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState);
+                            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState, encodingVersion);
                         }
                     }
 
@@ -515,12 +541,30 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
+    private ParameterContext createParameterContext(final ParameterContextDTO dto, final FlowManager flowManager) {
+        final Set<Parameter> parameters = dto.getParameters().stream()
+            .map(this::createParameter)
+            .collect(Collectors.toSet());
+
+        return flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
+    }
+
+    private Parameter createParameter(final ParameterDTO dto) {
+        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
+            .name(dto.getName())
+            .description(dto.getDescription())
+            .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
+            .build();
+
+        return new Parameter(parameterDescriptor, dto.getValue());
+    }
+
     private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String, ControllerServiceNode> controllerServiceMapping) {
         for (ReportingTaskNode reportingTask : reportingTasks) {
             if (reportingTask.getProperties() != null) {
                 reportingTask.pauseValidationTrigger();
                 try {
-                    final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
+                    final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getEffectivePropertyValues().entrySet().stream()
                             .filter(e -> e.getKey().getControllerServiceDefinition() != null)
                             .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
                             .collect(Collectors.toSet());
@@ -786,15 +830,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
 
         // update the process group
-        final ProcessGroup group = flowManager.getGroup(processGroupDto.getId());
-        if (group == null) {
+        final ProcessGroup processGroup = flowManager.getGroup(processGroupDto.getId());
+        if (processGroup == null) {
             throw new IllegalStateException("No Group with ID " + processGroupDto.getId() + " exists");
         }
 
-        updateProcessGroup(group, processGroupDto);
+        updateProcessGroup(processGroup, processGroupDto);
 
-        // get the real process group and ID
-        final ProcessGroup processGroup = flowManager.getGroup(processGroupDto.getId());
+        final String parameterContextId = getString(processGroupElement, "parameterContextId");
+        if (parameterContextId != null) {
+            final ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
+            processGroup.setParameterContext(parameterContext);
+        }
+
 
         // determine the scheduled state of all of the Controller Service
         final List<Element> controllerServiceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
@@ -802,7 +850,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final Set<ControllerServiceNode> toEnable = new HashSet<>();
 
         for (final Element serviceElement : controllerServiceNodeList) {
-            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElement, encryptor);
+            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElement, encryptor, encodingVersion);
             final ControllerServiceNode serviceNode = processGroup.getControllerService(dto.getId());
 
             // Check if the controller service is in the correct state. We consider it the correct state if
@@ -833,7 +881,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // processors & ports cannot be updated - they must be the same. Except for the scheduled state.
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
-            final ProcessorDTO dto = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
+            final ProcessorDTO dto = FlowFromDOMFactory.getProcessor(processorElement, encryptor, encodingVersion);
             final ProcessorNode procNode = processGroup.getProcessor(dto.getId());
 
             final ScheduledState procState = getScheduledState(procNode, controller);
@@ -1205,6 +1253,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             parentGroup.addProcessGroup(processGroup);
         }
 
+        final String parameterContextId = getString(processGroupElement, "parameterContextId");
+        if (parameterContextId != null) {
+            final ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
+            processGroup.setParameterContext(parameterContext);
+        }
+
         // Set the variables for the variable registry
         final Map<String, String> variables = new HashMap<>();
         final List<Element> variableElements = getChildrenByTagName(processGroupElement, "variable");
@@ -1238,14 +1292,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // Add Controller Services
         final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
         if (!serviceNodeList.isEmpty()) {
-            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor);
-            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState);
+            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, encodingVersion);
+            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState, encodingVersion);
         }
 
         // add processors
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
-            final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
+            final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor, encodingVersion);
 
             BundleCoordinate coordinate;
             try {

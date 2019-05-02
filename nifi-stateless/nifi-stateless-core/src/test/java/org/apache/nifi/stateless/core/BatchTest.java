@@ -49,7 +49,7 @@ public class BatchTest {
         ///////////////////////////////////////////
         VariableRegistry registry = VariableRegistry.EMPTY_REGISTRY;
         boolean materializeData = true;
-        StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup();
+        StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(null);
         File file = new File("/tmp/nifistateless/input/test.txt");
         file.getParentFile().mkdirs();
         file.createNewFile();
@@ -61,7 +61,7 @@ public class BatchTest {
         // Build Flow
         ///////////////////////////////////////////
         StatelessProcessorWrapper getFile = new StatelessProcessorWrapper(UUID.randomUUID().toString(), new GetFile(), null, serviceLookup, registry,
-            materializeData, ClassLoader.getSystemClassLoader());
+            materializeData, ClassLoader.getSystemClassLoader(), null);
         getFile.setProperty(GetFile.DIRECTORY,"/tmp/nifistateless/input/");
         getFile.setProperty(GetFile.FILE_FILTER,"test.txt");
         getFile.setProperty(GetFile.KEEP_SOURCE_FILE,"true");
@@ -108,6 +108,6 @@ public class BatchTest {
 
     private StatelessProcessorWrapper wrapProcessor(final Processor processor, StatelessControllerServiceLookup serviceLookup, final VariableRegistry registry)
                 throws InvocationTargetException, IllegalAccessException {
-        return new StatelessProcessorWrapper(UUID.randomUUID().toString(), processor, null, serviceLookup, registry, true, ClassLoader.getSystemClassLoader());
+        return new StatelessProcessorWrapper(UUID.randomUUID().toString(), processor, null, serviceLookup, registry, true, ClassLoader.getSystemClassLoader(), null);
     }
 }

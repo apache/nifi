@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -186,11 +187,13 @@ public class FileAccessPolicyProviderTest {
 
         // this same configuration is being used for both the user group provider and the access policy provider
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null));
-        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
-        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY))).thenReturn(new StandardPropertyValue(null, null));
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null));
-        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_USER_GROUP_PROVIDER))).thenReturn(new StandardPropertyValue("user-group-provider", null));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null,
+            ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_USER_GROUP_PROVIDER))).thenReturn(new StandardPropertyValue("user-group-provider", null,
+            ParameterLookup.EMPTY));
         when(configurationContext.getProperties()).then((invocation) -> {
             final Map<String, String> properties = new HashMap<>();
 
@@ -275,7 +278,7 @@ public class FileAccessPolicyProviderTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvidedWithOverlappingRoles() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -298,7 +301,7 @@ public class FileAccessPolicyProviderTest {
         when(properties.getFlowConfigurationFile()).thenReturn(flowNoPorts);
 
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -320,7 +323,7 @@ public class FileAccessPolicyProviderTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -467,7 +470,7 @@ public class FileAccessPolicyProviderTest {
         accessPolicyProvider.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -502,7 +505,7 @@ public class FileAccessPolicyProviderTest {
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -513,10 +516,10 @@ public class FileAccessPolicyProviderTest {
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
 
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -540,7 +543,7 @@ public class FileAccessPolicyProviderTest {
         final String adminIdentity = "admin-user";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -553,7 +556,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(12, policies.size());
+        assertEquals(14, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -580,7 +583,7 @@ public class FileAccessPolicyProviderTest {
 
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -593,7 +596,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(10, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -620,7 +623,7 @@ public class FileAccessPolicyProviderTest {
 
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -633,7 +636,7 @@ public class FileAccessPolicyProviderTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = accessPolicyProvider.getAccessPolicies();
-        assertEquals(8, policies.size());
+        assertEquals(10, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -663,7 +666,7 @@ public class FileAccessPolicyProviderTest {
 
         final String adminIdentity = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -683,18 +686,18 @@ public class FileAccessPolicyProviderTest {
         final String nodeIdentity2 = "node2";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "3")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -719,18 +722,18 @@ public class FileAccessPolicyProviderTest {
         final String nodeIdentity2 = "node2";
 
         when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_NODE_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "3")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODES);
@@ -757,9 +760,9 @@ public class FileAccessPolicyProviderTest {
         final String nodeIdentity2 = "node2";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
-                .thenReturn(new StandardPropertyValue(nodeGroupName, null));
+                .thenReturn(new StandardPropertyValue(nodeGroupName, null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
@@ -782,9 +785,9 @@ public class FileAccessPolicyProviderTest {
         final String nodeGroupIdentifier = "cluster-nodes";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-            .thenReturn(new StandardPropertyValue(adminIdentity, null));
+            .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
-            .thenReturn(new StandardPropertyValue("", null));
+            .thenReturn(new StandardPropertyValue("", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);
@@ -800,9 +803,9 @@ public class FileAccessPolicyProviderTest {
         final String adminIdentity = "admin-user";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
-            .thenReturn(new StandardPropertyValue(adminIdentity, null));
+            .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_NODE_GROUP_NAME)))
-            .thenReturn(new StandardPropertyValue("nonexistent", null));
+            .thenReturn(new StandardPropertyValue("nonexistent", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODE_GROUP);

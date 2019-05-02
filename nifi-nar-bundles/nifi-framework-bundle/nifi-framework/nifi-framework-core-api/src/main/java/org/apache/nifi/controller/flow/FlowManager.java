@@ -29,6 +29,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
@@ -318,4 +321,8 @@ public interface FlowManager {
     ControllerServiceNode getRootControllerService(String serviceIdentifier);
 
     void removeRootControllerService(final ControllerServiceNode service);
+
+    ParameterContext createParameterContext(String id, String name, Set<Parameter> parameters);
+
+    ParameterContextManager getParameterContextManager();
 }

@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.components;
 
-import java.util.Map;
-
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+
+import java.util.Collection;
+import java.util.Map;
 
 public interface ValidationContext extends PropertyContext {
 
@@ -93,4 +94,16 @@ public interface ValidationContext extends PropertyContext {
      * @return the identifier of the ProcessGroup that the component being validated lives in
      */
     String getProcessGroupIdentifier();
+
+    /**
+     * Returns a Collection containing the names of all Parameters that are referenced by the property with the given name
+     * @return  a Collection containing the names of all Parameters that are referenced by the property with the given name
+     */
+    Collection<String> getReferencedParameters(String propertyName);
+
+    /**
+     * @param parameterName the name of the Parameter
+     * @return <code>true</code> if a Parameter with the given name is defined in the currently selected Parameter Context
+     */
+    boolean isParameterDefined(String parameterName);
 }

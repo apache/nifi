@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.state.manager;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,6 +31,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.state.ConfigParseException;
 import org.apache.nifi.controller.state.StandardStateManager;
 import org.apache.nifi.controller.state.StandardStateProviderInitializationContext;
@@ -39,6 +41,9 @@ import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
@@ -70,17 +75,17 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         this.clusterStateProvider = clusterStateProvider;
     }
 
-    public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
-            throws ConfigParseException, IOException {
+    public static synchronized StateManagerProvider create(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
+                                                           final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
         if (provider != null) {
             return provider;
         }
 
-        final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry, extensionManager);
+        final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry, extensionManager, parameterLookup);
 
         final StateProvider clusterProvider;
         if (properties.isNode()) {
-            clusterProvider = createClusteredStateProvider(properties,variableRegistry, extensionManager);
+            clusterProvider = createClusteredStateProvider(properties,variableRegistry, extensionManager, parameterLookup);
         } else {
             clusterProvider = null;
         }
@@ -93,23 +98,22 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         provider = null;
     }
 
-    private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
-            throws IOException, ConfigParseException {
+    private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
+                                                          final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager);
+        return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager, parameterLookup);
     }
 
 
-    private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
-            throws IOException, ConfigParseException {
+    private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
+                                                              final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager);
+        return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager, parameterLookup);
     }
 
 
-    private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties,
-                                                     final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
-            throws ConfigParseException, IOException {
+    private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties, final VariableRegistry variableRegistry,
+                                                     final ExtensionManager extensionManager, final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
         final String providerId;
         final String providerIdPropertyName;
         final String providerDescription;
@@ -189,17 +193,26 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         }
 
         //create variable registry
+        final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
-        final Map<PropertyDescriptor, String> propertyStringMap = new HashMap<>();
+        final Map<PropertyDescriptor, PropertyConfiguration> propertyStringMap = new HashMap<>();
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
-            propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, variableRegistry));
-            propertyStringMap.put(descriptor, descriptor.getDefaultValue());
+            propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
+
+            final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references);
+
+            propertyStringMap.put(descriptor, configuration);
         }
 
         for (final Map.Entry<String, String> entry : providerConfig.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
-            propertyStringMap.put(descriptor, entry.getValue());
-            propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, variableRegistry));
+
+            final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references);
+
+            propertyStringMap.put(descriptor, configuration);
+            propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
         final SSLContext sslContext = SslContextFactory.createSslContext(properties);
@@ -210,7 +223,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
             provider.initialize(initContext);
         }
 
-        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null,variableRegistry);
+        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null, variableRegistry, null);
         final Collection<ValidationResult> results = provider.validate(validationContext);
         final StringBuilder validationFailures = new StringBuilder();
 

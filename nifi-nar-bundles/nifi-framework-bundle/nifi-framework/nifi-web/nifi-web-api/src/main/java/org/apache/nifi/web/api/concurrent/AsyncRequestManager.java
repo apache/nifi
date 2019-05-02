@@ -92,7 +92,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
 
-        completedRequestIds.stream().forEach(id -> requests.remove(id));
+        completedRequestIds.forEach(requests::remove);
 
         final int requestCount = requests.size();
         if (requestCount > maxConcurrentRequests) {
@@ -117,7 +117,7 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
                     task.accept(request);
                 } catch (final Exception e) {
                     logger.error("Failed to perform asynchronous task", e);
-                    request.setFailureReason("Encountered unexpected error when performing asynchronous task: " + e);
+                    request.fail("Encountered unexpected error when performing asynchronous task: " + e);
                 } finally {
                     // clear the authentication token
                     SecurityContextHolder.getContext().setAuthentication(null);

@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -32,8 +30,8 @@ public class ToLiteralEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final Object result = argEvaluator.evaluate(attributes, context);
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final Object result = argEvaluator.evaluate(evaluationContext);
         return new StringQueryResult(result == null ? null : result.toString());
     }
 

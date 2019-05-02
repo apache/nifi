@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
@@ -35,8 +34,8 @@ public class AndEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(attributes, context);
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(evaluationContext);
         if (subjectValue == null) {
             return new BooleanQueryResult(null);
         }
@@ -48,19 +47,19 @@ public class AndEvaluator extends BooleanEvaluator {
         // Returning previously evaluated result.
         // The same AndEvaluator can be evaluated multiple times if subjectEvaluator is IteratingEvaluator.
         // In that case, it's enough to evaluate the right hand side.
-        final BooleanQueryResult rhsResult = context.getState(this, BooleanQueryResult.class);
+        final BooleanQueryResult rhsResult = evaluationContext.getEvaluatorState().getState(this, BooleanQueryResult.class);
         if (rhsResult != null) {
             return rhsResult;
         }
 
-        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes, context);
+        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(evaluationContext);
         BooleanQueryResult result;
         if (rhsValue == null) {
             result = new BooleanQueryResult(false);
         } else {
             result = new BooleanQueryResult(rhsValue.getValue());
         }
-        context.putState(this, result);
+        evaluationContext.getEvaluatorState().putState(this, result);
         return result;
     }
 

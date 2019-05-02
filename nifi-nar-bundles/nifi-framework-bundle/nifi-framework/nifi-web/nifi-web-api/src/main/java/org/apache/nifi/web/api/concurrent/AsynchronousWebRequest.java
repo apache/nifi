@@ -20,13 +20,14 @@ package org.apache.nifi.web.api.concurrent;
 import org.apache.nifi.authorization.user.NiFiUser;
 
 import java.util.Date;
+import java.util.List;
 
 public interface AsynchronousWebRequest<T> {
 
     /**
-     * @return the ID of the process group that the request is for
+     * @return the ID of the component that the request is for
      */
-    String getProcessGroupId();
+    String getComponentId();
 
     /**
      * @return whether or not this request has completed
@@ -38,24 +39,20 @@ public interface AsynchronousWebRequest<T> {
      */
     Date getLastUpdated();
 
-    /**
-     * @return the current state of the request
-     */
-    public String getState();
+    List<UpdateStep> getUpdateSteps();
+
+    UpdateStep getCurrentStep();
+
+    void markStepComplete();
+
+    void markStepComplete(T results);
+
+    String getState();
 
     /**
      * @return the current percent complete, between 0 and 100 (inclusive)
      */
-    public int getPercentComplete();
-
-    /**
-     * Updates the request to indicate the new state and percent complete
-     *
-     * @param date the last updated time
-     * @param state the new state
-     * @param percentComplete The percentage complete, between 0 and 100 (inclusive)
-     */
-    void update(Date date, String state, int percentComplete);
+    int getPercentComplete();
 
     /**
      * @return the user who submitted the request
@@ -63,18 +60,11 @@ public interface AsynchronousWebRequest<T> {
     NiFiUser getUser();
 
     /**
-     * Indicates that this request has completed, successfully or otherwise
-     *
-     * @param results the results of the request
-     */
-    void markComplete(T results);
-
-    /**
      * Updates the request to indicate the reason that the request failed
      *
      * @param explanation the reason that the request failed
      */
-    void setFailureReason(String explanation);
+    void fail(String explanation);
 
     /**
      * Indicates the reason that the request failed, or <code>null</code> if the request has not failed

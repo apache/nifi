@@ -24,6 +24,9 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -43,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
@@ -74,18 +78,19 @@ public class TestQuery {
         //System.out.println(Query.compile("").evaluate(null));
     }
 
+
     @Test
     public void testPrepareWithEscapeChar() {
         final Map<String, String> variables = Collections.singletonMap("foo", "bar");
 
-        assertEquals("bar${foo}$bar", Query.prepare("${foo}$${foo}$$${foo}").evaluateExpressions(variables, null));
+        assertEquals("bar${foo}$bar", Query.prepare("${foo}$${foo}$$${foo}").evaluateExpressions(new StandardEvaluationContext(variables), null));
 
         final PreparedQuery onlyEscapedQuery = Query.prepare("$${foo}");
-        final String onlyEscapedEvaluated = onlyEscapedQuery.evaluateExpressions(variables, null);
+        final String onlyEscapedEvaluated = onlyEscapedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("${foo}", onlyEscapedEvaluated);
 
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
-        final String mixedEvaluated = mixedQuery.evaluateExpressions(variables, null);
+        final String mixedEvaluated = mixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("bar${foo}", mixedEvaluated);
     }
 
@@ -229,7 +234,7 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
-        final QueryResult<?> result = query.evaluate(attributes);
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
         assertEquals(1384788147678L, result.getValue());
     }
@@ -258,7 +263,7 @@ public class TestQuery {
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
 
-        final QueryResult<?> result = query.evaluate(attributes);
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals(formatted, result.getValue());
     }
@@ -277,6 +282,18 @@ public class TestQuery {
         Query.validateExpression("${x:equals(\"${a}\")}", false);
         assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
     }
+
+    @Test
+    public void testParameterReference() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test", "unit");
+
+        verifyEquals("${#{test}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{test}:append(' - '):append(#{test})}", attributes, stateValues, parameters,"unit - unit");
+    }
+
 
     @Test
     public void testJsonPath() throws IOException {
@@ -398,7 +415,7 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
 
         final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
-        return Query.evaluateExpressions(queryString, lookup);
+        return Query.evaluateExpressions(queryString, lookup, ParameterLookup.EMPTY);
     }
 
     @Test
@@ -671,7 +688,7 @@ public class TestQuery {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         Query.validateExpression(query, false);
-        assertEquals("true", Query.evaluateExpressions(query, Collections.emptyMap()));
+        assertEquals("true", Query.evaluateExpressions(query, Collections.emptyMap(), ParameterLookup.EMPTY));
     }
 
     @Test
@@ -697,12 +714,12 @@ public class TestQuery {
                 + "}";
 
         Query query = Query.compile(expression);
-        QueryResult<?> result = query.evaluate(attributes);
+        QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz", result.getValue());
 
         query = Query.compile("${abc:append('# hello') #good-bye \n}");
-        result = query.evaluate(attributes);
+        result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz# hello", result.getValue());
     }
@@ -1602,7 +1619,7 @@ public class TestQuery {
         final List<String> expressions = Query.extractExpressions(query);
         assertEquals(1, expressions.size());
         assertEquals("${abc}", expressions.get(0));
-        assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes));
+        assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes, ParameterLookup.EMPTY));
     }
 
     @Test
@@ -1652,7 +1669,7 @@ public class TestQuery {
 
     QueryResult<?> getResult(String expr, Map<String, String> attrs) {
         final Query query = Query.compile(expr);
-        final QueryResult<?> result = query.evaluate(attrs);
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attrs));
         return result;
     }
 
@@ -1823,15 +1840,26 @@ public class TestQuery {
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
-        verifyEquals(expression,attributes, null, expectedResult);
+        verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
+        verifyEquals(expression, attributes, stateValues, ParameterLookup.EMPTY, expectedResult);
+    }
+
+    private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Map<String, String> parameters,
+                              final Object expectedResult) {
+
+        verifyEquals(expression, attributes, stateValues, new MapParameterLookup(parameters), expectedResult);
+    }
+
+    private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final ParameterLookup parameterLookup,
+                              final Object expectedResult) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues));
+        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues, parameterLookup));
 
         final Query query = Query.compile(expression);
-        final QueryResult<?> result = query.evaluate(attributes, stateValues);
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes, stateValues, parameterLookup));
 
         if (expectedResult instanceof Long) {
             if (ResultType.NUMBER.equals(result.getResultType())) {
@@ -1877,6 +1905,30 @@ public class TestQuery {
                 }
             }
             return sb.toString();
+        }
+    }
+
+
+    private static class MapParameterLookup implements ParameterLookup {
+        private final Map<String, String> parameters;
+
+        public MapParameterLookup(final Map<String, String> parameters) {
+            this.parameters = parameters;
+        }
+
+        @Override
+        public Optional<Parameter> getParameter(final String parameterName) {
+            final String value = parameters.get(parameterName);
+            if (value == null) {
+                return Optional.empty();
+            }
+
+            return Optional.of(new Parameter(new ParameterDescriptor.Builder().name(parameterName).build(), value));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return parameters.isEmpty();
         }
     }
 }

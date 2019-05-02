@@ -17,6 +17,7 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -29,6 +30,7 @@ import org.apache.nifi.controller.exception.ControllerServiceInstantiationExcept
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
@@ -58,7 +60,9 @@ public class ComponentFactory {
 
 
     public StatelessProcessorWrapper createProcessor(final VersionedProcessor versionedProcessor, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
-                                                     final VariableRegistry variableRegistry, final Set<URL> classpathUrls) throws ProcessorInstantiationException {
+                                                     final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
+        throws ProcessorInstantiationException {
+
         final String type = versionedProcessor.getType();
         final String identifier = versionedProcessor.getIdentifier();
 
@@ -89,15 +93,15 @@ public class ComponentFactory {
             // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
             if (classpathUrls == null) {
                 final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(processor.getPropertyDescriptors(), processor.getIdentifier(), versionedProcessor.getProperties(),
-                    variableRegistry,componentLog);
+                    parameterContext, variableRegistry,componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createProcessor(versionedProcessor, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls);
+                    return createProcessor(versionedProcessor, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
                 }
             }
 
             final StatelessProcessorWrapper processorWrapper = new StatelessProcessorWrapper(versionedProcessor.getIdentifier(), processor, null,
-                controllerServiceLookup, variableRegistry, materializeContent, detectedClassLoader);
+                controllerServiceLookup, variableRegistry, materializeContent, detectedClassLoader, parameterContext);
 
             // Configure the Processor
             processorWrapper.setAnnotationData(versionedProcessor.getAnnotationData());
@@ -118,13 +122,13 @@ public class ComponentFactory {
 
 
     private Set<URL> getAdditionalClasspathResources(final List<PropertyDescriptor> propertyDescriptors, final String componentId, final Map<String, String> properties,
-                                                     final VariableRegistry variableRegistry, final ComponentLog logger) {
+                                                     final ParameterLookup parameterLookup, final VariableRegistry variableRegistry, final ComponentLog logger) {
         final Set<String> modulePaths = new LinkedHashSet<>();
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
                 final String value = properties.get(descriptor.getName());
                 if (!StringUtils.isEmpty(value)) {
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, variableRegistry);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, parameterLookup, variableRegistry);
                     modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
                 }
             }
@@ -145,13 +149,13 @@ public class ComponentFactory {
 
 
     public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry,
-                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager) {
-        return createControllerService(versionedControllerService, variableRegistry, null, serviceLookup, stateManager);
+                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
+        return createControllerService(versionedControllerService, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
     }
 
 
     private ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
-                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager) {
+                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
         final String type = versionedControllerService.getType();
         final String identifier = versionedControllerService.getIdentifier();
@@ -183,10 +187,10 @@ public class ComponentFactory {
             // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
             if (classpathUrls == null) {
                 final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(service.getPropertyDescriptors(), service.getIdentifier(), versionedControllerService.getProperties(),
-                    variableRegistry, componentLog);
+                    parameterLookup, variableRegistry, componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createControllerService(versionedControllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager);
+                    return createControllerService(versionedControllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
                 }
             }
 

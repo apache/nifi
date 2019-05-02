@@ -109,8 +109,10 @@ keys is `nifi_content` then the String value of that element will be the FlowFil
 
             "nifi_content": "hi"
       }],
-      "variables": {
-        "DestinationDirectory" : "/tmp/nifistateless/output2/"
+      "parameters": {
+        "DestinationDirectory" : "/tmp/nifistateless/output2/",
+        "Username" : "jdoe",
+        "Password": { "sensitive": "true", "value": "password" }
       }
     }
 

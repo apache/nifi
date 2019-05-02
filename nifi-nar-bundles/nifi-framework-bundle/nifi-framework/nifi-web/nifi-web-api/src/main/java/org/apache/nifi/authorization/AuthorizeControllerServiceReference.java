@@ -20,6 +20,9 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.web.ResourceNotFoundException;
 
 import java.util.Map;
@@ -102,6 +105,15 @@ public final class AuthorizeControllerServiceReference {
 
                         // ensure access to the new service
                         if (proposedValue != null) {
+                            final ParameterParser parser = new ExpressionLanguageAgnosticParameterParser();
+                            final ParameterTokenList tokenList = parser.parseTokens(proposedValue);
+                            final boolean referencesParameter = !tokenList.toReferenceList().isEmpty();
+                            if (referencesParameter) {
+                                throw new IllegalArgumentException("The property '" + propertyDescriptor.getDisplayName() + "' cannot reference a Parameter because the property is a " +
+                                    "Controller Service reference. Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. " +
+                                    "As a result, this is not allowed.");
+                            }
+
                             final Authorizable newServiceAuthorizable = lookup.getControllerService(proposedValue).getAuthorizable();
                             newServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
                         }

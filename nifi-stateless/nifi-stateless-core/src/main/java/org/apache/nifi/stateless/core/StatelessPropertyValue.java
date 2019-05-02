@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.stateless.core;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
@@ -43,28 +44,30 @@ public class StatelessPropertyValue implements PropertyValue {
     private final PropertyDescriptor propertyDescriptor;
     private final PropertyValue stdPropValue;
     private final VariableRegistry variableRegistry;
+    private final ParameterLookup parameterLookup;
 
     private boolean expressionsEvaluated = false;
 
-    public StatelessPropertyValue(final String rawValue) {
-        this(rawValue, null);
+    public StatelessPropertyValue(final String rawValue, final ParameterLookup parameterLookup) {
+        this(rawValue, null, parameterLookup);
     }
 
-    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
-        this(rawValue, serviceLookup, VariableRegistry.EMPTY_REGISTRY, null);
+    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup) {
+        this(rawValue, serviceLookup, parameterLookup, VariableRegistry.EMPTY_REGISTRY, null);
     }
 
-    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final VariableRegistry variableRegistry) {
-        this(rawValue, serviceLookup, variableRegistry, null);
+    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
+        this(rawValue, serviceLookup, parameterLookup, variableRegistry, null);
     }
 
-    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, VariableRegistry variableRegistry, final PropertyDescriptor propertyDescriptor) {
-        this(rawValue, serviceLookup, propertyDescriptor, false, variableRegistry);
+    public StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry,
+                                  final PropertyDescriptor propertyDescriptor) {
+        this(rawValue, serviceLookup, propertyDescriptor, false, parameterLookup, variableRegistry);
     }
 
     private StatelessPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor, final boolean alreadyEvaluated,
-                                   final VariableRegistry variableRegistry) {
-        this.stdPropValue = new StandardPropertyValue(rawValue, serviceLookup, variableRegistry);
+                                   final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
+        this.stdPropValue = new StandardPropertyValue(rawValue, serviceLookup, parameterLookup, variableRegistry);
         this.rawValue = rawValue;
         this.serviceLookup = (StatelessControllerServiceLookup) serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();
@@ -72,6 +75,7 @@ public class StatelessPropertyValue implements PropertyValue {
         this.propertyDescriptor = propertyDescriptor;
         this.expressionsEvaluated = alreadyEvaluated;
         this.variableRegistry = variableRegistry;
+        this.parameterLookup = parameterLookup;
     }
 
     private void ensureExpressionsEvaluated() {
@@ -234,7 +238,7 @@ public class StatelessPropertyValue implements PropertyValue {
         validateExpressionScope(flowFile != null || additionalAttributes != null);
 
         final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator, stateValues);
-        return new StatelessPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, variableRegistry);
+        return new StatelessPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, parameterLookup, variableRegistry);
     }
 
     @Override

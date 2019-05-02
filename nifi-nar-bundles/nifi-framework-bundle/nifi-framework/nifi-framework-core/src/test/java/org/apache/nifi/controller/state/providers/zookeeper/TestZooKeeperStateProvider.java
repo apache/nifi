@@ -16,14 +16,8 @@
  */
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.curator.test.TestingServer;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -36,6 +30,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.testng.Assert;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -71,7 +71,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             public Map<PropertyDescriptor, PropertyValue> getProperties() {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null, ParameterLookup.EMPTY));
                 }
                 return propValueMap;
             }
@@ -88,7 +88,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             @Override
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final String prop = properties.get(property);
-                return new StandardPropertyValue(prop, null);
+                return new StandardPropertyValue(prop, null, ParameterLookup.EMPTY);
             }
 
             @Override

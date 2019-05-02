@@ -28,7 +28,15 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
@@ -44,15 +52,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class StatelessProcessContext implements SchedulingContext, ControllerServiceInitializationContext, StatelessConnectionContext {
 
     private final ConfigurableComponent component;
     private final String componentName;
-    private final Map<PropertyDescriptor, String> properties = new HashMap<>();
+    private final Map<PropertyDescriptor, PropertyConfiguration> properties = new HashMap<>();
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
+    private final ParameterContext parameterContext;
 
     private String annotationData = null;
     private boolean yieldCalled = false;
@@ -72,17 +82,17 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     private final StatelessControllerServiceLookup lookup;
 
     public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final StateManager stateManager,
-                                   final VariableRegistry variableRegistry) {
-        this(component, lookup, componentName, new SLF4JComponentLog(component), stateManager, variableRegistry);
+                                   final VariableRegistry variableRegistry, final ParameterContext parameterContext) {
+        this(component, lookup, componentName, new SLF4JComponentLog(component), stateManager, variableRegistry, parameterContext);
     }
 
     public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final SLF4JComponentLog logger,
-                                   final StatelessStateManager statemanager) {
-        this(component, lookup, componentName, logger, statemanager, VariableRegistry.EMPTY_REGISTRY);
+                                   final StatelessStateManager statemanager, final ParameterContext parameterContext) {
+        this(component, lookup, componentName, logger, statemanager, VariableRegistry.EMPTY_REGISTRY, parameterContext);
     }
 
     public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName,
-                                   final SLF4JComponentLog logger, final StateManager stateManager, final VariableRegistry variableRegistry) {
+                                   final SLF4JComponentLog logger, final StateManager stateManager, final VariableRegistry variableRegistry, final ParameterContext parameterContext) {
         this.component = Objects.requireNonNull(component);
         this.componentName = componentName == null ? "" : componentName;
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
@@ -91,6 +101,7 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
         this.variableRegistry = variableRegistry;
         this.identifier = component.getIdentifier();
         this.logger = logger;
+        this.parameterContext = parameterContext;
     }
 
     @Override
@@ -105,15 +116,15 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
             return null;
         }
 
-        final String setPropertyValue = properties.get(descriptor);
-        final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
+        final PropertyConfiguration setPropertyValue = properties.get(descriptor);
+        final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue.getEffectiveValue(parameterContext);
 
-        return new StatelessPropertyValue(propValue, this.lookup, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
+        return new StatelessPropertyValue(propValue, this.lookup, parameterContext, variableRegistry, (enableExpressionValidation && allowExpressionValidation) ? descriptor : null);
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StatelessPropertyValue(rawValue, this.lookup, variableRegistry);
+        return new StatelessPropertyValue(rawValue, this.lookup, parameterContext);
     }
 
     public ValidationResult setProperty(final String propertyName, final String propertyValue) {
@@ -121,24 +132,35 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     }
 
     public ValidationResult setProperty(final PropertyDescriptor descriptor, final String value) {
-        if (descriptor == null)
+        if (descriptor == null) {
             throw new IllegalArgumentException("descriptor can not be null");
-        if (value == null)
+        }
+        if (value == null) {
             throw new IllegalArgumentException("Cannot set property to null value; if the intent is to remove the property, call removeProperty instead");
+        }
 
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
 
-        final ValidationResult result = fullyPopulatedDescriptor.validate(value, new StatelessValidationContext(this, lookup, stateManager, variableRegistry));
-        String oldValue = properties.put(fullyPopulatedDescriptor, value);
-        if (oldValue == null) {
-            oldValue = fullyPopulatedDescriptor.getDefaultValue();
+        final ValidationResult result = fullyPopulatedDescriptor.validate(value, new StatelessValidationContext(this, lookup, stateManager, variableRegistry, parameterContext));
+        final PropertyConfiguration propertyConfiguration = createPropertyConfiguration(value, fullyPopulatedDescriptor.isExpressionLanguageSupported());
+
+        PropertyConfiguration oldConfig = properties.put(fullyPopulatedDescriptor, propertyConfiguration);
+        if (oldConfig == null) {
+            oldConfig = createPropertyConfiguration(fullyPopulatedDescriptor.getDefaultValue(), fullyPopulatedDescriptor.isExpressionLanguageSupported());
         }
-        if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
-            component.onPropertyModified(fullyPopulatedDescriptor, oldValue, value);
+        if ((value == null && oldConfig != null && oldConfig.getRawValue() != null) || (value != null && !value.equals(oldConfig.getRawValue()))) {
+            component.onPropertyModified(fullyPopulatedDescriptor, oldConfig.getEffectiveValue(parameterContext), value);
         }
 
         return result;
     }
+
+    private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEl) {
+        final ParameterParser parameterParser = supportsEl ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+        return new PropertyConfiguration(value, parameterTokenList);
+    }
+
 
     public boolean removeProperty(final PropertyDescriptor descriptor) {
         Objects.requireNonNull(descriptor);
@@ -148,11 +170,11 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     public boolean removeProperty(final String property) {
         Objects.requireNonNull(property);
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(property);
-        String value = null;
+        PropertyConfiguration propertyConfig;
 
-        if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {
-            if (!value.equals(fullyPopulatedDescriptor.getDefaultValue())) {
-                component.onPropertyModified(fullyPopulatedDescriptor, value, null);
+        if ((propertyConfig = properties.remove(fullyPopulatedDescriptor)) != null) {
+            if (!propertyConfig.getRawValue().equals(fullyPopulatedDescriptor.getDefaultValue())) {
+                component.onPropertyModified(fullyPopulatedDescriptor, propertyConfig.getEffectiveValue(parameterContext), null);
             }
 
             return true;
@@ -183,19 +205,28 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
         return annotationData;
     }
 
+    public PropertyConfiguration getPropertyConfiguration(final PropertyDescriptor propertyDescriptor) {
+        return properties.get(propertyDescriptor);
+    }
+
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
-        if (supported == null || supported.isEmpty()) {
-            return Collections.unmodifiableMap(properties);
-        } else {
-            final Map<PropertyDescriptor, String> props = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : supported) {
-                props.put(descriptor, null);
-            }
-            props.putAll(properties);
-            return props;
+
+        final Map<PropertyDescriptor, String> effectiveValues = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : supported) {
+            effectiveValues.put(descriptor, null);
         }
+
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final PropertyConfiguration configuration = entry.getValue();
+            final String value = configuration.getEffectiveValue(parameterContext);
+
+            effectiveValues.put(descriptor, value);
+        }
+
+        return effectiveValues;
     }
 
     @Override
@@ -208,8 +239,13 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     }
 
     public Collection<ValidationResult> validate() {
+        final List<ValidationResult> parameterValidationResults = validateParameterReferences();
+        if (!parameterValidationResults.isEmpty()) {
+            return parameterValidationResults;
+        }
+
         final List<ValidationResult> results = new ArrayList<>();
-        final ValidationContext validationContext = new StatelessValidationContext(this, lookup, stateManager, variableRegistry);
+        final ValidationContext validationContext = new StatelessValidationContext(this, lookup, stateManager, variableRegistry, parameterContext);
         final Collection<ValidationResult> componentResults = component.validate(validationContext);
         results.addAll(componentResults);
 
@@ -225,6 +261,54 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
                     .build());
             }
         }
+        return results;
+    }
+
+    private List<ValidationResult> validateParameterReferences() {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final PropertyConfiguration configuration = entry.getValue();
+            final List<ParameterReference> references = configuration.getParameterReferences();
+
+            for (final ParameterReference reference : references) {
+                final String parameterName = reference.getParameterName();
+
+                final Optional<Parameter> parameter = parameterContext.getParameter(parameterName);
+                if (!parameter.isPresent()) {
+                    results.add(new ValidationResult.Builder()
+                        .subject(propertyDescriptor.getDisplayName())
+                        .valid(false)
+                        .explanation("Property References Parameter '" + parameterName + "' but that Parameter is not defined in the Stateless Flow configuration")
+                        .build());
+                    continue;
+                }
+
+                final boolean parameterSensitive = parameter.get().getDescriptor().isSensitive();
+
+                if (parameterSensitive && !propertyDescriptor.isSensitive()) {
+                    results.add(new ValidationResult.Builder()
+                        .subject(propertyDescriptor.getDisplayName())
+                        .valid(false)
+                        .explanation("Property References Parameter '" + parameterName + "', which is a Sensitive Parameter, but the Property is not a Sensitive Property. Sensitive Parameters " +
+                            "may only be referenced by Sensitive Properties.")
+                        .build());
+                    continue;
+                }
+
+                if (!parameterSensitive && propertyDescriptor.isSensitive()) {
+                    results.add(new ValidationResult.Builder()
+                        .subject(propertyDescriptor.getDisplayName())
+                        .valid(false)
+                        .explanation("Property References Parameter '" + parameterName + "', which is not a Sensitive Parameter, but the Property is a Sensitive Property. Sensitive Properties " +
+                            "may only reference Sensitive Parameters.")
+                        .build());
+                    continue;
+                }
+            }
+        }
+
         return results;
     }
 

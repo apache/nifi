@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class FormatEvaluator extends StringEvaluator {
 
@@ -42,13 +42,13 @@ public class FormatEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final Date subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final Date subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }
 
-        final QueryResult<String> formatResult = format.evaluate(attributes, context);
+        final QueryResult<String> formatResult = format.evaluate(evaluationContext);
         final String format = formatResult.getValue();
         if (format == null) {
             return null;
@@ -57,7 +57,7 @@ public class FormatEvaluator extends StringEvaluator {
         final SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.US);
 
         if(timeZone != null) {
-            final QueryResult<String> tzResult = timeZone.evaluate(attributes, context);
+            final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
             final String tz = tzResult.getValue();
             if(tz != null && TimeZone.getTimeZone(tz) != null) {
                 sdf.setTimeZone(TimeZone.getTimeZone(tz));

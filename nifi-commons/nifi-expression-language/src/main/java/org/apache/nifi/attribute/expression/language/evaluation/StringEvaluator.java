@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public abstract class StringEvaluator implements Evaluator<String> {
@@ -27,7 +28,7 @@ public abstract class StringEvaluator implements Evaluator<String> {
     }
 
     @Override
-    public int getEvaluationsRemaining(EvaluatorState context) {
+    public int getEvaluationsRemaining(EvaluationContext context) {
         return 0;
     }
 

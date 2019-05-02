@@ -17,13 +17,6 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -34,48 +27,61 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.registry.VariableRegistry;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class StandardValidationContext implements ValidationContext {
 
     private final ControllerServiceProvider controllerServiceProvider;
-    private final Map<PropertyDescriptor, String> properties;
+    private final Map<PropertyDescriptor, PropertyConfiguration> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
     private final VariableRegistry variableRegistry;
     private final String groupId;
     private final String componentId;
+    private final ParameterContext parameterContext;
+    private final AtomicReference<Map<PropertyDescriptor, String>> effectiveValuesRef = new AtomicReference<>();
 
-    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties,
-            final String annotationData, final String groupId, final String componentId, final VariableRegistry variableRegistry) {
-        this(controllerServiceProvider, Collections.<String> emptySet(), properties, annotationData, groupId, componentId, variableRegistry);
-    }
 
     public StandardValidationContext(
             final ControllerServiceProvider controllerServiceProvider,
-            final Set<String> serviceIdentifiersToNotValidate,
-            final Map<PropertyDescriptor, String> properties,
+            final Map<PropertyDescriptor, PropertyConfiguration> properties,
             final String annotationData,
             final String groupId,
             final String componentId,
-            final VariableRegistry variableRegistry) {
+            final VariableRegistry variableRegistry,
+            final ParameterContext parameterContext) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
         this.variableRegistry = variableRegistry;
         this.groupId = groupId;
         this.componentId = componentId;
+        this.parameterContext = parameterContext;
 
         preparedQueries = new HashMap<>(properties.size());
-        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
-            String value = entry.getValue();
+            final PropertyConfiguration configuration = entry.getValue();
+
+            String value = (configuration == null) ? null : configuration.getEffectiveValue(parameterContext);
             if (value == null) {
                 value = desc.getDefaultValue();
             }
@@ -92,12 +98,12 @@ public class StandardValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, controllerServiceProvider, Query.prepare(rawValue), variableRegistry);
+        return new StandardPropertyValue(rawValue, controllerServiceProvider, parameterContext, Query.prepare(rawValue), variableRegistry);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(variableRegistry);
+        return new StandardExpressionLanguageCompiler(variableRegistry, parameterContext);
     }
 
     @Override
@@ -105,18 +111,36 @@ public class StandardValidationContext implements ValidationContext {
         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(controllerService.getIdentifier());
         final ProcessGroup serviceGroup = serviceNode.getProcessGroup();
         final String serviceGroupId = serviceGroup == null ? null : serviceGroup.getIdentifier();
-        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId, serviceNode.getIdentifier(),variableRegistry);
+        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId,
+            serviceNode.getIdentifier(), variableRegistry, serviceNode.getProcessGroup().getParameterContext());
     }
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property), variableRegistry);
+        final PropertyConfiguration configuredValue = properties.get(property);
+        final String effectiveValue = configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
+        return new StandardPropertyValue(effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return Collections.unmodifiableMap(properties);
+        final Map<PropertyDescriptor, String> effectiveValues = effectiveValuesRef.get();
+        if (effectiveValues != null) {
+            return effectiveValues;
+        }
+
+        final Map<PropertyDescriptor, String> valueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : this.properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final PropertyConfiguration configuration = entry.getValue();
+            final String value = configuration == null ? descriptor.getDefaultValue() : configuration.getEffectiveValue(parameterContext);
+
+            valueMap.put(entry.getKey(), value);
+        }
+
+        final Map<PropertyDescriptor, String> immutableValueMap = Collections.unmodifiableMap(valueMap);
+        effectiveValuesRef.compareAndSet(null, immutableValueMap);
+        return immutableValueMap;
     }
 
     @Override
@@ -168,6 +192,29 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public String getProcessGroupIdentifier() {
         return groupId;
+    }
+
+    // TODO: Keep this up-to-date in AbstractComponentNode and inject it in?
+    @Override
+    public Collection<String> getReferencedParameters(final String propertyName) {
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(propertyName).build();
+        final PropertyConfiguration configuration = this.properties.get(descriptor);
+        if (configuration == null) {
+            return Collections.emptyList();
+        }
+
+        final List<ParameterReference> references = configuration.getParameterReferences();
+        final List<String> parameterNames = references.stream().map(ParameterReference::getParameterName).collect(Collectors.toList());
+        return parameterNames;
+    }
+
+    @Override
+    public boolean isParameterDefined(final String parameterName) {
+        if (parameterContext == null) {
+            return false;
+        }
+
+        return parameterContext.getParameter(parameterName).isPresent();
     }
 
     @Override

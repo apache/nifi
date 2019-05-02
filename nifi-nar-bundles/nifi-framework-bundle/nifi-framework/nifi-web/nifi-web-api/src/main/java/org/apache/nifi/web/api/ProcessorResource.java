@@ -518,7 +518,7 @@ public class ProcessorResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity requestProcessorEntity) throws InterruptedException {
+            ) final ProcessorEntity requestProcessorEntity) {
 
         if (requestProcessorEntity == null || requestProcessorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");

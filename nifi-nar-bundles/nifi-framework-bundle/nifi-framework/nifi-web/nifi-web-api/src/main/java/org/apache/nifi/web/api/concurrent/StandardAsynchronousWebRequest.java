@@ -17,30 +17,38 @@
 
 package org.apache.nifi.web.api.concurrent;
 
-import java.util.Date;
-import java.util.Objects;
-
 import org.apache.nifi.authorization.user.NiFiUser;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 
 public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest<T> {
     private final String id;
-    private final String processGroupId;
+    private final String componentId;
     private final NiFiUser user;
+    private final List<UpdateStep> updateSteps;
 
     private volatile boolean complete = false;
     private volatile Date lastUpdated = new Date();
-    private volatile String state;
     private volatile int percentComplete;
     private volatile String failureReason;
     private volatile boolean cancelled;
     private volatile T results;
     private volatile Runnable cancelCallback;
 
-    public StandardAsynchronousWebRequest(final String requestId, final String processGroupId, final NiFiUser user, final String state) {
+    private int currentStepIndex = 0;
+
+    public StandardAsynchronousWebRequest(final String requestId, final String componentId, final NiFiUser user, final List<UpdateStep> updateSteps) {
         this.id = requestId;
-        this.processGroupId = processGroupId;
+        this.componentId = componentId;
         this.user = user;
-        this.state = state;
+        this.updateSteps = updateSteps;
+    }
+
+    public synchronized UpdateStep getCurrentStep() {
+        return (updateSteps == null || updateSteps.size() <= currentStepIndex) ? null : updateSteps.get(currentStepIndex);
     }
 
     public String getRequestId() {
@@ -53,8 +61,8 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     }
 
     @Override
-    public String getProcessGroupId() {
-        return processGroupId;
+    public String getComponentId() {
+        return componentId;
     }
 
     @Override
@@ -63,12 +71,40 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     }
 
     @Override
-    public void markComplete(final T results) {
-        this.complete = true;
+    public void markStepComplete() {
+        markStepComplete(this.results);
+    }
+
+    @Override
+    public synchronized void markStepComplete(final T results) {
+        if (isCancelled() || isComplete()) {
+            return;
+        }
+
+        final UpdateStep currentStep = getCurrentStep();
+        if (currentStep != null) {
+            currentStep.markCompleted();
+        }
+
+        currentStepIndex++;
+        this.complete = currentStepIndex >= updateSteps.size();
         this.results = results;
         this.lastUpdated = new Date();
-        this.percentComplete = 100;
-        this.state = "Complete";
+        this.percentComplete = currentStepIndex  * 100 / updateSteps.size();
+    }
+
+    @Override
+    public synchronized String getState() {
+        if (isComplete()) {
+            return "Complete";
+        }
+
+        String failureReason = getFailureReason();
+        if (failureReason != null) {
+            return "Failed: " + failureReason;
+        }
+
+        return getCurrentStep().getDescription();
     }
 
     @Override
@@ -77,8 +113,8 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     }
 
     @Override
-    public String getState() {
-        return state;
+    public List<UpdateStep> getUpdateSteps() {
+        return Collections.unmodifiableList(updateSteps);
     }
 
     @Override
@@ -87,41 +123,22 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     }
 
     @Override
-    public void update(Date date, String state, int percentComplete) {
-        if (percentComplete < 0 || percentComplete > 100) {
-            throw new IllegalArgumentException("Cannot set percent complete to a value of " + percentComplete + "; it must be between 0 and 100.");
-        }
-
-        if (isCancelled()) {
-            throw new IllegalStateException("Cannot update state because request has already been cancelled by user");
-        }
-
-        if (isComplete()) {
-            final String failure = getFailureReason();
-            final String explanation = failure == null ? "successfully" : "with failure reason: " + failure;
-            throw new IllegalStateException("Cannot update state to '" + state + "' because request is already completed " + explanation);
-        }
-
-        this.lastUpdated = date;
-        this.state = state;
-        this.percentComplete = percentComplete;
-    }
-
-    @Override
     public NiFiUser getUser() {
         return user;
     }
 
     @Override
-    public void setFailureReason(final String explanation) {
+    public synchronized void fail(final String explanation) {
         this.failureReason = Objects.requireNonNull(explanation);
         this.complete = true;
         this.results = null;
         this.lastUpdated = new Date();
+
+        getCurrentStep().fail(explanation);
     }
 
     @Override
-    public String getFailureReason() {
+    public synchronized String getFailureReason() {
         return failureReason;
     }
 
@@ -134,8 +151,7 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
     public void cancel() {
         this.cancelled = true;
         percentComplete = 100;
-        state = "Canceled by user";
-        setFailureReason("Request cancelled by user");
+        fail("Request cancelled by user");
         cancelCallback.run();
     }
 

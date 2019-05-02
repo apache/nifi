@@ -24,13 +24,19 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.registry.VariableRegistry;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class StatelessValidationContext implements ValidationContext {
 
@@ -39,9 +45,10 @@ public class StatelessValidationContext implements ValidationContext {
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
     private final StatelessProcessContext processContext;
+    private final ParameterContext parameterContext;
 
     public StatelessValidationContext(final StatelessProcessContext processContext, final StatelessControllerServiceLookup lookup, final StateManager stateManager,
-                                      final VariableRegistry variableRegistry) {
+                                      final VariableRegistry variableRegistry, final ParameterContext parameterContext) {
         this.processContext = processContext;
         this.lookup = lookup;
         this.stateManager = stateManager;
@@ -52,22 +59,24 @@ public class StatelessValidationContext implements ValidationContext {
         for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
         }
+
+        this.parameterContext = parameterContext;
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StatelessPropertyValue(rawValue, this.lookup, variableRegistry);
+        return new StatelessPropertyValue(rawValue, this.lookup, parameterContext, variableRegistry);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler(variableRegistry);
+        return new StandardExpressionLanguageCompiler(variableRegistry, parameterContext);
     }
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final StatelessProcessContext serviceProcessContext = new StatelessProcessContext(controllerService, lookup, null, stateManager, variableRegistry);
-        return new StatelessValidationContext(serviceProcessContext, lookup, stateManager, variableRegistry);
+        final StatelessProcessContext serviceProcessContext = new StatelessProcessContext(controllerService, lookup, null, stateManager, variableRegistry, parameterContext);
+        return new StatelessValidationContext(serviceProcessContext, lookup, stateManager, variableRegistry, parameterContext);
     }
 
     @Override
@@ -113,6 +122,28 @@ public class StatelessValidationContext implements ValidationContext {
     @Override
     public String getProcessGroupIdentifier() {
         return "stateless";
+    }
+
+    @Override
+    public Collection<String> getReferencedParameters(final String propertyName) {
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(propertyName).build();
+        final PropertyConfiguration configuration = this.processContext.getPropertyConfiguration(descriptor);
+        if (configuration == null) {
+            return Collections.emptyList();
+        }
+
+        final List<ParameterReference> references = configuration.getParameterReferences();
+        final List<String> parameterNames = references.stream().map(ParameterReference::getParameterName).collect(Collectors.toList());
+        return parameterNames;
+    }
+
+    @Override
+    public boolean isParameterDefined(final String parameterName) {
+        if (parameterContext == null) {
+            return false;
+        }
+
+        return parameterContext.getParameter(parameterName).isPresent();
     }
 
     @Override

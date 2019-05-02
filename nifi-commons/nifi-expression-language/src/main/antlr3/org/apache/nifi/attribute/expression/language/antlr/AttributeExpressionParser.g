@@ -29,6 +29,7 @@ tokens {
 	EXPRESSION;
 	MULTI_ATTRIBUTE_REFERENCE;
 	QUOTED_ATTR_NAME;
+	PARAMETER_REFERENCE;
 }
 
 @header {
@@ -101,7 +102,9 @@ stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum | oneOrTwoArgNum | zeroOrOneOrTwoArgNum;
 
-anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool | expression;
+anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool
+                | expression | parameterReference;
+
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
 functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
 
@@ -133,10 +136,15 @@ oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyAr
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
 standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
 
-attributeRefOrFunctionCall	: (attributeRef | standaloneFunction);
+attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterReference);
 
-expression : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE ->
-	^(EXPRESSION attributeRefOrFunctionCall functionCall*);
+referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE ->
+                      	^(EXPRESSION attributeRefOrFunctionCall functionCall*);
+
+parameterReference : PARAMETER_REFERENCE_START ATTRIBUTE_NAME RBRACE ->
+    ^(PARAMETER_REFERENCE ATTRIBUTE_NAME);
+
+expression : referenceOrFunction;
 
 query : expression EOF ->
 	^(QUERY expression);

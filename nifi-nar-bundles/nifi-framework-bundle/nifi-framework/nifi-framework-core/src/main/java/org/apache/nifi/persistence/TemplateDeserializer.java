@@ -50,9 +50,13 @@ public class TemplateDeserializer {
             final XMLStreamReader xsr = XmlUtils.createSafeReader(source);
             final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
             final JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
-            return templateElement.getValue();
+            final TemplateDTO templateDto = templateElement.getValue();
+
+            return templateDto;
         } catch (final JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         }
     }
+
+
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -90,6 +91,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyUpdate(final ProcessGroupDTO processGroup) {
+        final String parameterContextId = processGroup.getParameterContextId();
+        if (parameterContextId != null) {
+            final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
+            if (parameterContext == null) {
+                throw new IllegalStateException("Cannot update Process Group's Parameter Context because no Parameter Context exists with ID " + parameterContextId);
+            }
+
+            final ProcessGroup group = locateProcessGroup(flowController, processGroup.getId());
+            group.verifyCanSetParameterContext(parameterContext);
+        }
     }
 
     @Override
@@ -305,6 +316,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final String name = processGroupDTO.getName();
         final String comments = processGroupDTO.getComments();
+
+        final String parameterContextId = processGroupDTO.getParameterContextId();
+        if (parameterContextId != null) {
+            final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
+            if (parameterContext == null) {
+                throw new IllegalStateException("Cannot set Process Group's Parameter Context because no Parameter Context exists with ID " + parameterContextId);
+            }
+
+            group.setParameterContext(parameterContext);
+        }
 
         if (isNotNull(name)) {
             group.setName(name);

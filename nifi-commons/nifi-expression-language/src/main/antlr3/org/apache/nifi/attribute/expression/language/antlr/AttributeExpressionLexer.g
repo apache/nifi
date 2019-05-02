@@ -66,7 +66,10 @@ lexer grammar AttributeExpressionLexer;
 
 // PUNCTUATION & SPECIAL CHARACTERS
 WHITESPACE : (' '|'\t'|'\n'|'\r')+ { $channel = HIDDEN; };
-COMMENT : '#' ( ~('\n') )* '\n' { $channel = HIDDEN; };
+COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n' { $channel = HIDDEN; };
+
+// PARAMETERS
+PARAMETER_REFERENCE_START : '#{';
 
 DOLLAR : '$';
 LPAREN	: '(';

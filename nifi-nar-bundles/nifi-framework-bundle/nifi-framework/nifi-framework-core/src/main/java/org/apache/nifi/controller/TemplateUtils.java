@@ -17,6 +17,9 @@
 
 package org.apache.nifi.controller;
 
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -40,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,6 +75,67 @@ public class TemplateUtils {
             throw new RuntimeException("Could not parse bytes as template", ioe);
         }
     }
+
+    /**
+     * If template was serialized in a version before Parameters were supported, ensures that any reference to a
+     * Parameter is escaped so that the value is treated as a literal value.
+     * @param templateDto the template
+     */
+    public static void escapeParameterReferences(final TemplateDTO templateDto) {
+        final String encodingVersion = templateDto.getEncodingVersion();
+        if (encodingVersion == null) {
+            escapeParameterReferences(templateDto.getSnippet());
+        } else {
+            switch (encodingVersion) {
+                case "1.0":
+                case "1.1":
+                case "1.2":
+                    escapeParameterReferences(templateDto.getSnippet());
+                    break;
+            }
+        }
+    }
+
+    private static void escapeParameterReferences(final FlowSnippetDTO flowSnippetDTO) {
+        flowSnippetDTO.getProcessors().forEach(TemplateUtils::escapeParameterReferences);
+        flowSnippetDTO.getControllerServices().forEach(TemplateUtils::escapeParameterReferences);
+
+        for (final ProcessGroupDTO groupDto : flowSnippetDTO.getProcessGroups()) {
+            escapeParameterReferences(groupDto.getContents());
+        }
+    }
+
+    private static void escapeParameterReferences(final ProcessorDTO processorDto) {
+        final ProcessorConfigDTO config = processorDto.getConfig();
+        if (config == null) {
+            return;
+        }
+
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+
+        final Map<String, String> escapedPropertyValues = new HashMap<>();
+        for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
+            final ParameterTokenList references = parameterParser.parseTokens(entry.getValue());
+            final String escaped = references.escape();
+            escapedPropertyValues.put(entry.getKey(), escaped);
+        }
+
+        config.setProperties(escapedPropertyValues);
+    }
+
+    private static void escapeParameterReferences(final ControllerServiceDTO controllerServiceDTO) {
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+
+        final Map<String, String> escapedPropertyValues = new HashMap<>();
+        for (final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet()) {
+            final ParameterTokenList references = parameterParser.parseTokens(entry.getValue());
+            final String escaped = references.escape();
+            escapedPropertyValues.put(entry.getKey(), escaped);
+        }
+
+        controllerServiceDTO.setProperties(escapedPropertyValues);
+    }
+
 
     /**
      * Scrubs the template prior to persisting in order to remove fields that shouldn't be included or are unnecessary.
@@ -135,6 +200,7 @@ public class TemplateUtils {
             processGroupDTO.setLocallyModifiedAndStaleCount(null);
             processGroupDTO.setSyncFailureCount(null);
             processGroupDTO.setVersionControlInformation(null);
+            processGroupDTO.setParameterContextId(null);
 
             scrubSnippet(processGroupDTO.getContents());
         }

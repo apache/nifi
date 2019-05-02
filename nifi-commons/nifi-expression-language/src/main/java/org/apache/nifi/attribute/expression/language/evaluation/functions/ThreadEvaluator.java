@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -27,7 +25,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 public class ThreadEvaluator extends StringEvaluator {
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         // See org.apache.nifi.engine.FlowEngine
         return new StringQueryResult(Thread.currentThread().getName());
     }

@@ -49,7 +49,7 @@
                         <exclude>src/test/resources/json/address-book.json</exclude>
                     </excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -61,6 +61,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-parameter</artifactId>
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>

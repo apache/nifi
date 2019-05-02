@@ -1165,7 +1165,7 @@ public class ProcessGroupResource extends ApplicationResource {
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
 
-        completedRequestIds.stream().forEach(id -> varRegistryUpdateRequests.remove(id));
+        completedRequestIds.forEach(varRegistryUpdateRequests::remove);
 
         final int requestCount = varRegistryUpdateRequests.size();
         if (requestCount > MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS) {
@@ -3301,7 +3301,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     templateContents.getEncapsulatedProcessors().forEach(authorizeRestricted);
                     templateContents.getEncapsulatedControllerServices().forEach(authorizeRestricted);
                 },
-                () -> serviceFacade.verifyComponentTypes(requestInstantiateTemplateRequestEntity.getSnippet()),
+                () -> serviceFacade.verifyCanInstantiate(groupId, requestInstantiateTemplateRequestEntity.getSnippet()),
                 instantiateTemplateRequestEntity -> {
                     final FlowSnippetDTO snippet = instantiateTemplateRequestEntity.getSnippet();
 

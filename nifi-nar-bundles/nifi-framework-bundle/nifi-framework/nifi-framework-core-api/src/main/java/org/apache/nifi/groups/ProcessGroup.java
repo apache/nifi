@@ -29,9 +29,11 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -65,7 +67,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Predicate for stopping eligible Processors.
      */
-    Predicate<ProcessorNode> STOP_PROCESSORS_FILTER = node -> node.isRunning();
+    Predicate<ProcessorNode> STOP_PROCESSORS_FILTER = Triggerable::isRunning;
 
     /**
      * Predicate for enabling eligible Processors.
@@ -385,7 +387,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * Removes the given processor from this group, destroying the Processor.
      * The Processor is removed from the ProcessorRegistry, and any method in
      * the Processor that is annotated with the
-     * {@link org.apache.nifi.processor.annotation.OnRemoved OnRemoved} annotation will be
+     * {@link org.apache.nifi.annotation.lifecycle.OnRemoved OnRemoved} annotation will be
      * invoked. All outgoing connections will also be destroyed
      *
      * @param processor the Processor to remove
@@ -582,6 +584,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * ProcessGroups
      */
     List<ProcessGroup> findAllProcessGroups();
+
+    /**
+     * Returns a List of all ProcessGroups that match the given filter. This performs a recursive search of all descendant Process Groups.
+     *
+     * @param filter the filter to match Process Groups against
+     * @return a List of all ProcessGroups that are children or descendants of this ProcessGroup and that match the given filter.
+     */
+    List<ProcessGroup> findAllProcessGroups(Predicate<ProcessGroup> filter);
 
     /**
      * @param id of the group
@@ -1002,4 +1012,29 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * Called whenever a component within this group or the group itself is modified
      */
     void onComponentModified();
+
+    /**
+     * Updates the Parameter Context that is to be used by this Process Group
+     * @param parameterContext the new Parameter Context to use
+     */
+    void setParameterContext(ParameterContext parameterContext);
+
+    /**
+     * Returns the ParameterContext that is associated with this Process Group
+     * @return Returns the ParameterContext that is associated with this Process Group, or <code>null</code> if no Parameter Context has been set
+     */
+    ParameterContext getParameterContext();
+
+    /**
+     * Ensures that a new Parameter Context can be set.
+     *
+     * @param parameterContext the new Parameter Context to set
+     * @throws IllegalStateException if unable to set the Parameter Context at this point in time
+     */
+    void verifyCanSetParameterContext(ParameterContext parameterContext);
+
+    /**
+     * Called to notify the Process Group whenever the Parameter Context that it is bound to has changed.
+     */
+    void onParameterContextUpdated();
 }

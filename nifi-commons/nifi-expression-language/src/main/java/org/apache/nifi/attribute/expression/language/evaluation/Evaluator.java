@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public interface Evaluator<T> {
 
-    QueryResult<T> evaluate(Map<String, String> attributes, EvaluatorState context);
+    QueryResult<T> evaluate(EvaluationContext evaluationContext);
 
     ResultType getResultType();
 
-    int getEvaluationsRemaining(EvaluatorState context);
+    int getEvaluationsRemaining(EvaluationContext context);
 
     Evaluator<?> getSubjectEvaluator();
 

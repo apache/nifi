@@ -101,7 +101,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         assertEquals(ValidationStatus.VALID, procValidationStatus);
 
         // Ensure that the reference to the controller service was properly updated
-        final String referencedServiceId = procNode.getProperty(NopServiceReferencingProcessor.SERVICE);
+        final String referencedServiceId = procNode.getEffectivePropertyValue(NopServiceReferencingProcessor.SERVICE);
         assertEquals(serviceNode.getIdentifier(), referencedServiceId);
         assertNotEquals("service-id", referencedServiceId);
     }

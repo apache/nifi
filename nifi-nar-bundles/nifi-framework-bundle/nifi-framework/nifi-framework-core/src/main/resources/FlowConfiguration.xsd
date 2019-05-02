@@ -28,6 +28,8 @@
 
             <xs:element name="registries" type="RegistriesType" minOccurs="0" maxOccurs="1" />
 
+            <xs:element name="parameterContexts" type="ParameterContextsType" minOccurs="0" maxOccurs="1" />
+
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
 
@@ -52,6 +54,29 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="url" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterContextsType">
+        <xs:sequence>
+            <xs:element name="parameterContext" type="ParameterContextType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterContextType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="parameter" type="ParameterType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterType">
+        <xs:sequence>
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="description" type="xs:string" />
+            <xs:element name="sensitive" type="xs:boolean" />
+            <xs:element name="value" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
 
@@ -168,6 +193,7 @@
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
+            <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 
@@ -212,6 +238,8 @@
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
+            <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 

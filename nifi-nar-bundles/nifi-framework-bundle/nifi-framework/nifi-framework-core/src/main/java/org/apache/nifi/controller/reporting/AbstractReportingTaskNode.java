@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationResult;
@@ -305,5 +306,10 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public String getProcessGroupIdentifier() {
         return null;
+    }
+
+    @Override
+    public ParameterLookup getParameterLookup() {
+        return ParameterLookup.EMPTY;
     }
 }
