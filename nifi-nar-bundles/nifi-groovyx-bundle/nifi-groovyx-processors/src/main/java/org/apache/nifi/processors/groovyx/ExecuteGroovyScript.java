@@ -46,6 +46,7 @@ import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
 import org.apache.nifi.processors.groovyx.sql.OSql;
 import org.apache.nifi.processors.groovyx.util.Files;
 import org.apache.nifi.processors.groovyx.util.Validators;
+import org.apache.nifi.util.FileExpansionUtil;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
@@ -176,6 +177,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         if (f == null || f.length() == 0) {
             return null;
         }
+        getLogger().info("file name in execute groovy script: " + f);
         return new File(f);
     }
 
@@ -207,7 +209,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * @return Collection of ValidationResult objects that will be added to any other validation findings - may be null
      */
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
+        this.scriptFile = asFile(FileExpansionUtil.expandPath(
+                context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue()));  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
@@ -246,7 +249,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      */
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
+        this.scriptFile = asFile(FileExpansionUtil.expandPath(
+                context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue()));  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property

@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.util.FileExpansionUtil;
 
 /***
  * class with validators
@@ -27,13 +28,20 @@ import org.apache.nifi.components.Validator;
 
 public class Validators {
     /**
-     * differs from standard file exists validator by supporting expression language values. TODO: maybe there is a bug in standard validator?
+     * differs from standard file exists validator by supporting expression language values.
+     *
+     * TODO: seems this is now exactly the same as file exists validator.
+     * I created a story / jira to investigate consolidation NIFI-6256
      */
     public static Validator createFileExistsAndReadableValidator() {
         return (subject, input, context) -> {
             final String substituted;
             try {
-                substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+                if (input.startsWith("~/")) {
+                    substituted = input;
+                } else {
+                    substituted = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+                }
             } catch (final Exception e) {
                 return new ValidationResult.Builder()
                         .subject(subject)
@@ -43,7 +51,7 @@ public class Validators {
                         .build();
             }
 
-            final File file = new File(substituted);
+            final File file = new File(FileExpansionUtil.expandPath(substituted));
             final boolean valid = file.exists() && file.canRead();
             final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
             return new ValidationResult.Builder()

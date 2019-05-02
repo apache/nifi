@@ -26,11 +26,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.FixMethodOrder;
+import org.junit.*;
 import org.junit.runners.MethodSorters;
 
 import java.io.File;
@@ -62,11 +58,23 @@ public class ExecuteGroovyScriptTest {
     protected TestRunner runner;
     protected static DBCPService dbcp = null;  //to make single initialization
     protected ExecuteGroovyScript proc;
+//   public final String TEST_RESOURCE_LOCATION = "~/";
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
             + "female,miss,marlene,shaw\n"
             + "male,mr,todd,graham";
 
+    private String originalHome = "";
+
+    @Before
+    public void beforeEach() {
+        originalHome = System.getProperty("user.home");
+    }
+
+    @After
+    public void afterEach() {
+        System.setProperty("user.home", originalHome);
+    }
 
     @AfterClass
     public static void cleanUpAfterClass() throws Exception {
@@ -228,7 +236,8 @@ public class ExecuteGroovyScriptTest {
     //---------------------------------------------------------
     @Test
     public void test_ctl_01_access() throws Exception {
-        runner.setProperty(proc.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_ctl_01_access.groovy");
+        System.setProperty("user.home", TEST_RESOURCE_LOCATION);
+        runner.setProperty(proc.SCRIPT_FILE, "~/test_ctl_01_access.groovy");
         runner.setProperty("CTL.mydbcp", "dbcp"); //pass dbcp as a service to script
         runner.assertValid();
 
