@@ -1649,11 +1649,8 @@
             // hide the context menu
             nfContextMenu.hide();
 
-            // set the new group id
-            nfCanvasUtils.setGroupId(groupId);
-
             // reload the graph
-            return nfCanvasUtils.reload().done(function () {
+            return nfCanvasUtils.reload(groupId).done(function () {
 
                 // attempt to restore the view
                 var viewRestored = nfCanvasUtils.restoreUserView();
