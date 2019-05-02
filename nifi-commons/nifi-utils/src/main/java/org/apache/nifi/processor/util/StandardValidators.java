@@ -23,6 +23,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FileExpansionUtil;
 import org.apache.nifi.util.FormatUtils;
 
@@ -37,6 +38,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
