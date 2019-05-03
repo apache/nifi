@@ -293,23 +293,48 @@
                     nfNgBridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
                 });
 
-                // process group first, if it fails, consumers of this reload function want to know about it specifically
-                processGroupXhr.done(function(result) {
-                    var processGroupResult = result;
+                // wait for all requests to complete
+                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
+                    // inform Angular app values have changed
+                    nfNgBridge.digest();
 
-                    // now wait for the other requests to complete
-                    $.when(statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function () {
-                        // inform Angular app values have changed
-                        nfNgBridge.digest();
+                    // resolve the deferred
+                    deferred.resolve(processGroupResult);
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
+                });
+            }).promise();
+        },
+
+        /**
+         * Reloads the flow from the server based on the specified group id.
+         *
+         * @param processGroupId Id of the Process Group to load
+         * @param options
+         */
+        loadProcessGroup: function (processGroupId, options) {
+            // capture the current group id to reset to in case of failure
+            var currentProcessGroup = nfCanvas.getGroupId();
+
+            return $.Deferred(function (deferred) {
+                nfCanvas.setGroupId(processGroupId);
+
+                var processGroupXhr = reloadProcessGroup(processGroupId, options);
+
+                processGroupXhr
+                    .done(function (result) {
+                        var processGroupResult = result[0];
 
                         // resolve the deferred
                         deferred.resolve(processGroupResult);
-                    }).fail(function(xhr, status, error) {
-                        deferred.reject(xhr, status, error)
-                    });
-                }).fail(function(xhr, status, error) {
-                    deferred.reject(xhr, status, 'RELOAD_PROCESS_GROUP_FAILED');
-                })
+                    })
+                    .fail(function (xhr, status, error) {
+                        // set the group id back to what it was
+                        nfCanvas.setGroupId(currentProcessGroup);
+
+                        // reject the deferred, let consumers have an opportunity to react
+                        deferred.reject(xhr, status, error);
+                    })
             }).promise();
         },
 

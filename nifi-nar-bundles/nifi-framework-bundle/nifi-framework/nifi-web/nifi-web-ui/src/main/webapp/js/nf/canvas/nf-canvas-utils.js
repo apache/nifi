@@ -349,11 +349,8 @@
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId()) {
-                        // set the new group id
-                        nfCanvas.setGroupId(groupId);
-
-                        // reload
-                        nfCanvas.reload().done(function () {
+                        // load the process group
+                        nfCanvas.loadProcessGroup(groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
@@ -455,11 +452,8 @@
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId() || forceCanvasLoad) {
-                        // set the new group id
-                        nfCanvas.setGroupId(groupId);
-
-                        // reload
-                        nfCanvas.reload().done(function () {
+                        // load the process group
+                        nfCanvas.loadProcessGroup(groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
