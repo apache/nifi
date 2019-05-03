@@ -39,6 +39,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXException
 
+import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
@@ -1536,58 +1537,12 @@ class ConfigEncryptionTool {
                     try {
                         tool.flowXml = tool.loadFlowXml()
                     } catch (Exception e) {
+                        if (tool.isVerbose) {
+                            logger.error("Encountered an error: ", e)
+                        }
                         tool.printUsageAndThrow("Cannot load flow.xml.gz", ExitCode.ERROR_READING_NIFI_PROPERTIES)
                     }
-
-                    // If the flow password was not set in nifi.properties, use the hard-coded default
-                    String existingFlowPassword = tool.getExistingFlowPassword()
-
-                    // If the new password was not provided in the arguments, read from the console. If that is empty, use the same value (essentially a copy no-op)
-                    String newFlowPassword = tool.flowPropertiesPassword ?: tool.getFlowPassword()
-                    if (!newFlowPassword) {
-                        newFlowPassword = existingFlowPassword
-                    }
-
-                    // Get the algorithms and providers
-                    NiFiProperties nfp = tool.niFiProperties
-                    String existingAlgorithm = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM) ?: DEFAULT_FLOW_ALGORITHM
-                    String existingProvider = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER) ?: DEFAULT_PROVIDER
-
-                    String newAlgorithm = tool.newFlowAlgorithm ?: existingAlgorithm
-                    String newProvider = tool.newFlowProvider ?: existingProvider
-
-                    try {
-                        tool.flowXml = tool.migrateFlowXmlContent(tool.flowXml, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
-                    } catch (Exception e) {
-                        if (tool.isVerbose) {
-                            logger.error("Encountered an error", e, "Check your password?")
-                        }
-                        tool.printUsageAndThrow("Encountered an error migrating flow content", ExitCode.ERROR_MIGRATING_FLOW)
-                    }
-
-                    // If the new key is the hard-coded internal value, don't persist it to nifi.properties
-                    if (newFlowPassword != DEFAULT_NIFI_SENSITIVE_PROPS_KEY && newFlowPassword != existingFlowPassword) {
-                        // Update the NiFiProperties object with the new flow password before it gets encrypted (wasteful, but NiFiProperties instances are immutable)
-                        Properties rawProperties = new Properties()
-                        nfp.getPropertyKeys().each { String k ->
-                            rawProperties.put(k, nfp.getProperty(k))
-                        }
-
-                        // If the tool is not going to encrypt NiFiProperties and the existing file is already encrypted, encrypt and update the new sensitive props key
-                        if (!tool.handlingNiFiProperties && existingNiFiPropertiesAreEncrypted) {
-                            AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(tool.keyHex)
-                            String encryptedSPK = spp.protect(newFlowPassword)
-                            rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
-                            // Manually update the protection scheme or it will be lost
-                            rawProperties.put(ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY), spp.getIdentifierKey())
-                            if (tool.isVerbose) {
-                                logger.info("Tool is not configured to encrypt nifi.properties, but the existing nifi.properties is encrypted and flow.xml.gz was migrated, so manually persisting the new encrypted value to nifi.properties")
-                            }
-                        } else {
-                            rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, newFlowPassword)
-                        }
-                        tool.niFiProperties = new StandardNiFiProperties(rawProperties)
-                    }
+                    tool.handleFlowXml(existingNiFiPropertiesAreEncrypted)
                 }
 
                 if (tool.handlingNiFiProperties) {
@@ -1635,6 +1590,62 @@ class ConfigEncryptionTool {
         }
 
         System.exit(ExitCode.SUCCESS.ordinal())
+    }
+
+    void handleFlowXml(boolean existingNiFiPropertiesAreEncrypted = false) {
+        // If the flow password was not set in nifi.properties, use the hard-coded default
+        String existingFlowPassword = getExistingFlowPassword()
+
+        // If the new password was not provided in the arguments, read from the console. If that is empty, use the same value (essentially a copy no-op)
+        String newFlowPassword = flowPropertiesPassword ?: getFlowPassword()
+        if (!newFlowPassword) {
+            newFlowPassword = existingFlowPassword
+        }
+
+        // Get the algorithms and providers
+        NiFiProperties nfp = niFiProperties
+        String existingAlgorithm = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM) ?: DEFAULT_FLOW_ALGORITHM
+        String existingProvider = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER) ?: DEFAULT_PROVIDER
+
+        String newAlgorithm = newFlowAlgorithm ?: existingAlgorithm
+        String newProvider = newFlowProvider ?: existingProvider
+
+        try {
+            flowXml = migrateFlowXmlContent(flowXml, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
+        } catch (Exception e) {
+            logger.error("Encountered an error: ${e.getLocalizedMessage()}")
+            if (e instanceof BadPaddingException) {
+                logger.error("This error is likely caused by providing the wrong existing flow password. Check that the existing flow password [-p] is the one used to encrypt the provided flow.xml.gz file")
+            }
+            if (isVerbose) {
+                logger.error("Exception: ", e)
+            }
+            printUsageAndThrow("Encountered an error migrating flow content", ExitCode.ERROR_MIGRATING_FLOW)
+        }
+
+        // If the new key is the hard-coded internal value, don't persist it to nifi.properties
+        if (newFlowPassword != DEFAULT_NIFI_SENSITIVE_PROPS_KEY && newFlowPassword != existingFlowPassword) {
+            // Update the NiFiProperties object with the new flow password before it gets encrypted (wasteful, but NiFiProperties instances are immutable)
+            Properties rawProperties = new Properties()
+            nfp.getPropertyKeys().each { String k ->
+                rawProperties.put(k, nfp.getProperty(k))
+            }
+
+            // If the tool is not going to encrypt NiFiProperties and the existing file is already encrypted, encrypt and update the new sensitive props key
+            if (!handlingNiFiProperties && existingNiFiPropertiesAreEncrypted) {
+                AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
+                String encryptedSPK = spp.protect(newFlowPassword)
+                rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
+                // Manually update the protection scheme or it will be lost
+                rawProperties.put(ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY), spp.getIdentifierKey())
+                if (isVerbose) {
+                    logger.info("Tool is not configured to encrypt nifi.properties, but the existing nifi.properties is encrypted and flow.xml.gz was migrated, so manually persisting the new encrypted value to nifi.properties")
+                }
+            } else {
+                rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, newFlowPassword)
+            }
+            niFiProperties = new StandardNiFiProperties(rawProperties)
+        }
     }
 
     String translateNiFiPropertiesToCLI() {
