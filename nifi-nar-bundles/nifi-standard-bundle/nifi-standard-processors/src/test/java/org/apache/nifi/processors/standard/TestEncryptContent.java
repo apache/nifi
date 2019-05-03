@@ -32,9 +32,15 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestEncryptContent {
 
@@ -193,7 +199,7 @@ public class TestEncryptContent {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
 
         // Assert
-        Assert.assertEquals("Decrypt should default to Legacy KDF", testRunner.getProcessor().getPropertyDescriptor(EncryptContent.KEY_DERIVATION_FUNCTION
+        assertEquals("Decrypt should default to Legacy KDF", testRunner.getProcessor().getPropertyDescriptor(EncryptContent.KEY_DERIVATION_FUNCTION
                 .getName()).getDefaultValue(), KeyDerivationFunction.BCRYPT.name());
     }
 
@@ -240,13 +246,13 @@ public class TestEncryptContent {
         results = pc.validate();
 
         // Assert
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
         String expectedResult = " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
                 + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
                 + EncryptContent.PUBLIC_KEY_USERID.getDisplayName();
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+        assertTrue(message, vr.toString().contains(expectedResult));
     }
 
     @Test
@@ -268,7 +274,7 @@ public class TestEncryptContent {
 
         // Assert
         String message = EncryptContent.PUBLIC_KEYRING.getDisplayName() + " cannot be found on the file system on path src/test/resources/TestEncryptContent/user/testuser/gpg";
-        Assert.assertEquals(message, 0, results.size());
+        assertEquals(message, 0, results.size());
     }
 
     @Test
@@ -289,11 +295,11 @@ public class TestEncryptContent {
         results = pc.validate();
 
         // Assert
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
         String expectedResult = "java.io.FileNotFoundException";
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+        assertTrue(message, vr.toString().contains(expectedResult));
     }
 
     @Test
@@ -314,11 +320,11 @@ public class TestEncryptContent {
         results = pc.validate();
 
         // Assert
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
         String expectedResult = " java.io.IOException: invalid header encountered";
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+        assertTrue(message, vr.toString().contains(expectedResult));
     }
 
     @Test
@@ -339,11 +345,11 @@ public class TestEncryptContent {
         results = pc.validate();
 
         // Assert
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
         String expectedResult = "PGPException: Could not find a public key with the given userId";
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        Assert.assertTrue(message, vr.toString().contains(expectedResult));
+        assertTrue(message, vr.toString().contains(expectedResult));
     }
 
     @Test
@@ -364,7 +370,7 @@ public class TestEncryptContent {
         results = pc.validate();
 
         // Assert
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -376,9 +382,9 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        Assert.assertEquals(results.toString(), 1, results.size());
+        assertEquals(results.toString(), 1, results.size());
         for (final ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString()
+            assertTrue(vr.toString()
                     .contains(EncryptContent.PASSWORD.getDisplayName() + " is required when using algorithm"));
         }
     }
@@ -398,15 +404,15 @@ public class TestEncryptContent {
         results = pc.validate();
         if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
             logger.info(results.toString());
-            Assert.assertEquals(1, results.size());
+            assertEquals(1, results.size());
             for (final ValidationResult vr : results) {
-                Assert.assertTrue(
+                assertTrue(
                         "Did not successfully catch validation error of a long password in a non-JCE Unlimited Strength environment",
                         vr.toString().contains("Password length greater than " + CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod)
                                 + " characters is not supported by this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."));
             }
         } else {
-            Assert.assertEquals(results.toString(), 0, results.size());
+            assertEquals(results.toString(), 0, results.size());
         }
     }
 
@@ -421,9 +427,9 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (final ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains(
+            assertTrue(vr.toString().contains(
                     " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
                             + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
                             + EncryptContent.PUBLIC_KEY_USERID.getDisplayName()));
@@ -447,10 +453,10 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
 
         for (final ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains(
+            assertTrue(vr.toString().contains(
                     " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
         }
     }
@@ -472,6 +478,6 @@ public class TestEncryptContent {
         runner.enqueue(new byte[0]);
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 }

@@ -26,7 +26,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import java.io.File;
@@ -58,7 +63,6 @@ public class ExecuteGroovyScriptTest {
     protected TestRunner runner;
     protected static DBCPService dbcp = null;  //to make single initialization
     protected ExecuteGroovyScript proc;
-//   public final String TEST_RESOURCE_LOCATION = "~/";
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
             + "female,miss,marlene,shaw\n"
