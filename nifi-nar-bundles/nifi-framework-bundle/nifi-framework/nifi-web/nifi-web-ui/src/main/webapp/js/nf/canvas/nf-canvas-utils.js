@@ -350,7 +350,7 @@
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId()) {
                         // load the process group
-                        nfCanvas.loadProcessGroup(groupId).done(function () {
+                        nfCanvas.reload(undefined, groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
@@ -453,7 +453,7 @@
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId() || forceCanvasLoad) {
                         // load the process group
-                        nfCanvas.loadProcessGroup(groupId).done(function () {
+                        nfCanvas.reload(undefined, groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
@@ -2104,20 +2104,13 @@
 
         /**
          * Reloads the status for the entire canvas (components and flow.)
+         *
+         * @param {string} groupId    Optional, specific group id to reload the canvas to
          */
-        reload: function () {
+        reload: function (groupId) {
             return nfCanvas.reload({
                 'transition': true
-            });
-        },
-
-        /**
-         * Loads the flow from the server based on the specified group id.
-         *
-         * @param {string} processGroupId     Id of the group to load
-         */
-        loadProcessGroup: function (processGroupId) {
-            return nfCanvas.loadProcessGroup(processGroupId, { 'transition': true });
+            }, groupId);
         },
 
         /**

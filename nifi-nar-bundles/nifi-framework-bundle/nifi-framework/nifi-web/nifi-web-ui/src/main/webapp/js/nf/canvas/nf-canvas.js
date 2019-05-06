@@ -210,6 +210,39 @@
     };
 
     /**
+     * Reloads the flow from the server based on the specified group id.
+     *
+     * @param processGroupId Id of the Process Group to load
+     * @param options
+     */
+    var safelyLoadProcessGroup = function (processGroupId, options) {
+        // capture the current group id to reset to in case of failure
+        var currentProcessGroup = nfCanvas.getGroupId();
+
+        return $.Deferred(function (deferred) {
+            nfCanvas.setGroupId(processGroupId);
+
+            var processGroupXhr = reloadProcessGroup(processGroupId, options);
+
+            processGroupXhr
+                .done(function (result) {
+                    var processGroupResult = result[0];
+
+                    // resolve the deferred
+                    deferred.resolve(processGroupResult);
+                })
+                .fail(function (xhr, status, error) {
+                    // set the group id back to what it was
+                    nfCanvas.setGroupId(currentProcessGroup);
+
+                    // reject the deferred, let consumers have an opportunity to react
+                    deferred.reject(xhr, status, error);
+                })
+        }).promise();
+    };
+
+
+    /**
      * Loads the current user and updates the current user locally.
      *
      * @returns xhr
@@ -260,10 +293,17 @@
          * Reloads the flow from the server based on the currently specified group id.
          * To load another group, update nfCanvas.setGroupId, clear the canvas, and call nfCanvas.reload.
          */
-        reload: function (options) {
+        reload: function (options, groupId) {
             return $.Deferred(function (deferred) {
                 // issue the requests
-                var processGroupXhr = reloadProcessGroup(nfCanvas.getGroupId(), options);
+
+                var processGroupXhr;
+                if (nfCommon.isDefinedAndNotNull(groupId)) {
+                    processGroupXhr = safelyLoadProcessGroup(groupId, options);
+                } else {
+                    processGroupXhr = reloadProcessGroup(nfCanvas.getGroupId(), options);
+                }
+
                 var statusXhr = nfNgBridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
                 var controllerBulletins = $.ajax({
@@ -303,38 +343,6 @@
                 }).fail(function (xhr, status, error) {
                     deferred.reject(xhr, status, error);
                 });
-            }).promise();
-        },
-
-        /**
-         * Reloads the flow from the server based on the specified group id.
-         *
-         * @param processGroupId Id of the Process Group to load
-         * @param options
-         */
-        loadProcessGroup: function (processGroupId, options) {
-            // capture the current group id to reset to in case of failure
-            var currentProcessGroup = nfCanvas.getGroupId();
-
-            return $.Deferred(function (deferred) {
-                nfCanvas.setGroupId(processGroupId);
-
-                var processGroupXhr = reloadProcessGroup(processGroupId, options);
-
-                processGroupXhr
-                    .done(function (result) {
-                        var processGroupResult = result[0];
-
-                        // resolve the deferred
-                        deferred.resolve(processGroupResult);
-                    })
-                    .fail(function (xhr, status, error) {
-                        // set the group id back to what it was
-                        nfCanvas.setGroupId(currentProcessGroup);
-
-                        // reject the deferred, let consumers have an opportunity to react
-                        deferred.reject(xhr, status, error);
-                    })
             }).promise();
         },
 

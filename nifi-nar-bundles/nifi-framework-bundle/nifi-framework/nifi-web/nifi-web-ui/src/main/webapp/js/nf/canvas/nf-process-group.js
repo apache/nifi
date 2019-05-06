@@ -1650,7 +1650,7 @@
             nfContextMenu.hide();
 
             // reload the graph
-            return nfCanvasUtils.loadProcessGroup(groupId).done(function () {
+            return nfCanvasUtils.reload(groupId).done(function () {
 
                 // attempt to restore the view
                 var viewRestored = nfCanvasUtils.restoreUserView();
@@ -1663,7 +1663,7 @@
                 // update URL deep linking params
                 nfCanvasUtils.setURLParameters(groupId, d3.select());
 
-            }).fail(function (xhr, status, reason) {
+            }).fail(function () {
                 nfDialog.showOkDialog({
                     headerText: 'Process Group',
                     dialogContent: 'Unable to enter the selected group.'
