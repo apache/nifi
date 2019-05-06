@@ -2112,6 +2112,15 @@
         },
 
         /**
+         * Loads the flow from the server based on the specified group id.
+         *
+         * @param {string} processGroupId     Id of the group to load
+         */
+        loadProcessGroup: function (processGroupId) {
+            return nfCanvas.loadProcessGroup(processGroupId, { 'transition': true });
+        },
+
+        /**
          * Whether the current user can read from this group.
          *
          * @returns {boolean}   can write
