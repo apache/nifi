@@ -953,9 +953,7 @@ Expressions will provide the following results:
 
 *Arguments*:
 
-*Arguments*:
-
-	- [.argName]#_Regex_# : [.argDesc]#he Regular Expression (in Java syntax) to match in the Subject#
+	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in Java syntax) to match in the Subject#
 	- [.argName]#_Replacement_# : [.argDesc]#The value to use for replacing matches in the Subject. If the _regular expression_
 		argument uses Capturing Groups, back references are allowed in the _replacement_.#
 
