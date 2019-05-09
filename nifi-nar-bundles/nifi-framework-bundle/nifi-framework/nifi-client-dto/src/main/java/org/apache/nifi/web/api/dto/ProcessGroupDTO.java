@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.NumberUtil;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Map;
@@ -109,7 +110,14 @@ public class ProcessGroupDTO extends ComponentDTO {
             readOnly = true
     )
     public Integer getInputPortCount() {
-        return localInputPortCount + publicInputPortCount;
+        return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
+    }
+
+    public void setInputPortCount(Integer inputPortCount) {
+        // Without having setter for 'inputPortCount', deserialization fails.
+        // If we use Jackson annotation @JsonIgnoreProperties, this empty setter is not needed.
+        // Ex. @JsonIgnoreProperties(value={"inputPortCount", "outputPortCount"}, allowGetters=true)
+        // But in order to minimize dependencies, we don't use Jackson annotations in this module.
     }
 
     /**
@@ -162,7 +170,11 @@ public class ProcessGroupDTO extends ComponentDTO {
             readOnly = true
     )
     public Integer getOutputPortCount() {
-        return localOutputPortCount + publicOutputPortCount;
+        return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
+    }
+
+    public void setOutputPortCount(Integer outputPortCount) {
+        // See setInputPortCount for the reason why this is needed.
     }
 
     /**

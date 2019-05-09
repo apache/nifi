@@ -20,6 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+import org.apache.nifi.web.api.dto.util.NumberUtil;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -90,7 +91,11 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         readOnly = true
     )
     public Integer getInputPortCount() {
-        return localInputPortCount + publicInputPortCount;
+        return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
+    }
+
+    public void setInputPortCount(Integer inputPortCount) {
+        // See ProcessGroupDTO.setInputPortCount for the reason why this is needed.
     }
 
     /**
@@ -143,7 +148,11 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         readOnly = true
     )
     public Integer getOutputPortCount() {
-        return localOutputPortCount + publicOutputPortCount;
+        return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
+    }
+
+    public void setOutputPortCount(Integer outputPortCount) {
+        // See ProcessGroupDTO.setInputPortCount for the reason why this is needed.
     }
 
     /**
