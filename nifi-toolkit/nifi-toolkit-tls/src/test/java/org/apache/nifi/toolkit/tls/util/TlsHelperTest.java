@@ -17,7 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.bouncycastle.asn1.pkcs.Attribute;
@@ -355,15 +354,14 @@ public class TlsHelperTest {
     public void testShouldIncludeSANFromCSR() throws Exception {
         // Arrange
         final List<String> SAN_ENTRIES = Arrays.asList("127.0.0.1", "nifi.nifi.apache.org");
-        final String SAN = StringUtils.join(SAN_ENTRIES, ",");
         final int SAN_COUNT = SAN_ENTRIES.size();
         final String DN = "CN=localhost";
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
         logger.info("Generating CSR with DN: " + DN);
 
         // Act
-        JcaPKCS10CertificationRequest csrWithSan = TlsHelper.generateCertificationRequest(DN, SAN, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
-        logger.info("Created CSR with SAN: " + SAN);
+        JcaPKCS10CertificationRequest csrWithSan = TlsHelper.generateCertificationRequest(DN, SAN_ENTRIES, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        logger.info("Created CSR with SAN: " + SAN_ENTRIES);
         String testCsrPem = TlsHelper.pemEncodeJcaObject(csrWithSan);
         logger.info("Encoded CSR as PEM: " + testCsrPem);
 

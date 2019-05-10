@@ -138,7 +138,7 @@ public class TlsToolkitStandaloneCommandLineTest {
     public void testSAN() throws CommandLineParseException, IOException {
         String dnsSAN = "nifi.apache.org";
         tlsToolkitStandaloneCommandLine.parse("--subjectAlternativeNames", dnsSAN);
-        assertEquals(dnsSAN, tlsToolkitStandaloneCommandLine.createConfig().getDomainAlternativeNames());
+        assertEquals(dnsSAN, tlsToolkitStandaloneCommandLine.createConfig().getDomainAlternativeNames().get(0));
     }
 
     @Test

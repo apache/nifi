@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
+import java.util.List;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -41,7 +42,6 @@ public class TlsConfig {
     private String signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
 
     private String dn;
-    private String domainAlternativeNames;
     private String keyStore;
     private String keyStoreType = DEFAULT_KEY_STORE_TYPE;
     private String keyStorePassword;
@@ -53,6 +53,7 @@ public class TlsConfig {
     private String dnSuffix = DEFAULT_DN_SUFFIX;
     private boolean reorderDn = DEFAULT_REORDER_DN;
     private String additionalCACertificate = "";
+    private List<String> domainAlternativeNames;
 
     public String calcDefaultDn(String hostname) {
         String dn = dnPrefix + hostname + dnSuffix;
@@ -209,11 +210,11 @@ public class TlsConfig {
         }
     }
 
-    public String getDomainAlternativeNames() {
+    public List<String> getDomainAlternativeNames() {
         return domainAlternativeNames;
     }
 
-    public void setDomainAlternativeNames(String domainAlternativeNames) {
+    public void setDomainAlternativeNames(List<String> domainAlternativeNames) {
         this.domainAlternativeNames = domainAlternativeNames;
     }
 
