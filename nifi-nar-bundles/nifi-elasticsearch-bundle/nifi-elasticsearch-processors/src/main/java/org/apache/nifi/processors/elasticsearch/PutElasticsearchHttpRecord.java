@@ -266,7 +266,6 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
-        descriptors.add(CHARSET);
         descriptors.add(INDEX_OP);
         descriptors.add(SUPPRESS_NULLS);
         descriptors.add(DATE_FORMAT);
