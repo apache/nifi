@@ -118,12 +118,12 @@ public class TestGeoEnrichIPRecord {
 
     @Test
     public void testEnrichSendToNotFound() throws Exception {
-        commonTest("/json/one_record_no_geo.json", 1, 0, 1);
+        commonTest("/json/one_record_no_geo.json", 1, 0, 0);
     }
 
     @Test
     public void testEnrichSendToFound() throws Exception {
-        commonTest("/json/one_record.json", 0, 1, 1);
+        commonTest("/json/one_record.json", 0, 1, 0);
 
         MockFlowFile ff = runner.getFlowFilesForRelationship(GeoEnrichIPRecord.REL_FOUND).get(0);
         byte[] raw = runner.getContentAsByteArray(ff);

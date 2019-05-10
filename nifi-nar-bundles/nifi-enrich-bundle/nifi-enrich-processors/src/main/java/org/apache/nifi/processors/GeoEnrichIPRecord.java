@@ -56,7 +56,9 @@ import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"geo", "enrich", "ip", "maxmind", "record"})
-@CapabilityDescription("Provides a record-aware version of the GeoEnrichIP functionality.")
+@CapabilityDescription("Looks up geolocation information for an IP address and adds the geo information to FlowFile attributes. The "
+        + "geo data is provided as a MaxMind database. This version uses the NiFi Record API to allow large scale enrichment of record-oriented data sets. "
+        + "Each field provided by the MaxMind database can be directed to a field of the user's choosing by providing a record path for that field configuration. ")
 public class GeoEnrichIPRecord extends AbstractEnrichIP {
     public static final PropertyDescriptor READER = new PropertyDescriptor.Builder()
             .name("geo-enrich-ip-record-reader")
@@ -245,12 +247,13 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 osNotFound.close();
             }
 
-            session.transfer(input, REL_ORIGINAL);
             if (!splitOutput) {
                 session.transfer(output, targetRelationship);
+                session.remove(input);
             } else {
                 session.transfer(output, REL_FOUND);
                 session.transfer(notFound, REL_NOT_FOUND);
+                session.transfer(input, REL_ORIGINAL);
                 session.getProvenanceReporter().modifyContent(notFound);
             }
             session.getProvenanceReporter().modifyContent(output);
