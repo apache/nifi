@@ -55,8 +55,11 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class TlsToolkitStandalone {
     public static final String NIFI_KEY = "nifi-key";
@@ -193,7 +196,11 @@ public class TlsToolkitStandalone {
         if (instanceDefinitions.isEmpty() && logger.isInfoEnabled()) {
             logger.info("No " + TlsToolkitStandaloneCommandLine.HOSTNAMES_ARG + " specified, not generating any host certificates or configuration.");
         }
-        for (InstanceDefinition instanceDefinition : instanceDefinitions) {
+
+        List<String> domainAlternativeNames = standaloneConfig.getDomainAlternativeNames();
+
+        for (Integer instanceIndex : IntStream.range(0, instanceDefinitions.size()).boxed().collect(Collectors.toList())) {
+            InstanceDefinition instanceDefinition = instanceDefinitions.get(instanceIndex);
             String hostname = instanceDefinition.getHostname();
             File hostDir;
             int hostIdentifierNumber = instanceDefinition.getInstanceIdentifier().getNumber();
@@ -206,6 +213,16 @@ public class TlsToolkitStandalone {
             TlsClientConfig tlsClientConfig = new TlsClientConfig(standaloneConfig);
             File keystore = new File(hostDir, "keystore." + tlsClientConfig.getKeyStoreType().toLowerCase());
             File truststore = new File(hostDir, "truststore." + tlsClientConfig.getTrustStoreType().toLowerCase());
+
+            // Adjust the SANs when ranges match.
+            if (domainAlternativeNames.size() == 1) {
+                tlsClientConfig.setDomainAlternativeNames(Collections.singletonList(domainAlternativeNames.get(0)));
+            } else if (domainAlternativeNames.size() == instanceDefinitions.size()) {
+                tlsClientConfig.setDomainAlternativeNames(Collections.singletonList(domainAlternativeNames.get(instanceIndex)));
+                logger.info("Using alternate name " + domainAlternativeNames.get(instanceIndex) + " with hostname " + hostname + ".");
+            } else if (domainAlternativeNames.size() > 0) {
+                logger.warn("Hostname count does not match given alternate name count. Verify names in resulting certificate.");
+            }
 
             if (hostDir.exists()) {
                 if (!hostDir.isDirectory()) {
