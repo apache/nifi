@@ -45,6 +45,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -202,6 +203,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
 
@@ -234,7 +236,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     flowFile = session.putAttribute(flowFile, "es.type", retrievedType);
                     if (source != null) {
                         flowFile = session.write(flowFile, out -> {
-                            out.write(source.toString().getBytes());
+                            out.write(source.toString().getBytes(charset));
                         });
                     }
                     logger.debug("Elasticsearch document " + retrievedId + " fetched, routing to success");

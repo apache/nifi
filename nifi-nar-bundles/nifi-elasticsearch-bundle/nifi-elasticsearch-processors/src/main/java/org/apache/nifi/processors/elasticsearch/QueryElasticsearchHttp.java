@@ -49,6 +49,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -316,6 +317,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
 
@@ -344,7 +346,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
-                        logger, startNanos, targetIsContent, numResults);
+                        logger, startNanos, targetIsContent, numResults, charset);
                 fromIndex += pageSize;
                 getResponse.close();
             }
@@ -381,7 +383,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            final long startNanos, boolean targetIsContent, int priorResultCount)
+            final long startNanos, boolean targetIsContent, int priorResultCount, Charset charset)
             throws IOException {
         List<FlowFile> page = new ArrayList<>();
         final int statusCode = getResponse.code();
@@ -426,7 +428,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     documentFlowFile = session.putAttribute(documentFlowFile, "filename", retrievedId);
                     documentFlowFile = session.putAttribute(documentFlowFile, "mime.type", "application/json");
                     documentFlowFile = session.write(documentFlowFile, out -> {
-                        out.write(source.toString().getBytes());
+                        out.write(source.toString().getBytes(charset));
                     });
                 } else {
                     Map<String, String> attributes = new HashMap<>();
