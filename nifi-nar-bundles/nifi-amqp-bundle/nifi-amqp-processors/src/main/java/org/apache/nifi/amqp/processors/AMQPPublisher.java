@@ -69,6 +69,8 @@ final class AMQPPublisher extends AMQPWorker {
         final Channel channel = getChannel();
         if (channel.isOpen()) {
             try {
+		// confirm if exhange exists in RabbitMQ else throw an Exception 
+                channel.exchangeDeclarePassive(exchange);
                 channel.basicPublish(exchange, routingKey, true, properties, bytes);
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to publish to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
