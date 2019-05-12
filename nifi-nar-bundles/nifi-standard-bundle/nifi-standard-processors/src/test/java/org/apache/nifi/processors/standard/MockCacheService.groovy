@@ -23,7 +23,7 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient
 import org.apache.nifi.distributed.cache.client.Serializer
 
 class MockCacheService extends AbstractControllerService implements DistributedMapCacheClient {
-    def map = [:]
+    def map = [:] 
 
     @Override
     def <K, V> boolean putIfAbsent(K k, V v, Serializer<K> serializer, Serializer<V> serializer1) throws IOException {
