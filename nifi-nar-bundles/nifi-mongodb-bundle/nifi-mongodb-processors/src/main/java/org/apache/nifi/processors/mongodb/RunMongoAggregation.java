@@ -19,11 +19,17 @@
 
 package org.apache.nifi.processors.mongodb;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonTokenId;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,6 +47,8 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +63,36 @@ import java.util.Set;
 @EventDriven
 public class RunMongoAggregation extends AbstractMongoProcessor {
 
+	// Added this class to allow dates to be parsed into Date objects
+	// otherwise the aggregation query can not $match on dates.
+	// If a string matches the date format, we convert it, otherwise it stays
+	// as a string.
+	class CustomDateDeseralizer extends UntypedObjectDeserializer {
+
+	    private static final long serialVersionUID = -2275951539867772400L;
+	    private DateFormat df; 
+	    
+	    
+	    public CustomDateDeseralizer(String dateFormat) {
+	    	this.df = new SimpleDateFormat(dateFormat);
+	    }
+	    
+	    @Override
+	    public Object deserialize(JsonParser jp, DeserializationContext ctxt)
+	            throws IOException {
+
+	        if (jp.getCurrentTokenId() == JsonTokenId.ID_STRING ) {
+	            try {
+	                return df.parse(jp.getText()); 
+	            } catch (Exception e) {
+	                return super.deserialize(jp, ctxt);
+	            }
+	        } else {
+	            return super.deserialize(jp, ctxt);
+	        }
+	    }
+	}
+	
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
@@ -71,10 +109,15 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .name("results")
             .build();
 
-    static final List<Bson> buildAggregationQuery(String query) throws IOException {
+    List<Bson> buildAggregationQuery(String query, String dateFormat) throws IOException {	
         List<Bson> result = new ArrayList<>();
 
         ObjectMapper mapper = new ObjectMapper();
+        
+        SimpleModule mod = new SimpleModule();
+        mod.addDeserializer(Object.class, new CustomDateDeseralizer(dateFormat));
+        mapper.registerModule(mod);
+        
         List<Map> values = mapper.readValue(query, List.class);
         for (Map<?, ?> val : values) {
             result.add(new BasicDBObject(val));
@@ -82,6 +125,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         return result;
     }
+
 
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("mongo-agg-query")
@@ -145,7 +189,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         return retVal;
     }
-
+        
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = null;
@@ -176,7 +220,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         try {
             MongoCollection<Document> collection = getCollection(context, flowFile);
-            List<Bson> aggQuery = buildAggregationQuery(query);
+            List<Bson> aggQuery = buildAggregationQuery(query, dateFormat);
             AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);;
             it.batchSize(batchSize != null ? batchSize : 1);
 
