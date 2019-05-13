@@ -202,12 +202,13 @@ public class ListenHTTPServlet extends HttpServlet {
             }
 
             Set<FlowFile> flowFileSet;
+            final long entryTime = System.currentTimeMillis();
             if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
                 flowFileSet = handleMultipartRequest(request, session, foundSubject);
             } else {
                 flowFileSet = handleRequest(request, session, foundSubject, destinationIsLegacyNiFi, contentType, in);
             }
-            proceedFlow(request, response, session, foundSubject, createHold, flowFileSet);
+            proceedFlow(request, response, session, foundSubject, createHold, flowFileSet, entryTime);
         } catch (final Throwable t) {
             handleException(request, response, session, foundSubject, t);
         }
@@ -357,7 +358,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
     protected void proceedFlow(final HttpServletRequest request, final HttpServletResponse response,
                                final ProcessSession session, String foundSubject, final boolean createHold,
-                               final Set<FlowFile> flowFileSet) throws IOException, UnsupportedEncodingException {
+                               final Set<FlowFile> flowFileSet, long entryTime) throws IOException, UnsupportedEncodingException {
         if (createHold) {
             String uuid = UUID.randomUUID().toString();
 
@@ -365,7 +366,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 uuid = UUID.randomUUID().toString();
             }
 
-            final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis(), request.getRemoteHost());
+            final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, entryTime, request.getRemoteHost());
             FlowFileEntryTimeWrapper previousWrapper;
             do {
                 previousWrapper = flowFileMap.putIfAbsent(uuid, wrapper);

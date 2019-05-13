@@ -35,9 +35,9 @@ public class TestLeakyBucketThrottler {
     @Test(timeout = 10000)
     public void testOutputStreamInterface() throws IOException {
         // throttle rate at 1 MB/sec
-        final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+        final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024, 10000);
 
-        final byte[] data = new byte[1024 * 1024 * 4];
+        final byte[] data = new byte[1024 * 1024 * 8];
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final OutputStream throttledOut = throttler.newThrottledOutputStream(baos)) {
 
@@ -46,17 +46,17 @@ public class TestLeakyBucketThrottler {
             throttler.close();
             final long millis = System.currentTimeMillis() - start;
             // should take 4 sec give or take
-            assertTrue(millis > 3000);
-            assertTrue(millis < 6000);
+            assertTrue(millis > 6000);
+            assertTrue(millis < 9000);
         }
     }
 
     @Test(timeout = 10000)
     public void testInputStreamInterface() throws IOException {
 
-        final byte[] data = new byte[1024 * 1024 * 4];
+        final byte[] data = new byte[1024 * 1024 * 8];
      // throttle rate at 1 MB/sec
-        try ( final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+        try ( final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024, 10000);
                 final ByteArrayInputStream bais = new ByteArrayInputStream(data);
                 final InputStream throttledIn = throttler.newThrottledInputStream(bais);
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -70,15 +70,15 @@ public class TestLeakyBucketThrottler {
 
             final long millis = System.currentTimeMillis() - start;
             // should take 4 sec give or take
-            assertTrue(millis > 3000);
-            assertTrue(millis < 6000);
+            assertTrue(millis > 6000);
+            assertTrue(millis < 9000);
         }
     }
 
     @Test(timeout = 10000)
     public void testDirectInterface() throws IOException, InterruptedException {
         // throttle rate at 1 MB/sec
-        try (final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
+        try (final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024, 10000);
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // create 3 threads, each sending ~2 MB
             final List<Thread> threads = new ArrayList<Thread>();
@@ -129,7 +129,8 @@ public class TestLeakyBucketThrottler {
             long startMillis = System.currentTimeMillis();
             long bytesWritten = 0L;
             try {
-                throttler.copy(new ByteArrayInputStream(data), out);
+                throttler.add(data.length);
+                out.write(data);
             } catch (IOException e) {
                 e.printStackTrace();
                 return;

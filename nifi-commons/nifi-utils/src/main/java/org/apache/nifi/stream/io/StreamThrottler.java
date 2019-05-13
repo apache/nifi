@@ -23,9 +23,7 @@ import java.io.OutputStream;
 
 public interface StreamThrottler extends Closeable {
 
-    long copy(InputStream in, OutputStream out) throws IOException;
-
-    long copy(InputStream in, OutputStream out, long maxBytes) throws IOException;
+    void add(int numBytes) throws IOException;
 
     InputStream newThrottledInputStream(final InputStream toWrap);
 

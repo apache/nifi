@@ -373,7 +373,8 @@ public class PostHTTP extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final Double bytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
-        this.throttlerRef.set(bytesPerSecond == null ? null : new LeakyBucketStreamThrottler(bytesPerSecond.intValue()));
+        final long dataTimeoutMS = context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue();
+        this.throttlerRef.set(bytesPerSecond == null ? null : new LeakyBucketStreamThrottler(bytesPerSecond.longValue(), dataTimeoutMS));
 
         String hostname = "unknown";
         try {
@@ -494,10 +495,10 @@ public class PostHTTP extends AbstractProcessor {
 
         // setup RequestConfig
         final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
-        requestConfigBuilder.setConnectionRequestTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        requestConfigBuilder.setConnectionRequestTimeout((int)dataTimeoutMS);
         requestConfigBuilder.setConnectTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         requestConfigBuilder.setRedirectsEnabled(false);
-        requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        requestConfigBuilder.setSocketTimeout((int)dataTimeoutMS);
         requestConfig = requestConfigBuilder.build();
     }
 
