@@ -398,17 +398,17 @@ public class TestWriteAheadFlowFileRepository {
 
 
     @Test
-    public void testGetLocationSuffix() {
-        assertEquals("/", WriteAheadFlowFileRepository.getLocationSuffix("/"));
-        assertEquals("", WriteAheadFlowFileRepository.getLocationSuffix(""));
-        assertEquals(null, WriteAheadFlowFileRepository.getLocationSuffix(null));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("test.txt"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("/test.txt"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("/tmp/test.txt"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("//test.txt"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("/path/to/other/file/repository/test.txt"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("test.txt/"));
-        assertEquals("test.txt", WriteAheadFlowFileRepository.getLocationSuffix("/path/to/test.txt/"));
+    public void testNormalizeSwapLocation() {
+        assertEquals("/", WriteAheadFlowFileRepository.normalizeSwapLocation("/"));
+        assertEquals("", WriteAheadFlowFileRepository.normalizeSwapLocation(""));
+        assertEquals(null, WriteAheadFlowFileRepository.normalizeSwapLocation(null));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("test.txt"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/test.txt"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/tmp/test.txt"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("//test.txt"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/path/to/other/file/repository/test.txt"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("test.txt/"));
+        assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/path/to/test.txt/"));
     }
 
     @Test

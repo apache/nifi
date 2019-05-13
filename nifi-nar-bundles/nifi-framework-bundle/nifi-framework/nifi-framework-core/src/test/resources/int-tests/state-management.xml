@@ -21,4 +21,12 @@
         <property name="Partitions">16</property>
         <property name="Checkpoint Interval">2 mins</property>
     </local-provider>
+    <cluster-provider>
+        <id>zk-provider</id>
+        <class>org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider</class>
+        <property name="Connect String">localhost:62181</property>
+        <property name="Root Node">/nifi-integration-test</property>
+        <property name="Session Timeout">30 seconds</property>
+        <property name="Access Control">Open</property>
+    </cluster-provider>
 </stateManagement>
