@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -102,7 +103,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final int numPartitions;
     private final ScheduledExecutorService checkpointExecutor;
 
-    private final Set<String> swapLocationSuffixes = new HashSet<>(); // guraded by synchronizing on object itself
+    private final Set<String> swapLocationSuffixes = new HashSet<>(); // guarded by synchronizing on object itself
 
     // effectively final
     private WriteAheadRepository<RepositoryRecord> wal;
@@ -288,7 +289,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     @Override
     public boolean isValidSwapLocationSuffix(final String swapLocationSuffix) {
         synchronized (swapLocationSuffixes) {
-            return swapLocationSuffixes.contains(swapLocationSuffix);
+            return swapLocationSuffixes.contains(normalizeSwapLocation(swapLocationSuffix));
         }
     }
 
@@ -370,8 +371,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // If we have swapped files in or out, we need to ensure that we update our swapLocationSuffixes.
         if (!swapLocationsAdded.isEmpty() || !swapLocationsRemoved.isEmpty()) {
             synchronized (swapLocationSuffixes) {
-                swapLocationsRemoved.forEach(loc -> swapLocationSuffixes.remove(getLocationSuffix(loc)));
-                swapLocationsAdded.forEach(loc -> swapLocationSuffixes.add(getLocationSuffix(loc)));
+                swapLocationsRemoved.forEach(loc -> swapLocationSuffixes.remove(normalizeSwapLocation(loc)));
+                swapLocationsAdded.forEach(loc -> swapLocationSuffixes.add(normalizeSwapLocation(loc)));
             }
         }
 
@@ -415,19 +416,26 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
 
-    protected static String getLocationSuffix(final String swapLocation) {
+    protected static String normalizeSwapLocation(final String swapLocation) {
         if (swapLocation == null) {
             return null;
         }
 
         final String normalizedPath = swapLocation.replace("\\", "/");
         final String withoutTrailing = (normalizedPath.endsWith("/") && normalizedPath.length() > 1) ? normalizedPath.substring(0, normalizedPath.length() - 1) : normalizedPath;
-        final int lastIndex = withoutTrailing.lastIndexOf("/");
-        if (lastIndex < 0 || lastIndex >= withoutTrailing.length() - 1) {
-            return withoutTrailing;
+        final String pathRemoved = getLocationSuffix(withoutTrailing);
+
+        final String normalized = StringUtils.substringBefore(pathRemoved, ".");
+        return normalized;
+    }
+
+    private static String getLocationSuffix(final String swapLocation) {
+        final int lastIndex = swapLocation.lastIndexOf("/");
+        if (lastIndex < 0 || lastIndex >= swapLocation.length() - 1) {
+            return swapLocation;
         }
 
-        return withoutTrailing.substring(lastIndex + 1);
+        return swapLocation.substring(lastIndex + 1);
     }
 
     @Override
@@ -486,7 +494,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         wal.update(repoRecords, true);
 
         synchronized (this.swapLocationSuffixes) {
-            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+            this.swapLocationSuffixes.add(normalizeSwapLocation(swapLocation));
         }
 
         logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[]{swappedOut.size(), queue, swapLocation});
@@ -507,7 +515,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateRepository(repoRecords, true);
 
         synchronized (this.swapLocationSuffixes) {
-            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+            this.swapLocationSuffixes.add(normalizeSwapLocation(swapLocation));
         }
 
         logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
@@ -633,7 +641,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         final Set<String> recoveredSwapLocations = wal.getRecoveredSwapLocations();
         synchronized (this.swapLocationSuffixes) {
-            recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(getLocationSuffix(loc)));
+            recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(normalizeSwapLocation(loc)));
             logger.debug("Recovered {} Swap Files: {}", swapLocationSuffixes.size(), swapLocationSuffixes);
         }
 
