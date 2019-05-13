@@ -33,8 +33,12 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     private final MockProcessContext context;
 
     public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context) {
+        this(processor, context, null);
+    }
+
+    public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context, final MockComponentLog logger) {
         processorId = UUID.randomUUID().toString();
-        logger = new MockComponentLog(processorId, processor);
+        this.logger = logger == null ? new MockComponentLog(processorId, processor) : logger;
         this.context = context;
     }
 

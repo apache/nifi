@@ -136,7 +136,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 + "the regular expression defined in " + FILE_FILTER.getName() + ".");
     static final AllowableValue FILTER_FULL_PATH_VALUE = new AllowableValue(FILTER_MODE_FULL_PATH,
         "Full Path",
-        "Filtering will be applied to the full path of files.  If " + RECURSE_SUBDIRS.getName()
+        "Filtering will be applied to the full path of files, ignoring the scheme and authority.  If " + RECURSE_SUBDIRS.getName()
                 + " is set to true, the entire subdirectory tree will be searched for files in which the full path of "
                 + "the file matches the regular expression defined in " + FILE_FILTER.getName() + ".");
 
@@ -531,7 +531,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         return path -> {
             final boolean accepted;
             if (FILTER_FULL_PATH_VALUE.getValue().equals(filterMode)) {
-                accepted = filePattern.matcher(path.toString()).matches();
+                accepted = filePattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
             } else {
                 accepted =  filePattern.matcher(path.getName()).matches();
             }
