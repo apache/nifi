@@ -29,6 +29,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/*
+ * As of JanusGraph 0.3.X these tests can be a little inconsistent for a few runs at first.
+ */
 public class GremlinClientServiceIT {
     private TestRunner runner;
     private TestableGremlinClientService clientService;
