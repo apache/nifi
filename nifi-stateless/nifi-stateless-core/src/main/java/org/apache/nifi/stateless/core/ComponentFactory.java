@@ -21,7 +21,10 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.logging.ComponentLog;
@@ -33,6 +36,8 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ComponentFactory {
+    private static final Logger logger = LoggerFactory.getLogger(ComponentFactory.class);
     private final ExtensionManager extensionManager;
 
     public ComponentFactory(final ExtensionManager extensionManager) {
@@ -69,7 +75,7 @@ public class ComponentFactory {
             final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
                 classpathUrls == null ? Collections.emptySet() : classpathUrls);
 
-            System.out.println("Setting context class loader to " + detectedClassLoader + " (parent = " + detectedClassLoader.getParent() + ") to create " + type);
+            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
@@ -138,12 +144,14 @@ public class ComponentFactory {
     }
 
 
-    public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry) {
-        return createControllerService(versionedControllerService, variableRegistry, null);
+    public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry,
+                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager) {
+        return createControllerService(versionedControllerService, variableRegistry, null, serviceLookup, stateManager);
     }
 
 
-    private ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls) {
+    private ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
+                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager) {
 
         final String type = versionedControllerService.getType();
         final String identifier = versionedControllerService.getIdentifier();
@@ -161,7 +169,7 @@ public class ComponentFactory {
             final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
                 classpathUrls == null ? Collections.emptySet() : classpathUrls);
 
-            System.out.println("Setting context class loader to " + detectedClassLoader + " (parent = " + detectedClassLoader.getParent() + ") to create " + type);
+            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
@@ -169,6 +177,8 @@ public class ComponentFactory {
             final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
 
             final ControllerService service = (ControllerService) extensionInstance;
+            final ControllerServiceInitializationContext initializationContext = new StatelessControllerServiceInitializationContext(identifier, service, serviceLookup, stateManager);
+            service.initialize(initializationContext);
 
             // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
             if (classpathUrls == null) {
@@ -176,7 +186,7 @@ public class ComponentFactory {
                     variableRegistry, componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createControllerService(versionedControllerService, variableRegistry, additionalClasspathUrls);
+                    return createControllerService(versionedControllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager);
                 }
             }
 

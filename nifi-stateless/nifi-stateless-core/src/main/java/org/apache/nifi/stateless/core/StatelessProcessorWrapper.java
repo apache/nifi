@@ -107,8 +107,8 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
         //Validate context
         final Collection<ValidationResult> validationResult = context.validate();
         if (validationResult.stream().anyMatch(a -> !a.isValid()) || !this.validate()) {
-            throw new IllegalArgumentException("Processor is not valid: "
-                + String.join("\n", validationResult.stream().map(ValidationResult::toString).collect(Collectors.toList())));
+            throw new IllegalArgumentException(processor + " is not valid: "
+                + validationResult.stream().map(ValidationResult::toString).collect(Collectors.joining("\n")));
         }
 
         try (final CloseableNarLoader c = withNarClassLoader()) {
@@ -147,7 +147,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
             final AtomicBoolean nextStepCalled = new AtomicBoolean(false);
 
             try {
-                logger.info("Running " + this.processor.getClass().getSimpleName() + ".onTrigger with " + inputQueue.size() + " FlowFiles");
+                logger.debug("Running {}.onTrigger with {} FlowFiles", new Object[] {this.processor.getClass().getSimpleName(), inputQueue.size()});
 
                 try (final CloseableNarLoader c = withNarClassLoader()) { // Trigger processor with the appropriate class loader
                     processor.onTrigger(context, () -> {

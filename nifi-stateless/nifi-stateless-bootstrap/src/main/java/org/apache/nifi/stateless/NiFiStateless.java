@@ -43,8 +43,9 @@ public class NiFiStateless {
     public static void main(final String[] args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         String nifi_home = System.getenv("NIFI_HOME");
-        if(nifi_home == null || nifi_home.equals(""))
+        if(nifi_home == null || nifi_home.equals("")) {
             nifi_home = ".";
+        }
 
         final File libDir = new File(nifi_home+"/lib");
         final File statelesslibDir = new File(nifi_home+"/stateless-lib");

@@ -19,11 +19,10 @@ package org.apache.nifi.stateless.core;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
-import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
@@ -40,6 +39,9 @@ import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -117,12 +119,36 @@ public class StatelessFlow implements RunnableFlow {
 
         final Set<VersionedControllerService> controllerServices = flow.getControllerServices();
         for (final VersionedControllerService versionedControllerService : controllerServices) {
-            final ControllerService service = componentFactory.createControllerService(versionedControllerService, variableRegistry);
-            serviceLookup.addControllerService(service);
+            final StateManager stateManager = new StatelessStateManager();
+
+            final ControllerService service = componentFactory.createControllerService(versionedControllerService, variableRegistry, serviceLookup, stateManager);
+            serviceLookup.addControllerService(service, versionedControllerService.getName());
+            serviceLookup.setControllerServiceAnnotationData(service, versionedControllerService.getAnnotationData());
+
+            final SLF4JComponentLog logger = new SLF4JComponentLog(service);
+            final StatelessProcessContext processContext = new StatelessProcessContext(service, serviceLookup, versionedControllerService.getName(), logger, stateManager, variableRegistry);
+
+            final Map<String, String> versionedPropertyValues = versionedControllerService.getProperties();
+            for (final Map.Entry<String, String> entry : versionedPropertyValues.entrySet()) {
+                final String propertyName = entry.getKey();
+                final String propertyValue = entry.getValue();
+                final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
+
+                serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, propertyValue);
+            }
+
+            for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
+                final String versionedPropertyValue = versionedPropertyValues.get(descriptor.getName());
+                if (versionedPropertyValue == null && descriptor.getDefaultValue() != null) {
+                    serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, descriptor.getDefaultValue());
+                }
+            }
         }
 
-        final Map<String, StatelessComponent> componentMap = new HashMap<>();
+        serviceLookup.enableControllerServices(variableRegistry);
 
+
+        final Map<String, StatelessComponent> componentMap = new HashMap<>();
         for (final VersionedConnection connection : connections) {
             boolean isInputPortConnection = false;
 
@@ -249,10 +275,9 @@ public class StatelessFlow implements RunnableFlow {
             }
         }
 
-        roots = componentMap.entrySet()
+        roots = componentMap.values()
             .stream()
-            .filter(e -> e.getValue().getParents().isEmpty())
-            .map(Map.Entry::getValue)
+            .filter(statelessComponent -> statelessComponent.getParents().isEmpty())
             .collect(Collectors.toList());
     }
 
