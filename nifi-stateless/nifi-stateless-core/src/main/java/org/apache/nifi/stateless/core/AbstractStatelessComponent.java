@@ -87,7 +87,7 @@ public abstract class AbstractStatelessComponent implements StatelessComponent {
             boolean hasSuccessOutputPort = this.successOutputPorts.contains(relationship);
 
             if (!(hasChildren || hasAutoterminate || hasFailureOutputPort || hasSuccessOutputPort)) {
-                getLogger().error("Component: {}, Relationship: {}, needs either auto terminate, child processors, or an output port", new Object[] {toString(), relationship.getName()});
+                getLogger().error("Component: {}, Relationship: {}, either needs to be auto-terminated or connected to another component", new Object[] {toString(), relationship.getName()});
                 return false;
             }
         }

@@ -27,12 +27,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class StatelessControllerServiceConfiguration {
 
     private final ControllerService service;
+    private final String name;
+
     private final AtomicBoolean enabled = new AtomicBoolean(false);
     private String annotationData;
     private Map<PropertyDescriptor, String> properties = new HashMap<>();
 
-    public StatelessControllerServiceConfiguration(final ControllerService service) {
+    public StatelessControllerServiceConfiguration(final ControllerService service, final String name) {
         this.service = service;
+        this.name = name;
     }
 
     public ControllerService getService() {
@@ -74,5 +77,9 @@ public class StatelessControllerServiceConfiguration {
 
     public Map<PropertyDescriptor, String> getProperties() {
         return Collections.unmodifiableMap(properties);
+    }
+
+    public String getName() {
+        return name;
     }
 }

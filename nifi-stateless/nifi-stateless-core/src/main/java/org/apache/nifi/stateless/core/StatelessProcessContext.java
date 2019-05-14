@@ -70,29 +70,25 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
 
     private final StatelessControllerServiceLookup lookup;
 
-    public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final StateManager stateManager, final VariableRegistry
-        variableRegistry) {
+    public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final StateManager stateManager,
+                                   final VariableRegistry variableRegistry) {
         this(component, lookup, componentName, new SLF4JComponentLog(component), stateManager, variableRegistry);
     }
 
-    public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final SLF4JComponentLog logger, final StatelessStateManager
-        statemanager) {
+    public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName, final SLF4JComponentLog logger,
+                                   final StatelessStateManager statemanager) {
         this(component, lookup, componentName, logger, statemanager, VariableRegistry.EMPTY_REGISTRY);
     }
 
-    public StatelessProcessContext(final ConfigurableComponent component,
-                                   final StatelessControllerServiceLookup lookup,
-                                   final String componentName,
-                                   final SLF4JComponentLog logger,
-                                   final StateManager stateManager,
-                                   final VariableRegistry variableRegistry) {
+    public StatelessProcessContext(final ConfigurableComponent component, final StatelessControllerServiceLookup lookup, final String componentName,
+                                   final SLF4JComponentLog logger, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.component = Objects.requireNonNull(component);
         this.componentName = componentName == null ? "" : componentName;
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.lookup = lookup;
         this.stateManager = stateManager;
         this.variableRegistry = variableRegistry;
-        this.identifier = "ProcessContext-" + this.hashCode();
+        this.identifier = component.getIdentifier();
         this.logger = logger;
     }
 
