@@ -777,12 +777,13 @@ public class StatelessProcessSession implements ProcessSession {
             throw new IllegalArgumentException("Cannot export a flow file that I did not create");
         }
 
-        final StatelessFlowFile StatelessFlowFile = validateState(flowFile);
+        validateState(flowFile);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
                 super.close();
                 final StatelessFlowFile newFlowFile = new StatelessFlowFile((StatelessFlowFile) flowFile, materializeContent);
+                newFlowFile.setData(toByteArray());
                 currentVersions.put(newFlowFile.getId(), newFlowFile);
             }
         };
