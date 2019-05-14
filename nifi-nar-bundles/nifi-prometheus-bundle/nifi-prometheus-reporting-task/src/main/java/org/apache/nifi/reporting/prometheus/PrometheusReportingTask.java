@@ -67,15 +67,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
-            .name("Application ID")
-            .description("The Application ID to be included in the metrics sent to Prometheus")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("nifi")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
@@ -115,7 +106,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(METRICS_ENDPOINT_PORT);
-        props.add(APPLICATION_ID);
         props.add(INSTANCE_ID);
         props.add(SEND_JVM_METRICS);
         props.add(SSL_CONTEXT);
@@ -152,7 +142,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                 }
                 this.prometheusServer = new PrometheusServer(Integer.parseInt(metricsEndpointPort),sslContextService, getLogger(), need, want);
             }
-            this.prometheusServer.setApplicationId(context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue());
+            this.prometheusServer.setInstanceId(context.getProperty(INSTANCE_ID).evaluateAttributeExpressions().getValue());
             this.prometheusServer.setSendJvmMetrics(context.getProperty(SEND_JVM_METRICS).asBoolean());
             getLogger().info("Started JETTY server");
         } catch (Exception e) {

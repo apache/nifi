@@ -55,7 +55,7 @@ public class PrometheusServer {
     private ServletContextHandler handler;
     private ReportingContext context;
     private boolean sendJvmMetrics;
-    private String applicationId;
+    private String instanceId;
 
     class MetricsServlet extends HttpServlet {
         private CollectorRegistry nifiRegistry, jvmRegistry;
@@ -68,11 +68,11 @@ public class PrometheusServer {
             rootGroupStatus = PrometheusServer.this.context.getEventAccess().getControllerStatus();
             ServletOutputStream response = resp.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(response);
-            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.applicationId);
+            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.instanceId);
             TextFormat.write004(osw, nifiRegistry.metricFamilySamples());
 
             if (PrometheusServer.this.sendJvmMetrics == true) {
-                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(VirtualMachineMetrics.getInstance());
+                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(VirtualMachineMetrics.getInstance(), PrometheusServer.this.instanceId);
                 TextFormat.write004(osw, jvmRegistry.metricFamilySamples());
             }
 
@@ -108,14 +108,16 @@ public class PrometheusServer {
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         ServerConnector https = new ServerConnector(server, new SslConnectionFactory(sslFactory, "http/1.1"),
-            new HttpConnectionFactory(httpsConfiguration));
+                new HttpConnectionFactory(httpsConfiguration));
         https.setPort(addr);
         this.server.setConnectors(new Connector[]{https});
         this.server.start();
+
     }
 
     private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
         SslContextFactory sslFactory = new SslContextFactory();
+
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
         sslFactory.setProtocol(sslService.getSslAlgorithm());
@@ -131,6 +133,7 @@ public class PrometheusServer {
             sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
             sslFactory.setTrustStoreType(sslService.getTrustStoreType());
         }
+
         return sslFactory;
     }
 
@@ -146,8 +149,8 @@ public class PrometheusServer {
         return this.sendJvmMetrics;
     }
 
-    public String getApplicationId() {
-        return this.applicationId;
+    public String getInstanceId() {
+        return this.instanceId;
     }
 
     public void setReportingContext(ReportingContext rc) {
@@ -158,8 +161,8 @@ public class PrometheusServer {
         this.sendJvmMetrics = jvm;
     }
 
-    public void setApplicationId(String aid) {
-        this.applicationId = aid;
+    public void setInstanceId(String iid) {
+        this.instanceId = iid;
     }
 
 }

@@ -32,103 +32,197 @@ public class PrometheusMetricsUtil {
     private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
 
-    private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
-            .name("process_group_amount_flowfiles_total")
-            .help("Total number of FlowFiles in ProcessGroup")
-            .labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_FLOWFILES_SENT = Gauge.build()
+            .name("nifi_process_group_amount_flowfiles_sent")
+            .help("Total number of FlowFiles in ProcessGroup sent")
+            .labelNames("instance", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
-            .name("process_group_amount_bytes_total")
-            .help("Total number of Bytes in ProcessGroup")
-            .labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_FLOWFILES_TRANSFERRED = Gauge.build()
+            .name("nifi_process_group_amount_flowfiles_transferred")
+            .help("Total number of FlowFiles in ProcessGroup transferred")
+            .labelNames("instance", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
-            .name("process_group_amount_threads_total")
-            .help("Total amount of threads in ProcessGroup")
-            .labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_FLOWFILES_RECEIVED = Gauge.build()
+            .name("nifi_process_group_amount_flowfiles_received")
+            .help("Total number of FlowFiles in ProcessGroup received")
+            .labelNames("instance", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge SIZE_CONTENT_TOTAL = Gauge.build()
-            .name("process_group_size_content_total")
-            .help("Total size of content in ProcessGroup")
-            .labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_BYTES_SENT = Gauge.build()
+            .name("nifi_process_group_amount_bytes_sent")
+            .help("Total number of Bytes in ProcessGroup sent")
+            .labelNames("instance", "process_group")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge AMOUNT_ITEMS = Gauge.build()
-            .name("process_group_amount_items")
-            .help("Total amount of items in ProcessGroup")
-            .labelNames("status", "application", "process_group")
+    private static final Gauge AMOUNT_BYTES_READ = Gauge.build()
+            .name("nifi_process_group_amount_bytes_read")
+            .help("Total number of Bytes in ProcessGroup read")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_BYTES_WRITTEN = Gauge.build()
+            .name("nifi_process_group_amount_bytes_written")
+            .help("Total number of Bytes in ProcessGroup written")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_BYTES_RECEIVED = Gauge.build()
+            .name("nifi_process_group_amount_bytes_received")
+            .help("Total number of Bytes in ProcessGroup received")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_BYTES_TRANSFERRED = Gauge.build()
+            .name("nifi_process_group_amount_bytes_transferred")
+            .help("Total number of Bytes in ProcessGroup transferred")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+
+    private static final Gauge AMOUNT_THREADS_TOTAL_ACTIVE = Gauge.build()
+            .name("nifi_process_group_amount_threads_active")
+            .help("Total number of threads in ProcessGroup active")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge SIZE_CONTENT_OUTPUT_TOTAL = Gauge.build()
+            .name("nifi_process_group_size_content_output_total")
+            .help("Total size of content output in ProcessGroup")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge SIZE_CONTENT_INPUT_TOTAL = Gauge.build()
+            .name("nifi_process_group_size_content_input_total")
+            .help("Total size of content input in ProcessGroup")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge SIZE_CONTENT_QUEUED_TOTAL = Gauge.build()
+            .name("nifi_process_group_size_content_queued_total")
+            .help("Total size of content queued in ProcessGroup")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_ITEMS_OUTPUT = Gauge.build()
+            .name("nifi_process_group_amount_items_output")
+            .help("Total amount of items in ProcessGroup output")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_ITEMS_INPUT = Gauge.build()
+            .name("nifi_process_group_amount_items_input")
+            .help("Total amount of items in ProcessGroup input")
+            .labelNames("instance", "process_group")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_ITEMS_QUEUED = Gauge.build()
+            .name("nifi_process_group_amount_items_queued")
+            .help("Total amount of items in ProcessGroup queued")
+            .labelNames("instance", "process_group")
             .register(NIFI_REGISTRY);
 
     private static final Gauge PROCESSOR_COUNTERS = Gauge.build()
-            .name("processor_counters")
-            .help("Counters exposed by Processors")
-            .labelNames("processor_name", "counter_name", "processor_id")
+            .name("nifi_processor_counters")
+            .help("Counters exposed by NiFi Processors")
+            .labelNames("processor_name", "counter_name", "processor_id", "instance")
             .register(NIFI_REGISTRY);
 
-    private static final Gauge JVM_HEAP = Gauge.build()
-            .name("jvm_heap_stats")
-            .help("The JVM heap stats")
-            .labelNames("status")
+    private static final Gauge JVM_HEAP_USED = Gauge.build()
+            .name("nifi_jvm_heap_used")
+            .help("NiFi JVM heap used")
+            .labelNames("instance")
             .register(JVM_REGISTRY);
 
-    private static final Gauge JVM_THREAD = Gauge.build()
-            .name("jvm_thread_stats")
-            .help("The JVM thread stats")
-            .labelNames("status")
+    private static final Gauge JVM_HEAP_USAGE = Gauge.build()
+            .name("nifi_jvm_heap_usage")
+            .help("NiFi JVM heap usage")
+            .labelNames("instance")
             .register(JVM_REGISTRY);
 
-    private static final Gauge JVM_STATUS = Gauge.build()
-            .name("jvm_general_stats")
-            .help("The JVM general stats")
-            .labelNames("status")
+    private static final Gauge JVM_HEAP_NON_USAGE = Gauge.build()
+            .name("nifi_jvm_heap_non_usage")
+            .help("NiFi JVM heap non usage")
+            .labelNames("instance")
             .register(JVM_REGISTRY);
 
-    public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String applicationId) {
+    private static final Gauge JVM_THREAD_COUNT = Gauge.build()
+            .name("nifi_jvm_thread_count")
+            .help("NiFi JVM thread count")
+            .labelNames("instance")
+            .register(JVM_REGISTRY);
 
-        String processGroupName = status.getName();
+    private static final Gauge JVM_DAEMON_THREAD_COUNT = Gauge.build()
+            .name("nifi_jvm_daemon_thread_count")
+            .help("NiFi JVM daemon thread count")
+            .labelNames("instance")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_UPTIME = Gauge.build()
+            .name("nifi_jvm_uptime")
+            .help("NiFi JVM uptime")
+            .labelNames("instance")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_FILE_DESCRIPTOR_USAGE = Gauge.build()
+            .name("nifi_jvm_file_descriptor_usage")
+            .help("NiFi JVM file descriptor usage")
+            .labelNames("instance")
+            .register(JVM_REGISTRY);
+
+    public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String instanceId) {
+
+        final String processGroupId = status.getId();
         Collection<ProcessorStatus> processorStatus = status.getProcessorStatus();
-        AMOUNT_FLOWFILES_TOTAL.labels("sent", applicationId, processGroupName).set(status.getFlowFilesSent());
-        AMOUNT_FLOWFILES_TOTAL.labels("transferred", applicationId, processGroupName).set(status.getFlowFilesTransferred());
-        AMOUNT_FLOWFILES_TOTAL.labels("received", applicationId, processGroupName).set(status.getFlowFilesReceived());
 
-        AMOUNT_BYTES_TOTAL.labels("sent", applicationId, processGroupName).set(status.getBytesSent());
-        AMOUNT_BYTES_TOTAL.labels("read", applicationId, processGroupName).set(status.getBytesRead());
-        AMOUNT_BYTES_TOTAL.labels("written", applicationId, processGroupName).set(status.getBytesWritten());
-        AMOUNT_BYTES_TOTAL.labels("received", applicationId, processGroupName).set(status.getBytesReceived());
-        AMOUNT_BYTES_TOTAL.labels("transferred", applicationId, processGroupName).set(status.getBytesTransferred());
+        AMOUNT_FLOWFILES_SENT.labels(instanceId,processGroupId).set(status.getFlowFilesSent());
+        AMOUNT_FLOWFILES_TRANSFERRED.labels(instanceId,processGroupId).set(status.getFlowFilesTransferred());
+        AMOUNT_FLOWFILES_RECEIVED.labels(instanceId,processGroupId).set(status.getFlowFilesReceived());
 
-        SIZE_CONTENT_TOTAL.labels("output", applicationId, processGroupName).set(status.getOutputContentSize());
-        SIZE_CONTENT_TOTAL.labels("input", applicationId, processGroupName).set(status.getInputContentSize());
-        SIZE_CONTENT_TOTAL.labels("queued", applicationId, processGroupName).set(status.getQueuedContentSize());
+        AMOUNT_BYTES_SENT.labels(instanceId,processGroupId).set(status.getBytesSent());
+        AMOUNT_BYTES_READ.labels(instanceId,processGroupId).set(status.getBytesRead());
+        AMOUNT_BYTES_WRITTEN.labels(instanceId,processGroupId).set(status.getBytesWritten());
+        AMOUNT_BYTES_RECEIVED.labels(instanceId,processGroupId).set(status.getBytesReceived());
+        AMOUNT_BYTES_TRANSFERRED.labels(instanceId,processGroupId).set(status.getBytesTransferred());
 
-        AMOUNT_ITEMS.labels("output", applicationId, processGroupName).set(status.getOutputCount());
-        AMOUNT_ITEMS.labels("input", applicationId, processGroupName).set(status.getInputCount());
-        AMOUNT_ITEMS.labels("queued", applicationId, processGroupName).set(status.getQueuedCount());
+        SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, processGroupId).set(status.getOutputContentSize());
+        SIZE_CONTENT_INPUT_TOTAL.labels(instanceId, processGroupId).set(status.getInputContentSize());
+        SIZE_CONTENT_QUEUED_TOTAL.labels(instanceId, processGroupId).set(status.getQueuedContentSize());
 
-        AMOUNT_THREADS_TOTAL.labels("nano", applicationId, processGroupName).set(status.getActiveThreadCount());
+        AMOUNT_ITEMS_OUTPUT.labels(instanceId, processGroupId).set(status.getOutputCount());
+        AMOUNT_ITEMS_INPUT.labels(instanceId, processGroupId).set(status.getInputCount());
+        AMOUNT_ITEMS_QUEUED.labels(instanceId, processGroupId).set(status.getQueuedCount());
+
+
+
+        AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, processGroupId).set(status.getActiveThreadCount());
 
         for (ProcessorStatus pstatus : processorStatus) {
             Map<String, Long> counters = pstatus.getCounters();
-            counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
-                    .labels(pstatus.getName(), entry.getKey(), pstatus.getId()).set(entry.getValue()));
+
+            if(counters != null) {
+                counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
+                        .labels(pstatus.getName(), entry.getKey(), pstatus.getId(), instanceId).set(entry.getValue()));
+            }
         }
+
         return NIFI_REGISTRY;
+
     }
 
-    public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics) {
-        JVM_HEAP.labels("used").set(jvmMetrics.heapUsed());
-        JVM_HEAP.labels("usage").set(jvmMetrics.heapUsage());
-        JVM_HEAP.labels("non_usage").set(jvmMetrics.nonHeapUsage());
+    public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics, String instanceId) {
+        JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed());
+        JVM_HEAP_USAGE.labels(instanceId).set(jvmMetrics.heapUsage());
+        JVM_HEAP_NON_USAGE.labels(instanceId).set(jvmMetrics.nonHeapUsage());
 
-        JVM_THREAD.labels("count").set(jvmMetrics.threadCount());
-        JVM_THREAD.labels("daemon_count").set(jvmMetrics.daemonThreadCount());
+        JVM_THREAD_COUNT.labels(instanceId).set(jvmMetrics.threadCount());
+        JVM_DAEMON_THREAD_COUNT.labels(instanceId).set(jvmMetrics.daemonThreadCount());
 
-        JVM_STATUS.labels("count").set(jvmMetrics.uptime());
-        JVM_STATUS.labels("file_descriptor").set(jvmMetrics.fileDescriptorUsage());
+        JVM_UPTIME.labels(instanceId).set(jvmMetrics.uptime());
+        JVM_FILE_DESCRIPTOR_USAGE.labels(instanceId).set(jvmMetrics.fileDescriptorUsage());
 
         return JVM_REGISTRY;
     }
+
 }
