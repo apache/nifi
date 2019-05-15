@@ -29,7 +29,9 @@ public class TestNumberUtil {
 
         assertEquals(Integer.valueOf(4), sumNullableIntegers(1, null, 3));
 
-        assertEquals(null, sumNullableIntegers(0, null, 0));
+        assertEquals(Integer.valueOf(0), sumNullableIntegers(-1, null, 1));
+
+        assertEquals(null, sumNullableIntegers(null, null));
     }
 
 }

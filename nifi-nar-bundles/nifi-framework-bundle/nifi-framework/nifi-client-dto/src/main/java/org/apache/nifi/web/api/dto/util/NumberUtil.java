@@ -25,14 +25,19 @@ public class NumberUtil {
      * Calculate sum of Integers those can be null.
      * This method can be used to avoid getting NullPointerException when a null Integer being auto-boxed into an int.
      * @param values Integers to add
-     * @return the sum of given values or null if the sum is 0
+     * @return the sum of given values or null if all values are null
      */
     public static Integer sumNullableIntegers(Integer ... values) {
-        int y = 0;
+        int sum = 0;
+        int count = 0;
         for (Integer value : values) {
-            y += value == null ? 0 : value;
+            if (value == null) {
+                continue;
+            }
+            sum += value;
+            count++;
         }
-        return y == 0 ? null : y;
+        return count == 0 ? null : sum;
     }
 
 }
