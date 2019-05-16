@@ -502,6 +502,37 @@ The following record path would parse the eventDate field into a Date:
 
 `toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
 
+=== toDateWithTimeZone
+
+Converts a String to a date with given time zone.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "dt_str", "type": "string" },
+    { "name": "dt_long", "type" : { "type" : "long", "logicalType" : "timestamp-millis" } }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+    "dt_str": "1970-01-01 00:00:00",
+    "dt_long": 0
+}
+----
+
+The following record path would parse the eventDate field into a Date in given time zone:
+
+|==========================================================
+| RecordPath | Return value
+| `toDateWithTimeZone( /dt_str, "yyyy-MM-dd HH:mm:ss", "GMT+8:00")` | -28800000
+|==========================================================
+
 === toString
 
 Converts a value to a String, using the given character set if the input type is "bytes".  For example,
@@ -625,6 +656,44 @@ The following record path expression would re-format the date String:
 |==========================================================
 | RecordPath | Return value
 | `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
+|==========================================================
+
+=== formatWithTimeZone
+
+Converts a Date to a String in the given format with given time zone.
+
+The first argument to this function must be a Date or a Number, and the second argument must be a format String that
+follows the Java SimpleDateFormat, and the third argument must be a format String that 
+either an abbreviation such as "PST", a full name such as "America/Los_Angeles", or a custom ID such as "GMT-8:00"
+
+For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "dt_str", "type": "string" },
+    { "name": "dt_long", "type" : { "type" : "long", "logicalType" : "timestamp-millis" } }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+    "dt_str": "1970-01-01 00:00:00",
+    "dt_long": 0
+}
+----
+
+The following record path expressions would format the date as a String:
+
+|==========================================================
+| RecordPath | Return value
+| `formatWithTimeZone( /dt_long, "yyyy-MM-dd HH:mm:ss Z", "GMT+8:00")` | 1970-01-01 08:00:00 +0800 
+| `formatWithTimeZone( /dt_long, "yyyy-MM-dd", "GMT+8:00")` | 1970-01-01 
 |==========================================================
 
 === base64Encode
