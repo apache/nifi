@@ -475,6 +475,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, processGroupEntity.getComponent());
                     populateRemainingProcessGroupEntityContent(entity);
 
+                    // prune response as necessary
+                    if (entity.getComponent() != null) {
+                        entity.getComponent().setContents(null);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
@@ -1596,6 +1601,11 @@ public class ProcessGroupResource extends ApplicationResource {
                 (revision, processGroupEntity) -> {
                     // delete the process group
                     final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, processGroupEntity.getId());
+
+                    // prune response as necessary
+                    if (entity.getComponent() != null) {
+                        entity.getComponent().setContents(null);
+                    }
 
                     // create the response
                     return generateOkResponse(entity).build();
