@@ -118,12 +118,12 @@
             this.logoutCtrl = {
                 logout: function () {
                     $.ajax({
-                        type: 'GET',
+                        type: 'DELETE',
                         url: '../nifi-api/access/logout',
-                        dataType: 'json'
-                    })
-                    nfStorage.removeItem("jwt");
-                    window.location = '../nifi/logout';
+                    }).done(function () {
+                        nfStorage.removeItem("jwt");
+                        window.location = '../nifi/logout';
+                    }).fail(nfErrorHandler.handleAjaxError);
                 }
             };
         }

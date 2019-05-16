@@ -88,7 +88,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos", "/access/oidc/**", "/access/knox/**");
+                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos",
+                            "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/request",
+                            "/access/knox/callback", "/access/knox/request");
     }
 
     @Override

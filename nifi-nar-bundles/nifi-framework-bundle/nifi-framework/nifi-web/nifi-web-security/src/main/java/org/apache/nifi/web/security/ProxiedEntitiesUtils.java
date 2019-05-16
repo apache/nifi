@@ -27,7 +27,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 /**
@@ -148,13 +147,13 @@ public class ProxiedEntitiesUtils {
         return StringUtils.join(proxyChain, "");
     }
 
-    public static void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
+    public static void successfulAuthentication(HttpServletRequest request, HttpServletResponse response) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
             response.setHeader(PROXY_ENTITIES_ACCEPTED, Boolean.TRUE.toString());
         }
     }
 
-    public static void unsuccessfulAuthorization(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
+    public static void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
             response.setHeader(PROXY_ENTITIES_DETAILS, failed.getMessage());
         }

@@ -76,6 +76,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -102,6 +103,7 @@ public class AccessResource extends ApplicationResource {
 
     private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
     private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
+
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -344,9 +346,6 @@ public class AccessResource extends ApplicationResource {
                     .build();
             httpServletResponse.sendRedirect(logoutUri.toString());
         }
-
-        String authorizationHeader = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
-        jwtService.logOut(authorizationHeader);
     }
 
     @GET
@@ -747,7 +746,7 @@ public class AccessResource extends ApplicationResource {
         return generateCreatedResponse(uri, token).build();
     }
 
-    @GET
+    @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/logout")
@@ -758,6 +757,7 @@ public class AccessResource extends ApplicationResource {
     @ApiResponses(
             value = {
                     @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
                     @ApiResponse(code = 500, message = "Client failed to log out."),
             }
     )
@@ -766,13 +766,17 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
 
-        String authorizationHeader = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
-        final String token = StringUtils.substringAfterLast(authorizationHeader, " ");
-        try {
-            jwtService.logOut(token);
-            return generateOkResponse().build();
-        } catch (final JwtException e) {
-            return Response.serverError().build();
+        String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+
+        if(userIdentity != null && !userIdentity.isEmpty()) {
+            try {
+                jwtService.logOut(userIdentity);
+                return generateOkResponse().build();
+            } catch (final JwtException e) {
+                return Response.serverError().build();
+            }
+        } else {
+            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
         }
     }
 

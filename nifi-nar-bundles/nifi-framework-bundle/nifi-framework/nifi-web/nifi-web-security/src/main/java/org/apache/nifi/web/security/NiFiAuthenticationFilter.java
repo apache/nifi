@@ -74,16 +74,16 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
                 log.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", authenticationRequest.toString(), request.getMethod(),
                         request.getRequestURL().toString(), request.getRemoteAddr()));
 
-                // attempt to authorize the user
+                // attempt to authenticate the user
                 final Authentication authenticated = authenticationManager.authenticate(authenticationRequest);
-                successfulAuthorization(request, response, authenticated);
+                successfulAuthentication(request, response, authenticated);
             }
         } catch (final AuthenticationException ae) {
             // invalid authentication - always error out
-            unsuccessfulAuthorization(request, response, ae);
+            unsuccessfulAuthentication(request, response, ae);
             return;
         } catch (final Exception e) {
-            log.error(String.format("Unable to authorize: %s", e.getMessage()), e);
+            log.error(String.format("Unable to authenticate: %s", e.getMessage()), e);
 
             // set the response status
             response.setContentType("text/plain");
@@ -91,7 +91,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
             // other exception - always error out
             PrintWriter out = response.getWriter();
-            out.println(String.format("Failed to authorize request. Please contact the system administrator."));
+            out.println(String.format("Failed to authenticate request. Please contact the system administrator."));
             return;
         }
 
@@ -107,16 +107,16 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      */
     public abstract Authentication attemptAuthentication(HttpServletRequest request);
 
-    protected void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
+    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         log.info("Authentication success for " + authResult);
 
         SecurityContextHolder.getContext().setAuthentication(authResult);
-        ProxiedEntitiesUtils.successfulAuthorization(request, response, authResult);
+        ProxiedEntitiesUtils.successfulAuthentication(request, response);
     }
 
-    protected void unsuccessfulAuthorization(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
         // populate the response
-        ProxiedEntitiesUtils.unsuccessfulAuthorization(request, response, ae);
+        ProxiedEntitiesUtils.unsuccessfulAuthentication(request, response, ae);
 
         // set the response status
         response.setContentType("text/plain");
@@ -132,11 +132,11 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println(ae.getMessage());
         } else if (ae instanceof AuthenticationServiceException) {
-            log.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            log.error(String.format("Unable to authenticate: %s", ae.getMessage()), ae);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.println(String.format("Unable to authorize: %s", ae.getMessage()));
+            out.println(String.format("Unable to authenticate: %s", ae.getMessage()));
         } else {
-            log.error(String.format("Unable to authorize: %s", ae.getMessage()), ae);
+            log.error(String.format("Unable to authenticate: %s", ae.getMessage()), ae);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             out.println("Access is denied.");
         }
