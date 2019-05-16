@@ -511,7 +511,7 @@ public class JwtServiceTest {
     public void testLogoutWhenAuthTokenIsEmptyShouldThrowError() throws Exception {
         // Arrange
         expectedException.expect(JwtException.class);
-        expectedException.expectMessage("Log out failed: The required Authorization header was not present in the request to log out user.");
+        expectedException.expectMessage("Log out failed: The user identity was not present in the request token to log out user.");
 
         // Act
         jwtService.logOut(null);
@@ -519,6 +519,5 @@ public class JwtServiceTest {
         // Assert
         // Should throw exception when authorization header is null
     }
-
 
 }
