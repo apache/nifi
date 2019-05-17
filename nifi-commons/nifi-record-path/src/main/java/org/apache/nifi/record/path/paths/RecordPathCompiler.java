@@ -80,6 +80,8 @@ import org.apache.nifi.record.path.functions.SubstringBeforeLast;
 import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
 import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.FormatWithTimeZone;
+import org.apache.nifi.record.path.functions.ToDateWithTimeZone;
 
 public class RecordPathCompiler {
 
@@ -254,6 +256,10 @@ public class RecordPathCompiler {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new ToDate(args[0], args[1], absolute);
                     }
+                    case "toDateWithTimeZone": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                        return new ToDateWithTimeZone(args[0], args[1], args[2], absolute);
+                    }
                     case "toString": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new ToString(args[0], args[1], absolute);
@@ -265,6 +271,10 @@ public class RecordPathCompiler {
                     case "format": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new Format(args[0], args[1], absolute);
+                    }
+                    case "formatWithTimeZone": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                        return new FormatWithTimeZone(args[0], args[1], args[2], absolute);
                     }
                     case "base64Encode": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
