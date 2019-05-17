@@ -79,7 +79,10 @@ import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
 import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToLowerCase;
 import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.ToUpperCase;
+import org.apache.nifi.record.path.functions.TrimString;
 
 public class RecordPathCompiler {
 
@@ -246,6 +249,18 @@ public class RecordPathCompiler {
 
                         return new Concat(argPaths, absolute);
                     }
+                    case "toLowerCase": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToLowerCase(args[0], absolute);
+                    }
+                    case "toUpperCase": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToUpperCase(args[0], absolute);
+                    }
+                    case "trim": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new TrimString(args[0], absolute);
+                    }
                     case "fieldName": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new FieldName(args[0], absolute);
@@ -297,6 +312,17 @@ public class RecordPathCompiler {
         }
 
         throw new RecordPathException("Encountered unexpected token " + tree);
+    }
+
+    private static RecordPathSegment[] getArgumentsForStringFunction(boolean absolute, Tree argumentListTree) {
+        final int numArgs = argumentListTree.getChildCount();
+
+        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+        for (int i = 0; i < numArgs; i++) {
+            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+        }
+
+        return argPaths;
     }
 
     private static RecordPathFilter createFilter(final Tree operatorTree, final RecordPathSegment parent, final boolean absolute) {

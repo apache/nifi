@@ -17,39 +17,39 @@
 
 package org.apache.nifi.record.path.functions;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-public class Concat extends RecordPathSegment {
-    private final RecordPathSegment[] valuePaths;
+import java.util.stream.Stream;
 
-    public Concat(final RecordPathSegment[] valuePaths, final boolean absolute) {
-        super("concat", null, absolute);
-        this.valuePaths = valuePaths;
+/**
+ * Abstract class for String functions without any argument.
+ */
+public abstract class NoArgStringFunction extends RecordPathSegment {
+    private final RecordPathSegment valuePath;
+
+    public NoArgStringFunction(final String path, final RecordPathSegment valuePath, final boolean absolute) {
+        super(path, null, absolute);
+        this.valuePath = valuePath;
     }
 
     @Override
-    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
-        Stream<FieldValue> concatenated = Stream.empty();
-
-        for (final RecordPathSegment valuePath : valuePaths) {
-            final Stream<FieldValue> stream = valuePath.evaluate(context);
-            concatenated = Stream.concat(concatenated, stream);
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        concatenated.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null)));
-
-        final RecordField field = new RecordField("concat", RecordFieldType.STRING.getDataType());
-        final FieldValue responseValue = new StandardFieldValue(sb.toString(), field, null);
-        return Stream.of(responseValue);
+    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+        return valuePath.evaluate(context).map(fv -> {
+            final String original = fv.getValue() == null ? "" : DataTypeUtils.toString(fv.getValue(), (String) null);
+            final String processed = apply(original);
+            return new StandardFieldValue(processed, fv.getField(), fv.getParent().orElse(null));
+        });
     }
+
+    /**
+     * Sub-classes apply its function to the given value and return the result.
+     * @param value possibly null
+     * @return the function result
+     */
+    abstract String apply(String value);
 
 }

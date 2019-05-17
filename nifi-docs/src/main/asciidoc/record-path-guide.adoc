@@ -3,7 +3,7 @@
 // contributor license agreements.  See the NOTICE file distributed with
 // this work for additional information regarding copyright ownership.
 // The ASF licenses this file to You under the Apache License, Version 2.0
-// (the "License"); you may not use this file except in compliance with
+// (the "License"); you may not use this file except ixn compliance with
 // the License.  You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
@@ -630,6 +630,94 @@ The following record path expression would re-format the date String:
 |==========================================================
 | RecordPath | Return value
 | `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
+|==========================================================
+
+=== trim
+
+Removes whitespace from the start and end of a string.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "    John Smith    "
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `trim(/name)` | John Smith
+|==========================================================
+
+
+=== toUpperCase
+
+Change the entire String to upper case
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "fullName", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "fullName" : "john smith"
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `toUpperCase(/name)` | JOHN SMITH
+|==========================================================
+
+=== toLowerCase
+
+Changes the entire string to lower case.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "message", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "hEllO wORLd"
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `trim(/message)` | hello world
 |==========================================================
 
 === base64Encode
