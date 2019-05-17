@@ -1210,6 +1210,49 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    private Record getCaseTestRecord() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("middleName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        values.put("middleName", "Smith");
+        return new MapRecord(schema, values);
+    }
+
+    @Test
+    public void testToUpperCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(/firstName, ' ', /middleName, ' ', /lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testToLowerCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("john smith doe", RecordPath.compile("toLowerCase(/firstName, ' ', /middleName, ' ', /lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testTrimString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("fullName", "   John Smith     ");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
     @Test
     public void testFieldName() {
         final List<RecordField> fields = new ArrayList<>();

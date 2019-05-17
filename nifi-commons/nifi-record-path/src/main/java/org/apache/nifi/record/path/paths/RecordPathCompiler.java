@@ -79,7 +79,10 @@ import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
 import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToLowerCase;
 import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.ToUpperCase;
+import org.apache.nifi.record.path.functions.TrimString;
 
 public class RecordPathCompiler {
 
@@ -237,14 +240,16 @@ public class RecordPathCompiler {
                         return new ReplaceNull(args[0], args[1], absolute);
                     }
                     case "concat": {
-                        final int numArgs = argumentListTree.getChildCount();
-
-                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
-                        for (int i = 0; i < numArgs; i++) {
-                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
-                        }
-
-                        return new Concat(argPaths, absolute);
+                        return new Concat(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                    }
+                    case "toLowerCase": {
+                        return new ToLowerCase(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                    }
+                    case "toUpperCase": {
+                        return new ToUpperCase(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                    }
+                    case "trim": {
+                        return new TrimString(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
                     }
                     case "fieldName": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
@@ -297,6 +302,17 @@ public class RecordPathCompiler {
         }
 
         throw new RecordPathException("Encountered unexpected token " + tree);
+    }
+
+    private static RecordPathSegment[] getArgumentsForStringFunction(boolean absolute, Tree argumentListTree) {
+        final int numArgs = argumentListTree.getChildCount();
+
+        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+        for (int i = 0; i < numArgs; i++) {
+            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+        }
+
+        return argPaths;
     }
 
     private static RecordPathFilter createFilter(final Tree operatorTree, final RecordPathSegment parent, final boolean absolute) {

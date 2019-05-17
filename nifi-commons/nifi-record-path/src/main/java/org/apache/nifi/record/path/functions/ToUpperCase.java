@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.record.path.functions;
 
 import org.apache.nifi.record.path.FieldValue;
@@ -24,16 +23,21 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.stream.Stream;
 
-public class Concat extends AbstractStringFunction {
-    public Concat(final RecordPathSegment[] valuePaths, final boolean absolute) {
-        super("concat", valuePaths, absolute);
+public class ToUpperCase extends AbstractStringFunction {
+    final RecordPathSegment[] valuePaths;
+    public static final String PATH_VALUE = "uppercase";
+
+    public ToUpperCase(final RecordPathSegment[] valuePaths, final boolean absolute) {
+        super(PATH_VALUE, valuePaths, absolute);
+        this.valuePaths = valuePaths;
     }
 
     @Override
-    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
         return super.evaluate(context, stream -> {
-            final StringBuilder sb = new StringBuilder();
-            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null)));
+            StringBuilder sb = new StringBuilder();
+            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null).toUpperCase()));
+
             return sb;
         });
     }
