@@ -251,8 +251,15 @@ public class RecordPathCompiler {
                         return new FieldName(args[0], absolute);
                     }
                     case "toDate": {
-                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
-                        return new ToDate(args[0], args[1], absolute);
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new ToDate(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new ToDate(args[0], args[1], args[2], absolute);
+                        }
                     }
                     case "toString": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
@@ -263,8 +270,15 @@ public class RecordPathCompiler {
                         return new ToBytes(args[0], args[1], absolute);
                     }
                     case "format": {
-                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
-                        return new Format(args[0], args[1], absolute);
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new Format(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new Format(args[0], args[1], args[2], absolute);
+                        }
                     }
                     case "base64Encode": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);

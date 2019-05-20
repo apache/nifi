@@ -494,13 +494,15 @@ and a record such as:
 ----
 {
   "name" : "My Event",
-  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+  "eventDate" : "2017-10-20T00:00:00Z"
 }
 ----
 
 The following record path would parse the eventDate field into a Date:
 
 `toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
+
+`toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'", "GMT+8:00")`
 
 === toString
 
@@ -561,10 +563,11 @@ The following record path would convert the String field into a byte array using
 
 === format
 
-Converts a Date to a String in the given format.
+Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
-follows the Java SimpleDateFormat.
+follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that
+either an abbreviation such as "PST", a full name such as "America/Los_Angeles", or a custom ID such as "GMT-8:00"
 
 For example, given a schema such as:
 
@@ -592,8 +595,10 @@ The following record path expressions would format the date as a String:
 
 |==========================================================
 | RecordPath | Return value
-| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20'T'11:00:00'Z'
+| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20T00:00:00Z
 | `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
+| `format( /eventDate, "yyyy-MM-dd HH:mm:ss Z", "GMT+8:00")` | 2017-10-20 08:00:00 +0800
+| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20 
 |==========================================================
 
 In the case where the field is declared as a String, the toDate function must be called before formatting.
@@ -616,7 +621,7 @@ and a record such as:
 ----
 {
   "name" : "My Event",
-  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+  "eventDate" : "2017-10-20T00:00:00Z"
 }
 ----
 

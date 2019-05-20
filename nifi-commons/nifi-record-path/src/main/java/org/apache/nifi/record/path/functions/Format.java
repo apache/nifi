@@ -22,6 +22,7 @@ import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.Date;
 import java.util.stream.Stream;
@@ -30,11 +31,20 @@ public class Format extends RecordPathSegment {
 
     private final RecordPathSegment recordPath;
     private final RecordPathSegment dateFormat;
+    private final RecordPathSegment timeZoneID;
 
     public Format(final RecordPathSegment recordPath, final RecordPathSegment dateFormat, final boolean absolute) {
         super("format", null, absolute);
         this.recordPath = recordPath;
         this.dateFormat = dateFormat;
+        this.timeZoneID = null;
+    }
+
+    public Format(final RecordPathSegment recordPath, final RecordPathSegment dateFormat, final RecordPathSegment timeZoneID, final boolean absolute) {
+        super("format", null, absolute);
+        this.recordPath = recordPath;
+        this.dateFormat = dateFormat;
+        this.timeZoneID = timeZoneID;
     }
 
     @Override
@@ -42,7 +52,7 @@ public class Format extends RecordPathSegment {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
-                    final java.text.DateFormat dateFormat = getDateFormat(this.dateFormat, context);
+                    final java.text.DateFormat dateFormat = getDateFormat(this.dateFormat, this.timeZoneID, context);
                     if (dateFormat == null) {
                         return fv;
                     }
@@ -57,14 +67,22 @@ public class Format extends RecordPathSegment {
                 });
     }
 
-    private java.text.DateFormat getDateFormat(final RecordPathSegment dateFormatSegment, final RecordPathEvaluationContext context) {
+    private java.text.DateFormat getDateFormat(final RecordPathSegment dateFormatSegment, final RecordPathSegment timeZoneID, final RecordPathEvaluationContext context) {
         final String dateFormatString = RecordPathUtils.getFirstStringValue(dateFormatSegment, context);
-        if (dateFormatString == null || dateFormatString.isEmpty()) {
+        if (StringUtils.isEmpty(dateFormatString)) {
             return null;
         }
 
         try {
-            return DataTypeUtils.getDateFormat(dateFormatString);
+            if (timeZoneID == null) {
+                return DataTypeUtils.getDateFormat(dateFormatString);
+            } else {
+                final String timeZoneStr = RecordPathUtils.getFirstStringValue(timeZoneID, context);
+                if (StringUtils.isEmpty(timeZoneStr)) {
+                    return null;
+                }
+                return DataTypeUtils.getDateFormat(dateFormatString, timeZoneStr);
+            }
         } catch (final Exception e) {
             return null;
         }
