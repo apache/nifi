@@ -27,6 +27,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -390,6 +391,20 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     @Override
     public StateManager getStateManager() {
         return stateManager;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return new NodeTypeProvider() {
+            @Override
+            public boolean isClustered() {
+                return false;
+            }
+            @Override
+            public boolean isPrimary() {
+                return true;
+            }
+        };
     }
 
     @Override

@@ -66,7 +66,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
     private volatile boolean initialized = false;
 
 
-    StatelessProcessorWrapper(final String id, final Processor processor, final StatelessProcessorWrapper parent, final StatelessControllerServiceLookup lookup, final VariableRegistry registry,
+    public StatelessProcessorWrapper(final String id, final Processor processor, final StatelessProcessorWrapper parent, final StatelessControllerServiceLookup lookup, final VariableRegistry registry,
                               final boolean materializeContent, final ClassLoader classLoader) throws InvocationTargetException, IllegalAccessException {
 
         this.processor = processor;
