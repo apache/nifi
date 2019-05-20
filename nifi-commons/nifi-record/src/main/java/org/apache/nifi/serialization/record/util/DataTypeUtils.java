@@ -1019,6 +1019,15 @@ public class DataTypeUtils {
         return df;
     }
 
+    public static DateFormat getDateFormat(final String format, final String timezoneID) {
+        if (format == null || timezoneID == null) {
+            return null;
+        }
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
+        return df;
+    }
+
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
     }
