@@ -770,9 +770,11 @@ public class AccessResource extends ApplicationResource {
 
         if(userIdentity != null && !userIdentity.isEmpty()) {
             try {
+                logger.debug("Logging out user " + userIdentity);
                 jwtService.logOut(userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {
+                logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
                 return Response.serverError().build();
             }
         } else {

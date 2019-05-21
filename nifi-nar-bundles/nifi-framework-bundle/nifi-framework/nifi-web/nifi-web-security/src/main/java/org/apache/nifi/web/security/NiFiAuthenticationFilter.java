@@ -38,7 +38,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 /**
- *
+ * The NiFiAuthenticationFilter abstract class defines the base methods for NiFi's various existing and future
+ * authentication mechanisms. The subclassed filters are applied in NiFiWebApiSecurityConfiguration.
  */
 public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
@@ -107,6 +108,14 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      */
     public abstract Authentication attemptAuthentication(HttpServletRequest request);
 
+    /**
+     * If authentication was successful, apply the successful authentication result to the security context and add
+     * proxy headers to the response if the request was made via a proxy.
+     *
+     * @param request The original client request that was successfully authenticated.
+     * @param response Servlet response to the client containing the successful authentication details.
+     * @param authResult The Authentication 'token'/object created by one of the various NiFiAuthenticationFilter subclasses.
+     */
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         log.info("Authentication success for " + authResult);
 
@@ -114,6 +123,14 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         ProxiedEntitiesUtils.successfulAuthentication(request, response);
     }
 
+    /**
+     * If authentication was unsuccessful, update the response with the appropriate status and give the reason for why
+     * the user was not able to be authenticated. Update the response with proxy headers if the request was made via a proxy.
+     *
+     * @param request The original client request that failed to be authenticated.
+     * @param response Servlet response to the client containing the unsuccessful authentication attempt details.
+     * @param ae The related exception thrown and explanation for the unsuccessful authentication attempt.
+     */
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
         // populate the response
         ProxiedEntitiesUtils.unsuccessfulAuthentication(request, response, ae);

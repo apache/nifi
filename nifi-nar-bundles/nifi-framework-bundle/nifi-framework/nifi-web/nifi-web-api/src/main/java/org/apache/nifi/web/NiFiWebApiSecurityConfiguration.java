@@ -50,7 +50,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 /**
- * NiFi Web Api Spring security
+ * NiFi Web Api Spring security. Applies the various NiFiAuthenticationFilter servlet filters which will extract authentication
+ * credentials from API requests.
  */
 @Configuration
 @EnableWebSecurity

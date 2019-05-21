@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.jwt;
 
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,6 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     // The Authorization header contains authentication credentials
     public static final String AUTHORIZATION = "Authorization";
-    public static final String BEARER = "Bearer ";
     private static final Pattern tokenPattern = Pattern.compile("^Bearer (\\S*\\.\\S*\\.\\S*)$");
 
     @Override
@@ -46,14 +46,14 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         // TODO: Refactor request header extraction logic to shared utility as it is duplicated in AccessResource
 
         // get the principal out of the user token
-        final String authentication = request.getHeader(AUTHORIZATION);
+        final String authorizationHeader = request.getHeader(AUTHORIZATION);
 
-        // if there is no authorization (authentication) header, we don't know the user
-        if (authentication == null || !validJwtFormat(authentication)) {
+        // if there is no authorization header, we don't know the user
+        if (authorizationHeader == null || !validJwtFormat(authorizationHeader)) {
             return null;
         } else {
             // Extract the Base64 encoded token from the Authorization header
-            final String token = getTokenFromHeader(authentication);
+            final String token = getTokenFromHeader(authorizationHeader);
             return new JwtAuthenticationRequestToken(token, request.getRemoteAddr());
         }
     }
@@ -65,8 +65,11 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private String getTokenFromHeader(String authenticationHeader) {
         Matcher matcher = tokenPattern.matcher(authenticationHeader);
-        matcher.matches();
-        return matcher.group(1);
+        if(matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            throw new InvalidAuthenticationException("JWT did not match expected pattern.");
+        }
     }
 
 }
