@@ -40,7 +40,8 @@ public class StatelessValidationContext implements ValidationContext {
     private final VariableRegistry variableRegistry;
     private final StatelessProcessContext processContext;
 
-    public StatelessValidationContext(final StatelessProcessContext processContext, final StatelessControllerServiceLookup lookup, final StateManager stateManager, final VariableRegistry variableRegistry) {
+    public StatelessValidationContext(final StatelessProcessContext processContext, final StatelessControllerServiceLookup lookup, final StateManager stateManager,
+                                      final VariableRegistry variableRegistry) {
         this.processContext = processContext;
         this.lookup = lookup;
         this.stateManager = stateManager;

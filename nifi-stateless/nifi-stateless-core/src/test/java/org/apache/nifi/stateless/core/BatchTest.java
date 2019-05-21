@@ -60,7 +60,8 @@ public class BatchTest {
         ///////////////////////////////////////////
         // Build Flow
         ///////////////////////////////////////////
-        StatelessProcessorWrapper getFile = new StatelessProcessorWrapper(UUID.randomUUID().toString(), new GetFile(), null, serviceLookup, registry, materializeData, ClassLoader.getSystemClassLoader());
+        StatelessProcessorWrapper getFile = new StatelessProcessorWrapper(UUID.randomUUID().toString(), new GetFile(), null, serviceLookup, registry,
+            materializeData, ClassLoader.getSystemClassLoader());
         getFile.setProperty(GetFile.DIRECTORY,"/tmp/nifistateless/input/");
         getFile.setProperty(GetFile.FILE_FILTER,"test.txt");
         getFile.setProperty(GetFile.KEEP_SOURCE_FILE,"true");

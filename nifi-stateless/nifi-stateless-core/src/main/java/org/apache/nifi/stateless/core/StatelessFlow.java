@@ -403,18 +403,26 @@ public class StatelessFlow implements RunnableFlow {
             args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
         }
 
+        final SSLContext sslContext = getSSLContext(args);
+        final VersionedFlowSnapshot snapshot = new RegistryUtil(registryurl, sslContext).getFlowByID(bucketID, flowID, flowVersion);
+
         final Map<VariableDescriptor, String> inputVariables = new HashMap<>();
+        final VersionedProcessGroup versionedGroup = snapshot.getFlowContents();
+        if (versionedGroup != null) {
+            for (final Map.Entry<String, String> entry : versionedGroup.getVariables().entrySet()) {
+                final String variableName = entry.getKey();
+                final String variableValue = entry.getValue();
+                inputVariables.put(new VariableDescriptor(variableName), variableValue);
+            }
+        }
 
         if (args.has(VARIABLES)) {
             final JsonElement variablesElement = args.get(VARIABLES);
             final JsonObject variablesObject = variablesElement.getAsJsonObject();
             variablesObject.entrySet()
-                .forEach(entry ->inputVariables.put(new VariableDescriptor(entry.getKey()), entry.getValue().getAsString()));
+                .forEach(entry -> inputVariables.put(new VariableDescriptor(entry.getKey()), entry.getValue().getAsString()));
         }
 
-        final SSLContext sslContext = getSSLContext(args);
-
-        final VersionedFlowSnapshot snapshot = new RegistryUtil(registryurl, sslContext).getFlowByID(bucketID, flowID, flowVersion);
         final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
 
         final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext);
