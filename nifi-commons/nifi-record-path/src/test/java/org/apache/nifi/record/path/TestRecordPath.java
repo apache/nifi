@@ -1306,7 +1306,8 @@ public class TestRecordPath {
             .evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("2017-10-20", fieldValue2.getValue());
 
-        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')")
+            .evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("2017-10-20 19:00", fieldValue3.getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
