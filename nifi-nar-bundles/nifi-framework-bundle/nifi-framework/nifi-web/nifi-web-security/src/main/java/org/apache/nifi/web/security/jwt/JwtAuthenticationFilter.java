@@ -27,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * JwtAuthenticationFilter is used to authenticate requests that contain a JSON Web Token in the Authorization HTTP header.
  */
 public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
@@ -45,26 +46,38 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
         // TODO: Refactor request header extraction logic to shared utility as it is duplicated in AccessResource
 
-        // get the principal out of the user token
+        // Get the principal out of the user token
         final String authorizationHeader = request.getHeader(AUTHORIZATION);
 
-        // if there is no authorization header, we don't know the user
-        if (authorizationHeader == null || !validJwtFormat(authorizationHeader)) {
+        // If there is no authorization header, we can't know the user
+        if (authorizationHeader == null || !isValidJwtFormat(authorizationHeader)) {
             return null;
         } else {
-            // Extract the Base64 encoded token from the Authorization header
+            // Extract the Base64 encoded JWT from the Authorization header
             final String token = getTokenFromHeader(authorizationHeader);
             return new JwtAuthenticationRequestToken(token, request.getRemoteAddr());
         }
     }
 
-    private boolean validJwtFormat(String authenticationHeader) {
-        Matcher matcher = tokenPattern.matcher(authenticationHeader);
+
+    /**
+     * Checks if the Authorization HTTP header value matches the expected 'Bearer: ${header.payload.signature}' pattern.
+     * @param authorizationHeader The HTTP 'Authorization' header which actually contains authentication credentials (the JWT).
+     * @return Returns true if the header matches expected 'Bearer: ${header.payload.signature}' format, false if it doesn't.
+     */
+    private boolean isValidJwtFormat(String authorizationHeader) {
+        Matcher matcher = tokenPattern.matcher(authorizationHeader);
         return matcher.matches();
     }
 
-    private String getTokenFromHeader(String authenticationHeader) {
-        Matcher matcher = tokenPattern.matcher(authenticationHeader);
+    /**
+     * Extracts the Base64 encoded JWT string from the Authorization HTTP header as long as it matches the
+     * strict 'Bearer: ${header.payload.signature}' pattern.
+     * @param authorizationHeader The HTTP 'Authorization' header which actually contains authentication credentials (the JWT).
+     * @return The Base64 encoded JWT string.
+     */
+    private String getTokenFromHeader(String authorizationHeader) {
+        Matcher matcher = tokenPattern.matcher(authorizationHeader);
         if(matcher.matches()) {
             return matcher.group(1);
         } else {
