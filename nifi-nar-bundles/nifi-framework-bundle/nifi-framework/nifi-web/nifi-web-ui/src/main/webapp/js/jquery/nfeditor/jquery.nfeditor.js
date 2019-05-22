@@ -63,7 +63,7 @@
          * format:
          *
          * {
-         *   languageId: 'nfel',
+         *   languageMode: nf.nfel,
          *   resizable: true,
          *   sensitive: false,
          *   readOnly: false,
@@ -82,10 +82,8 @@
                     return false;
                 }
 
-                var languageId = options.languageId;
-                var languageAssist = nf[languageId];
-
-                if (isUndefined(languageAssist) || isNull(languageAssist)) {
+                var languageMode = options.languageMode;
+                if (isUndefined(languageMode) || isNull(languageMode)) {
                     return false;
                 }
 
@@ -99,20 +97,20 @@
                 var field = $('<textarea></textarea>').text(content).appendTo($(this));
 
                 // define a mode for NiFi expression language
-                if (isFunction(languageAssist.color)) {
+                if (isFunction(languageMode.color)) {
                     CodeMirror.commands.autocomplete = function (cm) {
-                        if (isFunction(languageAssist.suggest)) {
-                            CodeMirror.showHint(cm, nf[languageId].suggest);
+                        if (isFunction(languageMode.suggest)) {
+                            CodeMirror.showHint(cm, languageMode.suggest);
                         }
                     };
 
-                    CodeMirror.defineMode(languageId, nf[languageId].color);
+                    CodeMirror.defineMode(languageMode.getLanguageId(), languageMode.color);
 
                     // is the editor read only
                     var readOnly = options.readOnly === true;
 
                     var editor = CodeMirror.fromTextArea(field.get(0), {
-                        mode: languageId,
+                        mode: languageMode.getLanguageId(),
                         lineNumbers: true,
                         matchBrackets: true,
                         readOnly: readOnly,
@@ -232,6 +230,28 @@
                 // ensure the editor was initialized
                 if (isDefinedAndNotNull(editor)) {
                     editor.setSize(width, height);
+                }
+            });
+        },
+
+        /**
+         * Sets the size of the editor.
+         *
+         * @param {boolean|string} readOnly
+         */
+        setReadOnly: function (readOnly) {
+            return this.each(function () {
+                var editor = $(this).data('editorInstance');
+
+                // ensure the editor was initialized
+                if (isDefinedAndNotNull(editor)) {
+                    editor.setOption('readOnly', readOnly);
+
+                    if (readOnly === false) {
+                        $(this).find('.CodeMirror').removeClass('blank');
+                    } else {
+                        $(this).find('.CodeMirror').addClass('blank');
+                    }
                 }
             });
         },

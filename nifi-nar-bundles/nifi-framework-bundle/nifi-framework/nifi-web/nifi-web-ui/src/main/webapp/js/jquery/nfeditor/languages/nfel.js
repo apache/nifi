@@ -36,10 +36,10 @@
     }
 }(this, function ($, CodeMirror) {
     'use strict';
-    
+
     /**
      * Formats the specified arguments for the EL function tooltip.
-     * 
+     *
      * @param {type} args
      * @returns {String}
      */
@@ -60,15 +60,15 @@
             return formatted;
         }
     };
-    
+
     var subjectlessFunctions = [];
     var functions = [];
-    
+
     var subjectlessFunctionRegex = new RegExp('^$');
     var functionRegex = new RegExp('^$');
-    
+
     var functionDetails = {};
-    
+
     $.ajax({
         type: 'GET',
         url: '../nifi-docs/html/expression-language-guide.html',
@@ -76,15 +76,15 @@
     }).done(function(response) {
         $(response).find('div.function').each(function() {
             var elFunction = $(this);
-            
+
             var name = elFunction.find('h3').text();
             var description = elFunction.find('span.description').text();
             var returnType = elFunction.find('span.returnType').text();
-            
+
             var subject;
             var subjectSpan = subject = elFunction.find('span.subject');
             var subjectless = elFunction.find('span.subjectless');
-            
+
             // Determine if this function supports running subjectless
             if (subjectless.length) {
                 subjectlessFunctions.push(name);
@@ -102,24 +102,24 @@
             elFunction.find('span.argName').each(function() {
                 var argName = $(this);
                 var argDescription = argName.next('span.argDesc');
-                args[argName.text()] = argDescription.text(); 
+                args[argName.text()] = argDescription.text();
             });
-            
+
             // format the function tooltip
-            functionDetails[name] = 
-                '<div>' + 
+            functionDetails[name] =
+                '<div>' +
                     '<div class="el-name el-section">' + name + '</div>' +
                     '<div class="el-section">' + description + '</div>' +
-                    '<div class="el-section">' + 
+                    '<div class="el-section">' +
                         '<div class="el-header">Arguments</div>' +
-                        formatArguments(args) + 
+                        formatArguments(args) +
                     '</div>' +
-                    '<div class="el-section">' + 
+                    '<div class="el-section">' +
                         '<div class="el-header">Subject</div>' +
-                        '<p>' + subject + '</p>' + 
+                        '<p>' + subject + '</p>' +
                         '<div class="clear"></div>' +
                     '</div>' +
-                    '<div class="el-section">' + 
+                    '<div class="el-section">' +
                         '<div class="el-header">Returns</div>' +
                         '<p>' + returnType + '</p>' +
                         '<div class="clear"></div>' +
@@ -131,7 +131,7 @@
         subjectlessFunctionRegex = new RegExp('^((' + subjectlessFunctions.join(')|(') + '))$');
         functionRegex = new RegExp('^((' + functions.join(')|(') + '))$');
     });
-    
+
     // valid context states
     var SUBJECT = 'subject';
     var FUNCTION = 'function';
@@ -140,10 +140,10 @@
     var ARGUMENTS = 'arguments';
     var ARGUMENT = 'argument';
     var INVALID = 'invalid';
-    
+
     /**
      * Handles dollars identifies on the stream.
-     * 
+     *
      * @param {object} stream   The character stream
      * @param {object} states    The states
      */
@@ -195,7 +195,7 @@
 
     /**
      * Handles dollars identifies on the stream.
-     * 
+     *
      * @param {object} stream   The character stream
      * @param {object} state    The current state
      */
@@ -212,7 +212,7 @@
             }
 
             // if this is the trailing delimitor, only consume
-            // if we did not see the escape character on the 
+            // if we did not see the escape character on the
             // previous iteration
             if (ch === current) {
                 foundTrailing = foundEscapeChar === false;
@@ -240,19 +240,19 @@
         stream.skipToEnd();
         return null;
     };
-    
+
     // the api for the currently selected completion
     var currentApi = null;
-    
+
     // the identifier to cancel showing the tip for the next completion
     var showTip = null;
-    
+
     // the apis of every completion rendered
     var apis = [];
-    
+
     /**
      * Listens for select event on the auto complete.
-     * 
+     *
      * @param {type} completion
      * @param {type} element
      * @returns {undefined}
@@ -265,11 +265,11 @@
             currentApi.show();
         }, 500);
     };
-    
+
     /**
      * Cancels the next tip to show, if applicable. Hides the currently
      * visible tip, if applicable.
-     * 
+     *
      * @returns {undefined}
      */
     var hide = function() {
@@ -277,15 +277,15 @@
             clearInterval(showTip);
             showTip = null;
         }
-        
+
         if (currentApi !== null) {
-            currentApi.hide();  
+            currentApi.hide();
         }
     };
 
     /**
      * Listens for close events for the auto complete.
-     * 
+     *
      * @returns {undefined}
      */
     var close = function() {
@@ -293,22 +293,22 @@
             clearInterval(showTip);
             showTip = null;
         }
-        
+
         // clear the current api (since its in the apis array)
         currentApi = null;
-        
+
         // destroy the tip from every applicable function
         $.each(apis, function(_, api) {
             api.destroy(true);
         });
-        
+
         // reset the apis
         apis = [];
     };
 
     /**
      * Renders an auto complete item.
-     * 
+     *
      * @param {type} element
      * @param {type} self
      * @param {type} data
@@ -319,7 +319,7 @@
         var li = $(element).qtip({
             content: functionDetails[data.text],
             style: {
-                classes: 'nifi-tooltip nfel-tooltip',
+                classes: 'nifi-tooltip nf-tooltip',
                 tip: false,
                 width: 350
             },
@@ -339,11 +339,11 @@
                 }
             }
         }).append(item);
-        
+
         // record the api for destruction later
         apis.push(li.qtip('api'));
     };
-    
+
     return {
 
         /**
@@ -390,7 +390,7 @@
                 },
 
                 copyState: function (state) {
-                    // build states with 
+                    // build states with
                     return buildStates(state.copy());
                 },
 
@@ -591,7 +591,7 @@
                                 // maybe function... not sure yet
                                 // ------------------------------
 
-                                // not sure yet... 
+                                // not sure yet...
                                 return null;
                             }
                         } else {
@@ -673,7 +673,7 @@
                             // handle the string literal
                             var argumentStringResult = handleStringLiteral(stream, state);
 
-                            // successfully processed a string literal... 
+                            // successfully processed a string literal...
                             if (argumentStringResult !== null) {
                                 // change context back to arguments
                                 state.context = ARGUMENTS;
@@ -781,14 +781,14 @@
 
                     // consume the character to keep things moving along
                     stream.next();
-                    return;
+                    return null;
                 }
             };
         },
 
         /**
          * Returns the suggestions for the content at the current cursor.
-         * 
+         *
          * @param {type} editor
          */
         suggest: function (editor) {
@@ -869,6 +869,10 @@
             CodeMirror.on(completions, 'close', close);
 
             return completions;
+        },
+
+        getLanguageId: function () {
+            return 'nfel';
         }
     };
 }));

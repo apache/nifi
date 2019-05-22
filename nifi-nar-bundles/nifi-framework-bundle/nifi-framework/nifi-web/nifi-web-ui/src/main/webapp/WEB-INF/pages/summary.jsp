@@ -30,7 +30,8 @@
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css" type="text/css" />
         <link rel="stylesheet" href="js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/nfeditor/jquery.nfeditor.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfel.css?${project.version}" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfeditor.css?${project.version}" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfpr.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="assets/qtip2/dist/jquery.qtip.min.css?" type="text/css" />
         <link rel="stylesheet" href="assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/slickgrid/slick.grid.css" type="text/css" />
@@ -72,6 +73,7 @@
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.summary.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
+        <script type="text/javascript" src="js/jquery/nfeditor/languages/nfpr.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
     </head>

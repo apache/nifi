@@ -59,13 +59,17 @@
         // setup custom checkbox
         $(document).on('click', 'div.nf-checkbox', function () {
             var checkbox = $(this);
-            if (checkbox.hasClass('checkbox-unchecked')) {
+            var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
+
+            if (transitionToChecked) {
                 checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked');
             } else {
                 checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked');
             }
             // emit a state change event
-            checkbox.trigger('change');
+            checkbox.trigger('change', {
+                isChecked: transitionToChecked
+            });
         });
 
         // setup click areas for custom checkboxes
