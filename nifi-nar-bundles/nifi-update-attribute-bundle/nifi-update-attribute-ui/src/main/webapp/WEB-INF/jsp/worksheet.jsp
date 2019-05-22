@@ -28,7 +28,7 @@
         <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfel.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfeditor.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/assets/reset.css/reset.css" type="text/css" />
