@@ -19,6 +19,10 @@ package org.apache.nifi.toolkit.cli.impl.client;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.BucketClient;
+import org.apache.nifi.registry.client.BundleClient;
+import org.apache.nifi.registry.client.BundleVersionClient;
+import org.apache.nifi.registry.client.ExtensionClient;
+import org.apache.nifi.registry.client.ExtensionRepoClient;
 import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.ItemsClient;
@@ -165,6 +169,46 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
         @Override
         public UserClient getUserClient(String... proxiedEntity) {
             return client.getUserClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleClient getBundleClient() {
+            return getBundleClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleClient getBundleClient(String... proxiedEntity) {
+            return client.getBundleClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleVersionClient getBundleVersionClient() {
+            return getBundleVersionClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleVersionClient getBundleVersionClient(String... proxiedEntity) {
+            return client.getBundleVersionClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionRepoClient getExtensionRepoClient() {
+            return getExtensionRepoClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionRepoClient getExtensionRepoClient(String... proxiedEntity) {
+            return client.getExtensionRepoClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionClient getExtensionClient() {
+            return getExtensionClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionClient getExtensionClient(String... proxiedEntity) {
+            return client.getExtensionClient(proxiedEntity);
         }
 
         @Override
