@@ -29,6 +29,25 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.ServletContext;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -68,26 +87,6 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * RESTful endpoint for managing access.
@@ -374,7 +373,7 @@ public class AccessResource extends ApplicationResource {
 
         // build the authorization uri
         final URI authorizationUri = UriBuilder.fromUri(knoxService.getKnoxUrl())
-                .queryParam("originalUrl", originalUri.toString())
+                .queryParam("originalUrl", originalUri)
                 .build();
 
         // generate the response
@@ -415,7 +414,7 @@ public class AccessResource extends ApplicationResource {
     )
     public void knoxLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         String redirectPath = generateResourceUri("..", "nifi", "login");
-        httpServletResponse.sendRedirect(redirectPath.toString());
+        httpServletResponse.sendRedirect(redirectPath);
     }
 
     /**
@@ -770,7 +769,7 @@ public class AccessResource extends ApplicationResource {
 
         if(userIdentity != null && !userIdentity.isEmpty()) {
             try {
-                logger.debug("Logging out user " + userIdentity);
+                logger.info("Logging out user " + userIdentity);
                 jwtService.logOut(userIdentity);
                 return generateOkResponse().build();
             } catch (final JwtException e) {

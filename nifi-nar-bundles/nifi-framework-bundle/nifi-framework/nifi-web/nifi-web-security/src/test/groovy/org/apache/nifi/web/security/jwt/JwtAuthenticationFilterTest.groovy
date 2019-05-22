@@ -17,7 +17,6 @@
 package org.apache.nifi.web.security.jwt
 
 import groovy.json.JsonOutput
-import net.minidev.json.JSONObject
 import org.apache.nifi.web.security.InvalidAuthenticationException
 import org.junit.After
 import org.junit.AfterClass
@@ -38,7 +37,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
     public ExpectedException expectedException = ExpectedException.none()
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         final String ALG_HEADER = "{\"alg\":\"HS256\"}"
         final int EXPIRATION_SECONDS = 500
         Calendar now = Calendar.getInstance()
@@ -64,17 +63,17 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
     }
 
     @AfterClass
-    public static void tearDownOnce() throws Exception {
+    static void tearDownOnce() throws Exception {
 
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
 
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
 
     }
 
