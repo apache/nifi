@@ -22,7 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.UserGroupsResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.UserGroupsResult;
 import org.apache.nifi.web.api.entity.UserGroupsEntity;
 
 import java.io.IOException;

@@ -22,7 +22,7 @@ import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.TemplatesResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.TemplatesResult;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
 
 import java.io.IOException;

@@ -23,7 +23,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VersionedFlowSnapshotResult;
+import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowSnapshotResult;
 
 import java.io.IOException;
 import java.util.Properties;
