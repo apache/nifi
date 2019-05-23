@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.registry.flow.ComponentType;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -27,6 +28,25 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import java.util.function.Predicate;
 
 public class FlowDifferenceFilters {
+
+    /**
+     * Predicate that returns true if the difference is NOT a name change on a public port (i.e. VersionedPort that allows remote access).
+     */
+    public static Predicate<FlowDifference> FILTER_PUBLIC_PORT_NAME_CHANGES = (fd) -> {
+        return !isPublicPortNameChange(fd);
+    };
+
+    public static boolean isPublicPortNameChange(final FlowDifference fd) {
+        final VersionedComponent versionedComponent = fd.getComponentA();
+        if (fd.getDifferenceType() == DifferenceType.NAME_CHANGED && versionedComponent instanceof VersionedPort) {
+            final VersionedPort versionedPort = (VersionedPort) versionedComponent;
+            if (versionedPort.isAllowRemoteAccess()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * Predicate that returns true if the difference is NOT a remote port being added, and false if it is.

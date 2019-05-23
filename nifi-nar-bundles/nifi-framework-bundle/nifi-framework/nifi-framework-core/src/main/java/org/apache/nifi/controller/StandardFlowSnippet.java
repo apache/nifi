@@ -72,6 +72,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -284,7 +285,8 @@ public class StandardFlowSnippet implements FlowSnippet {
         for (final PortDTO portDTO : dto.getInputPorts()) {
             final Port inputPort;
             if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
-                inputPort = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
+                final String portName = generatePublicInputPortName(flowManager, portDTO.getName());
+                inputPort = flowManager.createPublicInputPort(portDTO.getId(), portName);
                 if (portDTO.getGroupAccessControl() != null) {
                     ((PublicPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
@@ -308,7 +310,8 @@ public class StandardFlowSnippet implements FlowSnippet {
         for (final PortDTO portDTO : dto.getOutputPorts()) {
             final Port outputPort;
             if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
-                outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
+                final String portName = generatePublicOutputPortName(flowManager, portDTO.getName());
+                outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portName);
                 if (portDTO.getGroupAccessControl() != null) {
                     ((PublicPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
@@ -567,6 +570,24 @@ public class StandardFlowSnippet implements FlowSnippet {
 
             connection.setProcessGroup(group);
             group.addConnection(connection);
+        }
+    }
+
+    private String generatePublicInputPortName(final FlowManager flowManager, final String proposedName) {
+        final Optional<Port> existingPort = flowManager.getPublicInputPort(proposedName);
+        if (existingPort.isPresent()) {
+            return generatePublicInputPortName(flowManager, "Copy of " + proposedName);
+        } else {
+            return proposedName;
+        }
+    }
+
+    private String generatePublicOutputPortName(final FlowManager flowManager, final String proposedName) {
+        final Optional<Port> existingPort = flowManager.getPublicOutputPort(proposedName);
+        if (existingPort.isPresent()) {
+            return generatePublicOutputPortName(flowManager, "Copy of " + proposedName);
+        } else {
+            return proposedName;
         }
     }
 

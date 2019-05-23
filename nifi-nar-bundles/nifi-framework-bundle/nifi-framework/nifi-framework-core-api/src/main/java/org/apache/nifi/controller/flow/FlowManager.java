@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 
 public interface FlowManager {
@@ -74,6 +75,22 @@ public interface FlowManager {
      * @return output ports
      */
     Set<Port> getPublicOutputPorts();
+
+    /**
+     * Gets the public input port with the given name.
+     *
+     * @param name the port name
+     * @return an optional containing the public input port with the given name, or empty if one does not exist
+     */
+    Optional<Port> getPublicInputPort(String name);
+
+    /**
+     * Gets the public output port with the given name.
+     *
+     * @param name the port name
+     * @return an optional containing the public output port with the given name, or empty if one does not exist
+     */
+    Optional<Port> getPublicOutputPort(String name);
 
     /**
      * Creates a new Remote Process Group with the given ID that points to the given URI

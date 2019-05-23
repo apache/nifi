@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -136,6 +111,7 @@ import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -147,6 +123,32 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -3834,7 +3836,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = portAndFinalName.getKey();
             final String finalName = portAndFinalName.getValue();
             LOG.info("Updating {} to replace temporary name with final name", port);
-            updatePortToSetFinalName(port, finalName);
+
+            // For public ports we need to consider if another public port exists somewhere else in the flow with the
+            // same name, and if so then rename the incoming port so the flow can still be imported
+            if (port instanceof PublicPort) {
+                final PublicPort publicPort = (PublicPort) port;
+                final String publicPortFinalName = getPublicPortFinalName(publicPort, finalName);
+                updatePortToSetFinalName(publicPort, publicPortFinalName);
+            } else {
+                updatePortToSetFinalName(port, finalName);
+            }
         }
 
         for (final String removedVersionedId : labelsRemoved) {
@@ -3859,6 +3870,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", childGroup, group);
             group.removeProcessGroup(childGroup);
+        }
+    }
+
+    private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
+        final Optional<Port> existingPublicPort;
+        if (TransferDirection.RECEIVE == publicPort.getDirection()) {
+            existingPublicPort = flowManager.getPublicInputPort(proposedFinalName);
+        } else {
+            existingPublicPort = flowManager.getPublicOutputPort(proposedFinalName);
+        }
+
+        if (existingPublicPort.isPresent() && !existingPublicPort.get().getIdentifier().equals(publicPort.getIdentifier())) {
+            return getPublicPortFinalName(publicPort, "Copy of " + proposedFinalName);
+        } else {
+            return proposedFinalName;
         }
     }
 
@@ -4204,11 +4230,19 @@ public final class StandardProcessGroup implements ProcessGroup {
         port.setComments(proposed.getComments());
         port.setName(name);
         port.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+        port.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed, final String temporaryName) {
         final String name = temporaryName != null ? temporaryName : proposed.getName();
-        final Port port = flowManager.createLocalInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+
+        final Port port;
+        if (proposed.isAllowRemoteAccess()) {
+            port = flowManager.createPublicInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+        } else {
+            port = flowManager.createLocalInputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+        }
+
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addInputPort(port);
         updatePort(port, proposed, temporaryName);
@@ -4218,7 +4252,14 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private Port addOutputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed, final String temporaryName) {
         final String name = temporaryName != null ? temporaryName : proposed.getName();
-        final Port port = flowManager.createLocalOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+
+        final Port port;
+        if (proposed.isAllowRemoteAccess()) {
+            port = flowManager.createPublicOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+        } else {
+            port = flowManager.createLocalOutputPort(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed), name);
+        }
+
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addOutputPort(port);
         updatePort(port, proposed, temporaryName);
@@ -4431,6 +4472,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
+                .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
                 .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
                 .collect(Collectors.toCollection(HashSet::new));
 

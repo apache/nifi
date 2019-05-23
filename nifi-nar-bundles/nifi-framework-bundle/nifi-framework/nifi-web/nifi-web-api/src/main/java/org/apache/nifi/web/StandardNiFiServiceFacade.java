@@ -4096,6 +4096,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 continue;
             }
 
+            // Ignore name changes to public ports
+            if (FlowDifferenceFilters.isPublicPortNameChange(difference)) {
+                continue;
+            }
+
             if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
                 continue;
             }
