@@ -19,6 +19,7 @@ package org.apache.nifi.remote;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.groups.ProcessGroup;
@@ -36,9 +37,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-public class TestStandardRootGroupPort {
+public class TestStandardPublicPort {
 
-    private RootGroupPort createRootGroupPort(NiFiProperties nifiProperties) {
+    private PublicPort createPublicPort(NiFiProperties nifiProperties) {
         final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
         final ProcessScheduler processScheduler = null;
 
@@ -56,9 +57,9 @@ public class TestStandardRootGroupPort {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
-        return new StandardRootGroupPort("id", "name", processGroup,
-            TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
-            processScheduler, true, nifiProperties);
+        return new StandardPublicPort("id", "name", processGroup,
+                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true,
+                nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     @Test
@@ -66,7 +67,7 @@ public class TestStandardRootGroupPort {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
@@ -91,7 +92,7 @@ public class TestStandardRootGroupPort {
         doReturn(mapValue).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey));
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());
@@ -119,7 +120,7 @@ public class TestStandardRootGroupPort {
         doReturn(mapTransform).when(nifiProperties).getProperty(eq(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey));
         doReturn("1 millis").when(nifiProperties).getBoredYieldDuration();
 
-        final RootGroupPort port = createRootGroupPort(nifiProperties);
+        final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
         Assert.assertFalse(authResult.isAuthorized());

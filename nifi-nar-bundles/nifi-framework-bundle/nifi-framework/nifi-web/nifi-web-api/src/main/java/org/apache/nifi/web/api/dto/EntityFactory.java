@@ -230,6 +230,7 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             entity.setPortType(dto.getType());
+            entity.setAllowRemoteAccess(dto.getAllowRemoteAccess());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
@@ -249,8 +250,10 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
 
-            entity.setInputPortCount(dto.getInputPortCount());
-            entity.setOutputPortCount(dto.getOutputPortCount());
+            entity.setLocalInputPortCount(dto.getLocalInputPortCount());
+            entity.setLocalOutputPortCount(dto.getLocalOutputPortCount());
+            entity.setPublicInputPortCount(dto.getPublicInputPortCount());
+            entity.setPublicOutputPortCount(dto.getPublicOutputPortCount());
             entity.setRunningCount(dto.getRunningCount());
             entity.setStoppedCount(dto.getStoppedCount());
             entity.setInvalidCount(dto.getInvalidCount());

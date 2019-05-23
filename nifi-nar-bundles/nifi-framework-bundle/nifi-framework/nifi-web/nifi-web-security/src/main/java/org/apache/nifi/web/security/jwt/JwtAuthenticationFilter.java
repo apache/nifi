@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  */
@@ -30,8 +32,9 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
+    // The Authorization header contains authentication credentials
     public static final String AUTHORIZATION = "Authorization";
-    public static final String BEARER = "Bearer ";
+    private static final Pattern tokenPattern = Pattern.compile("^Bearer (\\S*\\.\\S*\\.\\S*)$");
 
     @Override
     public Authentication attemptAuthentication(final HttpServletRequest request) {
@@ -43,15 +46,30 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         // TODO: Refactor request header extraction logic to shared utility as it is duplicated in AccessResource
 
         // get the principal out of the user token
-        final String authorization = request.getHeader(AUTHORIZATION);
+        final String authorizationHeader = request.getHeader(AUTHORIZATION);
 
         // if there is no authorization header, we don't know the user
-        if (authorization == null || !StringUtils.startsWith(authorization, BEARER)) {
+        if (authorizationHeader == null || !validJwtFormat(authorizationHeader)) {
             return null;
         } else {
             // Extract the Base64 encoded token from the Authorization header
-            final String token = StringUtils.substringAfterLast(authorization, " ");
+            final String token = getTokenFromHeader(authorizationHeader);
             return new JwtAuthenticationRequestToken(token, request.getRemoteAddr());
         }
     }
+
+    private boolean validJwtFormat(String authenticationHeader) {
+        Matcher matcher = tokenPattern.matcher(authenticationHeader);
+        return matcher.matches();
+    }
+
+    private String getTokenFromHeader(String authenticationHeader) {
+        Matcher matcher = tokenPattern.matcher(authenticationHeader);
+        if(matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            throw new InvalidAuthenticationException("JWT did not match expected pattern.");
+        }
+    }
+
 }

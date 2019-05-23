@@ -77,6 +77,8 @@
                 // populate the port settings
                 nfCommon.populateField('read-only-port-name', selectionData.component.name);
                 nfCommon.populateField('read-only-port-id', selectionData.id);
+                nfCommon.populateField('read-only-port-allow-remote-access', true === selectionData.allowRemoteAccess ? 'true' : 'false');
+                nfCommon.populateField('read-only-port-concurrent-tasks', selectionData.component.concurrentlySchedulableTaskCount);
                 nfCommon.populateField('read-only-port-comments', selectionData.component.comments);
 
                 // show the details

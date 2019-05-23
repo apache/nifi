@@ -134,6 +134,8 @@
                 $('#read-only-connection-source-label').text('From output');
                 $('#read-only-connection-source').text(source.name).attr('title', source.name);
                 $('#read-only-connection-source-group-name').text(remoteProcessGroup.name);
+                $('#read-only-connection-source-group div.setting-name').text('Within Remote Group');
+                $('#read-only-connection-remote-source-url').text(remoteProcessGroup.targetUri).show();
 
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
@@ -142,6 +144,7 @@
                     $('#read-only-connection-source-label').text('From output');
                     $('#read-only-connection-source').text(source.name).attr('title', source.name);
                     $('#read-only-connection-source-group-name').text(source.groupId);
+                    $('#read-only-connection-source-group div.setting-name').text('Within Remote Group');
 
                     deferred.resolve();
                 } else {
@@ -294,6 +297,8 @@
                 $('#read-only-connection-target-label').text('To input');
                 $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                 $('#read-only-connection-target-group-name').text(remoteProcessGroup.name);
+                $('#read-only-connection-target-group div.setting-name').text('Within Remote Group');
+                $('#read-only-connection-remote-target-url').text(remoteProcessGroup.targetUri).show();
 
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
@@ -302,6 +307,7 @@
                     $('#read-only-connection-target-label').text('To input');
                     $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                     $('#read-only-connection-target-group-name').text(destination.groupId);
+                    $('#read-only-connection-target-group div.setting-name').text('Within Remote Group');
 
                     deferred.resolve();
                 } else {
@@ -416,12 +422,16 @@
                         // clear the connection source details
                         $('#read-only-connection-source-label').text('');
                         $('#read-only-connection-source').empty();
+                        $('#read-only-connection-source-group div.setting-name').text('Within Group')
                         $('#read-only-connection-source-group-name').text('');
+                        $('#read-only-connection-remote-source-url').text('').hide();
 
                         // clear the connection target details
                         $('#read-only-connection-target-label').text('');
                         $('#read-only-connection-target').empty();
+                        $('#read-only-connection-target-group div.setting-name').text('Within Group')
                         $('#read-only-connection-target-group-name').text('');
+                        $('#read-only-connection-remote-target-url').text('').hide();
 
                         // clear the relationship details
                         $('#read-only-relationship-names').css('border-width', '0').empty();

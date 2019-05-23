@@ -65,6 +65,8 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -200,27 +202,29 @@ public class TestPutHive3Streaming {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/array_of_records.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
         processor.setFields(Arrays.asList(new FieldSchema("records",
-                serdeConstants.LIST_TYPE_NAME + "<"
-                        + serdeConstants.MAP_TYPE_NAME + "<"
-                        + serdeConstants.STRING_TYPE_NAME + ","
-                        +  serdeConstants.STRING_TYPE_NAME + ">>", "")));
+                "array<struct<name:string,age:string>>", "")));
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            //add the recordField so that we don't loose the element type data type
+            readerFactory.addSchemaField(recordField);
         }
 
         if (recordGenerator == null) {
-            Object[] mapArray = new Object[numUsers];
+            //given the schema is array of records we need the
+            //array in the records field to contain Record objects
+            MapRecord[] mapArray = new MapRecord[numUsers];
+            ArrayDataType recordsDataType = (ArrayDataType)recordSchema.getField("records").get().getDataType();
+            RecordDataType nestedStructType = (RecordDataType)recordsDataType.getElementType();
             for (int i = 0; i < numUsers; i++) {
                 final int x = i;
                 Map<String, Object> map = new HashMap<String, Object>() {{
                     put("name", "name" + x);
                     put("age", x * 5);
                 }};
-                mapArray[i] = map;
+                mapArray[i] = new MapRecord(nestedStructType.getChildSchema(), map);
             }
             readerFactory.addRecord((Object)mapArray);
         } else {
@@ -733,7 +737,9 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            //add the schema field so that we don't loose the map value data type for
+            //mapc field and element type for listc field
+            readerFactory.addSchemaField(recordField);
         }
 
         List<String> enumc = Arrays.asList("SPADES", "HEARTS", "DIAMONDS", "CLUBS");

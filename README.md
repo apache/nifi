@@ -59,7 +59,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Requirements
 * JDK 1.8 (*ongoing work to enable NiFi to run on Java 9/10/11; see [NIFI-5174](https://issues.apache.org/jira/browse/NIFI-5174)*)
-* Apache Maven 3.1.0 or newer
+* Apache Maven 3.1.1 or newer
 * Git Client (used during build process by 'bower' plugin)
 
 ## Getting Started

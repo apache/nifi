@@ -25,7 +25,10 @@ import org.apache.nifi.remote.protocol.ServerProtocol;
 
 import java.util.Set;
 
-public interface RootGroupPort extends Port {
+/**
+ * Represents an input or output port that can receive or transfer data via Site-to-Site protocol.
+ */
+public interface PublicPort extends Port {
 
     boolean isTransmitting();
 
@@ -67,9 +70,9 @@ public interface RootGroupPort extends Port {
      * @param serverProtocol protocol
      *
      * @return the number of FlowFiles received
-     * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
-     * @throws org.apache.nifi.remote.exception.BadRequestException bre
-     * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
+     * @throws NotAuthorizedException nae
+     * @throws BadRequestException bre
+     * @throws RequestExpiredException ree
      */
     int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
@@ -80,10 +83,12 @@ public interface RootGroupPort extends Port {
      * @param serverProtocol protocol
      *
      * @return the number of FlowFiles transferred
-     * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
-     * @throws org.apache.nifi.remote.exception.BadRequestException bre
-     * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
+     * @throws NotAuthorizedException nae
+     * @throws BadRequestException bre
+     * @throws RequestExpiredException ree
      */
     int transferFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+
+    TransferDirection getDirection();
 
 }

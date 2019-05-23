@@ -40,7 +40,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -283,14 +283,13 @@ public class StandardFlowSnippet implements FlowSnippet {
         //
         for (final PortDTO portDTO : dto.getInputPorts()) {
             final Port inputPort;
-            if (group.isRootGroup()) {
-                inputPort = flowManager.createRemoteInputPort(portDTO.getId(), portDTO.getName());
-                inputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
+                inputPort = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
-                    ((RootGroupPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
+                    ((PublicPort) inputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
                 if (portDTO.getUserAccessControl() != null) {
-                    ((RootGroupPort) inputPort).setUserAccessControl(portDTO.getUserAccessControl());
+                    ((PublicPort) inputPort).setUserAccessControl(portDTO.getUserAccessControl());
                 }
             } else {
                 inputPort = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
@@ -301,20 +300,20 @@ public class StandardFlowSnippet implements FlowSnippet {
             }
             inputPort.setPosition(toPosition(portDTO.getPosition()));
             inputPort.setProcessGroup(group);
+            inputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             inputPort.setComments(portDTO.getComments());
             group.addInputPort(inputPort);
         }
 
         for (final PortDTO portDTO : dto.getOutputPorts()) {
             final Port outputPort;
-            if (group.isRootGroup()) {
-                outputPort = flowManager.createRemoteOutputPort(portDTO.getId(), portDTO.getName());
-                outputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
+            if (group.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
+                outputPort = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
                 if (portDTO.getGroupAccessControl() != null) {
-                    ((RootGroupPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
+                    ((PublicPort) outputPort).setGroupAccessControl(portDTO.getGroupAccessControl());
                 }
                 if (portDTO.getUserAccessControl() != null) {
-                    ((RootGroupPort) outputPort).setUserAccessControl(portDTO.getUserAccessControl());
+                    ((PublicPort) outputPort).setUserAccessControl(portDTO.getUserAccessControl());
                 }
             } else {
                 outputPort = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());
@@ -325,6 +324,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             }
             outputPort.setPosition(toPosition(portDTO.getPosition()));
             outputPort.setProcessGroup(group);
+            outputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             outputPort.setComments(portDTO.getComments());
             group.addOutputPort(outputPort);
         }

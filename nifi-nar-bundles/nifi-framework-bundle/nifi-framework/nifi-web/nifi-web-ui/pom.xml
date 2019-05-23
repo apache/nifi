@@ -685,6 +685,7 @@
                                                 <include>${staging.dir}/css/shell.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
                                                 <include>${staging.dir}/css/new-processor-dialog.css</include>
+                                                <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>

@@ -63,8 +63,8 @@ import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -1271,8 +1271,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final PortDTO portDTO = FlowFromDOMFactory.getPort(inputPortElement);
 
             final Port port;
-            if (processGroup.isRootGroup()) {
-                port = flowManager.createRemoteInputPort(portDTO.getId(), portDTO.getName());
+            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
+                port = flowManager.createPublicInputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalInputPort(portDTO.getId(), portDTO.getName());
             }
@@ -1284,17 +1284,17 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final Set<String> userControls = portDTO.getUserAccessControl();
             if (userControls != null && !userControls.isEmpty()) {
-                if (!(port instanceof RootGroupPort)) {
+                if (!(port instanceof PublicPort)) {
                     throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setUserAccessControl(userControls);
+                ((PublicPort) port).setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
-                if (!(port instanceof RootGroupPort)) {
+                if (!(port instanceof PublicPort)) {
                     throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setGroupAccessControl(groupControls);
+                ((PublicPort) port).setGroupAccessControl(groupControls);
             }
 
             processGroup.addInputPort(port);
@@ -1316,8 +1316,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final PortDTO portDTO = FlowFromDOMFactory.getPort(outputPortElement);
 
             final Port port;
-            if (processGroup.isRootGroup()) {
-                port = flowManager.createRemoteOutputPort(portDTO.getId(), portDTO.getName());
+            if (processGroup.isRootGroup() || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
+                port = flowManager.createPublicOutputPort(portDTO.getId(), portDTO.getName());
             } else {
                 port = flowManager.createLocalOutputPort(portDTO.getId(), portDTO.getName());
             }
@@ -1329,17 +1329,17 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final Set<String> userControls = portDTO.getUserAccessControl();
             if (userControls != null && !userControls.isEmpty()) {
-                if (!(port instanceof RootGroupPort)) {
+                if (!(port instanceof PublicPort)) {
                     throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setUserAccessControl(userControls);
+                ((PublicPort) port).setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
-                if (!(port instanceof RootGroupPort)) {
+                if (!(port instanceof PublicPort)) {
                     throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
-                ((RootGroupPort) port).setGroupAccessControl(groupControls);
+                ((PublicPort) port).setGroupAccessControl(groupControls);
             }
 
             processGroup.addOutputPort(port);

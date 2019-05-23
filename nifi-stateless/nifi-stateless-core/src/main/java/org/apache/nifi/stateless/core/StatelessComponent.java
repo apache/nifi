@@ -14,27 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization;
+package org.apache.nifi.stateless.core;
 
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.processor.Relationship;
 
-/**
- * Authorizable for a RootGroupPort.
- */
-public interface RootGroupPortAuthorizable {
-    /**
-     * Returns the authorizable for this RootGroupPort. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
+import java.util.List;
+import java.util.Queue;
 
-    /**
-     * Checks the authorization for the specified user.
-     *
-     * @param user user
-     * @return authorization result
-     */
-    AuthorizationResult checkAuthorization(NiFiUser user);
+public interface StatelessComponent {
+
+    void shutdown();
+
+    void enqueueAll(Queue<StatelessFlowFile> list);
+
+    boolean runRecursive(Queue<InMemoryFlowFile> queue);
+
+    boolean validate();
+
+    void addIncomingConnection(String connectionId);
+
+    void addOutputPort(Relationship relationship, boolean isFailurePort);
+
+    boolean isMaterializeContent();
+
+    List<StatelessComponent> getParents();
+
+    void addParent(StatelessComponent parent);
+
+    void addChild(StatelessComponent child, Relationship relationship);
 }

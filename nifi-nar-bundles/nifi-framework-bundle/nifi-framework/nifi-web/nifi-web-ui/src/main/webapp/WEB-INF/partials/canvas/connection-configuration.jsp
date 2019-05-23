@@ -165,6 +165,9 @@
                         <div class="setting-field">
                             <div id="connection-source-group-name"></div>
                         </div>
+                        <div class="setting-field">
+                            <div id="connection-remote-source-url" class="hidden"></div>
+                        </div>
                     </div>
                     <div id="relationship-names-container" class="hidden">
                         <div class="setting-name">For relationships</div>
@@ -206,6 +209,9 @@
                         <div class="setting-name">Within group</div>
                         <div class="setting-field">
                             <div id="connection-destination-group-name"></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="connection-remote-destination-url" class="hidden"></div>
                         </div>
                     </div>
                 </div>

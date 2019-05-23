@@ -22,12 +22,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class BiConsumerProcessor extends AbstractProcessor {
     private BiConsumer<ProcessContext, ProcessSession> trigger;
-    private Set<Relationship> relationships;
+    private volatile Set<Relationship> relationships;
 
     public void setTrigger(final BiConsumer<ProcessContext, ProcessSession> trigger) {
         this.trigger = trigger;
@@ -39,8 +40,13 @@ public class BiConsumerProcessor extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        if (relationships == null) {
-            throw new IllegalStateException("Relationships have not been initialized");
+        while (relationships == null) {
+            try {
+                Thread.sleep(1L);
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return Collections.emptySet();
+            }
         }
 
         return relationships;

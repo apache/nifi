@@ -51,8 +51,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -405,10 +405,9 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 portStatus.setRunStatus(RunStatus.Stopped);
             }
 
-            // special handling for root group ports
-            if (port instanceof RootGroupPort) {
-                final RootGroupPort rootGroupPort = (RootGroupPort) port;
-                portStatus.setTransmitting(rootGroupPort.isTransmitting());
+            // special handling for public ports
+            if (port instanceof PublicPort) {
+                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
             }
 
             final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
@@ -428,8 +427,9 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 portStatus.setInputBytes(inputBytes);
                 portStatus.setInputCount(inputCount);
 
-                flowFilesIn += inputCount;
-                bytesIn += inputBytes;
+                flowFilesIn += port instanceof PublicPort ? entry.getFlowFilesReceived() : inputCount;
+                bytesIn += port instanceof PublicPort ? entry.getBytesReceived() : inputBytes;
+
                 bytesWritten += entry.getBytesWritten();
 
                 flowFilesReceived += entry.getFlowFilesReceived();
@@ -468,10 +468,9 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 portStatus.setRunStatus(RunStatus.Stopped);
             }
 
-            // special handling for root group ports
-            if (port instanceof RootGroupPort) {
-                final RootGroupPort rootGroupPort = (RootGroupPort) port;
-                portStatus.setTransmitting(rootGroupPort.isTransmitting());
+            // special handling for public ports
+            if (port instanceof PublicPort) {
+                portStatus.setTransmitting(((PublicPort) port).isTransmitting());
             }
 
             final FlowFileEvent entry = statusReport.getReportEntries().get(port.getIdentifier());
@@ -493,8 +492,8 @@ public class StandardEventAccess implements UserAwareEventAccess {
 
                 bytesRead += entry.getBytesRead();
 
-                flowFilesOut += entry.getFlowFilesOut();
-                bytesOut += entry.getContentSizeOut();
+                flowFilesOut += port instanceof PublicPort ? entry.getFlowFilesSent() : entry.getFlowFilesOut();
+                bytesOut += port instanceof PublicPort ? entry.getBytesSent() : entry.getContentSizeOut();
 
                 flowFilesSent = entry.getFlowFilesSent();
                 bytesSent += entry.getBytesSent();

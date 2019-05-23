@@ -410,7 +410,6 @@ public class ITAccessTokenEndpoint {
         String logoutUrl = BASE_URL + "/access/logout";
 
         Response response = TOKEN_USER.testCreateToken(accessTokenUrl, user, password);
-        Response responseA = TOKEN_USER.testCreateToken(accessTokenUrl, "jack", password);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());

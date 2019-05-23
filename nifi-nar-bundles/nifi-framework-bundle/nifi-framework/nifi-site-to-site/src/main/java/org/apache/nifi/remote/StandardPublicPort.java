@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
@@ -52,7 +54,6 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,17 +75,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.util.Objects.requireNonNull;
 
-public class StandardRootGroupPort extends AbstractPort implements RootGroupPort {
+public class StandardPublicPort extends AbstractPort implements PublicPort {
 
     private static final String CATEGORY = "Site to Site";
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardRootGroupPort.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardPublicPort.class);
 
-    private final AtomicReference<Set<String>> groupAccessControl = new AtomicReference<Set<String>>(new HashSet<String>());
-    private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<Set<String>>(new HashSet<String>());
+
+    private final AtomicReference<Set<String>> groupAccessControl = new AtomicReference<>(new HashSet<>());
+    private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<>(new HashSet<>());
     private final boolean secure;
     private final Authorizer authorizer;
     private final List<IdentityMapping> identityMappings;
+    private TransferDirection direction;
 
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;
@@ -98,34 +101,34 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private final Lock requestLock = new ReentrantLock();
     private boolean shutdown = false;   // guarded by requestLock
 
-    public StandardRootGroupPort(final String id, final String name, final ProcessGroup processGroup,
-            final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
-            final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
-            final NiFiProperties nifiProperties) {
+    public StandardPublicPort(final String id, final String name, final ProcessGroup processGroup,
+                              final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
+                              final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
+                              final String yieldPeriod, final List<IdentityMapping> identityMappings) {
+
         super(id, name, processGroup, type, scheduler);
 
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;
         this.secure = secure;
-        this.identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
+        this.identityMappings = identityMappings;
         this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
-        setYieldPeriod(nifiProperties.getBoredYieldDuration());
+        this.direction = direction;
+        setYieldPeriod(yieldPeriod);
         eventReporter = new EventReporter() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
-                final String groupId = StandardRootGroupPort.this.getProcessGroup().getIdentifier();
-                final String groupName = StandardRootGroupPort.this.getProcessGroup().getName();
-                final String sourceId = StandardRootGroupPort.this.getIdentifier();
-                final String sourceName = StandardRootGroupPort.this.getName();
+                final String groupId = processGroup.getIdentifier();
+                final String groupName = processGroup.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, componentType, sourceName, category, severity.name(), message));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, id, componentType, name, category, severity.name(), message));
             }
         };
 
-        relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(AbstractPort.PORT_RELATIONSHIP) : Collections.<Relationship>emptySet();
+        relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(AbstractPort.PORT_RELATIONSHIP) : Collections.emptySet();
     }
 
     @Override
@@ -240,11 +243,6 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             } else {
                 transferCount = transferFlowFiles(context, session, codec, flowFileRequest);
             }
-        } catch (final IOException e) {
-            session.rollback();
-            responseQueue.add(new ProcessingResult(e));
-
-            return;
         } catch (final Exception e) {
             session.rollback();
             responseQueue.add(new ProcessingResult(e));
@@ -252,16 +250,14 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return;
         }
 
-        // TODO: Comfirm this. Session.commit here is not required since it has been committed inside receiveFlowFiles/transferFlowFiles.
-        // session.commit();
         responseQueue.add(new ProcessingResult(transferCount));
     }
 
-    private int transferFlowFiles(final ProcessContext context, final ProcessSession session, final FlowFileCodec codec, final FlowFileRequest request) throws IOException, ProtocolException {
+    private int transferFlowFiles(final ProcessContext context, final ProcessSession session, final FlowFileCodec codec, final FlowFileRequest request) throws IOException {
         return request.getProtocol().transferFlowFiles(request.getPeer(), context, session, codec);
     }
 
-    private int receiveFlowFiles(final ProcessContext context, final ProcessSession session, final FlowFileCodec codec, final FlowFileRequest receiveRequest) throws IOException, ProtocolException {
+    private int receiveFlowFiles(final ProcessContext context, final ProcessSession session, final FlowFileCodec codec, final FlowFileRequest receiveRequest) throws IOException {
         return receiveRequest.getProtocol().receiveFlowFiles(receiveRequest.getPeer(), context, session, codec);
     }
 
@@ -376,7 +372,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
         }
 
         if (user == null) {
-            final String message = String.format("%s authorization failed because the user is unknown", this, user);
+            final String message = String.format("%s authorization failed because the user is unknown", this);
             logger.warn(message);
             eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
             return new StandardPortAuthorizationResult(false, "User is not known");
@@ -500,7 +496,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
         }
 
-        if (!this.isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Port not running");
         }
 
@@ -556,7 +552,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             throw new IllegalStateException("Cannot send FlowFiles because this port is not an Output Port");
         }
 
-        if (!this.isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Port not running");
         }
 
@@ -570,7 +566,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             scheduler.registerEvent(this);
 
             // Get a response from the response queue but don't wait forever if the port is stopped
-            ProcessingResult result = null;
+            ProcessingResult result;
 
             // wait for the request to start getting serviced... and time out if it doesn't happen
             // before the request expires
@@ -617,6 +613,17 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     @Override
     public String getComponentType() {
-        return "RootGroupPort";
+        return "PublicPort";
+    }
+
+    @Override
+    public TransferDirection getDirection() {
+        return direction;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+            .append("id", getIdentifier()).append("name", getName()).toString();
     }
 }

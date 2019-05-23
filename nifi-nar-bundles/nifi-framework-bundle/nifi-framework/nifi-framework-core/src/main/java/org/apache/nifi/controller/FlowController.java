@@ -2650,6 +2650,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return replayEvent;
     }
 
+    public ResourceClaimManager getResourceClaimManager() {
+        return resourceClaimManager;
+    }
+
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
