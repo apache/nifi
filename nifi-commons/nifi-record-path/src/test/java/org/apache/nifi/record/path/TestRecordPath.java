@@ -1254,6 +1254,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
