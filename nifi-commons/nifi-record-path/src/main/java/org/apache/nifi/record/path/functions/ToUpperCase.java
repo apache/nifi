@@ -24,21 +24,15 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.util.stream.Stream;
 
 public class ToUpperCase extends AbstractStringFunction {
-    final RecordPathSegment[] valuePaths;
     public static final String PATH_VALUE = "uppercase";
 
-    public ToUpperCase(final RecordPathSegment[] valuePaths, final boolean absolute) {
-        super(PATH_VALUE, valuePaths, absolute);
-        this.valuePaths = valuePaths;
+    public ToUpperCase(final RecordPathSegment valuePath, final boolean absolute) {
+        super(PATH_VALUE, valuePath, absolute);
     }
 
     @Override
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        return super.evaluate(context, stream -> {
-            StringBuilder sb = new StringBuilder();
-            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null).toUpperCase()));
-
-            return sb;
-        });
+        return super.evaluate(context,
+                fieldValue -> fieldValue.getValue() == null ? "" : DataTypeUtils.toString(fieldValue.getValue(), (String)null).toUpperCase());
     }
 }

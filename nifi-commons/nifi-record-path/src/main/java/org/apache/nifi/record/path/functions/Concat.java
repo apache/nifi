@@ -19,22 +19,36 @@ package org.apache.nifi.record.path.functions;
 
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.stream.Stream;
 
-public class Concat extends AbstractStringFunction {
+public class Concat extends RecordPathSegment {
+    private final RecordPathSegment[] valuePaths;
+
     public Concat(final RecordPathSegment[] valuePaths, final boolean absolute) {
-        super("concat", valuePaths, absolute);
+        super("concat", null, absolute);
+        this.valuePaths = valuePaths;
     }
 
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
-        return super.evaluate(context, stream -> {
-            final StringBuilder sb = new StringBuilder();
-            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null)));
-            return sb;
-        });
+        Stream<FieldValue> concatenated = Stream.empty();
+
+        for (final RecordPathSegment valuePath : valuePaths) {
+            final Stream<FieldValue> stream = valuePath.evaluate(context);
+            concatenated = Stream.concat(concatenated, stream);
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        concatenated.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null)));
+
+        final RecordField field = new RecordField("concat", RecordFieldType.STRING.getDataType());
+        final FieldValue responseValue = new StandardFieldValue(sb.toString(), field, null);
+        return Stream.of(responseValue);
     }
 }

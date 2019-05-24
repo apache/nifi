@@ -24,16 +24,13 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.util.stream.Stream;
 
 public class TrimString extends AbstractStringFunction {
-    public TrimString(RecordPathSegment[] valuePaths, boolean absolute) {
-        super("trim", valuePaths, absolute);
+    public TrimString(RecordPathSegment valuePath, boolean absolute) {
+        super("trim", valuePath, absolute);
     }
 
     @Override
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        return super.evaluate(context, stream -> {
-            StringBuilder sb = new StringBuilder();
-            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null).trim()));
-            return sb;
-        });
+        return super.evaluate(context,
+                fieldValue -> fieldValue.getValue() == null ? "" :  DataTypeUtils.toString(fieldValue.getValue(), (String) null).trim());
     }
 }

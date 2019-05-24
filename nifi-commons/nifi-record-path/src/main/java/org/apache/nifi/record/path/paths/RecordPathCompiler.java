@@ -240,16 +240,26 @@ public class RecordPathCompiler {
                         return new ReplaceNull(args[0], args[1], absolute);
                     }
                     case "concat": {
-                        return new Concat(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+                        for (int i = 0; i < numArgs; i++) {
+                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+                        }
+
+                        return new Concat(argPaths, absolute);
                     }
                     case "toLowerCase": {
-                        return new ToLowerCase(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToLowerCase(args[0], absolute);
                     }
                     case "toUpperCase": {
-                        return new ToUpperCase(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToUpperCase(args[0], absolute);
                     }
                     case "trim": {
-                        return new TrimString(getArgumentsForStringFunction(absolute, argumentListTree), absolute);
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new TrimString(args[0], absolute);
                     }
                     case "fieldName": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);

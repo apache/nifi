@@ -17,9 +17,16 @@
 
 package org.apache.nifi.record.path;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
@@ -35,16 +42,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.junit.Test;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestRecordPath {
 
@@ -1229,14 +1230,16 @@ public class TestRecordPath {
     public void testToUpperCase() {
         final Record record = getCaseTestRecord();
 
-        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(/firstName, ' ', /middleName, ' ', /lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
     public void testToLowerCase() {
         final Record record = getCaseTestRecord();
 
-        assertEquals("john smith doe", RecordPath.compile("toLowerCase(/firstName, ' ', /middleName, ' ', /lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("john smith doe", RecordPath.compile("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test

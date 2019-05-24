@@ -27,31 +27,26 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import java.util.stream.Stream;
 
 public abstract class AbstractStringFunction extends RecordPathSegment {
-    protected final RecordPathSegment[] valuePaths;
+    protected final RecordPathSegment valuePath;
     protected String pathValue;
 
-    public AbstractStringFunction(final String path, final RecordPathSegment[] valuePaths, final boolean absolute) {
+    public AbstractStringFunction(final String path, final RecordPathSegment valuePath, final boolean absolute) {
         super(path, null, absolute);
-        this.valuePaths = valuePaths;
+        this.valuePath = valuePath;
         this.pathValue = path;
     }
 
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context, EvaluationCallback callback) {
-        Stream<FieldValue> evaluated = Stream.empty();
+        final Stream<FieldValue> evaluated = valuePath.evaluate(context);
 
-        for (final RecordPathSegment valuePath : valuePaths) {
-            final Stream<FieldValue> stream = valuePath.evaluate(context);
-            evaluated = Stream.concat(evaluated, stream);
-        }
-
-        StringBuilder sb = callback.evaluate(evaluated);
+        String evaluatedValue = callback.evaluate(evaluated.findFirst().get());
 
         final RecordField field = new RecordField(pathValue, RecordFieldType.STRING.getDataType());
-        final FieldValue responseValue = new StandardFieldValue(sb.toString(), field, null);
+        final FieldValue responseValue = new StandardFieldValue(evaluatedValue, field, null);
         return Stream.of(responseValue);
     }
 
     interface EvaluationCallback {
-        StringBuilder evaluate(Stream<FieldValue> stream);
+        String evaluate(FieldValue fieldValue);
     }
 }

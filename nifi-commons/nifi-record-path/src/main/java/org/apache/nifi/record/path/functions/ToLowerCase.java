@@ -24,17 +24,13 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.util.stream.Stream;
 
 public class ToLowerCase extends AbstractStringFunction {
-    public ToLowerCase(RecordPathSegment[] valuePaths, boolean absolute) {
-        super("lowercase", valuePaths, absolute);
+    public ToLowerCase(RecordPathSegment valuePath, boolean absolute) {
+        super("lowercase", valuePath, absolute);
     }
 
     @Override
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        return super.evaluate(context, stream -> {
-            StringBuilder sb = new StringBuilder();
-            stream.forEach(fv -> sb.append(DataTypeUtils.toString(fv.getValue(), (String) null).toLowerCase()));
-
-            return sb;
-        });
+        return super.evaluate(context,
+                fieldValue -> fieldValue.getValue() == null ? "" : DataTypeUtils.toString(fieldValue.getValue(), (String) null).toLowerCase());
     }
 }
