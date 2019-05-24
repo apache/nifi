@@ -1341,9 +1341,7 @@
                 resetPolicy();
                 loadPolicy();
             }).always(function () {
-                nfCanvasUtils.reload({
-                    'transition': true
-                });
+                nfCanvasUtils.reload();
             });
         } else {
             nfDialog.showOkDialog({
