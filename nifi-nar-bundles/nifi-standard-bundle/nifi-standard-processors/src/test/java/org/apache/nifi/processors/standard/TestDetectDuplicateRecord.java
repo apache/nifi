@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.*;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -33,18 +34,19 @@ import static org.junit.Assert.assertEquals;
 
 public class TestDetectDuplicateRecord {
 
-    static {
+    private TestRunner runner;
+    private MockCacheService cache;
+    private MockRecordParser reader;
+    private MockRecordWriter writer;
+
+    @BeforeClass
+    public static void beforeClass() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicateRecord", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicateRecord", "debug");
     }
-
-    private TestRunner runner;
-    private MockCacheService cache;
-    private MockRecordParser reader;
-    private MockRecordWriter writer;
 
     @Before
     public void setup() throws InitializationException {
@@ -89,7 +91,7 @@ public class TestDetectDuplicateRecord {
         runner.assertValid();
     }
 
-    @Test
+     @Test
      public void testDetectDuplicatesHashSet() {
         runner.setProperty(FILTER_TYPE, HASH_SET_VALUE);
         runner.setProperty("/middleName", "${field.value}");
@@ -171,6 +173,23 @@ public class TestDetectDuplicateRecord {
         doCountTests(0, 1, 1, 1, 3, 0);
     }
 
+
+
+    @Test
+    public void testCacheValueFromRecordPath() {
+        runner.setProperty(CACHE_ENTRY_IDENTIFIER, "Users");
+        reader.addRecord("John", "Q", "Smith");
+        reader.addRecord("Jack", "Z", "Brown");
+        reader.addRecord("Jane", "X", "Doe");
+
+        runner.enqueue("");
+        runner.run();
+
+        doCountTests(0, 1, 1, 1, 2, 1);
+
+        cache.assertContains("KEY", "VALUE"); // TODO: Get the tests running so you can see what the key/value is in serialized form
+    }
+
     void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
         runner.assertTransferCount(REL_DUPLICATE, failure);
         runner.assertTransferCount(REL_NON_DUPLICATE, original);
@@ -186,20 +205,5 @@ public class TestDetectDuplicateRecord {
         if (nonDuplicateFlowFile != null) {
             assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.get(0).getAttribute("record.count"));
         }
-    }
-
-    @Test
-    void testCacheValueFromRecordPath() {
-        runner.setProperty(CACHE_ENTRY_IDENTIFIER, "Users");
-        reader.addRecord("John", "Q", "Smith");
-        reader.addRecord("Jack", "Z", "Brown");
-        reader.addRecord("Jane", "X", "Doe");
-
-        runner.enqueue("");
-        runner.run();
-
-        doCountTests(0, 1, 1, 1, 2, 1);
-
-        cache.assertContains("KEY", "VALUE"); // TODO: Get the tests running so you can see what the key/value is in serialized form
     }
 }
