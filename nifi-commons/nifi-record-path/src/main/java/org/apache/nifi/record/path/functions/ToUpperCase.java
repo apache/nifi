@@ -16,23 +16,15 @@
  */
 package org.apache.nifi.record.path.functions;
 
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import java.util.stream.Stream;
-
-public class ToUpperCase extends AbstractStringFunction {
-    public static final String PATH_VALUE = "uppercase";
-
+public class ToUpperCase extends NoArgStringFunction {
     public ToUpperCase(final RecordPathSegment valuePath, final boolean absolute) {
-        super(PATH_VALUE, valuePath, absolute);
+        super("toUpperCase", valuePath, absolute);
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        return super.evaluate(context,
-                fieldValue -> fieldValue.getValue() == null ? "" : DataTypeUtils.toString(fieldValue.getValue(), (String)null).toUpperCase());
+    String apply(String value) {
+        return value == null ? null : value.toUpperCase();
     }
 }
