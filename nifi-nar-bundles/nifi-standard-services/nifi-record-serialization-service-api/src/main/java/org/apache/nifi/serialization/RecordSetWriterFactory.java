@@ -77,4 +77,24 @@ public interface RecordSetWriterFactory extends ControllerService {
      * @throws IOException if unable to read from the given InputStream
      */
     RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException;
+
+    /**
+     * <p>
+     * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream.
+     * This version of the overloaded method accepts a variables map that can be used to resolve properties specified via Expression Language.
+     * The default implementation simply discards the variables map and delegates the call to {@link #createWriter(ComponentLog, RecordSchema, OutputStream)}.
+     * </p>
+     *
+     * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
+     *            because it allows messages to be logged for the component that is calling this Controller Service.
+     * @param schema the schema that will be used for writing records
+     * @param out the OutputStream to write to
+     * @param variables the variables which is used to resolve properties specified via Expression Language
+     *
+     * @return a RecordSetWriter that can write record sets to an OutputStream
+     * @throws IOException if unable to read from the given InputStream
+     */
+    default RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
+        return createWriter(logger, schema, out);
+    }
 }

@@ -78,13 +78,11 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .required(true)
             .build();
 
+    private volatile ConfigurationContext context;
     private volatile String csvParser;
-    private volatile CSVFormat csvFormat;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
-    private volatile boolean firstLineIsHeader;
-    private volatile boolean ignoreHeader;
     private volatile String charSet;
 
     @Override
@@ -108,23 +106,14 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @OnEnabled
-    public void storeCsvFormat(final ConfigurationContext context) {
+    public void storeStaticProperties(final ConfigurationContext context) {
+        this.context = context;
+
         this.csvParser = context.getProperty(CSV_PARSER).getValue();
-        this.csvFormat = CSVUtils.createCSVFormat(context);
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
-        this.firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).asBoolean();
-        this.ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).asBoolean();
         this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
-
-        // Ensure that if we are deriving schema from header that we always treat the first line as a header,
-        // regardless of the 'First Line is Header' property
-        final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
-        if (headerDerivedAllowableValue.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
-            this.csvFormat = this.csvFormat.withFirstRecordAsHeader();
-            this.firstLineIsHeader = true;
-        }
     }
 
     @Override
@@ -133,6 +122,19 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         in.mark(1024 * 1024);
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
+
+        boolean firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).evaluateAttributeExpressions(variables).asBoolean();
+        boolean ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).evaluateAttributeExpressions(variables).asBoolean();
+
+        CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables);
+
+        // Ensure that if we are deriving schema from header that we always treat the first line as a header,
+        // regardless of the 'First Line is Header' property
+        final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
+        if (headerDerivedAllowableValue.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
+            firstLineIsHeader = true;
+            csvFormat = csvFormat.withFirstRecordAsHeader();
+        }
 
         if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
             return new CSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
@@ -148,7 +150,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
         } else if (allowableValue.equalsIgnoreCase(SchemaInferenceUtil.INFER_SCHEMA.getValue())) {
-            final RecordSourceFactory<CSVRecordAndFieldNames> sourceFactory = (var, in) -> new CSVRecordSource(in, context);
+            final RecordSourceFactory<CSVRecordAndFieldNames> sourceFactory = (variables, in) -> new CSVRecordSource(in, context, variables);
             final SchemaInferenceEngine<CSVRecordAndFieldNames> inference = new CSVSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
             return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());
         }

@@ -202,7 +202,7 @@ public class ConvertExcelToCSVProcessor
         final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
         final boolean formatValues = context.getProperty(FORMAT_VALUES).asBoolean();
 
-        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context);
+        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, flowFile.getAttributes());
 
         //Switch to 0 based index
         final int firstRow = context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions(flowFile).asInteger() - 1;
