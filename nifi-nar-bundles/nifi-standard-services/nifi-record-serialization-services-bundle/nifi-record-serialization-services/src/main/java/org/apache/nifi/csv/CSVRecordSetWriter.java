@@ -20,7 +20,9 @@ package org.apache.nifi.csv;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,9 +43,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
     + "corresponding to the record fields.")
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
-    private volatile CSVFormat csvFormat;
+    private volatile ConfigurationContext context;
+
     private volatile boolean includeHeader;
     private volatile String charSet;
+
+    // it will be initialized only if there are no dynamic csv formatting properties
+    private volatile CSVFormat csvFormat;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -64,14 +70,28 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     }
 
     @OnEnabled
-    public void storeCsvFormat(final ConfigurationContext context) {
-        this.csvFormat = CSVUtils.createCSVFormat(context);
+    public void storeStaticProperties(final ConfigurationContext context) {
+        this.context = context;
+
         this.includeHeader = context.getProperty(CSVUtils.INCLUDE_HEADER_LINE).asBoolean();
         this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
+
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            this.csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
+        } else {
+            this.csvFormat = null;
+        }
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
+        CSVFormat csvFormat;
+        if (this.csvFormat != null) {
+            csvFormat = this.csvFormat;
+        } else {
+            csvFormat = CSVUtils.createCSVFormat(context, variables);
+        }
+
         return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema), out,
             getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
     }

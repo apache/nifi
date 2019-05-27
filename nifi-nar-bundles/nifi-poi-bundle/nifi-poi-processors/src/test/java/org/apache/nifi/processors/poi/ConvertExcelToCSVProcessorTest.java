@@ -167,7 +167,7 @@ public class ConvertExcelToCSVProcessorTest {
     public void testSkipRowsWithEL() throws Exception {
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("rowsToSkip", "2");
-        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(),attributes);
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(), attributes);
 
         testRunner.setProperty(ConvertExcelToCSVProcessor.ROWS_TO_SKIP, "${rowsToSkip}");
         testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
@@ -224,7 +224,7 @@ public class ConvertExcelToCSVProcessorTest {
     public void testSkipColumnsWithEL() throws Exception {
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("columnsToSkip", "2");
-        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(),attributes);
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(), attributes);
 
         testRunner.setProperty(ConvertExcelToCSVProcessor.COLUMNS_TO_SKIP, "${columnsToSkip}");
         testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
@@ -278,6 +278,100 @@ public class ConvertExcelToCSVProcessorTest {
                 "9.88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1,023.45\r\n" +
                 "9.877E+08||\r\n" +
                 "9.8765E+08||\r\n");
+    }
+
+    @Test
+    public void testCustomValueSeparatorWithEL() throws Exception {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("csv.delimiter", "|");
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(), attributes);
+
+        testRunner.setProperty(CSVUtils.VALUE_SEPARATOR, "${csv.delimiter}");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
+        ff.assertContentEquals("Numbers|Timestamps|Money\n" +
+                "1234.456|" + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + "|$   123.45\n" +
+                "1234.46|" + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + "|£   123.45\n" +
+                "1234.5|" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "|¥   123.45\n" +
+                "1,234.46|" + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + "|$   1,023.45\n" +
+                "1,234.4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1,023.45\n" +
+                "9.88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1,023.45\n" +
+                "9.877E+08||\n" +
+                "9.8765E+08||\n");
+    }
+
+    @Test
+    public void testCustomQuoteCharWithEL() throws Exception {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("csv.quote", "'");
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(), attributes);
+
+        testRunner.setProperty(CSVUtils.QUOTE_CHAR, "${csv.quote}");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+        testRunner.setProperty(CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_ALL);
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
+        ff.assertContentEquals("'Numbers','Timestamps','Money'\n" +
+                "'1234.456','" + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + "','$   123.45'\n" +
+                "'1234.46','" + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + "','£   123.45'\n" +
+                "'1234.5','" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "','¥   123.45'\n" +
+                "'1,234.46','" + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + "','$   1,023.45'\n" +
+                "'1,234.4560','" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "','£   1,023.45'\n" +
+                "'9.88E+08','" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "','¥   1,023.45'\n" +
+                "'9.877E+08',,\n" +
+                "'9.8765E+08',,\n");
+    }
+
+    @Test
+    public void testCustomEscapeCharWithEL() throws Exception {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("csv.escape", "^");
+        testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath(), attributes);
+
+        testRunner.setProperty(CSVUtils.ESCAPE_CHAR, "${csv.escape}");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        Long rowsSheet = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertTrue(rowsSheet == 9);
+
+        LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
+        ff.assertContentEquals("Numbers,Timestamps,Money\n" +
+                "1234.456," + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + ",$   123.45\n" +
+                "1234.46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123.45\n" +
+                "1234.5," + DateTimeFormatter.ofPattern("EEEE^, MMMM dd^, yyyy").format(localDt) + ",¥   123.45\n" +
+                "1^,234.46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1^,023.45\n" +
+                "1^,234.4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1^,023.45\n" +
+                "9.88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1^,023.45\n" +
+                "9.877E+08,,\n" +
+                "9.8765E+08,,\n");
     }
 
     /**

@@ -199,7 +199,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                         final RecordSchema schema = recordSetWriterFactory.getSchema(originalFlowFile.getAttributes(),
                                 record == null ? null : record.getSchema());
 
-                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out)) {
+                        try (final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), schema, out, originalFlowFile)) {
                             recordSetWriter.beginRecordSet();
                             if (record != null) {
                                 recordSetWriter.write(record);

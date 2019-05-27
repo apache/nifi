@@ -312,7 +312,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                 final Record firstRecord = reader.nextRecord();
                 if (firstRecord == null) {
                     try (final OutputStream out = session.write(transformed);
-                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, transformed)) {
 
                         writer.beginRecordSet();
                         writeResult = writer.finishRecordSet();
@@ -339,7 +339,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                 // and instead use a Map<RecordSchema, RecordSetWriter>. This way, even if many different output schemas are possible,
                 // the output FlowFiles will each only contain records that have the same schema.
                 try (final OutputStream out = session.write(transformed);
-                     final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                     final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, transformed)) {
 
                     writer.beginRecordSet();
 

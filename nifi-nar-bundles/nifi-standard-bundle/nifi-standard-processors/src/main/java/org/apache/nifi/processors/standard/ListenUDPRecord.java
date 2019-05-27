@@ -274,7 +274,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                     final RecordSchema recordSchema = firstRecord.getSchema();
                     final RecordSchema writeSchema = writerFactory.getSchema(Collections.emptyMap(), recordSchema);
 
-                    writer = writerFactory.createWriter(getLogger(), writeSchema, rawOut);
+                    writer = writerFactory.createWriter(getLogger(), writeSchema, rawOut, flowFile);
                     writer.beginRecordSet();
 
                     flowFileRecordWriter = new FlowFileRecordWriter(flowFile, writer);
