@@ -21,32 +21,35 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.stream.Stream;
 
-public abstract class AbstractStringFunction extends RecordPathSegment {
-    protected final RecordPathSegment valuePath;
-    protected String pathValue;
+/**
+ * Abstract class for String functions without any argument.
+ */
+public abstract class NoArgStringFunction extends RecordPathSegment {
+    private final RecordPathSegment valuePath;
 
-    public AbstractStringFunction(final String path, final RecordPathSegment valuePath, final boolean absolute) {
+    public NoArgStringFunction(final String path, final RecordPathSegment valuePath, final boolean absolute) {
         super(path, null, absolute);
         this.valuePath = valuePath;
-        this.pathValue = path;
     }
 
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context, EvaluationCallback callback) {
-        final Stream<FieldValue> evaluated = valuePath.evaluate(context);
-
-        String evaluatedValue = callback.evaluate(evaluated.findFirst().get());
-
-        final RecordField field = new RecordField(pathValue, RecordFieldType.STRING.getDataType());
-        final FieldValue responseValue = new StandardFieldValue(evaluatedValue, field, null);
-        return Stream.of(responseValue);
+    @Override
+    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+        return valuePath.evaluate(context).map(fv -> {
+            final String original = fv.getValue() == null ? "" : DataTypeUtils.toString(fv.getValue(), (String) null);
+            final String processed = apply(original);
+            return new StandardFieldValue(processed, fv.getField(), fv.getParent().orElse(null));
+        });
     }
 
-    interface EvaluationCallback {
-        String evaluate(FieldValue fieldValue);
-    }
+    /**
+     * Sub-classes apply its function to the given value and return the result.
+     * @param value possibly null
+     * @return the function result
+     */
+    abstract String apply(String value);
+
 }

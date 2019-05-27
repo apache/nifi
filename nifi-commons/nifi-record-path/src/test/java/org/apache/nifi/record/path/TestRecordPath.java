@@ -25,6 +25,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
@@ -1257,6 +1258,22 @@ public class TestRecordPath {
         assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    @Test
+    public void testTrimArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        final DataType dataType = new ArrayDataType(RecordFieldType.STRING.getDataType());
+        fields.add(new RecordField("names", dataType));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("names", new String[]{"   John Smith     ", "   Jane Smith     "});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> results = RecordPath.compile("trim(/names[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals("John Smith", results.get(0).getValue());
+        assertEquals("Jane Smith", results.get(1).getValue());
+    }
     @Test
     public void testFieldName() {
         final List<RecordField> fields = new ArrayList<>();

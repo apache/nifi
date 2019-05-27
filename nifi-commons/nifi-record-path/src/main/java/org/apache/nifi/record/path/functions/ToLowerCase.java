@@ -16,21 +16,15 @@
  */
 package org.apache.nifi.record.path.functions;
 
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import java.util.stream.Stream;
-
-public class ToLowerCase extends AbstractStringFunction {
+public class ToLowerCase extends NoArgStringFunction {
     public ToLowerCase(RecordPathSegment valuePath, boolean absolute) {
-        super("lowercase", valuePath, absolute);
+        super("toLowerCase", valuePath, absolute);
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        return super.evaluate(context,
-                fieldValue -> fieldValue.getValue() == null ? "" : DataTypeUtils.toString(fieldValue.getValue(), (String) null).toLowerCase());
+    String apply(String value) {
+        return value == null ? null : value.toLowerCase();
     }
 }
