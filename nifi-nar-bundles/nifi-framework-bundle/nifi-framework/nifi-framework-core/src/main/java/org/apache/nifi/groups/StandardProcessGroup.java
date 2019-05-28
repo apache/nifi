@@ -3876,9 +3876,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
         final Optional<Port> existingPublicPort;
         if (TransferDirection.RECEIVE == publicPort.getDirection()) {
-            existingPublicPort = findPublicInputPort(proposedFinalName);
+            existingPublicPort = flowManager.getPublicInputPort(proposedFinalName);
         } else {
-            existingPublicPort = findPublicOutputPort(proposedFinalName);
+            existingPublicPort = flowManager.getPublicOutputPort(proposedFinalName);
         }
 
         if (existingPublicPort.isPresent() && !existingPublicPort.get().getIdentifier().equals(publicPort.getIdentifier())) {
@@ -3886,25 +3886,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         } else {
             return proposedFinalName;
         }
-    }
-
-    private Optional<Port> findPublicInputPort(final String portName) {
-        return findPort(portName, flowManager.getPublicInputPorts());
-    }
-
-    private Optional<Port> findPublicOutputPort(final String portName) {
-        return findPort(portName, flowManager.getPublicOutputPorts());
-    }
-
-    private Optional<Port> findPort(final String portName, final Set<Port> ports) {
-        if (ports != null) {
-            for (final Port port : ports) {
-                if (portName.equals(port.getName())) {
-                    return Optional.of(port);
-                }
-            }
-        }
-        return Optional.empty();
     }
 
     private boolean isUpdateable(final Connection connection) {

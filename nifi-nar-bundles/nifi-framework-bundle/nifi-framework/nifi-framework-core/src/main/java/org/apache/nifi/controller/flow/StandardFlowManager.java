@@ -82,6 +82,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -179,6 +180,26 @@ public class StandardFlowManager implements FlowManager {
         group.getProcessGroups().forEach(childGroup -> getPublicPorts(publicPorts, childGroup, getPorts));
     }
 
+    @Override
+    public Optional<Port> getPublicInputPort(String name) {
+        return findPort(name, getPublicInputPorts());
+    }
+
+    @Override
+    public Optional<Port> getPublicOutputPort(String name) {
+        return findPort(name, getPublicOutputPorts());
+    }
+
+    private Optional<Port> findPort(final String portName, final Set<Port> ports) {
+        if (ports != null) {
+            for (final Port port : ports) {
+                if (portName.equals(port.getName())) {
+                    return Optional.of(port);
+                }
+            }
+        }
+        return Optional.empty();
+    }
 
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
         return new StandardRemoteProcessGroup(requireNonNull(id), uris, null, processScheduler, bulletinRepository, sslContext, nifiProperties);
