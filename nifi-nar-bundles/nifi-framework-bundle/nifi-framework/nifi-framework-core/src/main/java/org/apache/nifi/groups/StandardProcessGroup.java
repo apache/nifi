@@ -111,6 +111,7 @@ import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -3835,7 +3836,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = portAndFinalName.getKey();
             final String finalName = portAndFinalName.getValue();
             LOG.info("Updating {} to replace temporary name with final name", port);
-            updatePortToSetFinalName(port, finalName);
+
+            // For public ports we need to consider if another public port exists somewhere else in the flow with the
+            // same name, and if so then rename the incoming port so the flow can still be imported
+            if (port instanceof PublicPort) {
+                final PublicPort publicPort = (PublicPort) port;
+                final String publicPortFinalName = getPublicPortFinalName(publicPort, finalName);
+                updatePortToSetFinalName(publicPort, publicPortFinalName);
+            } else {
+                updatePortToSetFinalName(port, finalName);
+            }
         }
 
         for (final String removedVersionedId : labelsRemoved) {
@@ -3861,6 +3871,40 @@ public final class StandardProcessGroup implements ProcessGroup {
             LOG.info("Removing {} from {}", childGroup, group);
             group.removeProcessGroup(childGroup);
         }
+    }
+
+    private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
+        final Optional<Port> existingPublicPort;
+        if (TransferDirection.RECEIVE == publicPort.getDirection()) {
+            existingPublicPort = findPublicInputPort(proposedFinalName);
+        } else {
+            existingPublicPort = findPublicOutputPort(proposedFinalName);
+        }
+
+        if (existingPublicPort.isPresent() && !existingPublicPort.get().getIdentifier().equals(publicPort.getIdentifier())) {
+            return getPublicPortFinalName(publicPort, "Copy of " + proposedFinalName);
+        } else {
+            return proposedFinalName;
+        }
+    }
+
+    private Optional<Port> findPublicInputPort(final String portName) {
+        return findPort(portName, flowManager.getPublicInputPorts());
+    }
+
+    private Optional<Port> findPublicOutputPort(final String portName) {
+        return findPort(portName, flowManager.getPublicOutputPorts());
+    }
+
+    private Optional<Port> findPort(final String portName, final Set<Port> ports) {
+        if (ports != null) {
+            for (final Port port : ports) {
+                if (portName.equals(port.getName())) {
+                    return Optional.of(port);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private boolean isUpdateable(final Connection connection) {
@@ -4446,6 +4490,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
+                .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
                 .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
                 .collect(Collectors.toCollection(HashSet::new));
 
