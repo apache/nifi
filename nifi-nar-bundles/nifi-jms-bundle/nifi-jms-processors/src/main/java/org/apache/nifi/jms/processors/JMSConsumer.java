@@ -126,7 +126,8 @@ final class JMSConsumer extends JMSWorker {
                     try {
                         session.recover();
                     } catch (Exception e1) {
-                        // likely the session is closed...just ignore and press on with initial problem
+                        // likely the session is closed...need to catch this so that the root cause of failure is propagated
+                        processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
                     }
                     throw e;
                 } finally {
