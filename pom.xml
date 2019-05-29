@@ -9,7 +9,7 @@
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
     language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
@@ -38,15 +38,15 @@
         <module>nifi-stateless</module>
         <module>nifi-docker</module>
     </modules>
-    <url>http://nifi.apache.org</url>
+    <url>https://nifi.apache.org</url>
     <organization>
         <name>Apache NiFi Project</name>
-        <url>http://nifi.apache.org/</url>
+        <url>https://nifi.apache.org/</url>
     </organization>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
     <mailingLists>
@@ -55,21 +55,21 @@
             <subscribe>dev-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>dev-unsubscribe@nifi.apache.org</unsubscribe>
             <post>dev@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
         </mailingList>
         <mailingList>
             <name>Users</name>
             <subscribe>users-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>users-unsubscribe@nifi.apache.org</unsubscribe>
             <post>users@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-users</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-users</archive>
         </mailingList>
         <mailingList>
             <name>Commits</name>
             <subscribe>commits-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>commits-unsubscribe@nifi.apache.org</unsubscribe>
             <post>commits@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
     <prerequisites>
@@ -127,7 +127,7 @@
         </repository>
         <repository>
             <id>jcenter</id>
-            <url>http://jcenter.bintray.com</url>
+            <url>https://jcenter.bintray.com</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -743,7 +743,7 @@
                 <repository>
                     <id>hortonworks-releases</id>
                     <name>Hortonworks Repository</name>
-                    <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+                    <url>https://repo.hortonworks.com/content/repositories/releases/</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>
@@ -758,7 +758,7 @@
                 <repository>
                     <id>hortonworks-jetty</id>
                     <name>Hortonworks Jetty Repository</name>
-                    <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
+                    <url>https://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>
@@ -784,7 +784,7 @@
                 <repository>
                     <id>mapr-releases</id>
                     <name>MapR Repository</name>
-                    <url>http://repository.mapr.com/maven/</url>
+                    <url>https://repository.mapr.com/maven/</url>
                     <snapshots>
                         <enabled>false</enabled>
                     </snapshots>
