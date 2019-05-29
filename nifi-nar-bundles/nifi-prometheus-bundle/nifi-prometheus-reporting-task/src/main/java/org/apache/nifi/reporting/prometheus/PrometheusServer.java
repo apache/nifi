@@ -63,7 +63,9 @@ public class PrometheusServer {
 
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-            logger.info("PrometheusServer Do get called");
+            if (logger.isDebugEnabled()) {
+                logger.debug("PrometheusServer Do get called");
+            }
 
             rootGroupStatus = PrometheusServer.this.context.getEventAccess().getControllerStatus();
             ServletOutputStream response = resp.getOutputStream();
