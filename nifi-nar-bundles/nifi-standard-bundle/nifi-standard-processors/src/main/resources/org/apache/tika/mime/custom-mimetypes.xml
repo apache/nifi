@@ -72,7 +72,7 @@
 
     <mime-type type="application/java-archive">
         <_comment>Java Archive</_comment>
-        <tika:link>http://en.wikipedia.org/wiki/.jar</tika:link>
+        <tika:link>https://en.wikipedia.org/wiki/.jar</tika:link>
         <tika:uti>com.sun.java-archive</tika:uti>
         <sub-class-of type="application/zip"/>
         <glob pattern="*.jar"/>
