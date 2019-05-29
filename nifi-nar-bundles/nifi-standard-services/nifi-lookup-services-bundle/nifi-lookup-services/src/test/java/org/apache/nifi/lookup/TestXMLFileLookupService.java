@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.lookup;
 
-import java.util.Collections;
-import java.util.Optional;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class TestXMLFileLookupService {
 
@@ -63,4 +63,23 @@ public class TestXMLFileLookupService {
         assertEquals(EMPTY_STRING, property4);
     }
 
+    @Test
+    public void testXXEProtection() throws InitializationException {
+
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final XMLFileLookupService service = new XMLFileLookupService();
+        runner.addControllerService("xml-file-lookup-service", service);
+        runner.setProperty(service, XMLFileLookupService.CONFIGURATION_FILE, "src/test/resources/test-xxe.xml");
+
+        try {
+            // Act
+            // Service will fail to enable because test-xxe.xml contains a DTD
+            runner.enableControllerService(service);
+
+        } catch (final Throwable e) {
+            // Assert
+            assertTrue(e.getMessage().contains("XML configuration file contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled."));
+        }
+    }
 }
