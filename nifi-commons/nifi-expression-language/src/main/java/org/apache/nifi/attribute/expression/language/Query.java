@@ -199,9 +199,10 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
+    static String evaluateExpression(final Tree tree, final String queryText, Evaluator<?> evaluator, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
                                      final Map<String, String> stateVariables) throws ProcessException {
-        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap, stateVariables).getValue();
+        Query query = new Query(queryText, tree, evaluator);
+        final Object evaluated = query.evaluate(valueMap, stateVariables).getValue();
         if (evaluated == null) {
             return null;
         }
