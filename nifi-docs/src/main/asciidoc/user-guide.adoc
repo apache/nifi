@@ -298,7 +298,7 @@ While the options available from the context menu vary, the following options ar
 
 - *Configure*: This option allows the user to establish or change the configuration of the Processor (see <<Configuring_a_Processor>>).
 
-NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on desired component.
+NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on the desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
@@ -349,8 +349,8 @@ image:iconProcessGroup.png["Process Group", width=32]
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
 Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
 
-Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from
-context menu.The options available to you from the context menu vary, depending on the privileges assigned to you.
+Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from the
+context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
 image::nifi-process-group-menu.png["Process Group Menu"]
 
@@ -377,21 +377,15 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 
 [[remote_process_group]]
 image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
-*Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG)
-references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
-is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
-is the URL of any NiFi instance in that cluster. When data is transferred to a clustered instance of NiFi
-via an RPG, the RPG will first connect to the remote instance whose URL is configured to determine which nodes are in the cluster and
-how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote instances are
-then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to
-recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
+*Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG) references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, adding two or more cluster node URLs is recommended so that an initial connection can be made even if one of the nodes is unavailable. Multiple URLs can be specified in a comma-separated format.
 
-Once you have dragged a Remote Process Group onto the canvas, you can may interact with it by right-clicking on the Remote Process Group and selecting an option from
-context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
+When data is transferred to a clustered instance of NiFi via an RPG, the RPG will first connect to the remote instance whose URL is configured to determine which nodes are in the cluster and how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote instances are then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
+
+Once you have dragged a Remote Process Group onto the canvas, you can interact with it by right-clicking on the Remote Process Group and selecting an option from the context menu. The options available to you from the menu vary, depending on the privileges assigned to you.
 
 image::nifi-rpg-menu.png["Remote Process Group Menu"]
 
-While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Remote Process Group:
+The following options are typically available when you have full privileges to work with the Remote Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Remote Process Group.
 - *Enable transmission*: Makes the transmission of data between NiFi instances active (see <<Remote_Group_Transmission>>).
@@ -400,15 +394,13 @@ While the options available from the context menu vary, the following options ar
 - *View connections->Upstream*: This option allows the user to see and "jump to" upstream connections that are coming into the Remote Process Group.
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Remote Process Group.
 - *Refresh remote*: This option refreshes the view of the status of the remote NiFi instance.
-- *Group*: This option allows the user to create a new Process Group that contains the selected Remote Process Group and any other components selected on the canvas.
 - *Manage remote ports*: This option allows the user to see input ports and/or output ports that exist on the remote instance of NiFi that the Remote Process Group is connected to. Note that if the Site-to-Site configuration is secure, only the ports that the connecting NiFi has been given accessed to will be visible.
 - *Center in view*: This option centers the view of the canvas on the given Remote Process Group.
 - *Go to*: This option opens a view of the remote NiFi instance in a new tab of the browser. Note that if the Site-to-Site configuration is secure, the user must have access to the remote NiFi instance in order to view it.
-- *Group*: This option allows the user to create a Process Group containing the selected Remote Process Group.
+- *Group*: This option allows the user to create a new Process Group that contains the selected Remote Process Group and any other components selected on the canvas.
 - *Create template*: This option allows the user to create a template from the selected Remote Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Remote Process Group from the canvas.
-
 
 
 [[funnel]]
@@ -1153,7 +1145,7 @@ one NiFi instance or data producing application to nodes in another NiFi instanc
 Using Site-to-Site provides the following benefits:
 
 * Easy to configure
-** After entering the URL of the remote NiFi instance, the available ports (endpoints) are automatically discovered and provided in a drop-down list
+** After entering the URL(s) of the remote NiFi instance/cluster, the available ports (endpoints) are automatically discovered and provided in a drop-down list.
 
 * Secure
 ** Site-to-Site optionally makes use of Certificates in order to encrypt data and provide authentication and authorization. Each port can be configured
@@ -1202,13 +1194,7 @@ It is important to understand which NiFi instance will be the client or server i
 ==== Configure Site-to-Site client NiFi instance
 
 [[Site-to-Site_Remote_Process_Group]]
-*Remote Process Group*: In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the canvas
-and enter the URL of the remote NiFi instance (for more information on the components of a Remote Process Group, see
-<<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same
-URL you would use to go to that instance's User Interface. At that point, you can drag a connection to or from the Remote Process Group
-in the same way you would drag a connection to or from a Processor or a local Process Group. When you drag the connection, you will have
-a chance to choose which Port to connect to. Note that it may take up to one minute for the Remote Process Group to determine
-which ports are available.
+*Remote Process Group*: In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the canvas and enter the URL(s) of the remote NiFi instance (for more information on the components of a Remote Process Group, see the <<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same URL you would use to go to that instance's User Interface or in the case of a cluster, the URLs of the cluster nodes. At this point, you can drag a connection to or from the Remote Process Group in the same way you would drag a connection to or from a Processor or a local Process Group. When you drag the connection, you will have a chance to choose which Port to connect to. Note that it may take up to one minute for the Remote Process Group to determine which ports are available.
 
 If the connection is dragged starting from the Remote Process Group, the ports shown will be the Output Ports of the remote group,
 as this indicates that you will be pulling data from the remote instance. If the connection instead ends on the Remote Process Group,
@@ -1231,28 +1217,34 @@ For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are s
 interface both exist, the wired interface may be preferred. This can be configured by specifying the name of the network interface to use in this box. If the
 value entered is not valid, the Remote Process Group will not be valid and will not communicate with other NiFi instances until this is resolved.
 
-==== Configure Site-to-Site server NiFi instance
+==== Configure Site-to-Site Server NiFi Instance
 
-*Retrieve Site-to-Site Details*:  If your NiFi is running securely, in order for another NiFi instance to retrieve information from your instance, it needs to be added to the Global Access "retrieve site-to-site details" policy.  This will allow the other instance to query your instance for details such as name, description, available peers (nodes when clustered), statistics, OS port information and available Input and Output ports. Utilizing Input and Output ports in a secured instance requires additional policy configuration as described below.
+*Retrieve Site-to-Site Details*: If your NiFi is running securely, in order for another NiFi instance to retrieve information from your instance, it needs to be added to the Global Access "retrieve site-to-site details" policy. This will allow the other instance to query your instance for details such as name, description, available peers (nodes when clustered), statistics, OS port information and available Input and Output ports. Utilizing Input and Output ports in a secured instance requires additional policy configuration as described below.
 
 [[Site-to-Site_Input_Port]]
 *Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order to adjust the name and the number of concurrent tasks that are used for the port.
 
-Also, you can create an Input Port for Site-to-Site in child Process Groups by selecting "Receive Data From" as "Site-to-Site connections".
+To create an Input Port for Site-to-Site in a child Process Group, enter the name for the port and select "Remote connections (site-to-site)" from the Receive From drop-down menu.
 
-If Site-to-Site is configured to run securely, you will need to manage the port's "receive data via site-to-site" component access policy. Only those users who have been added to the policy will be able to communicate with the port.
+image::add-input-port-S2S.png["Add Input Port for Site-to-Site"]
+
+If Site-to-Site is configured to run securely, you will need to manage the input port's "receive data via site-to-site" component access policy. Only those users who have been added to the policy will be able to communicate with the port.
 
 [[Site-to-Site_Output_Port]]
-*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. Or an Output Port in child Process Groups for Site-to-Site connections. The Output Port allows an authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port and managing the port's access policies will again allow the DFM to control how many concurrent tasks are allowed, as well as which users are authorized to pull data from the instance being configured.
+*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. After dragging an Output Port onto the canvas, right-click and choose Configure to adjust the name and how many concurrent tasks are allowed. Manage the output port's "receive data via site-to-site" component access policy to control which users are authorized to pull data from the instance being configured.
 
-In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports, and Output Ports in child Process Groups for Site-to-Site connections.
+To create an Output Port for Site-to-Site in a child Process Group, enter the name for the port and select "Remote connections (site-to-site)" from the Send To drop-down menu.
 
-For information on how to enable and configure Site-to-Site on a NiFi instance, see the
+image::add-output-port-S2S.png["Add Output Port for Site-to-Site"]
+
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Output Ports for Site-to-Site connections.
+
+NOTE: For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
-For information on how to configure access policies, see the
-link:administration-guide.html#access-policies[Access Properties] section of the
+NOTE: For information on how to configure access policies, see the
+link:administration-guide.html#access-policies[Access Policies] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
 
@@ -1370,7 +1362,7 @@ of NiFi. When a Remote Process Group (RPG) is added to the canvas, it is added w
 as indicated by the icon (
 image:iconTransmissionInactive.png["Transmission Disabled"]
 ) in the top-left corner. When Transmission is Disabled, it can be enabled by right-clicking on the
-RPG and clicking the "Enable Transmission" menu item. This will cause all ports for which there is a Connection
+RPG and clicking the "Enable transmission" menu item. This will cause all ports for which there is a Connection
 to begin transmitting data. This will cause the status indicator to then change to the Transmission Enabled icon (
 image:iconTransmissionActive.png["Transmission Enabled"]
 ).
@@ -1383,38 +1375,23 @@ more information about the problem.
 [[Remote_Port_Configuration]]
 ==== Individual Port Transmission
 
-There are times when the DFM may want to either enable or disable transmission for only a specific
-Port within the Remote Process Group. This can be accomplished by right-clicking on the Remote Process Group
-and choosing the "Remote ports" menu item. This provides a configuration dialog from which each Port can be
-configured:
+There are times when the DFM may want to either enable or disable transmission for only a specific port within the Remote Process Group. This can be accomplished by right-clicking on the Remote Process Group and choosing the "Manage remote ports" menu item. This provides a configuration dialog from which ports can be configured:
 
-image::remote-group-ports-dialog.png["Remote Process Groups"]
+image::remote-group-ports-dialog.png["Remote Process Group Ports"]
 
-The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to.
-The right-hand side lists all of the Output Ports from which this instance is able to pull data.
-If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`,
-rather than `http://`), any Ports that the remote instance has not made available to this instance will not
-be shown.
+The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to. The right-hand side lists all of the Output Ports from which this instance is able to pull data. If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
 
-NOTE: If a Port that is expected to be shown is not shown in this dialog, ensure that the instance has proper
-permissions and that the Remote Process Group's flow is current. This can be checked by closing the Port
-Configuration Dialog and looking at the bottom-right corner of the Remote Process Group. The date at which
-the flow was last refreshed is shown. If the flow appears to be outdated, it can be updated by right-clicking
-on the Remote Process Group and selecting "Refresh flow." (See <<remote_group_anatomy>> for more information).
+NOTE: If a port that is expected to be shown is not shown in this dialog, ensure that the instance has proper permissions and that the Remote Process Group's flow is current. This can be checked by closing the Remote Process Group Ports dialog and looking at the bottom-left corner of the Remote Process Group. The date and time when the flow was last refreshed is displayed. If the flow appears to be outdated, it can be updated by right-clicking on the Remote Process Group and selecting "Refresh remote". (See <<remote_group_anatomy>> for more information).
 
-Each Port is shown with the Port name, followed by its description, currently configured number of Concurrent
-tasks, and whether or not data sent to this port will be compressed. To the left of this information is a switch
-to turn the Port on or off. Those Ports that have no Connections attached to them are grayed out:
+Each port is shown with its Name, its Description, configured number of Concurrent Tasks, and whether or not data sent to this port will be Compressed.  Additionally, the port's configured Batch Settings (Count, Size and Duration) are displayed. To the left of this information is a toggle switch to turn the port on or off. Ports that have no connections attached to them are grayed out:
 
 image::remote-port-connection-status.png["Remote Port Statuses"]
 
-The on/off switch provides a mechanism to enable and disable transmission for each Port in the Remote
-Process Group independently. Those Ports that are connected but are not currently transmitting can be
-configured by clicking the pencil icon (
-image:iconEdit.png["Edit"]
-) below the on/off switch. Clicking this icon will allow the DFM to change the number of Concurrent tasks and whether
-or not compression should be used when transmitting data to or from this Port.
+The on/off toggle switch provides a mechanism to enable and disable transmission for each port in the Remote Process Group independently. Those ports that are connected but are not currently transmitting can be configured by clicking the pencil icon (image:iconEdit.png["Edit"]) below the on/off toggle switch. Clicking this icon will allow the DFM to change the number of Concurrent Tasks, whether or not compression should be used when transmitting data to or from this port, and Batch Settings.
 
+For an Input Port, the batch settings control how NiFi sends data to the remote input port in a transaction. NiFi will transfer flow files, as they are queued in incoming relationships, until any of the limits (Count, Size, Duration) is met. If none of the settings are configured, a 500 milliseconds batch duration is used by default.
+
+For an Output Port, the batch settings tells the remote NiFi how NiFi prefers to receive data from the remote output port in a transaction. The remote NiFi will use the specified settings (Count, Size, Duration) to control the transfer of flow files. If none of the settings are configured, a 5 seconds batch duration is used by default.
 
 
 [[navigating]]
@@ -1660,7 +1637,7 @@ image:iconTransmissionInactive.png["Transmission Inactive"]
 	) if all of the Input Ports and Output Ports that are currently connected are stopped.
 
 - *Remote Instance Name*: This is the name of the NiFi instance that was reported by the remote instance.
-	When the Remote Process Group is first created, before this information has been obtained, the URL
+	When the Remote Process Group is first created, before this information has been obtained, the URL(s)
 	of the remote instance will be shown here instead.
 
 - *Remote Instance URL*: This is the URL of the remote instance that the Remote Process Group points to.
@@ -1684,15 +1661,11 @@ image:iconNotSecure.png["Not Secure"]
 	in the format <count> (<size>) where <count> is the number of FlowFiles that have been sent or received in the previous
 	five minutes and <size> is the total size of those FlowFiles' content.
 
-- *Comments*: The Comments that are provided for a Remote Process Group are not comments added by the users of this NiFi but
-	rather the Comments added by the administrators of the remote instance. These comments indicate the purpose of the NiFi
-	instance as a whole.
-
-- *Last Refreshed Time*: The information that is pulled from a remote instance and rendered on the Remote Process Group
+- *Last Refresh Time*: The information that is pulled from a remote instance and rendered on the Remote Process Group
 	in the User Interface is periodically refreshed in the background. This element indicates the time at which that refresh
 	last happened, or if the information has not been refreshed for a significant amount of time, the value will change to
 	indicate _Remote flow not current_. NiFi can be triggered to initiate a refresh of this information by right-clicking
-	on the Remote Process Group and choosing the "Refresh flow" menu item.
+	on the Remote Process Group and choosing the "Refresh remote" menu item.
 
 
 
