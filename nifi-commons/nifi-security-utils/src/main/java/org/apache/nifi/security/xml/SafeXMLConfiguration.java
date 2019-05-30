@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.security.xml;
 
+import java.io.Closeable;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -38,7 +41,7 @@ import java.io.Reader;
  */
 public class SafeXMLConfiguration extends XMLConfiguration {
 
-    // Schema Langauge key for the parser
+    // Schema Language key for the parser
     private static final String JAXP_SCHEMA_LANGUAGE =
             "http://java.sun.com/xml/jaxp/properties/schemaLanguage";
 
@@ -52,12 +55,7 @@ public class SafeXMLConfiguration extends XMLConfiguration {
     private static final String ALLOW_EXTERNAL_PARAM_ENTITIES = "http://xml.org/sax/features/external-parameter-entities";
     private static final String ALLOW_EXTERNAL_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
 
-    private static final String XXE_ERROR_MESSAGE = "XML configuration file contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled.";
-
-    @Override
-    public void initFileLocator(FileLocator loc) {
-        super.initFileLocator(loc);
-    }
+    private static final String XXE_ERROR_MESSAGE = "XML configuration file contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.";
 
     public SafeXMLConfiguration() {
         super();
@@ -67,8 +65,14 @@ public class SafeXMLConfiguration extends XMLConfiguration {
         super(c);
     }
 
+    @Override
+    public void initFileLocator(FileLocator loc) {
+        super.initFileLocator(loc);
+    }
+
     /**
      * This overridden createDocumentBuilder() method sets the appropriate factory attributes to disable XXE parsing.
+     *
      * @return Returns a safe DocumentBuilder
      * @throws ParserConfigurationException A configuration error
      */
@@ -114,41 +118,44 @@ public class SafeXMLConfiguration extends XMLConfiguration {
 
     @Override
     public void read(Reader in) throws ConfigurationException, IOException {
-        try {
+        delegateRead(() -> {
             super.read(in);
-        } catch (ConfigurationException e) {
-            if (isXXERelatedException(e)) {
-                // Wrap this exception to tell the user their XML should not contain XXEs.
-                throw new ConfigurationException(XXE_ERROR_MESSAGE, e);
-            } else {
-                // Throw the original exception as it occurred for an unrelated reason.
-                throw e;
-            }
-        }
+        });
     }
 
     @Override
     public void read(InputStream in) throws ConfigurationException, IOException {
-        try {
+        delegateRead(() -> {
             super.read(in);
+        });
+    }
+
+    private void delegateRead(XMLReader superRead) throws ConfigurationException, IOException {
+        try {
+            superRead.read();
         } catch (ConfigurationException e) {
-            if(isXXERelatedException(e)) {
-                // Wrap this exception to tell the user their XML should not contain XXEs.
+            if (isXXERelatedException(e)) {
+                // Wrap this exception to tell the user their XML should not contain XXEs
                 throw new ConfigurationException(XXE_ERROR_MESSAGE, e);
             } else {
-                // Throw the original exception as it occurred for an unrelated reason.
+                // Throw the original exception as it occurred for an unrelated reason
                 throw e;
             }
-
         }
     }
 
     /**
      * Determine if the ConfigurationException was thrown because the XML configuration file contains an external entity (XXE).
+     *
      * @param e A ConfigurationException that was thrown when parsing the XML configuration file.
-     * @return True if the ConfigurationException was a result of attempting to parse an external entity (which is not allowed for security reasons). Returns false otherwise.
+     * @return true if the ConfigurationException was a result of attempting to parse an external entity (which is not allowed for security reasons). Returns false otherwise.
      */
     private boolean isXXERelatedException(ConfigurationException e) {
         return (e.getCause() instanceof SAXParseException && e.getCause().getMessage().contains("DOCTYPE is disallowed"));
+    }
+
+    @FunctionalInterface
+    interface XMLReader {
+        void read() throws ConfigurationException, IOException;
     }
 }
