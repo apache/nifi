@@ -36,6 +36,7 @@ public class PortDTO extends ComponentDTO {
     private Integer concurrentlySchedulableTaskCount;
     private Set<String> userAccessControl;
     private Set<String> groupAccessControl;
+    private Boolean allowRemoteAccess;
 
     private Collection<String> validationErrors;
 
@@ -114,10 +115,10 @@ public class PortDTO extends ComponentDTO {
     }
 
     /**
-     * @return whether this port has incoming or outgoing connections to a remote NiFi. This is only applicable when the port is running on the root group
+     * @return whether this port has incoming or outgoing connections to a remote NiFi. This is only applicable when the port is allowed to be accessed remotely.
      */
     @ApiModelProperty(
-            value = "Whether the port has incoming or output connections to a remote NiFi. This is only applicable when the port is running in the root group."
+            value = "Whether the port has incoming or output connections to a remote NiFi. This is only applicable when the port is allowed to be accessed remotely."
     )
     public Boolean isTransmitting() {
         return transmitting;
@@ -171,4 +172,18 @@ public class PortDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
+
+    /**
+     * @return whether this port can be accessed remotely via Site-to-Site protocol.
+     */
+    @ApiModelProperty(
+            value = "Whether this port can be accessed remotely via Site-to-Site protocol."
+    )
+    public Boolean getAllowRemoteAccess() {
+        return allowRemoteAccess;
+    }
+
+    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+        this.allowRemoteAccess = allowRemoteAccess;
+    }
 }

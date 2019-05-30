@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -195,6 +196,8 @@ public class SwappablePriorityQueue {
                 final String swapLocation = swapManager.swapOut(toSwap, flowFileQueue, swapPartitionName);
                 swapLocations.add(swapLocation);
 
+                logger.debug("Successfully wrote out Swap File {} containing {} FlowFiles ({} bytes)", swapLocation, toSwap.size(), bytesSwappedThisIteration);
+
                 bytesSwappedOut += bytesSwappedThisIteration;
                 flowFilesSwappedOut += toSwap.size();
             } catch (final IOException ioe) {
@@ -255,6 +258,7 @@ public class SwappablePriorityQueue {
         }
 
         this.swapLocations.addAll(swapLocations);
+        logger.debug("After writing swap files, setting new set of Swap Locations to {}", this.swapLocations);
     }
 
     private int getFlowFileCount() {
@@ -337,6 +341,7 @@ public class SwappablePriorityQueue {
         boolean partialContents = false;
         SwapContents swapContents;
         try {
+            logger.debug("Attempting to swap in {}; all swap locations = {}", swapLocation, swapLocations);
             swapContents = swapManager.swapIn(swapLocation, flowFileQueue);
             swapLocations.remove(0);
         } catch (final IncompleteSwapFileException isfe) {
@@ -391,7 +396,7 @@ public class SwappablePriorityQueue {
         } else {
             // we swapped in the whole swap file. We can just use the info that we got from the summary.
             incrementActiveQueueSize(flowFileCount, contentSize);
-            logger.debug("Successfully swapped in Swap File {}", swapLocation);
+            logger.debug("Successfully swapped in Swap File {} containing {} FlowFiles ({} bytes)", swapLocation, flowFileCount, contentSize);
         }
 
         activeQueue.addAll(swapContents.getFlowFiles());
@@ -411,12 +416,12 @@ public class SwappablePriorityQueue {
     }
 
     public void acknowledge(final FlowFileRecord flowFile) {
-        logger.debug("{} Acknowledging {}", this, flowFile);
+        logger.trace("{} Acknowledging {}", this, flowFile);
         incrementUnacknowledgedQueueSize(-1, -flowFile.getSize());
     }
 
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
-        logger.debug("{} Acknowledging {}", this, flowFiles);
+        logger.trace("{} Acknowledging {}", this, flowFiles);
         final long totalSize = flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
         incrementUnacknowledgedQueueSize(-flowFiles.size(), -totalSize);
     }
@@ -435,7 +440,7 @@ public class SwappablePriorityQueue {
                 activeQueue.add(flowFile);
             }
 
-            logger.debug("{} put to {}", flowFile, this);
+            logger.trace("{} put to {}", flowFile, this);
         } finally {
             writeLock.unlock("put(FlowFileRecord)");
         }
@@ -460,7 +465,7 @@ public class SwappablePriorityQueue {
                 activeQueue.addAll(flowFiles);
             }
 
-            logger.debug("{} put to {}", flowFiles, this);
+            logger.trace("{} put to {}", flowFiles, this);
         } finally {
             writeLock.unlock("putAll");
         }
@@ -475,7 +480,7 @@ public class SwappablePriorityQueue {
             flowFile = doPoll(expiredRecords, expirationMillis);
 
             if (flowFile != null) {
-                logger.debug("{} poll() returning {}", this, flowFile);
+                logger.trace("{} poll() returning {}", this, flowFile);
                 incrementUnacknowledgedQueueSize(1, flowFile.getSize());
             }
 
@@ -535,7 +540,7 @@ public class SwappablePriorityQueue {
         }
 
         if (!records.isEmpty()) {
-            logger.debug("{} poll() returning {}", this, records);
+            logger.trace("{} poll() returning {}", this, records);
         }
 
         return records;
@@ -594,7 +599,7 @@ public class SwappablePriorityQueue {
             incrementActiveQueueSize(-flowFilesPulled, -bytesPulled);
 
             if (!selectedFlowFiles.isEmpty()) {
-                logger.debug("{} poll() returning {}", this, selectedFlowFiles);
+                logger.trace("{} poll() returning {}", this, selectedFlowFiles);
             }
 
             return selectedFlowFiles;
@@ -816,12 +821,13 @@ public class SwappablePriorityQueue {
         Long maxId = null;
         List<ResourceClaim> resourceClaims = new ArrayList<>();
         final long startNanos = System.nanoTime();
+        int failures = 0;
 
         writeLock.lock();
         try {
-            final List<String> swapLocations;
+            final List<String> swapLocationsFromSwapManager;
             try {
-                swapLocations = swapManager.recoverSwapLocations(flowFileQueue, swapPartitionName);
+                swapLocationsFromSwapManager = swapManager.recoverSwapLocations(flowFileQueue, swapPartitionName);
             } catch (final IOException ioe) {
                 logger.error("Failed to determine whether or not any Swap Files exist for FlowFile Queue {}", getQueueIdentifier());
                 logger.error("", ioe);
@@ -832,7 +838,14 @@ public class SwappablePriorityQueue {
                 return null;
             }
 
-            logger.debug("Recovered {} Swap Files for {}: {}", swapLocations.size(), flowFileQueue, swapLocations);
+            // If we have a duplicate of any of the swap location that we already know about, we need to filter those out now.
+            // This can happen when, upon startup, we need to swap data out during the swap file recovery. In this case, we do
+            // not want to include such a swap file in those that we recover, because those have already been accounted for when
+            // they were added to the queue, before being swapped out.
+            final Set<String> swapLocations = new LinkedHashSet<>(swapLocationsFromSwapManager);
+            swapLocations.removeAll(this.swapLocations);
+
+            logger.debug("Swap Manager reports {} Swap Files for {}: {}", swapLocations.size(), flowFileQueue, swapLocations);
             for (final String swapLocation : swapLocations) {
                 try {
                     final SwapSummary summary = swapManager.getSwapSummary(swapLocation);
@@ -848,7 +861,8 @@ public class SwappablePriorityQueue {
                     swapByteCount += queueSize.getByteCount();
                     resourceClaims.addAll(summary.getResourceClaims());
                 } catch (final IOException ioe) {
-                    logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation, ioe.toString());
+                    failures++;
+                    logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation);
                     logger.error("", ioe);
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to recover FlowFiles from Swap File " + swapLocation +
@@ -863,9 +877,11 @@ public class SwappablePriorityQueue {
             writeLock.unlock("Recover Swap Files");
         }
 
-        if (!swapLocations.isEmpty()) {
+        if (swapLocations.isEmpty()) {
+            logger.debug("No swap files were recovered for {}", flowFileQueue);
+        } else {
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            logger.info("Recovered {} swap files for {} in {} millis", swapLocations.size(), this, millis);
+            logger.info("Recovered {} swap files for {} in {} millis", swapLocations.size() - failures, this, millis);
         }
 
         return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
@@ -943,8 +959,14 @@ public class SwappablePriorityQueue {
         writeLock.lock();
         try {
             putAll(queueContents.getActiveFlowFiles());
-            swapLocations.addAll(queueContents.getSwapLocations());
+
+            final List<String> inheritedSwapLocations = queueContents.getSwapLocations();
+            swapLocations.addAll(inheritedSwapLocations);
             incrementSwapQueueSize(queueContents.getSwapSize().getObjectCount(), queueContents.getSwapSize().getByteCount(), queueContents.getSwapLocations().size());
+
+            if (!inheritedSwapLocations.isEmpty()) {
+                logger.debug("Inherited the following swap locations: {}", inheritedSwapLocations);
+            }
         } finally {
             writeLock.unlock("inheritQueueContents");
         }
@@ -985,6 +1007,7 @@ public class SwappablePriorityQueue {
                 updated = updateSize(currentSize, updatedSize);
             } while (!updated);
 
+            logger.debug("Cleared {} to package FlowFile for rebalance to {}", this, newPartitionName);
             return new FlowFileQueueContents(activeRecords, updatedSwapLocations, swapSize);
         } finally {
             writeLock.unlock("packageForRebalance(SwappablePriorityQueue)");
@@ -993,6 +1016,6 @@ public class SwappablePriorityQueue {
 
     @Override
     public String toString() {
-        return "SwappablePriorityQueue[queueId=" + flowFileQueue.getIdentifier() + "]";
+        return "SwappablePriorityQueue[queueId=" + flowFileQueue.getIdentifier() + ", partition=" + swapPartitionName + "]";
     }
 }

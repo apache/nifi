@@ -17,43 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.KeyStoreSpi;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Provider;
-import java.security.PublicKey;
-import java.security.SignatureException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.bouncycastle.asn1.pkcs.Attribute;
@@ -70,15 +33,64 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.bouncycastle.util.IPAddress;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.KeyStoreSpi;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsHelperTest {
@@ -98,6 +110,8 @@ public class TlsHelperTest {
 
     private KeyStore keyStore;
 
+    private String password = "changeit";
+
     @Mock
     KeyStoreSpi keyStoreSpi;
 
@@ -106,6 +120,9 @@ public class TlsHelperTest {
 
     @Mock
     OutputStreamFactory outputStreamFactory;
+
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private ByteArrayOutputStream tmpFileOutputStream;
 
@@ -337,15 +354,14 @@ public class TlsHelperTest {
     public void testShouldIncludeSANFromCSR() throws Exception {
         // Arrange
         final List<String> SAN_ENTRIES = Arrays.asList("127.0.0.1", "nifi.nifi.apache.org");
-        final String SAN = StringUtils.join(SAN_ENTRIES, ",");
         final int SAN_COUNT = SAN_ENTRIES.size();
         final String DN = "CN=localhost";
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
         logger.info("Generating CSR with DN: " + DN);
 
         // Act
-        JcaPKCS10CertificationRequest csrWithSan = TlsHelper.generateCertificationRequest(DN, SAN, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
-        logger.info("Created CSR with SAN: " + SAN);
+        JcaPKCS10CertificationRequest csrWithSan = TlsHelper.generateCertificationRequest(DN, SAN_ENTRIES, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        logger.info("Created CSR with SAN: " + SAN_ENTRIES);
         String testCsrPem = TlsHelper.pemEncodeJcaObject(csrWithSan);
         logger.info("Encoded CSR as PEM: " + testCsrPem);
 
@@ -356,7 +372,9 @@ public class TlsHelperTest {
 
         List<String> extractedSans = extractSanFromCsr(csrWithSan);
         assert extractedSans.size() == SAN_COUNT + 1;
-        List<String> formattedSans = SAN_ENTRIES.stream().map(s -> "DNS: " + s).collect(Collectors.toList());
+        List<String> formattedSans = SAN_ENTRIES.stream()
+                .map(s -> (IPAddress.isValid(s) ? "IP Address: " + new GeneralName(GeneralName.iPAddress, s).getName() : "DNS: " + s))
+                .collect(Collectors.toList());
         assert extractedSans.containsAll(formattedSans);
 
         // We check that the SANs also contain the CN
@@ -447,5 +465,67 @@ public class TlsHelperTest {
 
         assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
     }
+
+    private KeyStore setupKeystore() throws CertificateException, NoSuchAlgorithmException, IOException, KeyStoreException {
+
+        KeyStore ks = KeyStore.getInstance("JKS");
+        InputStream readStream = getClass().getClassLoader().getResourceAsStream("keystore.jks");
+        ks.load(readStream, password.toCharArray());
+
+        return ks;
+    }
+
+    @Test
+    public void testOutputToFileTwoCertsAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+
+        KeyStore keyStore = setupKeystore();
+        HashMap<String, Certificate> certs = TlsHelper.extractCerts(keyStore);
+        TlsHelper.outputCertsAsPem(certs, folder,".crt");
+
+        assertEquals(folder.listFiles().length, 2);
+
+        for(File file : folder.listFiles()) {
+            X509Certificate certFromFile = loadCertificate(file);
+            assertTrue(certs.containsValue(certFromFile));
+            X509Certificate originalCert = (X509Certificate) certs.get(file.getName().split("\\.")[0]);
+            assertTrue(originalCert.equals(certFromFile));
+            assertArrayEquals(originalCert.getSignature(), certFromFile.getSignature());
+        }
+    }
+
+    // Keystore contains two certificates, but one key. This is to test the edge case where a certificate does not have a key.
+    @Test
+    public void testOutputToFileOneKeyAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
+        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+        KeyStore keyStore = setupKeystore();
+        HashMap<String, Key> keys = TlsHelper.extractKeys(keyStore, password.toCharArray());
+        TlsHelper.outputKeysAsPem(keys, folder, ".key");
+
+        for(File file : folder.listFiles()) {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            PEMParser pemParser = new PEMParser(br);
+            PEMKeyPair key = (PEMKeyPair) pemParser.readObject();
+            assertArrayEquals(keys.get(file.getName().split("\\.")[0]).getEncoded(), key.getPrivateKeyInfo().getEncoded());
+        }
+    }
+
+    @Test
+    public void testExtractCerts() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+        KeyStore keyStore = setupKeystore();
+        HashMap<String, Certificate> certs = TlsHelper.extractCerts(keyStore);
+        assertEquals(2, certs.size());
+        certs.forEach((String p, Certificate q) -> assertEquals("X.509", q.getType()));
+    }
+
+    @Test
+    public void testExtractKeys() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
+        KeyStore keyStore = setupKeystore();
+        HashMap<String, Key> keys = TlsHelper.extractKeys(keyStore, password.toCharArray());
+        assertEquals(1, keys.size());
+        keys.forEach((String alias, Key key) -> assertEquals("PKCS#8", key.getFormat()));
+    }
+
 
 }

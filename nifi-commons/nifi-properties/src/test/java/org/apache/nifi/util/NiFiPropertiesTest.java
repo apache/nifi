@@ -17,6 +17,10 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -125,6 +129,32 @@ public class NiFiPropertiesTest {
         } catch (Throwable t) {
             // nothing to do
         }
+    }
+
+    @Test
+    public void testAdditionalOidcScopesAreTrimmed() {
+        final String scope = "abc";
+        final String scopeLeadingWhitespace = " def";
+        final String scopeTrailingWhitespace = "ghi ";
+        final String scopeLeadingTrailingWhitespace = " jkl ";
+
+        String additionalScopes = String.join(",", scope, scopeLeadingWhitespace,
+                scopeTrailingWhitespace, scopeLeadingTrailingWhitespace);
+
+        NiFiProperties properties = mock(NiFiProperties.class);
+        when(properties.getProperty(NiFiProperties.SECURITY_USER_OIDC_ADDITIONAL_SCOPES, ""))
+                .thenReturn(additionalScopes);
+        when(properties.getOidcAdditionalScopes()).thenCallRealMethod();
+
+        List<String> scopes = properties.getOidcAdditionalScopes();
+
+        assertTrue(scopes.contains(scope));
+        assertFalse(scopes.contains(scopeLeadingWhitespace));
+        assertTrue(scopes.contains(scopeLeadingWhitespace.trim()));
+        assertFalse(scopes.contains(scopeTrailingWhitespace));
+        assertTrue(scopes.contains(scopeTrailingWhitespace.trim()));
+        assertFalse(scopes.contains(scopeLeadingTrailingWhitespace));
+        assertTrue(scopes.contains(scopeLeadingTrailingWhitespace.trim()));
     }
 
     private NiFiProperties loadNiFiProperties(final String propsPath, final Map<String, String> additionalProperties){

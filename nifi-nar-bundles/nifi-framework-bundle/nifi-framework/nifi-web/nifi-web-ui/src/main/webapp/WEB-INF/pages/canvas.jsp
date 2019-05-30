@@ -32,6 +32,7 @@
         <link rel="stylesheet" href="js/jquery/propertytable/jquery.propertytable.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/tagcloud/jquery.tagcloud.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/statusbar/jquery.statusbar.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="assets/qtip2/dist/jquery.qtip.min.css?" type="text/css" />
         <link rel="stylesheet" href="assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/jquery-minicolors/jquery.minicolors.css" type="text/css" />
@@ -60,6 +61,7 @@
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="assets/jquery-minicolors/jquery.minicolors.min.js"></script>
+        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellrangeselector.js"></script>
@@ -87,6 +89,7 @@
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/tagcloud/jquery.tagcloud.js?${project.version}"></script>
+        <script type="text/javascript" src="js/jquery/statusbar/jquery.statusbar.js?${project.version}"></script>
     </head>
     <body ng-controller="ngCanvasAppCtrl" id="canvas-body">
         <div id="splash">

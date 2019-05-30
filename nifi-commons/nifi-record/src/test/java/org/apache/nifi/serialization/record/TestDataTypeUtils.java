@@ -19,8 +19,10 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -286,5 +289,39 @@ public class TestDataTypeUtils {
         Map<String,Object> testMap = new HashMap<>();
         testMap.put("Hello", "World");
         assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
+    }
+
+    @Test
+    public void testIsCompatibleDataTypeBigint() {
+        final DataType dataType = RecordFieldType.BIGINT.getDataType();
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
+    public void testConvertDataTypeBigint() {
+        final Function<Object, BigInteger> toBigInteger = v -> (BigInteger) DataTypeUtils.convertType(v, RecordFieldType.BIGINT.getDataType(), "field");
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply(new BigInteger("12345678901234567890")));
+        assertEquals(new BigInteger("1234567890123456789"), toBigInteger.apply(1234567890123456789L));
+        assertEquals(new BigInteger("1"), toBigInteger.apply(1));
+        assertEquals(new BigInteger("1"), toBigInteger.apply((short) 1));
+        // Decimals are truncated.
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.4f));
+        assertEquals(new BigInteger("3"), toBigInteger.apply(3.9f));
+        assertEquals(new BigInteger("12345678901234567890"), toBigInteger.apply("12345678901234567890"));
+        Exception e = null;
+        try {
+            toBigInteger.apply("1234567XYZ");
+        } catch (IllegalTypeConversionException itce) {
+            e = itce;
+        }
+        assertNotNull(e);
     }
 }

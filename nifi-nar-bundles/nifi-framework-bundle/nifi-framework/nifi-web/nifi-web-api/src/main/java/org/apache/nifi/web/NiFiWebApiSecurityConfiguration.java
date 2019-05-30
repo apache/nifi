@@ -50,7 +50,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 /**
- * NiFi Web Api Spring security
+ * NiFi Web Api Spring security. Applies the various NiFiAuthenticationFilter servlet filters which will extract authentication
+ * credentials from API requests.
  */
 @Configuration
 @EnableWebSecurity
@@ -88,7 +89,9 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos", "/access/oidc/**", "/access/knox/**");
+                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos",
+                            "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/request",
+                            "/access/knox/callback", "/access/knox/request");
     }
 
     @Override

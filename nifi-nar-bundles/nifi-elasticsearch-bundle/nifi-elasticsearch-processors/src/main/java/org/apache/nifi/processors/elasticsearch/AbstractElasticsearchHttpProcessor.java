@@ -149,6 +149,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ES_URL);
         properties.add(PROP_SSL_CONTEXT_SERVICE);
+        properties.add(CHARSET);
         properties.add(USERNAME);
         properties.add(PASSWORD);
         properties.add(CONNECT_TIMEOUT);

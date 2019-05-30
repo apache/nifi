@@ -19,17 +19,16 @@ package org.apache.nifi.confluent.schemaregistry.client;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
 import java.time.Duration;
-
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
 
     private final LoadingCache<String, RecordSchema> nameCache;
+    private final LoadingCache<Pair<String, Integer>, RecordSchema> nameVersionCache;
     private final LoadingCache<Integer, RecordSchema> idCache;
 
 
@@ -40,6 +39,10 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
                 .build(client::getSchema);
+        nameVersionCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .expireAfterWrite(Duration.ofNanos(expirationNanos))
+                .build(key -> client.getSchema(key.getLeft(), key.getRight()));
         idCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
@@ -47,12 +50,17 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final String schemaName) {
         return nameCache.get(schemaName);
     }
 
     @Override
-    public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(String schemaName, int version) {
+        return nameVersionCache.get(Pair.of(schemaName, version));
+    }
+
+    @Override
+    public RecordSchema getSchema(final int schemaId) {
         return idCache.get(schemaId);
     }
 

@@ -167,6 +167,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 if (recordsAdded.incrementAndGet() == batchSize) {
                     connectionSession.execute(batchStatement);
                     batchStatement.clear();
+                    recordsAdded.set(0);
                 }
             }
 

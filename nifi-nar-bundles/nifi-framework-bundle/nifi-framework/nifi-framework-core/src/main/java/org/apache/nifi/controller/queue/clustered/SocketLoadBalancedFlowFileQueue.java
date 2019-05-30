@@ -744,6 +744,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         putAndGetPartition(flowFile);
     }
 
+
     protected QueuePartition putAndGetPartition(final FlowFileRecord flowFile) {
         final QueuePartition partition;
 
@@ -976,16 +977,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             provenanceEvents.add(provenanceEvent);
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            logger.info("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
+            logger.debug("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
         }
 
         try {
             flowFileRepo.updateRepository(expiredRecords);
-
-            for (final RepositoryRecord expiredRecord : expiredRecords) {
-                contentRepo.decrementClaimantCount(expiredRecord.getCurrentClaim());
-            }
-
             provRepo.registerEvents(provenanceEvents);
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
@@ -1164,6 +1160,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitionWriteLock.unlock();
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "FlowFileQueue[id=" + getIdentifier() + ", Load Balance Strategy=" + getLoadBalanceStrategy() + ", size=" + size() + "]";
     }
 }
 

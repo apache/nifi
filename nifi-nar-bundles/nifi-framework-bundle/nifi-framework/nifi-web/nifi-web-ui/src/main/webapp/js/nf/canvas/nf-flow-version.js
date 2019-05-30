@@ -421,6 +421,13 @@
             url: '../nifi-api/versions/process-groups/' + encodeURIComponent(processGroupId),
             dataType: 'json',
             contentType: 'application/json'
+        }).done(function (response) {
+            if ('SYNC_FAILURE' === response.versionControlInformation.state) {
+                nfDialog.showOkDialog({
+                    headerText: 'Error',
+                    dialogContent: response.versionControlInformation.stateExplanation
+                });
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 

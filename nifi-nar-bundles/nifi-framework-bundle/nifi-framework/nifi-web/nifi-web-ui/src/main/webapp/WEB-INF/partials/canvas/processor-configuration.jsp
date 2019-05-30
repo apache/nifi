@@ -16,6 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="processor-configuration" layout="column" class="hidden large-dialog">
+    <div id="processor-configuration-status-bar"></div>
     <div class="processor-configuration-tab-container dialog-content">
         <div id="processor-configuration-tabs" class="tab-container"></div>
         <div id="processor-configuration-tabs-content">

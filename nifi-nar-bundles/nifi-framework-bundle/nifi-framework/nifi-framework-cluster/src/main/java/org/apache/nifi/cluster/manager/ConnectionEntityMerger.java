@@ -23,6 +23,8 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionEntity>, ComponentEntityStatusMerger<ConnectionStatusDTO> {
 
@@ -51,6 +53,15 @@ public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionE
                 clientEntity.getComponent().setLoadBalanceStatus(ConnectionDTO.LOAD_BALANCE_ACTIVE);
             }
         }
+        final Set<String> availableRelationships = clientEntity.getComponent() == null ? null : clientEntity.getComponent().getAvailableRelationships();
+        if (availableRelationships != null) {
+            clientEntity.getComponent().setAvailableRelationships(new TreeSet<>(availableRelationships));
+        }
+        final Set<String> selectedRelationships = clientEntity.getComponent() == null ? null : clientEntity.getComponent().getSelectedRelationships();
+        if (selectedRelationships != null) {
+            clientEntity.getComponent().setSelectedRelationships(new TreeSet<>(selectedRelationships));
+        }
+
     }
 
     @Override

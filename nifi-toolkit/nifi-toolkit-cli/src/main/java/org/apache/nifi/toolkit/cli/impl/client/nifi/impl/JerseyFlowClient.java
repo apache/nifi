@@ -29,7 +29,9 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import javax.ws.rs.client.Entity;
@@ -224,6 +226,30 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving cluster summary", () -> {
             final WebTarget target = flowTarget.path("cluster/summary");
             return getRequestBuilder(target).get(ClusteSummaryEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting task controller services", () -> {
+            final WebTarget target = flowTarget.path("controller/controller-services");
+            return getRequestBuilder(target).get(ControllerServicesEntity.class);
+        });
+    }
+
+    @Override
+    public ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving reporting tasks", () -> {
+            final WebTarget target = flowTarget.path("reporting-tasks");
+            return getRequestBuilder(target).get(ReportingTasksEntity.class);
+        });
+    }
+
+    @Override
+    public TemplatesEntity getTemplates() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving templates", () -> {
+            final WebTarget target = flowTarget.path("templates");
+            return getRequestBuilder(target).get(TemplatesEntity.class);
         });
     }
 }

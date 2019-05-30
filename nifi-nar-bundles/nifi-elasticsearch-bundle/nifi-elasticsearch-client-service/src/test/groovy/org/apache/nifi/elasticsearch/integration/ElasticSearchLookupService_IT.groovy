@@ -203,7 +203,7 @@ class ElasticSearchLookupService_IT {
         def result = lookupService.lookup(coordinates)
         Assert.assertTrue(result.isPresent())
         def rec = result.get()
-        ["dateField": "2018-08-14T10:08:00Z", "longField": 150000L].each { field ->
+        ["dateField2": "2018-08-14T10:08:00Z", "longField2": 150000L].each { field ->
             def value = rec.getValue(field.key)
             Assert.assertEquals(field.value, value)
         }

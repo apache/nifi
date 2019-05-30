@@ -953,9 +953,7 @@ Expressions will provide the following results:
 
 *Arguments*:
 
-*Arguments*:
-
-	- [.argName]#_Regex_# : [.argDesc]#he Regular Expression (in Java syntax) to match in the Subject#
+	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in Java syntax) to match in the Subject#
 	- [.argName]#_Replacement_# : [.argDesc]#The value to use for replacing matches in the Subject. If the _regular expression_
 		argument uses Capturing Groups, back references are allowed in the _replacement_.#
 
@@ -1527,7 +1525,7 @@ Expressions will provide the following results:
   path expression. An empty string is generated if the Subject does not contain valid JSON, the _jsonPath_ is invalid, or the path
 	does not exist in the Subject.  If the evaluation results in a scalar value, the string representation of scalar value is
 	generated.  Otherwise a string representation of the JSON result is generated.  A JSON array of length 1 is special cased
-	when `[0]` is a scalar, the string representation of `[0]` is generated.^1^#
+	when `[0]` is a scalar, the string representation of `[0]` is generated.#
 
 *Subject Type*: [.subject]#String#
 
@@ -1570,7 +1568,7 @@ Expressions will provide the following results:
 | Expression | Value
 | `${myJson:jsonPath('$.firstName')}` | `John`
 | `${myJson:jsonPath('$.address.postalCode')}` | `10021-3100`
-| `${myJson:jsonPath('$.phoneNumbers[?(@.type=="home")].number')}`^1^ | `212 555-1234`
+| `${myJson:jsonPath('$.phoneNumbers[?(@.type=="home")].number')}` | `212 555-1234`
 | `${myJson:jsonPath('$.phoneNumbers')}` | `[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"}]`
 | `${myJson:jsonPath('$.missing-path')}` | _empty_
 | `${myJson:jsonPath('$.bad-json-path..')}` | _exception bulletin_

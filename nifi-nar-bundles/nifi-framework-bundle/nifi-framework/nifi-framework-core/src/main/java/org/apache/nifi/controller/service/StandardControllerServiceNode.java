@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -50,24 +67,6 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
@@ -288,7 +287,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyCanDisable() {
-        verifyCanDisable(Collections.<ControllerServiceNode>emptySet());
+        verifyCanDisable(Collections.emptySet());
     }
 
     @Override
@@ -570,5 +569,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 throw new IllegalStateException(this + " is already under version control");
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        String bundleCoordinate;
+        try {
+            bundleCoordinate = controllerServiceHolder.get().getBundleCoordinate().toString();
+        } catch (NullPointerException e) {
+            bundleCoordinate = "null";
+        }
+        return "StandardControllerServiceNode{" +
+                "controllerServiceHolder=" + bundleCoordinate +
+                ", versionedComponentId=" + versionedComponentId +
+                ", comment='" + comment + '\'' +
+                ", processGroup=" + processGroup +
+                ", active=" + active +
+                '}';
     }
 }

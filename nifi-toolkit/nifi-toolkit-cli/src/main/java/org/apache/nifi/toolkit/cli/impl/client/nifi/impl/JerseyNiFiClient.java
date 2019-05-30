@@ -23,10 +23,15 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.util.ProxiedEntitiesUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -127,6 +132,23 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
+    public ControllerServicesClient getControllerServicesClient() {
+        return new JerseyControllerServicesClient(baseTarget);
+    }
+
+    @Override
+    public ControllerServicesClient getControllerServicesClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyControllerServicesClient(baseTarget, headers);
+    }
+
+    @Override
+    public ControllerServicesClient getControllerServicesClientForToken(final String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyControllerServicesClient(baseTarget, headers);
+    }
+
+    @Override
     public FlowClient getFlowClient() {
         return new JerseyFlowClient(baseTarget);
     }
@@ -175,6 +197,74 @@ public class JerseyNiFiClient implements NiFiClient {
     public VersionsClient getVersionsClientForToken(String base64token) {
         final Map<String,String> headers = getHeadersWithToken(base64token);
         return new JerseyVersionsClient(baseTarget, headers);
+    }
+
+    @Override
+    public TenantsClient getTenantsClient() {
+        return new JerseyTenantsClient(baseTarget);
+    }
+
+    @Override
+    public TenantsClient getTenantsClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyTenantsClient(baseTarget, headers);
+    }
+
+    @Override
+    public TenantsClient getTenantsClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyTenantsClient(baseTarget, headers);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClient() {
+        return new JerseyPoliciesClient(baseTarget);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyPoliciesClient(baseTarget, headers);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyPoliciesClient(baseTarget, headers);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClient() {
+        return new JerseyTemplatesClient(baseTarget);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyTemplatesClient(baseTarget, headers);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyTemplatesClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClient() {
+        return new JerseyReportingTasksClient(baseTarget);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyReportingTasksClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyReportingTasksClient(baseTarget, headers);
     }
 
     @Override

@@ -56,8 +56,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
-
 @EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -66,14 +64,15 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
         "to the specified Kudu's table. The schema for the table must be provided in the processor properties or from your source." +
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
-public class PutKudu extends AbstractKuduProcessor {
 
+public class PutKudu extends AbstractKuduProcessor {
+  
     protected static final PropertyDescriptor TABLE_NAME = new Builder()
         .name("Table Name")
         .description("The name of the Kudu Table to put data into")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     public static final PropertyDescriptor RECORD_READER = new Builder()
@@ -137,7 +136,7 @@ public class PutKudu extends AbstractKuduProcessor {
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()
@@ -162,6 +161,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected OperationType operationType;
     protected SessionConfiguration.FlushMode flushMode;
+  
     protected int batchSize = 100;
     protected int ffbatch   = 1;
 
@@ -250,9 +250,11 @@ public class PutKudu extends AbstractKuduProcessor {
             operationType = OperationType.valueOf(context.getProperty(OPERATION_TYPE).evaluateAttributeExpressions(flowFile).getValue());
             Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
             try (final InputStream in = session.read(flowFile);
-                 final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
+                final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
                 final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
+                final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+                final KuduTable kuduTable = kuduClient.openTable(tableName);
 
                 Record record = recordSet.next();
                 while (record != null) {

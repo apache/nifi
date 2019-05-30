@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
@@ -101,7 +103,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final int numPartitions;
     private final ScheduledExecutorService checkpointExecutor;
 
-    private final Set<String> swapLocationSuffixes = new HashSet<>(); // guraded by synchronizing on object itself
+    private final Set<String> swapLocationSuffixes = new HashSet<>(); // guarded by synchronizing on object itself
 
     // effectively final
     private WriteAheadRepository<RepositoryRecord> wal;
@@ -180,6 +182,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
+        initialize(claimManager, new StandardRepositoryRecordSerdeFactory(claimManager));
+    }
+
+    protected void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory) throws IOException {
         this.claimManager = claimManager;
 
         for (final File file : flowFileRepositoryPaths) {
@@ -190,7 +196,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // TODO: Allow for backup path that can be used if disk out of space?? Would allow a snapshot to be stored on
         // backup and then the data deleted from the normal location; then can move backup to normal location and
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
-        serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
+        this.serdeFactory = serdeFactory;
 
         if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL)) {
             wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
@@ -283,7 +289,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     @Override
     public boolean isValidSwapLocationSuffix(final String swapLocationSuffix) {
         synchronized (swapLocationSuffixes) {
-            return swapLocationSuffixes.contains(swapLocationSuffix);
+            return swapLocationSuffixes.contains(normalizeSwapLocation(swapLocationSuffix));
         }
     }
 
@@ -307,7 +313,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         // update the repository.
         final int partitionIndex = wal.update(recordsForWal, sync);
+        updateContentClaims(records, partitionIndex);
+    }
 
+    private void updateContentClaims(Collection<RepositoryRecord> repositoryRecords, final int partitionIndex) {
         // The below code is not entirely thread-safe, but we are OK with that because the results aren't really harmful.
         // Specifically, if two different threads call updateRepository with DELETE records for the same Content Claim,
         // it's quite possible for claimant count to be 0 below, which results in two different threads adding the Content
@@ -321,7 +330,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final Set<String> swapLocationsAdded = new HashSet<>();
         final Set<String> swapLocationsRemoved = new HashSet<>();
 
-        for (final RepositoryRecord record : records) {
+        for (final RepositoryRecord record : repositoryRecords) {
+            updateClaimCounts(record);
+
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if claim is destructible, mark it so
                 if (record.getCurrentClaim() != null && isDestructable(record.getCurrentClaim())) {
@@ -360,8 +371,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // If we have swapped files in or out, we need to ensure that we update our swapLocationSuffixes.
         if (!swapLocationsAdded.isEmpty() || !swapLocationsRemoved.isEmpty()) {
             synchronized (swapLocationSuffixes) {
-                swapLocationsRemoved.forEach(loc -> swapLocationSuffixes.remove(getLocationSuffix(loc)));
-                swapLocationsAdded.forEach(loc -> swapLocationSuffixes.add(getLocationSuffix(loc)));
+                swapLocationsRemoved.forEach(loc -> swapLocationSuffixes.remove(normalizeSwapLocation(loc)));
+                swapLocationsAdded.forEach(loc -> swapLocationSuffixes.add(normalizeSwapLocation(loc)));
             }
         }
 
@@ -381,18 +392,50 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
     }
 
-    protected static String getLocationSuffix(final String swapLocation) {
+    private void updateClaimCounts(final RepositoryRecord record) {
+        final ContentClaim currentClaim = record.getCurrentClaim();
+        final ContentClaim originalClaim = record.getOriginalClaim();
+        final boolean claimChanged = !Objects.equals(currentClaim, originalClaim);
+
+        if (record.getType() == RepositoryRecordType.DELETE || record.getType() == RepositoryRecordType.CONTENTMISSING) {
+            decrementClaimCount(currentClaim);
+        }
+
+        if (claimChanged) {
+            // records which have been updated - remove original if exists
+            decrementClaimCount(originalClaim);
+        }
+    }
+
+    private void decrementClaimCount(final ContentClaim claim) {
+        if (claim == null) {
+            return;
+        }
+
+        claimManager.decrementClaimantCount(claim.getResourceClaim());
+    }
+
+
+    protected static String normalizeSwapLocation(final String swapLocation) {
         if (swapLocation == null) {
             return null;
         }
 
-        final String withoutTrailing = (swapLocation.endsWith("/") && swapLocation.length() > 1) ? swapLocation.substring(0, swapLocation.length() - 1) : swapLocation;
-        final int lastIndex = withoutTrailing.lastIndexOf("/");
-        if (lastIndex < 0 || lastIndex >= withoutTrailing.length() - 1) {
-            return withoutTrailing;
+        final String normalizedPath = swapLocation.replace("\\", "/");
+        final String withoutTrailing = (normalizedPath.endsWith("/") && normalizedPath.length() > 1) ? normalizedPath.substring(0, normalizedPath.length() - 1) : normalizedPath;
+        final String pathRemoved = getLocationSuffix(withoutTrailing);
+
+        final String normalized = StringUtils.substringBefore(pathRemoved, ".");
+        return normalized;
+    }
+
+    private static String getLocationSuffix(final String swapLocation) {
+        final int lastIndex = swapLocation.lastIndexOf("/");
+        if (lastIndex < 0 || lastIndex >= swapLocation.length() - 1) {
+            return swapLocation;
         }
 
-        return withoutTrailing.substring(lastIndex + 1);
+        return swapLocation.substring(lastIndex + 1);
     }
 
     @Override
@@ -451,7 +494,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         wal.update(repoRecords, true);
 
         synchronized (this.swapLocationSuffixes) {
-            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+            this.swapLocationSuffixes.add(normalizeSwapLocation(swapLocation));
         }
 
         logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[]{swappedOut.size(), queue, swapLocation});
@@ -472,7 +515,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateRepository(repoRecords, true);
 
         synchronized (this.swapLocationSuffixes) {
-            this.swapLocationSuffixes.add(getLocationSuffix(swapLocation));
+            this.swapLocationSuffixes.add(normalizeSwapLocation(swapLocation));
         }
 
         logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
@@ -598,7 +641,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         final Set<String> recoveredSwapLocations = wal.getRecoveredSwapLocations();
         synchronized (this.swapLocationSuffixes) {
-            recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(getLocationSuffix(loc)));
+            recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(normalizeSwapLocation(loc)));
             logger.debug("Recovered {} Swap Files: {}", swapLocationSuffixes.size(), swapLocationSuffixes);
         }
 

@@ -40,7 +40,9 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -406,6 +408,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (sourceConnectable == null) {
                 throw new IllegalArgumentException("The specified source for the connection does not exist");
             }
+            if (sourceConnectable instanceof PublicPort
+                && TransferDirection.SEND.equals(((PublicPort) sourceConnectable).getDirection())) {
+                throw new IllegalArgumentException("The specified source for the connection cannot be connected to local components.");
+            }
         }
 
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationDto.getType())) {
@@ -427,6 +433,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final Connectable destinationConnectable = destinationGroup.getConnectable(destinationDto.getId());
             if (destinationConnectable == null) {
                 throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            }
+            if (destinationConnectable instanceof PublicPort
+                && TransferDirection.RECEIVE.equals(((PublicPort) destinationConnectable).getDirection())) {
+                throw new IllegalArgumentException("The specified destination for the connection cannot be connected from local components.");
             }
         }
     }

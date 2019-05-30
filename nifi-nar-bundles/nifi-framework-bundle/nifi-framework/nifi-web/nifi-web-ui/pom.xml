@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
@@ -235,6 +235,10 @@
                                         <include>url-search-params/build/url-search-params.js</include>
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
+
+                                        <include>lodash-core/distrib/lodash-core.min.js</include>
+                                        <include>lodash-core/distrib/README.md</include>
+
                                     </includes>
                                 </resource>
                             </resources>
@@ -681,6 +685,7 @@
                                                 <include>${staging.dir}/css/shell.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
                                                 <include>${staging.dir}/css/new-processor-dialog.css</include>
+                                                <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>

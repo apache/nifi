@@ -147,8 +147,8 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPor
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteProcessGroup;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
@@ -1332,12 +1332,13 @@ public final class DtoFactory {
         dto.setType(port.getConnectableType().name());
         dto.setVersionedComponentId(port.getVersionedComponentId().orElse(null));
 
-        // if this port is on the root group, determine if its actually connected to another nifi
-        if (port instanceof RootGroupPort) {
-            final RootGroupPort rootGroupPort = (RootGroupPort) port;
-            dto.setTransmitting(rootGroupPort.isTransmitting());
-            dto.setGroupAccessControl(rootGroupPort.getGroupAccessControl());
-            dto.setUserAccessControl(rootGroupPort.getUserAccessControl());
+        // if this port is remotely accessible, determine if its actually connected to another nifi
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
+            dto.setAllowRemoteAccess(true);
+            dto.setTransmitting(publicPort.isTransmitting());
+            dto.setGroupAccessControl(publicPort.getGroupAccessControl());
+            dto.setUserAccessControl(publicPort.getUserAccessControl());
         }
 
         final Collection<ValidationResult> validationErrors = port.getValidationErrors();
@@ -2293,8 +2294,10 @@ public final class DtoFactory {
         dto.setStoppedCount(counts.getStoppedCount());
         dto.setInvalidCount(counts.getInvalidCount());
         dto.setDisabledCount(counts.getDisabledCount());
-        dto.setInputPortCount(counts.getInputPortCount());
-        dto.setOutputPortCount(counts.getOutputPortCount());
+        dto.setLocalInputPortCount(counts.getLocalInputPortCount());
+        dto.setLocalOutputPortCount(counts.getLocalOutputPortCount());
+        dto.setPublicInputPortCount(counts.getPublicInputPortCount());
+        dto.setPublicOutputPortCount(counts.getPublicOutputPortCount());
         dto.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         dto.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
         dto.setUpToDateCount(counts.getUpToDateCount());
@@ -3969,6 +3972,7 @@ public final class DtoFactory {
         copy.setGroupAccessControl(copy(original.getGroupAccessControl()));
         copy.setValidationErrors(copy(original.getValidationErrors()));
         copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setAllowRemoteAccess(original.getAllowRemoteAccess());
         return copy;
     }
 
@@ -4004,11 +4008,13 @@ public final class DtoFactory {
         copy.setContents(copy(original.getContents(), deep));
         copy.setPosition(original.getPosition());
         copy.setId(original.getId());
-        copy.setInputPortCount(original.getInputPortCount());
+        copy.setLocalInputPortCount(original.getLocalInputPortCount());
+        copy.setPublicInputPortCount(original.getPublicInputPortCount());
         copy.setInvalidCount(original.getInvalidCount());
         copy.setName(original.getName());
         copy.setVersionControlInformation(copy(original.getVersionControlInformation()));
-        copy.setOutputPortCount(original.getOutputPortCount());
+        copy.setLocalOutputPortCount(original.getLocalOutputPortCount());
+        copy.setPublicOutputPortCount(original.getPublicOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setVersionedComponentId(original.getVersionedComponentId());
 

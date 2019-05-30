@@ -86,6 +86,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.QueueProvider;
 import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardQueueProvider;
@@ -294,6 +295,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
     private final UserAwareEventAccess eventAccess;
     private final StandardFlowManager flowManager;
+    private final RepositoryContextFactory repositoryContextFactory;
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -433,7 +435,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final ExtensionManager extensionManager) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
-        maxEventDrivenThreads = new AtomicInteger(5);
+        maxEventDrivenThreads = new AtomicInteger(1);
 
         this.encryptor = encryptor;
         this.nifiProperties = nifiProperties;
@@ -484,18 +486,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, encryptor, stateManagerProvider, this.nifiProperties);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
-        final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
-
+        repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
         this.flowManager = new StandardFlowManager(nifiProperties, sslContext, this, flowFileEventRepository);
 
         controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository);
 
         eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
-            eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager);
+            eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider, eventDrivenWorkerQueue, repositoryContextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
 
-        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor);
-        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.nifiProperties);
+        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, encryptor);
+        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, encryptor, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
         // PRIMARY_NODE_ONLY is deprecated, but still exists to handle processors that are still defined with it (they haven't been re-configured with executeNode = PRIMARY).
         processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
@@ -743,12 +744,16 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     }
 
     public void initializeFlow() throws IOException {
+        initializeFlow(new StandardQueueProvider(getFlowManager()));
+    }
+
+    public void initializeFlow(final QueueProvider queueProvider) throws IOException {
         writeLock.lock();
         try {
             // get all connections/queues and recover from swap files.
             final List<Connection> connections = flowManager.getRootGroup().findAllConnections();
 
-            flowFileRepository.loadFlowFiles(new StandardQueueProvider(this));
+            flowFileRepository.loadFlowFiles(queueProvider);
 
             long maxIdFromSwapFiles = -1L;
             if (flowFileRepository.isVolatile()) {
@@ -1190,6 +1195,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.stop();
+                listener.destroy();
             }
 
             if (loadBalanceServer != null) {
@@ -1717,6 +1723,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public FlowManager getFlowManager() {
         return flowManager;
+    }
+
+    public RepositoryContextFactory getRepositoryContextFactory() {
+        return repositoryContextFactory;
     }
 
     /**
@@ -2638,6 +2648,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         queue.put(flowFileRecord);
 
         return replayEvent;
+    }
+
+    public ResourceClaimManager getResourceClaimManager() {
+        return resourceClaimManager;
     }
 
     public boolean isConnected() {

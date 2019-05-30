@@ -109,6 +109,33 @@
     };
 
     /**
+     * Validates the configured settings.
+     *
+     * @argument {object} configuration       The settings to validate
+     */
+    var validateSettings = function (configuration) {
+        var errors = [];
+
+        // ensure numeric fields are specified correctly
+        if (nfCommon.isDefinedAndNotNull(configuration['maxTimerDrivenThreadCount']) && !$.isNumeric(configuration['maxTimerDrivenThreadCount'])) {
+            errors.push('Maximum Timer Driven Thread Count must be an integer value');
+        }
+        if (nfCommon.isDefinedAndNotNull(configuration['maxEventDrivenThreadCount']) && !$.isNumeric(configuration['maxEventDrivenThreadCount'])) {
+            errors.push('Maximum Event Driven Thread Count must be an integer value');
+        }
+
+        if (errors.length > 0) {
+            nfDialog.showOkDialog({
+                dialogContent: nfCommon.formatUnorderedList(errors),
+                headerText: 'Configuration Error'
+            });
+            return false;
+        } else {
+            return true;
+        }
+    };
+
+    /**
      * Saves the settings for the controller.
      *
      * @param version
@@ -116,35 +143,38 @@
     var saveSettings = function (version) {
         // marshal the configuration details
         var configuration = marshalConfiguration();
-        var entity = {
-            'revision': nfClient.getRevision({
-                'revision': {
-                    'version': version
-                }
-            }),
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'component': configuration
-        };
+        // ensure settings are valid as far as we can tell
+        if (validateSettings(configuration)) {
+            var entity = {
+                'revision': nfClient.getRevision({
+                    'revision': {
+                        'version': version
+                    }
+                }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                'component': configuration
+            };
 
-        // save the new configuration details
-        $.ajax({
-            type: 'PUT',
-            url: config.urls.controllerConfig,
-            data: JSON.stringify(entity),
-            dataType: 'json',
-            contentType: 'application/json'
-        }).done(function (response) {
-            // close the settings dialog
-            nfDialog.showOkDialog({
-                headerText: 'Settings',
-                dialogContent: 'Settings successfully applied.'
-            });
+            // save the new configuration details
+            $.ajax({
+                type: 'PUT',
+                url: config.urls.controllerConfig,
+                data: JSON.stringify(entity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                // close the settings dialog
+                nfDialog.showOkDialog({
+                    headerText: 'Settings',
+                    dialogContent: 'Settings successfully applied.'
+                });
 
-            // register the click listener for the save button
-            $('#settings-save').off('click').on('click', function () {
-                saveSettings(response.revision.version);
-            });
-        }).fail(nfErrorHandler.handleAjaxError);
+                // register the click listener for the save button
+                $('#settings-save').off('click').on('click', function () {
+                    saveSettings(response.revision.version);
+                });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+        }
     }
 
     /**
@@ -519,10 +549,11 @@
             var row = registriesData.getRowById(registryEntity.id);
             nfFilteredDialogCommon.choseRow(registriesGrid, row);
             registriesGrid.scrollRowIntoView(row);
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+
 
         return addRegistry;
     };
@@ -560,10 +591,10 @@
             registriesData.updateItem(registryId, $.extend({
                 type: 'Registry'
             }, registryEntity));
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
         return updateRegistry;
     };

@@ -158,9 +158,10 @@ public class TestWriteCSVResult {
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
+        // The fields defined in the schema should be written first followed by extra ones.
         final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("id", "1");
         values.put("name", "John");
+        values.put("id", "1");
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -286,7 +287,7 @@ public class TestWriteCSVResult {
             output = baos.toString();
         }
 
-        assertEquals("id,dob,name\n1,1/1/1970,\n", output);
+        assertEquals("id,name,dob\n1,,1/1/1970\n", output);
     }
 
 

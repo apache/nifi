@@ -21,7 +21,9 @@ import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import java.io.IOException;
@@ -103,5 +105,26 @@ public interface FlowClient {
      * @return cluster summary response
      */
     ClusteSummaryEntity getClusterSummary() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the controller services for the reporting tasks.
+     *
+     * @return the controller services entity
+     */
+    ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the reporting tasks.
+     *
+     * @return the reporting tasks entity
+     */
+    ReportingTasksEntity getReportingTasks() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the all templates.
+     *
+     * @return the templates entity
+     */
+    TemplatesEntity getTemplates() throws NiFiClientException, IOException;
 
 }

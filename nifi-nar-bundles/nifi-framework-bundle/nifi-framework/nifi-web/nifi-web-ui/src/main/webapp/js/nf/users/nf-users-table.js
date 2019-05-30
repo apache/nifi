@@ -252,6 +252,8 @@
 
         // if the user was successfully created
         userXhr.done(function (userEntity) {
+            $('#user-dialog').modal('hide');
+
             var xhrs = [];
             $.each(selectedGroups, function (_, selectedGroup) {
                 var groupEntity = usersData.getItemById(selectedGroup.id)
@@ -266,7 +268,7 @@
                     usersGrid.scrollRowIntoView(row);
                 });
             }).fail(nfErrorHandler.handleAjaxError);
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     /**
@@ -301,6 +303,8 @@
         });
 
         userXhr.done(function (updatedUserEntity) {
+
+            $('#user-dialog').modal('hide');
 
             // determine what to add/remove
             var groupsAdded = [];
@@ -340,7 +344,7 @@
             $.when.apply(window, xhrs).always(function () {
                 nfUsersTable.loadUsersTable();
             }).fail(nfErrorHandler.handleAjaxError);
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     /**
@@ -357,6 +361,7 @@
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (groupEntity) {
+            $('#user-dialog').modal('hide');
             nfUsersTable.loadUsersTable().done(function () {
                 // add the user
                 var usersGrid = $('#users-table').data('gridInstance');
@@ -367,7 +372,7 @@
                 usersGrid.setSelectedRows([row]);
                 usersGrid.scrollRowIntoView(row);
             });
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     var updateGroup = function (groupId, groupIdentity, selectedUsers) {
@@ -394,8 +399,9 @@
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (groupEntity) {
+            $('#user-dialog').modal('hide');
             nfUsersTable.loadUsersTable();
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     /**
@@ -459,7 +465,6 @@
                             }
                         }
 
-                        $('#user-dialog').modal('hide');
                     }
                 }
             }, {

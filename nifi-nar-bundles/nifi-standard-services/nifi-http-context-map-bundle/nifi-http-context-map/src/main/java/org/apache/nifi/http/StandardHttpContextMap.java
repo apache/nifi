@@ -67,6 +67,8 @@ public class StandardHttpContextMap extends AbstractControllerService implements
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    private static final long CLEANUP_MAX_DELAY_NANOS = 5_000_000_000L;
+
     private final ConcurrentMap<String, Wrapper> wrapperMap = new ConcurrentHashMap<>();
 
     private volatile int maxSize = 5000;
@@ -94,7 +96,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
         });
 
         maxRequestNanos = context.getProperty(REQUEST_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
-        final long scheduleNanos = maxRequestNanos / 2;
+        final long scheduleNanos = Math.min(maxRequestNanos / 2, CLEANUP_MAX_DELAY_NANOS);
         executor.scheduleWithFixedDelay(new CleanupExpiredRequests(), scheduleNanos, scheduleNanos, TimeUnit.NANOSECONDS);
     }
 
@@ -185,11 +187,16 @@ public class StandardHttpContextMap extends AbstractControllerService implements
                     // send SERVICE_UNAVAILABLE
                     try {
                         final AsyncContext async = entry.getValue().getAsync();
-                        ((HttpServletResponse) async.getResponse()).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+
+                        getLogger().warn("Request from {} timed out; responding with SERVICE_UNAVAILABLE",
+                                new Object[]{async.getRequest().getRemoteAddr()});
+
+                        ((HttpServletResponse) async.getResponse()).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Timeout occurred");
                         async.complete();
                     } catch (final Exception e) {
                         // we are trying to indicate that we are unavailable. If we have an exception and cannot respond,
                         // then so be it. Nothing to really do here.
+                        getLogger().error("Failed to respond with SERVICE_UNAVAILABLE message", e);
                     }
                 }
             }

@@ -89,6 +89,10 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         return provider;
     }
 
+    public static synchronized void resetProvider() {
+        provider = null;
+    }
+
     private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager)
             throws IOException, ConfigParseException {
         final File configFile = properties.getStateManagementConfigFile();
@@ -420,26 +424,26 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         try {
             mgr.clear(Scope.CLUSTER);
         } catch (final Exception e) {
-            logger.warn("Component with ID {} was removed from NiFi instance but failed to clear clustered state for the component", e);
+            logger.warn("Component with ID {} was removed from NiFi instance but failed to clear clustered state for the component", componentId, e);
         }
 
         try {
             mgr.clear(Scope.LOCAL);
         } catch (final Exception e) {
-            logger.warn("Component with ID {} was removed from NiFi instance but failed to clear local state for the component", e);
+            logger.warn("Component with ID {} was removed from NiFi instance but failed to clear local state for the component", componentId, e);
         }
 
         try {
             localStateProvider.onComponentRemoved(componentId);
         } catch (final Exception e) {
-            logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its local state", e);
+            logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its local state", componentId, e);
         }
 
         if (clusterStateProvider != null) {
             try {
                 clusterStateProvider.onComponentRemoved(componentId);
             } catch (final Exception e) {
-                logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its clustered state", e);
+                logger.warn("Component with ID {} was removed from NiFi instance but failed to cleanup resources used to maintain its clustered state", componentId, e);
             }
         }
     }

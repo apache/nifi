@@ -132,11 +132,11 @@
     /**
      * Refreshes the graph.
      *
-     * @argument {string} processGroupId        The process group id
      * @argument {object} options               Configuration options
      */
-    var reloadProcessGroup = function (processGroupId, options) {
+    var reloadProcessGroup = function (options) {
         var now = new Date().getTime();
+        var processGroupId = nfCanvas.getGroupId();
 
         // load the controller
         return $.ajax({
@@ -210,6 +210,30 @@
     };
 
     /**
+     * Reloads the flow from the server based on the specified group id.
+     *
+     * @param processGroupId Id of the Process Group to load
+     * @param options
+     */
+    var changeProcessGroup = function (processGroupId, options) {
+        // capture the current group id to reset to in case of failure
+        var currentProcessGroup = nfCanvas.getGroupId();
+
+        // update process group id and attempt to reload
+        nfCanvas.setGroupId(processGroupId);
+        var processGroupXhr = reloadProcessGroup(options);
+
+        // if the request fails, ensure the process group id is reset
+        processGroupXhr
+            .fail(function (xhr, status, error) {
+                nfCanvas.setGroupId(currentProcessGroup);
+            });
+
+        return processGroupXhr;
+    };
+
+
+    /**
      * Loads the current user and updates the current user locally.
      *
      * @returns xhr
@@ -258,12 +282,20 @@
 
         /**
          * Reloads the flow from the server based on the currently specified group id.
-         * To load another group, update nfCanvas.setGroupId, clear the canvas, and call nfCanvas.reload.
+         * To load another group, set the groupId parameter otherwise the current group
+         * will be reloaded.
          */
-        reload: function (options) {
+        reload: function (options, groupId) {
             return $.Deferred(function (deferred) {
                 // issue the requests
-                var processGroupXhr = reloadProcessGroup(nfCanvas.getGroupId(), options);
+
+                var processGroupXhr;
+                if (nfCommon.isDefinedAndNotNull(groupId)) {
+                    processGroupXhr = changeProcessGroup(groupId, options);
+                } else {
+                    processGroupXhr = reloadProcessGroup(options);
+                }
+
                 var statusXhr = nfNgBridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
                 var controllerBulletins = $.ajax({
@@ -295,11 +327,13 @@
 
                 // wait for all requests to complete
                 $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
+                    var processGroupResponse = processGroupResult[0];
+
                     // inform Angular app values have changed
                     nfNgBridge.digest();
 
                     // resolve the deferred
-                    deferred.resolve(processGroupResult);
+                    deferred.resolve(processGroupResponse);
                 }).fail(function (xhr, status, error) {
                     deferred.reject(xhr, status, error);
                 });
@@ -651,6 +685,9 @@
                 });
             });
 
+            // don't let the reload action get called more than once every second
+            var throttledCanvasReload = nfCommon.throttle(nfActions.reload, 1000);
+
             // listen for browser resize events to reset the graph size
             $(window).on('resize', function (e) {
                 if (e.target === window) {
@@ -726,7 +763,7 @@
                             return;
                         }
                         // ctrl-r
-                        nfActions.reload();
+                        throttledCanvasReload();
 
                         // default prevented in nf-universal-capture.js
                     } else if (evt.keyCode === 65) {

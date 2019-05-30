@@ -775,9 +775,9 @@ The following are available options:
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 
 
-Hostname Patterns:
+"Hostname" and "Subject Alternative Name" Patterns:
 
-* Square brackets can be used in order to easily specify a range of hostnames. Example: `[01-20]`
+* Square brackets can be used in order to easily specify a range of hostnames or subject alternative names. Example: `[01-20]`
 * Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: `(5)`
 
 Examples:
@@ -795,6 +795,11 @@ bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain'
 Create 2 sets of keystore, truststore, _nifi.properties_ for 10 NiFi hostnames in each of 4 subdomains along with a client certificate with the given DN:
 ----
 bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
+----
+
+The same command with a range of subject alternate names:
+----
+bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI' --subjectAlternativeNames 'nifi[21-30].other[2-5].example.com(2)'
 ----
 
 ==== Client/Server

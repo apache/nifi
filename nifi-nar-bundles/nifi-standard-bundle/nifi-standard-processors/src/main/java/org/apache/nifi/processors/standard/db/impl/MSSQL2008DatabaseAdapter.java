@@ -65,9 +65,14 @@ public class MSSQL2008DatabaseAdapter extends MSSQLDatabaseAdapter {
             query.append(columnNames);
         }
 
-        if (limit != null && offset != null && orderByClause != null && !useColumnForPartitioning) {
+        if (limit != null && offset != null && !useColumnForPartitioning) {
             query.append(", ROW_NUMBER() OVER(ORDER BY ");
-            query.append(orderByClause);
+            if (orderByClause != null && !orderByClause.isEmpty()) {
+                query.append(orderByClause);
+            } else {
+                // Add a default ORDER BY clause using the newid() function
+                query.append("newid()");
+            }
             query.append(" asc) rnum");
         }
         query.append(" FROM ");

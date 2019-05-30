@@ -736,7 +736,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
-        return value != null && value instanceof Map;
+        return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
 
@@ -1019,6 +1019,15 @@ public class DataTypeUtils {
         return df;
     }
 
+    public static DateFormat getDateFormat(final String format, final String timezoneID) {
+        if (format == null || timezoneID == null) {
+            return null;
+        }
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
+        return df;
+    }
+
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
     }
@@ -1080,15 +1089,25 @@ public class DataTypeUtils {
         if (value instanceof BigInteger) {
             return (BigInteger) value;
         }
-        if (value instanceof Long) {
-            return BigInteger.valueOf((Long) value);
+
+        if (value instanceof Number) {
+            return BigInteger.valueOf(((Number) value).longValue());
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
-        return value == null && (value instanceof BigInteger || value instanceof Long);
+        return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
@@ -1259,7 +1278,10 @@ public class DataTypeUtils {
         return false;
     }
 
-    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+    /**
+     * Check if the value is an integral.
+     */
+    private static boolean isIntegral(final String value) {
         if (value == null || value.isEmpty()) {
             return false;
         }
@@ -1280,6 +1302,18 @@ public class DataTypeUtils {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if the value is an integral within a value range.
+     */
+    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+
+        if (!isIntegral(value)) {
+            return false;
+        }
+
         try {
             final long longValue = Long.parseLong(value);
             return longValue >= minValue && longValue <= maxValue;
@@ -1288,7 +1322,6 @@ public class DataTypeUtils {
             return false;
         }
     }
-
 
     public static Integer toInteger(final Object value, final String fieldName) {
         if (value == null) {

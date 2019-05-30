@@ -35,7 +35,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -75,7 +74,6 @@ import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -483,33 +481,6 @@ public class ProcessorLifecycleIT {
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
         processScheduler.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), LONG_DELAY_TOLERANCE);
-    }
-
-
-    /**
-     * Validate that processor will not be validated on failing
-     * ControllerService validation (not enabled).
-     */
-    @Test(expected = IllegalStateException.class)
-    public void validateStartFailsOnInvalidProcessorWithDisabledService() throws Exception {
-        final FlowManagerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        flowManager = fcsb.getFlowManager();
-
-        ProcessGroup testGroup = flowManager.createProcessGroup(UUID.randomUUID().toString());
-
-        ControllerServiceNode testServiceNode = flowManager.createControllerService(TestService.class.getName(), "serv",
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate(), null, true, true);
-        ProcessorNode testProcNode = flowManager.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-
-        properties.put("S", testServiceNode.getIdentifier());
-        testProcNode.setProperties(properties);
-
-        TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
-        testProcessor.withService = true;
-
-        processScheduler.startProcessor(testProcNode, true);
-        fail();
     }
 
 

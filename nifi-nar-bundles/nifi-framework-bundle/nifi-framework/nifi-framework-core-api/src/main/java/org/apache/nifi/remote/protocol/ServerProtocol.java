@@ -23,7 +23,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.VersionedRemoteResource;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -40,7 +40,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
      */
     void setRootProcessGroup(ProcessGroup rootGroup);
 
-    RootGroupPort getPort();
+    PublicPort getPort();
 
     /**
      * Optional operation. Sets the NodeInformant to use in this Protocol, if a

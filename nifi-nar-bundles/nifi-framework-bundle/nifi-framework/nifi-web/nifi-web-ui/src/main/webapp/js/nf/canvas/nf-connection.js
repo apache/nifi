@@ -1614,23 +1614,16 @@
         }).done(function (response) {
             // request was successful, update the entry
             nfConnection.set(response);
-        }).fail(function (xhr, status, error) {
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                nfDialog.showOkDialog({
-                    headerText: 'Connection',
-                    dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                });
-            } else {
-                nfErrorHandler.handleAjaxError(xhr, status, error);
-            }
-        });
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     // removes the specified connections
     var removeConnections = function (removed) {
         // consider reloading source/destination of connection being removed
         removed.each(function (d) {
-            nfCanvasUtils.reloadConnectionSourceAndDestination(d.sourceId, d.destinationId);
+            var sourceComponentId = nfCanvasUtils.getConnectionSourceComponentId(d);
+            var destinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(d);
+            nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
         });
 
         // remove the connection
@@ -1767,7 +1760,7 @@
                     // get the corresponding connection
                     var connection = d3.select(this.parentNode);
                     var connectionData = connection.datum();
-                    var previousDestinationId = connectionData.destinationId;
+                    var previousDestinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionData);
 
                     // attempt to select a new destination
                     var destination = d3.select('g.connectable-destination');
@@ -1784,7 +1777,7 @@
                             // user will select new port and updated connect details will be set accordingly
                             nfConnectionConfiguration.showConfiguration(connection, destination).done(function () {
                                 // reload the previous destination
-                                nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
+                                nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationComponentId);
                             }).fail(function () {
                                 // reset the connection
                                 connection.call(updateConnections, {
@@ -1843,8 +1836,11 @@
                                 nfConnection.set(response);
 
                                 // reload the previous destination and the new source/destination
-                                nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
-                                nfCanvasUtils.reloadConnectionSourceAndDestination(response.sourceId, response.destinationId);
+                                nfCanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationComponentId);
+
+                                var sourceComponentId = nfCanvasUtils.getConnectionSourceComponentId(response);
+                                var destinationComponentId = nfCanvasUtils.getConnectionSourceComponentId(response);
+                                nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400 || xhr.status === 401 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                                     nfDialog.showOkDialog({

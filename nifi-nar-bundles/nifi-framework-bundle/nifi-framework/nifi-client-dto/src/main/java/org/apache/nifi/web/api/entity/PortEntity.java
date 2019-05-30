@@ -33,6 +33,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     private PortStatusDTO status;
     private String portType;
     private PermissionsDTO operatePermissions;
+    private Boolean allowRemoteAccess;
 
     /**
      * @return input PortDTO that are being serialized
@@ -83,5 +84,19 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     @Override
     public void setOperatePermissions(PermissionsDTO permissions) {
         this.operatePermissions = permissions;
+    }
+
+    /**
+     * @return whether this port can be accessed remotely via Site-to-Site protocol.
+     */
+    @ApiModelProperty(
+        value = "Whether this port can be accessed remotely via Site-to-Site protocol."
+    )
+    public Boolean isAllowRemoteAccess() {
+        return allowRemoteAccess;
+    }
+
+    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+        this.allowRemoteAccess = allowRemoteAccess;
     }
 }

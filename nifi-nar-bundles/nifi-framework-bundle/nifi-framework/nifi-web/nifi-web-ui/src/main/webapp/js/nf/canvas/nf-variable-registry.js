@@ -1077,6 +1077,8 @@
         return false;
     };
 
+    var variablesCount = 0;
+
     /**
      * Loads the specified variable registry.
      *
@@ -1085,7 +1087,6 @@
      */
     var loadVariables = function (variableRegistry, variableToSelect) {
         if (nfCommon.isDefinedAndNotNull(variableRegistry)) {
-            var count = 0;
             var index = 0;
 
             var variableGrid = $('#variable-registry-table').data('gridInstance');
@@ -1098,7 +1099,7 @@
             $.each(variableRegistry.variables, function (i, variableEntity) {
                 var variable = variableEntity.variable;
                 variables.push({
-                    id: count++,
+                    id: variablesCount++,
                     hidden: false,
                     canWrite: variableEntity.canWrite,
                     name: variable.name,
@@ -1452,9 +1453,8 @@
 
             if (matchingVariable === null) {
                 // add a row for the new variable
-                var id = variableData.getLength();
                 variableData.addItem({
-                    id: id,
+                    id: variablesCount,
                     hidden: false,
                     canWrite: true,
                     name: variableName,
@@ -1476,9 +1476,10 @@
                 variableData.reSort();
 
                 // select the new variable row
-                var row = variableData.getRowById(id);
+                var row = variableData.getRowById(variablesCount);
                 variableGrid.setActiveCell(row, variableGrid.getColumnIndex('value'));
                 variableGrid.editActiveCell();
+                variablesCount++
             } else {
                 // if this row is currently hidden, clear the value and show it
                 if (matchingVariable.hidden === true) {
@@ -1503,15 +1504,17 @@
                     variableGrid.scrollRowIntoView(matchingRow);
                 }
             }
+
+            // close the new variable dialog
+            $('#new-variable-dialog').modal('hide');
+
         } else {
             nfDialog.showOkDialog({
-                headerText: 'Variable Name',
-                dialogContent: 'Variable name must be specified.'
+                headerText: 'Configuration Error',
+                dialogContent: 'The name of the variable must be specified.'
             });
         }
 
-        // close the new variable dialog
-        $('#new-variable-dialog').modal('hide');
     };
 
     /**

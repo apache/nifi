@@ -42,7 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
@@ -186,16 +186,16 @@ public class ControllerSearchService {
             }
         }
 
-        if (port instanceof RootGroupPort) {
-            final RootGroupPort rootGroupPort = (RootGroupPort) port;
+        if (port instanceof PublicPort) {
+            final PublicPort publicPort = (PublicPort) port;
 
             // user access controls
-            for (final String userAccessControl : rootGroupPort.getUserAccessControl()) {
+            for (final String userAccessControl : publicPort.getUserAccessControl()) {
                 addIfAppropriate(searchStr, userAccessControl, "User access control", matches);
             }
 
             // group access controls
-            for (final String groupAccessControl : rootGroupPort.getGroupAccessControl()) {
+            for (final String groupAccessControl : publicPort.getGroupAccessControl()) {
                 addIfAppropriate(searchStr, groupAccessControl, "Group access control", matches);
             }
         }

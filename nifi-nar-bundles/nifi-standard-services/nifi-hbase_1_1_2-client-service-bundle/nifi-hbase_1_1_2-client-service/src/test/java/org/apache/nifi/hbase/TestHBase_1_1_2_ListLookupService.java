@@ -19,7 +19,12 @@ package org.apache.nifi.hbase;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -27,6 +32,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,18 +44,16 @@ import static org.mockito.Mockito.when;
 public class TestHBase_1_1_2_ListLookupService {
 
     static final String TABLE_NAME = "guids";
-    static final String ROW = "row1";
-    static final String COLS = "cf1:cq1,cf2:cq2";
 
     private TestRunner runner;
     private HBase_1_1_2_ListLookupService lookupService;
     private MockHBaseClientService clientService;
-    private TestRecordLookupProcessor testLookupProcessor;
+    private NoOpProcessor processor;
 
     @Before
     public void before() throws Exception {
-        testLookupProcessor = new TestRecordLookupProcessor();
-        runner = TestRunners.newTestRunner(testLookupProcessor);
+        processor = new NoOpProcessor();
+        runner = TestRunners.newTestRunner(processor);
 
         // setup mock HBaseClientService
         final Table table = Mockito.mock(Table.class);
@@ -67,10 +71,6 @@ public class TestHBase_1_1_2_ListLookupService {
         runner.setProperty(lookupService, HBase_1_1_2_ListLookupService.HBASE_CLIENT_SERVICE, "clientService");
         runner.setProperty(lookupService, HBase_1_1_2_ListLookupService.TABLE_NAME, TABLE_NAME);
         runner.enableControllerService(lookupService);
-
-        // setup test processor
-        runner.setProperty(TestRecordLookupProcessor.HBASE_LOOKUP_SERVICE, "lookupService");
-        runner.setProperty(TestRecordLookupProcessor.HBASE_ROW, ROW);
     }
 
     private Optional<List> setupAndRun() throws Exception {
@@ -79,11 +79,6 @@ public class TestHBase_1_1_2_ListLookupService {
         cells.put("cq1", "v1");
         cells.put("cq2", "v2");
         clientService.addResult("row1", cells, System.currentTimeMillis());
-
-        // run the processor
-        runner.enqueue("trigger flow file");
-        runner.run();
-        runner.assertAllFlowFilesTransferred(TestRecordLookupProcessor.REL_SUCCESS);
 
         Map<String, Object> lookup = new HashMap<>();
         lookup.put("rowKey", "row1");
@@ -115,4 +110,19 @@ public class TestHBase_1_1_2_ListLookupService {
         assertTrue(result.contains("v1"));
         assertTrue(result.contains("v2"));
     }
+
+    // Processor that does nothing just so we can create a TestRunner
+    private static class NoOpProcessor extends AbstractProcessor {
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+        }
+    }
+
 }

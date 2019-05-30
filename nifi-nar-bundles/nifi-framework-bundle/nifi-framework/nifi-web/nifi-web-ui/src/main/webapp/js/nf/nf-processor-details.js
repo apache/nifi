@@ -51,6 +51,11 @@
     'use strict';
 
     /**
+     * Configuration option variable for the nfProcessorDetails dialog
+     */
+    var config;
+
+    /**
      * Creates an option for the specified relationship name.
      *
      * @argument {object} relationship      The relationship
@@ -76,8 +81,13 @@
     return {
         /**
          * Initializes the processor details dialog.
+         *
+         * @param {options}   The configuration options object for the dialog
          */
-        init: function (supportsGoTo) {
+        init: function (options) {
+
+            //set the dialog window configuration options.
+            config = options;
 
             // initialize the properties tabs
             $('#processor-details-tabs').tabbs({
@@ -143,6 +153,11 @@
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
+
+                        //stop any synchronization on the status bar
+                        if(config.supportsStatusBar){
+                            $("#processor-details-status-bar").statusbar('disconnect');
+                        }
                     },
                     open: function () {
                         nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
@@ -150,9 +165,14 @@
                 }
             });
 
+            //apply the status bar if indicated
+            if(config.supportsStatusBar){
+                $("#processor-details-status-bar").statusbar();
+            }
+
             // initialize the properties
             $('#read-only-processor-properties').propertytable({
-                supportsGoTo: supportsGoTo,
+                supportsGoTo: config.supportsGoTo,
                 readOnly: true
             });
         },
@@ -255,6 +275,7 @@
                 var processor = processorResponse.component;
                 var historyResponse = historyResult[0];
                 var history = historyResponse.componentHistory;
+                var selection;
 
                 // load the properties
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
@@ -296,6 +317,70 @@
                     });
                 }
 
+                //Populate the status bar if the feature is enabled
+                if (config.supportsStatusBar && nfCommon.isDefinedAndNotNull(config.nfCanvasUtils)){
+
+                    //initialize the canvas synchronization
+                    $("#processor-details-status-bar").statusbar('observe',processor.id);
+
+                    //Fetch the component as a selection from the canvas
+                    selection = config.nfCanvasUtils.getSelectionById(processor.id);
+
+                    //Add the stop & configure button if appropriate
+                    if(nfCommon.isDefinedAndNotNull(config.nfActions) &&
+                        config.nfCanvasUtils.isProcessor(selection) &&
+                        config.nfCanvasUtils.canModify(selection)){
+
+                        //Declare a callback handler to perform should ProcessorConfiguration be invoked
+                        var cb = function(){
+                            var selectedTab = $('#processor-details-tabs').find('.selected-tab').text();
+                            $('#processor-configuration-tabs').find('.tab:contains("'+selectedTab+'")').trigger('click');
+                            $('#processor-details').modal('hide');
+                            $("#processor-details-status-bar").statusbar('showButtons');
+                        };
+
+                        $("#processor-details-status-bar").statusbar('buttons',[{
+                            buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Stop & Configure</span>',
+                            clazz: 'button button-icon auto-width',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return !config.nfCanvasUtils.isStoppable(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    //execute the stop and open the configuration modal
+                                    $("#processor-details-status-bar").statusbar('hideButtons');
+                                    config.nfActions.stopAndConfigure(selection,cb);
+                                }
+                            }
+                        },
+                        {
+                            buttonText: 'Configure',
+                            clazz: 'fa fa-cog button-icon',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return config.nfCanvasUtils.isStoppable(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    //execute the stop and open the configuration modal
+                                    $("#processor-details-status-bar").statusbar('hideButtons');
+                                    config.nfActions.showConfiguration(selection,cb);
+                                }
+                            }
+                        }]);
+                    }
+
+                }
+
                 // show the dialog
                 $('#processor-details').modal('setButtonModel', buttons).modal('show');
 
@@ -307,16 +392,7 @@
                 if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                     processorRelationships.css('border-width', '1px');
                 }
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Error',
-                        dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                    });
-                } else {
-                    nfErrorHandler.handleAjaxError(xhr, status, error);
-                }
-            });
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

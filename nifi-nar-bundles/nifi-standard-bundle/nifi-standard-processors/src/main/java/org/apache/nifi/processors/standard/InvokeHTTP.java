@@ -30,7 +30,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.internal.tls.OkHostnameVerifier;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -54,6 +53,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -154,6 +154,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
+
+    // Set of HTTP header names explicitly excluded from requests.
+    private static final Map<String, String> excludedHeaders = new HashMap<String, String>();
 
     public static final String HTTP = "http";
     public static final String HTTPS = "https";
@@ -360,15 +363,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Trusted Hostname")
-            .description("Bypass the normal truststore hostname verifier to allow the specified remote hostname as trusted. "
-                    + "Enabling this property has MITM security implications, use wisely. Will still accept other connections based "
-                    + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
             .name("Add Response Headers to Request")
             .description("Enabling this property saves all the response headers to the original request. This may be when the response headers are needed "
@@ -438,7 +432,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_PUT_ATTRIBUTE_MAX_LENGTH,
             PROP_DIGEST_AUTH,
             PROP_OUTPUT_RESPONSE_REGARDLESS,
-            PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
@@ -491,6 +484,13 @@ public final class InvokeHTTP extends AbstractProcessor {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(RFC_1123).withLocale(Locale.US).withZoneUTC();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    protected void init(ProcessorInitializationContext context) {
+        excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
+                             "Update processor to use the SSLContextService instead. " +
+                             "See the Access Policies section in the System Administrator's Guide.");
+
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -573,6 +573,14 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
+        for (String headerKey : validationContext.getProperties().values()) {
+            if (excludedHeaders.containsKey(headerKey)) {
+                // We're not using the header message format string here, just this
+                // static validation message string:
+                results.add(new ValidationResult.Builder().subject(headerKey).valid(false).explanation("Matches excluded HTTP header name").build());
+            }
+        }
+
         return results;
     }
 
@@ -629,12 +637,6 @@ public final class InvokeHTTP extends AbstractProcessor {
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
             setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
-        }
-
-        // check the trusted hostname property and override the HostnameVerifier
-        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).getValue());
-        if (!trustedHostname.isEmpty()) {
-            okHttpClientBuilder.hostnameVerifier(new OverrideHostnameVerifier(trustedHostname, OkHostnameVerifier.INSTANCE));
         }
 
         setAuthenticator(okHttpClientBuilder, context);
@@ -1021,8 +1023,15 @@ public final class InvokeHTTP extends AbstractProcessor {
             requestBuilder = requestBuilder.addHeader("Date", DATE_FORMAT.print(System.currentTimeMillis()));
         }
 
+        final ComponentLog logger = getLogger();
         for (String headerKey : dynamicPropertyNames) {
             String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+            // don't include any of the excluded headers, log instead
+            if (excludedHeaders.containsKey(headerKey)) {
+                logger.warn(excludedHeaders.get(headerKey), new Object[]{headerKey});
+                continue;
+            }
             requestBuilder = requestBuilder.addHeader(headerKey, headerValue);
         }
 
