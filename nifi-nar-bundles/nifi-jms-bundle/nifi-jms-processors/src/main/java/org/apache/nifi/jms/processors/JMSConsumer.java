@@ -48,8 +48,9 @@ final class JMSConsumer extends JMSWorker {
 
     JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);
-        logger.debug("Created Message Consumer for '{}'", new Object[] { jmsTemplate });
+        logger.debug("Created Message Consumer for '{}'", new Object[] {jmsTemplate});
     }
+
 
     private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared, final String subscriberName) throws JMSException {
         final boolean isPubSub = JMSConsumer.this.jmsTemplate.isPubSubDomain();
@@ -78,7 +79,9 @@ final class JMSConsumer extends JMSWorker {
         }
     }
 
-    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final String charset, final ConsumerCallback consumerCallback) {
+
+    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final String charset,
+                        final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(final Session session) throws JMSException {
@@ -97,13 +100,13 @@ final class JMSConsumer extends JMSWorker {
                             } else if (message instanceof BytesMessage) {
                                 messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
                             } else {
-                                processLog.error("Received a JMS Message that was neither a TextMessage nor a BytesMessage [{}]; will skip this message.", new Object[] { message });
+                                processLog.error("Received a JMS Message that was neither a TextMessage nor a BytesMessage [{}]; will skip this message.", new Object[] {message});
                                 acknowledge(message, session);
                                 return null;
                             }
                         } catch (final MessageConversionException mce) {
                             processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.",
-                                new Object[] { message }, mce);
+                                new Object[] {message}, mce);
                             acknowledge(message, session);
                             return null;
                         }
@@ -145,6 +148,7 @@ final class JMSConsumer extends JMSWorker {
         }
     }
 
+
     @SuppressWarnings("unchecked")
     private Map<String, String> extractMessageProperties(final Message message) {
         final Map<String, String> properties = new HashMap<>();
@@ -159,6 +163,7 @@ final class JMSConsumer extends JMSWorker {
         }
         return properties;
     }
+
 
     private Map<String, String> extractMessageHeaders(final Message message) throws JMSException {
         final Map<String, String> messageHeaders = new HashMap<>();
@@ -185,17 +190,20 @@ final class JMSConsumer extends JMSWorker {
         return messageHeaders;
     }
 
+
     private String retrieveDestinationName(Destination destination, String headerName) {
         String destinationName = null;
         if (destination != null) {
             try {
-                destinationName = (destination instanceof Queue) ? ((Queue) destination).getQueueName() : ((Topic) destination).getTopicName();
+                destinationName = (destination instanceof Queue) ? ((Queue) destination).getQueueName()
+                        : ((Topic) destination).getTopicName();
             } catch (JMSException e) {
                 this.processLog.warn("Failed to retrieve Destination name for '" + headerName + "' header", e);
             }
         }
         return destinationName;
     }
+
 
     static class JMSResponse {
         private final byte[] messageBody;
@@ -223,7 +231,8 @@ final class JMSConsumer extends JMSWorker {
     }
 
     /**
-     * Callback to be invoked while executing inJMS call (the call within the live JMS session)
+     * Callback to be invoked while executing inJMS call (the call within the
+     * live JMS session)
      */
     static interface ConsumerCallback {
         void accept(JMSResponse response);
