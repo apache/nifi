@@ -20,7 +20,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 </parent>
 <properties>
         <prometheus.version>0.3.0</prometheus.version>
-        <yammer.metrics.version>2.2.0</yammer.metrics.version>
 </properties>
 
 <artifactId>nifi-prometheus-reporting-task</artifactId>
@@ -28,9 +27,9 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 
 <dependencies>
         <dependency>
-                <groupId>com.yammer.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>${yammer.metrics.version}</version>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -54,7 +53,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
                <version>${prometheus.version}</version>
         </dependency>
         <!-- Exposition servlet -->
-       <dependency>
+        <dependency>
                 <groupId>io.prometheus</groupId>
                 <artifactId>simpleclient_servlet</artifactId>
                 <version>${prometheus.version}</version>

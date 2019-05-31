@@ -35,7 +35,6 @@ import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Test class for {@link GraphiteMetricReporterService}.
@@ -143,7 +142,6 @@ public class GraphiteMetricReporterServiceTest {
         testedService = new TestableGraphiteMetricReporterService();
         runner.addControllerService(SERVICE_IDENTIFIER, testedService);
         setServiceProperties(TEST_HOST, TEST_PORT, TEST_CHARSET, METRIC_NAMES_PREFIX);
-        when(graphiteSenderMock.isConnected()).thenReturn(false);
         runner.enableControllerService(testedService);
 
         ScheduledReporter createdReporter = testedService.createReporter(metricRegistryStub);

@@ -21,10 +21,10 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AtomicDouble;
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -60,7 +60,7 @@ public class TestDataDogReportingTask {
     private ReportingContext context;
     private ReportingInitializationContext initContext;
     private ConfigurationContext configurationContext;
-    private volatile VirtualMachineMetrics virtualMachineMetrics;
+    private volatile JmxJvmMetrics virtualMachineMetrics;
     private Logger logger;
 
     @Before
@@ -92,7 +92,7 @@ public class TestDataDogReportingTask {
         //Mockito.when(initContext.getLogger()).thenReturn(logger);
         metricsMap = new ConcurrentHashMap<>();
         metricRegistry = Mockito.mock(MetricRegistry.class);
-        virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        virtualMachineMetrics = JmxJvmMetrics.getInstance();
         metricsService = Mockito.mock(MetricsService.class);
 
     }
@@ -106,7 +106,7 @@ public class TestDataDogReportingTask {
         dataDogReportingTask.onTrigger(context);
 
         verify(metricsService, atLeast(1)).getProcessorMetrics(Mockito.<ProcessorStatus>any());
-        verify(metricsService, atLeast(1)).getJVMMetrics(Mockito.<VirtualMachineMetrics>any());
+        verify(metricsService, atLeast(1)).getJVMMetrics(Mockito.<JmxJvmMetrics>any());
     }
 
 

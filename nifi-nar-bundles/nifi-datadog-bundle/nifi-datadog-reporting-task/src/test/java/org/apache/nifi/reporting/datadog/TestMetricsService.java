@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.reporting.datadog;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.reporting.datadog.metrics.MetricNames;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
 import org.junit.Assert;
@@ -91,7 +91,7 @@ public class TestMetricsService {
     //test JVM status metric retrieving
     @Test
     public void testGetVirtualMachineMetrics() {
-        final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        final JmxJvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
 
         final Map<String, Double> metrics = metricsService.getJVMMetrics(virtualMachineMetrics);
         Assert.assertTrue(metrics.containsKey(MetricNames.JVM_UPTIME));

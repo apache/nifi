@@ -48,6 +48,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
@@ -55,8 +57,6 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
-
-import com.yammer.metrics.core.VirtualMachineMetrics;
 
 @Tags({"status", "metrics", "site", "site to site"})
 @CapabilityDescription("Publishes same metrics as the Ambari Reporting task using the Site To Site protocol.")
@@ -150,7 +150,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             return;
         }
 
-        final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
 
