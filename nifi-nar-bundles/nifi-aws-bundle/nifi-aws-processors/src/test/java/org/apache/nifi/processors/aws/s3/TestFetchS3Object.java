@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -169,6 +170,37 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
         Mockito.doThrow(new AmazonS3Exception("NoSuchBucket")).when(mockS3Client).getObject(Mockito.any());
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testGetObjectReturnsNull() throws IOException {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(null);
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testFlowFileAccessExceptionGoesToFailure() throws IOException {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+
+
+        AmazonS3Exception amazonException = new AmazonS3Exception("testing");
+        Mockito.doThrow(new FlowFileAccessException("testing nested", amazonException)).when(mockS3Client).getObject(Mockito.any());
 
         runner.run(1);
 

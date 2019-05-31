@@ -144,8 +144,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
     private volatile LogLevel bulletinLevel = LogLevel.WARN;
 
-    private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
-                                                   // ??????? NOT any more
+    private SchedulingStrategy schedulingStrategy; // guarded by synchronized keyword
     private ExecutionNode executionNode;
     private final Map<Thread, ActiveTask> activeThreads = new HashMap<>(48);
     private final int hashCode;
