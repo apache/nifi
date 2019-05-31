@@ -22,4 +22,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>nifi-metrics-reporter-service-api</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics</artifactId>
+        </dependency>
+    </dependencies>
 </project>

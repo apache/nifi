@@ -25,12 +25,12 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
-
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.processor.DataUnit;
 
 public class PrometheusMetricsUtil {
 
@@ -398,8 +398,8 @@ public class PrometheusMetricsUtil {
         return NIFI_REGISTRY;
     }
 
-    public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics, String instanceId) {
-        JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed());
+    public static CollectorRegistry createJvmMetrics(JvmMetrics jvmMetrics, String instanceId) {
+        JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed(DataUnit.B));
         JVM_HEAP_USAGE.labels(instanceId).set(jvmMetrics.heapUsage());
         JVM_HEAP_NON_USAGE.labels(instanceId).set(jvmMetrics.nonHeapUsage());
 
