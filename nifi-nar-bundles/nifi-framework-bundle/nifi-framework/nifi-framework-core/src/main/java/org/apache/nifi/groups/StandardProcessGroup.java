@@ -4230,6 +4230,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         port.setComments(proposed.getComments());
         port.setName(name);
         port.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+        port.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
     }
 
     private Port addInputPort(final ProcessGroup destination, final VersionedPort proposed, final String componentIdSeed, final String temporaryName) {
