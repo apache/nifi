@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -68,6 +51,24 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
@@ -82,8 +83,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Lock writeLock = rwLock.writeLock();
 
     private final Set<ComponentNode> referencingComponents = new HashSet<>();
-    private String comment;
-    private ProcessGroup processGroup;
+    private volatile String comment;
+    private volatile ProcessGroup processGroup;
 
     private final AtomicBoolean active;
 
@@ -207,24 +208,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public ProcessGroup getProcessGroup() {
-        readLock.lock();
-        try {
-            return processGroup;
-        } finally {
-            readLock.unlock();
-        }
+        return processGroup;
     }
 
     @Override
     public void setProcessGroup(final ProcessGroup group) {
-        writeLock.lock();
-        try {
-            this.processGroup = group;
-            LOG.debug("Resetting Validation State of {} due to setting process group", this);
-            resetValidationState();
-        } finally {
-            writeLock.unlock();
-        }
+        this.processGroup = group;
+        LOG.debug("Resetting Validation State of {} due to setting process group", this);
+        resetValidationState();
     }
 
     @Override
@@ -339,22 +330,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String getComments() {
-        readLock.lock();
-        try {
-            return comment;
-        } finally {
-            readLock.unlock();
-        }
+        return comment;
     }
 
     @Override
     public void setComments(final String comment) {
-        writeLock.lock();
-        try {
-            this.comment = CharacterFilterUtils.filterInvalidXmlCharacters(comment);
-        } finally {
-            writeLock.unlock();
-        }
+        this.comment = CharacterFilterUtils.filterInvalidXmlCharacters(comment);
     }
 
     @Override
