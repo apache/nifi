@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -220,13 +221,15 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             RecordPath ipPath = cache.getCompiled(rawIpPath);
 
             RecordReader reader = readerFactory.createRecordReader(input, is, getLogger());
-            RecordSchema schema = writerFactory.getSchema(input.getAttributes(), null);
+            RecordSchema schema = writerFactory.getSchema(input.getAttributes(), reader.getSchema());
             RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, os);
             RecordSetWriter notFoundWriter = splitOutput ? writerFactory.createWriter(getLogger(), schema, osNotFound) : null;
             Record record;
             Relationship targetRelationship = REL_NOT_FOUND;
             writer.beginRecordSet();
 
+            int foundCount = 0;
+            int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
                 CityResponse response = geocode(ipPath, record, dbReader);
                 boolean wasEnriched = enrichRecord(response, record, paths);
@@ -235,24 +238,38 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 }
                 if (!splitOutput || (splitOutput && wasEnriched)) {
                     writer.write(record);
+                    foundCount++;
                 } else {
                     notFoundWriter.write(record);
+                    notFoundCount++;
                 }
             }
             writer.finishRecordSet();
             writer.close();
+
+            if (notFoundWriter != null) {
+                notFoundWriter.close();
+                notFoundWriter.close();
+            }
+
             is.close();
             os.close();
             if (osNotFound != null) {
                 osNotFound.close();
             }
 
+            output = session.putAllAttributes(output, buildAttributes(foundCount, writer.getMimeType()));
             if (!splitOutput) {
                 session.transfer(output, targetRelationship);
                 session.remove(input);
             } else {
+                if (notFoundCount > 0) {
+                    notFound = session.putAllAttributes(notFound, buildAttributes(notFoundCount, writer.getMimeType()));
+                    session.transfer(notFound, REL_NOT_FOUND);
+                } else {
+                    session.remove(notFound);
+                }
                 session.transfer(output, REL_FOUND);
-                session.transfer(notFound, REL_NOT_FOUND);
                 session.transfer(input, REL_ORIGINAL);
                 session.getProvenanceReporter().modifyContent(notFound);
             }
@@ -262,6 +279,14 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             session.rollback();
             context.yield();
         }
+    }
+
+    private Map<String, String> buildAttributes(int recordCount, String mimeType) {
+        Map<String, String> retVal = new HashMap<>();
+        retVal.put(CoreAttributes.MIME_TYPE.key(), mimeType);
+        retVal.put("record.count", String.valueOf(recordCount));
+
+        return retVal;
     }
 
     private CityResponse geocode(RecordPath ipPath, Record record, DatabaseReader reader) throws Exception {
