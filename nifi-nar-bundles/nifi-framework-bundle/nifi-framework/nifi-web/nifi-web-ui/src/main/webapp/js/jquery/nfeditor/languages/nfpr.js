@@ -478,8 +478,31 @@
             return completions;
         },
 
+        /**
+         * Returns the language id.
+         *
+         * @returns {string} language id
+         */
         getLanguageId: function () {
             return 'nfpr';
+        },
+
+        /**
+         * Returns whether this editor mode supports EL.
+         *
+         * @returns {boolean}   Whether the editor supports EL
+         */
+        supportsEl: function () {
+            return false;
+        },
+
+        /**
+         * Returns whether this editor mode supports parameter reference.
+         *
+         * @returns {boolean}   Whether the editor supports parameter reference
+         */
+        supportsParameterReference: function () {
+            return true;
         }
     };
 }));

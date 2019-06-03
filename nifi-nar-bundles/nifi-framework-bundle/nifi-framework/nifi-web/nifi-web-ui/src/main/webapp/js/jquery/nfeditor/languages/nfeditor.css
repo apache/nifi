@@ -49,3 +49,83 @@ span.el-argument-name {
 div.nf-tooltip {
     max-width: 350px;
 }
+
+div.mode-hint-tip {
+    z-index: 14000;
+    width: 455px;
+    padding: 10px;
+    position: absolute;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    background-color: #fff;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+    font-size: 13px;
+    display: none;
+}
+
+div.mode-hint-tip > :first-child {
+    margin-bottom: 15px;
+}
+
+div.mode-hint-tip-title-container {
+    display: flex;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+div.mode-hint-tip-title-container > :first-child {
+    width: 10px;
+    margin-right: 10px;
+    color: #898989;
+}
+
+div.mode-hint-tip-title-container > .mode-supported {
+    color: #151515;
+}
+
+div.mode-hint-tip-title-container > .mode-unsupported {
+    color: #676767;
+}
+
+div.mode-hint-tip-description-container {
+    margin-left: 20px;
+}
+
+div.mode-hint-tip-description-container .hint-pattern {
+    padding: 0 2px;
+    letter-spacing: 1px;
+    font-weight: 400;
+    background-color: rgba(20, 145, 193, 0.12);
+}
+
+div.mode-hint-tip-description-container .hint-keystroke {
+    font-weight: 300;
+    font-style: italic;
+}
+
+div.mode-hint-container {
+    margin-top: 5px;
+    display: flex;
+    justify-content: flex-end;
+    height: 13px;
+    font-size: 11px;
+    color: #898989;
+}
+
+div.mode-hint-element {
+    cursor: default;
+    display: flex;
+    justify-content: space-between;
+    width: 96px;
+}
+
+div.mode-hint {
+    display: flex;
+    font-weight: bold;
+    font-style: italic;
+}
+
+div.mode-hint-value {
+    margin-left: 5px;
+    color: #898989;
+}
