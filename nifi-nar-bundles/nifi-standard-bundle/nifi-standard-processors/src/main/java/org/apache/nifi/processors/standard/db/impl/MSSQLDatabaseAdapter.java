@@ -83,8 +83,7 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
         if (StringUtils.isEmpty(columnForPartitioning)) {
             if (offset != null && limit != null && limit > 0) {
                 if (StringUtils.isEmpty(orderByClause)) {
-                    // Add a default ORDER BY clause using the newid() function
-                    query.append(" ORDER BY newid()");
+                    throw new IllegalArgumentException("Order by clause cannot be null or empty when using row paging");
                 }
 
                 query.append(" OFFSET ");
