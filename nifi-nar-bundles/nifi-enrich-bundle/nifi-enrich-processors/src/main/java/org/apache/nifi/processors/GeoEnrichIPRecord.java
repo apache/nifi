@@ -228,6 +228,10 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             Relationship targetRelationship = REL_NOT_FOUND;
             writer.beginRecordSet();
 
+            if (notFoundWriter != null) {
+                notFoundWriter.beginRecordSet();
+            }
+
             int foundCount = 0;
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
@@ -248,7 +252,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             writer.close();
 
             if (notFoundWriter != null) {
-                notFoundWriter.close();
+                notFoundWriter.finishRecordSet();
                 notFoundWriter.close();
             }
 
