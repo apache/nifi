@@ -209,7 +209,7 @@ public class TestStandardPreparedQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("hello", "Hello");
         attributes.put("boat", "World!");
-        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):matches('strict'):not():or(${hello:contains('o')})}");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):matches('strict'):or(${hello:contains('o')})}");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
         attributes.put("hello", "hi");
         assertEquals("false", prepared.evaluateExpressions(attributes, null));

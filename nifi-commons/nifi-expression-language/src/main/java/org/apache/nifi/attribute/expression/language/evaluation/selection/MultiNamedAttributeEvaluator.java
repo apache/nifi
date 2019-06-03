@@ -72,7 +72,8 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     }
     
     @Override
-    public void resetEvaluator() {
+    public void cleanUpState() {
         evaluationCount = 0;
     }
+
 }

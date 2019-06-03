@@ -52,9 +52,9 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;
     }
-
+    
     @Override
-    public void resetEvaluator() {
+    public void cleanUpState() {
         count = 0;
     }
 

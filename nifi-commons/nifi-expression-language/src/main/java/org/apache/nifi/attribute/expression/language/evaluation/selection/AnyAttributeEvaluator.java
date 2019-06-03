@@ -36,30 +36,24 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     @Override
     public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
         QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes);
-        try {
-            Boolean result = attributeValueQuery.getValue();
-            if (result == null) {
-                return new BooleanQueryResult(false);
-            }
-    
-            if (result) {
-                return new BooleanQueryResult(true);
-            }
-            
-            QueryResult<Boolean> queryResult = new BooleanQueryResult(false);
-    
-            while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
-                attributeValueQuery = booleanEvaluator.evaluate(attributes);
-                result = attributeValueQuery.getValue();
-                if (result != null && result) {
-                    queryResult = attributeValueQuery;
-                }
-            }
-    
-            return queryResult;
-        } finally {
-            multiAttributeEvaluator.resetEvaluator();
+        Boolean result = attributeValueQuery.getValue();
+        if (result == null) {
+            return new BooleanQueryResult(false);
         }
+
+        if (result) {
+            return new BooleanQueryResult(true);
+        }
+
+        while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
+            attributeValueQuery = booleanEvaluator.evaluate(attributes);
+            result = attributeValueQuery.getValue();
+            if (result != null && result) {
+                return attributeValueQuery;
+            }
+        }
+
+        return new BooleanQueryResult(false);
     }
 
     @Override

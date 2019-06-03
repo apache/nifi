@@ -57,10 +57,11 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;
     }
-
+    
     @Override
-    public void resetEvaluator() {
+    public void cleanUpState() {
         evalCount = 0;
         sb.setLength(0);
     }
+
 }

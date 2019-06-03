@@ -67,4 +67,8 @@ public class AndEvaluator extends BooleanEvaluator {
         return subjectEvaluator;
     }
 
+    @Override
+    public void cleanUpState() {
+        rhsResult = null;
+    }
 }

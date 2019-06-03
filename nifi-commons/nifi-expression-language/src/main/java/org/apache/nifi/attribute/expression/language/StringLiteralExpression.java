@@ -32,4 +32,5 @@ public class StringLiteralExpression implements Expression {
     public String evaluate(Map<String, String> variables, AttributeValueDecorator decorator, Map<String, String> stateVariables) {
         return value;
     }
+
 }

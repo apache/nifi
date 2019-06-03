@@ -36,28 +36,23 @@ public class AllAttributesEvaluator extends BooleanEvaluator implements Iteratin
     @Override
     public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
         QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes);
-        try {
-            Boolean result = attributeValueQuery.getValue();
-            if (result == null) {
-                return new BooleanQueryResult(false);
-            }
-    
-            if (!result) {
-                return new BooleanQueryResult(false);
-            }
-            QueryResult<Boolean> queryResult = new BooleanQueryResult(true);
-            while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
-                attributeValueQuery = booleanEvaluator.evaluate(attributes);
-                result = attributeValueQuery.getValue();
-                if (result != null && !result) {
-                    queryResult = attributeValueQuery;
-                }
-            }
-    
-            return queryResult;
-        } finally {
-            multiAttributeEvaluator.resetEvaluator();
+        Boolean result = attributeValueQuery.getValue();
+        if (result == null) {
+            return new BooleanQueryResult(false);
         }
+
+        if (!result) {
+            return new BooleanQueryResult(false);
+        }
+        while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
+            attributeValueQuery = booleanEvaluator.evaluate(attributes);
+            result = attributeValueQuery.getValue();
+            if (result != null && !result) {
+                return attributeValueQuery;
+            }
+        }
+
+        return new BooleanQueryResult(true);
     }
 
     @Override

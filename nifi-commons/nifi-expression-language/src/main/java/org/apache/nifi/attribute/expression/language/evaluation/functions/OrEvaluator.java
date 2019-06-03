@@ -66,5 +66,10 @@ public class OrEvaluator extends BooleanEvaluator {
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;
     }
+    
+    @Override
+    public void cleanUpState() {
+        rhsResult = null;
+    }
 
 }

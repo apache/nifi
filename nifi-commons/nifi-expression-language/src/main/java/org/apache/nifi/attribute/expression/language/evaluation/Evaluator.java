@@ -41,4 +41,12 @@ public interface Evaluator<T> {
      * @return the token that caused this Evaluator to be created
      */
     String getToken();
+    
+    /**
+     * Override if the evaluator has state that should be cleaned up between individual
+     * calls with different attributes
+     */
+    default void cleanUpState() {
+        
+    }
 }
