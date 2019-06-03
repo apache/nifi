@@ -90,6 +90,49 @@
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
 
+    var EL_SUPPORTED_TITLE = '<div>Expression Language (EL) supported</div>';
+    var EL_SUPPORTED_DESCRIPTION = '<div>After beginning with the start delimiter <span class="hint-pattern">${</span> use the keystroke '
+        + '<span class="hint-keystroke">control+space</span> to see a list of available functions.</div>';
+    var EL_UNSUPPORTED_TITLE = '<div>Expression Language (EL) not supported</div>';
+
+    var PARAM_SUPPORTED_TITLE = '<div>Parameters (PARAM) supported</div>';
+    var PARAM_SUPPORTED_DESCRIPTION = '<div>After beginning with the start delimiter <span class="hint-pattern">#{</span> use the keystroke '
+        + '<span class="hint-keystroke">control+space</span> to see a list of available parameters.</div>';
+    var PARAM_UNSUPPORTED_TITLE = '<div>Parameters (PARAM) not supported</div>';
+
+    var getSupportTip = function (isEl, isSupported) {
+        var supportContainer = $('<div></div>');
+
+        var supportTitleContainer = $('<div></div>')
+            .addClass('mode-hint-tip-title-container')
+            .appendTo(supportContainer);
+
+        if (isSupported) {
+            $('<div></div>')
+                .addClass('fa fa-check')
+                .appendTo(supportTitleContainer);
+            $(isEl ? EL_SUPPORTED_TITLE : PARAM_SUPPORTED_TITLE)
+                .addClass('mode-supported')
+                .appendTo(supportTitleContainer);
+
+            var supportDescriptionContainer = $('<div></div>')
+                .addClass('mode-hint-tip-description-container')
+                .appendTo(supportContainer);
+
+            $(isEl ? EL_SUPPORTED_DESCRIPTION : PARAM_SUPPORTED_DESCRIPTION)
+                .appendTo(supportDescriptionContainer);
+        } else {
+            $('<div></div>')
+                .addClass('fa fa-ban')
+                .appendTo(supportTitleContainer);
+            $(isEl ? EL_UNSUPPORTED_TITLE : PARAM_UNSUPPORTED_TITLE)
+                .addClass('mode-unsupported')
+                .appendTo(supportTitleContainer);
+        }
+
+        return supportContainer;
+    };
+
     var getNfEditor = function (getMode) {
         return function (args) {
             var scope = this;
@@ -99,6 +142,7 @@
             var isEmpty;
             var wrapper;
             var editor;
+            var tip;
 
             this.init = function () {
                 var container = $('body');
@@ -107,6 +151,8 @@
                 var gridContainer = $(args.grid.getContainerNode());
                 var descriptors = gridContainer.data('descriptors');
                 propertyDescriptor = descriptors[args.item.property];
+
+                var mode = getMode(propertyDescriptor);
 
                 // determine if this is a sensitive property
                 var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -128,9 +174,64 @@
                         'cursor': 'move',
                         'transform': 'translate3d(0px, 0px, 0px)'
                     }).draggable({
-                        cancel: '.button, .nf-editor, .string-check-container > *',
+                        cancel: '.button, .mode-hint-element, .nf-editor, .string-check-container > *',
                         containment: 'parent'
                     }).appendTo(container);
+
+                // create the tip
+                tip = $('<div></div>')
+                    .addClass('mode-hint-tip')
+                    .appendTo(container);
+
+                var supportsEl = mode.supportsEl();
+                var supportsParameterReference = mode.supportsParameterReference();
+                tip.append(getSupportTip(true, supportsEl));
+                tip.append(getSupportTip(false, supportsParameterReference));
+
+                // create the mode hint
+                var modeHintContainer = $('<div></div>')
+                    .addClass('mode-hint-container')
+                    .appendTo(wrapper);
+                var modeHintElement = $('<div></div>')
+                    .addClass('mode-hint-element')
+                    .on('mouseenter', function () {
+                        var wrapperPosition = wrapper.position();
+                        var tipTop = wrapperPosition.top - tip.outerHeight() + 2;
+                        var tipLeft = wrapperPosition.left + wrapper.outerWidth() - tip.outerWidth() + 5;
+                        tip.css({
+                            top: tipTop + 'px',
+                            left: tipLeft + 'px'
+                        });
+                        tip.show();
+                    })
+                    .on('mouseleave', function () {
+                        tip.hide();
+                    })
+                    .appendTo(modeHintContainer);
+
+                // el hint
+                var elModeHintContainer = $('<div></div>')
+                    .addClass('mode-hint')
+                    .appendTo(modeHintElement);
+
+                $('<div>EL</div>')
+                    .appendTo(elModeHintContainer);
+                $('<div></div>')
+                    .addClass('mode-hint-value fa')
+                    .addClass(supportsEl ? 'fa-check' : 'fa-ban')
+                    .appendTo(elModeHintContainer);
+
+                // parameter hint
+                var paramModeHitContainer = $('<div></div>')
+                    .addClass('mode-hint')
+                    .appendTo(modeHintElement);
+
+                $('<div>PARAM</div>')
+                    .appendTo(paramModeHitContainer);
+                $('<div></div>')
+                    .addClass('mode-hint-value fa')
+                    .addClass(supportsParameterReference ? 'fa-check' : 'fa-ban')
+                    .appendTo(paramModeHitContainer);
 
                 var editorWidth = Math.max(args.position.width, EDITOR_MIN_WIDTH);
 
@@ -139,7 +240,7 @@
                     .addClass('nf-editor')
                     .appendTo(wrapper)
                     .nfeditor({
-                        languageMode: getMode(propertyDescriptor),
+                        languageMode: mode,
                         width: editorWidth,
                         minWidth: EDITOR_MIN_WIDTH,
                         minHeight: EDITOR_MIN_HEIGHT,
@@ -234,6 +335,7 @@
             this.destroy = function () {
                 editor.nfeditor('destroy');
                 wrapper.remove();
+                tip.remove();
             };
 
             this.focus = function () {
