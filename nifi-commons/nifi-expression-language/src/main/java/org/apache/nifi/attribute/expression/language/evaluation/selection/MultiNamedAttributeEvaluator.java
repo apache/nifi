@@ -70,4 +70,9 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     public List<String> getAttributeNames() {
         return attributeNames;
     }
+    
+    @Override
+    public void resetEvaluator() {
+        evaluationCount = 0;
+    }
 }

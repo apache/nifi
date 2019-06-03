@@ -20,4 +20,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public abstract class MultiAttributeEvaluator extends StringEvaluator implements IteratingEvaluator<String> {
     public abstract int getEvaluationType();
+    
+    public abstract void resetEvaluator();
 }

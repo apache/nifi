@@ -53,4 +53,9 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
         return subjectEvaluator;
     }
 
+    @Override
+    public void resetEvaluator() {
+        count = 0;
+    }
+
 }

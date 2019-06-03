@@ -84,4 +84,10 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
     public Evaluator<?> getLogicEvaluator() {
         return this;
     }
+
+    @Override
+    public void resetEvaluator() {
+        evaluationCount = 0;
+        attributeNames.clear();
+    }
 }

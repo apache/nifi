@@ -20,4 +20,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 
 public interface ReduceEvaluator<T> extends Evaluator<T> {
 
+    void resetEvaluator();
+
 }

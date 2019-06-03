@@ -40,6 +40,8 @@ public class MappingEvaluator<T> implements Evaluator<T> {
         while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
             result = mappingEvaluator.evaluate(attributes);
         }
+        multiAttributeEvaluator.resetEvaluator();
+        mappingEvaluator.resetEvaluator();
 
         return result;
     }
