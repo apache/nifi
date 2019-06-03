@@ -194,6 +194,28 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
+    public void testPreparedQueryWithAnd() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):isEmpty():not():and(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithOr() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):matches('strict'):not():or(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+    
+    @Test
     public void testVariableImpacted() {
         final Set<String> attr = new HashSet<>();
         attr.add("attr");
