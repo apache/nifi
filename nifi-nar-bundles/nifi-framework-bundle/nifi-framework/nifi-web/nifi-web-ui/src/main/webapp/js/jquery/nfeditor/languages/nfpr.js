@@ -57,6 +57,8 @@
         return parameterContainer;
     };
 
+    var parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
+
     var parameters = [];
     var parameterRegex = new RegExp('^$');
 
@@ -311,10 +313,8 @@
                         return null;
                     }
 
-                    // within a function
+                    // within a parameter reference
                     if (state.context === PARAMETER) {
-                        var parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
-
                         // attempt to extract a parameter name
                         var parameterName = stream.match(parameterKeyRegex, false);
 
