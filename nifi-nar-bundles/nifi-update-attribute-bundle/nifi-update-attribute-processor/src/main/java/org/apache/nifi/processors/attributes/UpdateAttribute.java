@@ -75,6 +75,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 @EventDriven
 @SideEffectFree
@@ -474,38 +476,44 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         Map<String, Action> defaultActions = this.defaultActions;
         List<FlowFile> flowFilesToTransfer = new LinkedList<>();
 
-        // if there is update criteria specified, evaluate it
-        if (criteria != null && evaluateCriteria(session, context, criteria, incomingFlowFile, matchedRules, stateInitialAttributes)) {
-            // apply the actions for each rule and transfer the flowfile
-            for (final Map.Entry<FlowFile, List<Rule>> entry : matchedRules.entrySet()) {
-                FlowFile match = entry.getKey();
-                final List<Rule> rules = entry.getValue();
-                boolean updateWorking = incomingFlowFile.equals(match);
+        try {
+            // if there is update criteria specified, evaluate it
+            if (criteria != null && evaluateCriteria(session, context, criteria, incomingFlowFile, matchedRules, stateInitialAttributes)) {
+                // apply the actions for each rule and transfer the flowfile
+                for (final Map.Entry<FlowFile, List<Rule>> entry : matchedRules.entrySet()) {
+                    FlowFile match = entry.getKey();
+                    final List<Rule> rules = entry.getValue();
+                    boolean updateWorking = incomingFlowFile.equals(match);
 
-                // execute each matching rule(s)
-                match = executeActions(session, context, rules, defaultActions, match, stateInitialAttributes, stateWorkingAttributes);
+                    // execute each matching rule(s)
+                    match = executeActions(session, context, rules, defaultActions, match, stateInitialAttributes, stateWorkingAttributes);
 
-                if (updateWorking) {
-                    incomingFlowFile = match;
+                    if (updateWorking) {
+                        incomingFlowFile = match;
+                    }
+
+                    if (debugEnabled) {
+                        logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{match, REL_SUCCESS.getName()});
+                    }
+
+                    // add the match to the list to transfer
+                    flowFilesToTransfer.add(match);
                 }
+            } else {
+                // Either we're running without any rules or the FlowFile didn't match any
+                incomingFlowFile = executeActions(session, context, null, defaultActions, incomingFlowFile, stateInitialAttributes, stateWorkingAttributes);
 
                 if (debugEnabled) {
-                    logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{match, REL_SUCCESS.getName()});
+                    logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{incomingFlowFile, REL_SUCCESS.getName()});
                 }
 
-                // add the match to the list to transfer
-                flowFilesToTransfer.add(match);
+                // add the flowfile to the list to transfer
+                flowFilesToTransfer.add(incomingFlowFile);
             }
-        } else {
-            // Either we're running without any rules or the FlowFile didn't match any
-            incomingFlowFile = executeActions(session, context, null, defaultActions, incomingFlowFile, stateInitialAttributes, stateWorkingAttributes);
+        } catch (Exception e){
+            logger.warn("Updating attributes failed for {}; reverting to original queue.", new Object[]{incomingFlowFile});
 
-            if (debugEnabled) {
-                logger.debug("Updated attributes for {}; transferring to '{}'", new Object[]{incomingFlowFile, REL_SUCCESS.getName()});
-            }
-
-            // add the flowfile to the list to transfer
-            flowFilesToTransfer.add(incomingFlowFile);
+            throw e;
         }
 
         if (stateInitialAttributes != null) {
@@ -651,62 +659,64 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
         // go through each action
         boolean debugEnabled = this.debugEnabled;
-        for (final Action action : actions.values()) {
-            String attribute = action.getAttribute();
-            if (DELETE_ATTRIBUTES_EXPRESSION_NAME.equals(attribute)) {
-                try {
-                    final String actionValue = action.getValue();
-                    final String regex = (actionValue == null) ? null :
-                            getPropertyValue(actionValue, context).evaluateAttributeExpressions(flowfile).getValue();
-                    if (regex != null) {
-                        Pattern pattern = Pattern.compile(regex);
-                        final Set<String> attributeKeys = flowfile.getAttributes().keySet();
-                        for (final String key : attributeKeys) {
-                            if (pattern.matcher(key).matches()) {
 
-                                // log if appropriate
-                                if (debugEnabled) {
-                                    logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this, key, flowfile, regex));
-                                }
+        // build delete attribute list
+        final PropertyValue deleteAttributes = context.getProperty(DELETE_ATTRIBUTES);
 
-                                attributesToDelete.add(key);
-                            }
-                        }
-                        // No point in updating if they will be removed
-                        attributesToUpdate.keySet().removeAll(attributesToDelete);
-                    }
-                } catch (final Exception e) {
-                    logger.error(String.format("Unable to delete attribute '%s' while processing FlowFile '%s' .", attribute, flowfile));
-                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, e), e);
-                }
-            } else {
-                boolean notDeleted = !attributesToDelete.contains(attribute);
-                boolean setStatefulAttribute = stateInitialAttributes != null && !attribute.equals("UpdateAttribute.matchedRule");
-
-                if (notDeleted || setStatefulAttribute) {
-                    try {
-                        String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
-                        newAttributeValue = canonicalValueLookup.get(newAttributeValue);
+        final String regex = (!deleteAttributes.isSet()) ? null :
+                deleteAttributes.evaluateAttributeExpressions(flowfile).getValue();
+        try {
+            if (regex != null) {
+                Pattern pattern = Pattern.compile(regex);
+                final Set<String> attributeKeys = flowfile.getAttributes().keySet();
+                for (final String key : attributeKeys) {
+                    if (pattern.matcher(key).matches()) {
 
                         // log if appropriate
                         if (debugEnabled) {
-                            logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, attribute, newAttributeValue, flowfile, ruleName));
+                            logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this, key, flowfile, regex));
                         }
 
-                        if (setStatefulAttribute) {
-                            stateWorkingAttributes.put(attribute, newAttributeValue);
-                        }
-
-                        // No point in updating if it will be removed
-                        if (notDeleted) {
-                            attributesToUpdate.put(attribute, newAttributeValue);
-                        }
-                        // Capture Exception thrown when evaluating the Expression Language
-                    } catch (final Exception e) {
-                        logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
-                                "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
-                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, e), e);
+                        attributesToDelete.add(key);
                     }
+                }
+                // No point in updating if they will be removed
+                attributesToUpdate.keySet().removeAll(attributesToDelete);
+            }
+        } catch (PatternSyntaxException e){
+            logger.error(String.format("Could not parse Delete Attributes regular expression '%s' on FlowFile %s because of %s", regex, flowfile, e.getLocalizedMessage()));
+            throw new ProcessException(String.format("Could not parse Delete Attributes regular expression '%s' because of %s", regex, e), e);
+        }
+
+        for (final Action action : actions.values()) {
+            String attribute = action.getAttribute();
+
+            boolean notDeleted = !attributesToDelete.contains(attribute);
+            boolean setStatefulAttribute = stateInitialAttributes != null && !attribute.equals("UpdateAttribute.matchedRule");
+
+            if (notDeleted || setStatefulAttribute) {
+                try {
+                    String newAttributeValue = getPropertyValue(action.getValue(), context).evaluateAttributeExpressions(flowfile, null, null, stateInitialAttributes).getValue();
+                    newAttributeValue = canonicalValueLookup.get(newAttributeValue);
+
+                    // log if appropriate
+                    if (debugEnabled) {
+                        logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, attribute, newAttributeValue, flowfile, ruleName));
+                    }
+
+                    if (setStatefulAttribute) {
+                        stateWorkingAttributes.put(attribute, newAttributeValue);
+                    }
+
+                    // No point in updating if it will be removed
+                    if (notDeleted) {
+                        attributesToUpdate.put(attribute, newAttributeValue);
+                    }
+                    // Capture Exception thrown when evaluating the Expression Language
+                } catch (final Exception e) {
+                    logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
+                            "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
+                    throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, e), e);
                 }
             }
         }
@@ -742,10 +752,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     // Gets the default actions.
     private Map<String, Action> getDefaultActions(final Map<PropertyDescriptor, String> properties) {
         final Map<String, Action> defaultActions = new HashMap<>();
+        final List<String> defaultPropertyNameList = getSupportedPropertyDescriptors()
+                .stream().map(p-> p.getName()).collect(Collectors.toList());
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            if(entry.getKey() != STORE_STATE && entry.getKey() != STATEFUL_VARIABLES_INIT_VALUE
-                    && entry.getKey() != CANONICAL_VALUE_LOOKUP_CACHE_SIZE) {
+            if(defaultPropertyNameList.stream().noneMatch(str -> str.equals(entry.getKey().getName()))) {
                 final Action action = new Action();
                 action.setAttribute(entry.getKey().getName());
                 action.setValue(entry.getValue());
