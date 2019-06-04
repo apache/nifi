@@ -53,7 +53,12 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedExceptionAction;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @EventDriven
@@ -66,7 +71,7 @@ import java.util.stream.Collectors;
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
 
 public class PutKudu extends AbstractKuduProcessor {
-  
+
     protected static final PropertyDescriptor TABLE_NAME = new Builder()
         .name("Table Name")
         .description("The name of the Kudu Table to put data into")
@@ -161,7 +166,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected OperationType operationType;
     protected SessionConfiguration.FlushMode flushMode;
-  
+
     protected int batchSize = 100;
     protected int ffbatch   = 1;
 
