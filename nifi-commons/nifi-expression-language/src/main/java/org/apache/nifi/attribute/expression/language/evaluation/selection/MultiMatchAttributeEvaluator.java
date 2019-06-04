@@ -90,5 +90,10 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
         evaluationCount = 0;
         attributeNames.clear();
     }
+    
+    @Override
+    public boolean cleanUpNeeded() {
+        return true;
+    }
 
 }

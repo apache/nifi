@@ -63,5 +63,10 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
         evalCount = 0;
         sb.setLength(0);
     }
+    
+    @Override
+    public boolean cleanUpNeeded() {
+        return true;
+    }
 
 }

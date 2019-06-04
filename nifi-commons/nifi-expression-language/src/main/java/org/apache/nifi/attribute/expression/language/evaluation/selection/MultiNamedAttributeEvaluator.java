@@ -76,4 +76,9 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
         evaluationCount = 0;
     }
 
+    @Override
+    public boolean cleanUpNeeded() {
+        return true;
+    }
+
 }

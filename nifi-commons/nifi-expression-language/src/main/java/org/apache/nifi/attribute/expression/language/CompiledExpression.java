@@ -17,6 +17,8 @@
 
 package org.apache.nifi.attribute.expression.language;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,12 +31,26 @@ public class CompiledExpression implements Expression {
     private final Tree tree;
     private final String expression;
     private final Set<Evaluator<?>> allEvaluators;
+    private final Evaluator<?>[] evaluatorsNeedingCleanUp;
 
     public CompiledExpression(final String expression, final Evaluator<?> rootEvaluator, final Tree tree, final Set<Evaluator<?>> allEvaluators) {
         this.rootEvaluator = rootEvaluator;
         this.tree = tree;
         this.expression = expression;
         this.allEvaluators = allEvaluators;
+        List<Evaluator<?>> needCleanUp = extractEvaluatorsNeedingCleanUp(allEvaluators);
+        evaluatorsNeedingCleanUp = needCleanUp.toArray(new Evaluator<?>[needCleanUp.size()]);
+        
+    }
+
+    private static List<Evaluator<?>> extractEvaluatorsNeedingCleanUp(final Set<Evaluator<?>> allEvaluators) {
+        List<Evaluator<?>> needCleanUp = new ArrayList<>();
+        for (Evaluator<?> evaluator : allEvaluators) {
+            if (evaluator.cleanUpNeeded()) {
+                needCleanUp.add(evaluator);
+            }
+        }
+        return needCleanUp;
     }
 
     public Evaluator<?> getRootEvaluator() {
@@ -56,7 +72,7 @@ public class CompiledExpression implements Expression {
     @Override
     public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
         String result = Query.evaluateExpression(tree, expression, rootEvaluator, variables, decorator, stateVariables);
-        for (Evaluator<?> evaluator : allEvaluators) {
+        for (Evaluator<?> evaluator : evaluatorsNeedingCleanUp) {
             evaluator.cleanUpState();
         }
         return result;

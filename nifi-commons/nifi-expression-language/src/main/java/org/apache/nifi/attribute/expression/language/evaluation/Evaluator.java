@@ -45,8 +45,17 @@ public interface Evaluator<T> {
     /**
      * Override if the evaluator has state that should be cleaned up between individual
      * calls with different attributes
+     * If you override this method make sure to return true in {@link #cleanUpNeeded()}
      */
     default void cleanUpState() {
         
+    }
+    /**
+     * Override if the evaluator has state that should be cleaned up between individual
+     * calls with different attributes. If this returns true, {@link #cleanUpState()} should
+     * be called between individual evaluations with different attributes.
+     */
+    default boolean cleanUpNeeded() {
+        return false;
     }
 }

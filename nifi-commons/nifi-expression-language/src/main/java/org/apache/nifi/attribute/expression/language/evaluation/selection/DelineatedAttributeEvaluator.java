@@ -91,4 +91,9 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
         delineatedValues = null;
         evaluationsLeft = 1;
     }
+    
+    @Override
+    public boolean cleanUpNeeded() {
+        return true;
+    }
 }

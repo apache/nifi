@@ -57,5 +57,10 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
     public void cleanUpState() {
         count = 0;
     }
+    
+    @Override
+    public boolean cleanUpNeeded() {
+        return true;
+    }
 
 }
