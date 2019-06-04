@@ -276,7 +276,7 @@ public  class ExecuteScript extends AbstractSessionFactoryProcessor implements S
 
         String term = context.getSearchTerm();
 
-        String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).getValue();
+        String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
 
         if (StringUtils.isBlank(script)) {
