@@ -1005,4 +1005,19 @@ public class TestUpdateAttribute {
         }
     }
 
+    @Test
+    public void testRouteToFailure() {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.FAILURE_ACTION, UpdateAttribute.FAILURE_ACTION_ROUTE);
+        runner.setProperty("attribute.1", "${test:substring(1, 20)}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("test", "chocolate");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertTransferCount(UpdateAttribute.REL_FAILURE, 1);
+    }
 }
