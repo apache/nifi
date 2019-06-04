@@ -1257,6 +1257,34 @@
                     columns: {
                         value: {
                             editor: getNfEditor(function (propertyDescriptor) {
+                                // set the available parameters
+                                // TODO - obtain actual parameters and filter accordingly to sensitivity
+                                nf.nfel.setParameters([
+                                    {
+                                        name: 'param 1',
+                                        sensitive: false,
+                                        description: 'this is the description for param 1',
+                                        value: 'value 1'
+                                    },
+                                    {
+                                        name: 'param 2',
+                                        sensitive: true,
+                                        description: 'this is the description for param 2',
+                                        value: 'value 2'
+                                    },
+                                    {
+                                        name: 'param 3',
+                                        sensitive: false,
+                                        value: 'value 3'
+                                    },
+                                    {
+                                        name: 'param 4',
+                                        sensitive: false,
+                                        description: 'this is the description for param 4',
+                                        value: 'value 4'
+                                    }
+                                ]);
+
                                 return nf.nfel;
                             })
                         }
