@@ -88,7 +88,7 @@ import java.util.Set;
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso({InvokeScriptedProcessor.class})
-public  class ExecuteScript extends AbstractSessionFactoryProcessor implements Searchable {
+public class ExecuteScript extends AbstractSessionFactoryProcessor implements Searchable {
 
     // Constants maintained for backwards compatibility
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
