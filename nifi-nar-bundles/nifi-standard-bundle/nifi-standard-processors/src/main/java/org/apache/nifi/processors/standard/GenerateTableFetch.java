@@ -158,7 +158,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .name("gen-table-custom-orderby-column")
             .displayName("Custom ORDER BY Column")
             .description("The name of a column to be used for ordering the results if Max-Value Columns are not provided and partitioning is enabled. This property is ignored if either "
-                    + "Max-Value Columns is set or Partition Size > 0. NOTE: If neither Max-Value Columns nor Custom ORDER BY Column is set, and Partition Size > 0, then depending on the "
+                    + "Max-Value Columns is set or Partition Size = 0. NOTE: If neither Max-Value Columns nor Custom ORDER BY Column is set, then depending on the "
                     + "the database/driver, the processor may report an error and/or the generated SQL may result in missing and/or duplicate rows. This is because without an explicit "
                     + "ordering, fetching each partition is done using an arbitrary ordering.")
             .required(false)
