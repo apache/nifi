@@ -88,7 +88,7 @@ public class TestStandardPreparedQuery {
         assertEquals("Hello, World, how are you?!", evaluate("Hello, ${audience}${comma}${question}!", attributes));
 
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAny() {
         final Map<String, String> attributes = new HashMap<>();
@@ -102,7 +102,7 @@ public class TestStandardPreparedQuery {
         attributes.put("comma", "hello");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAll() {
         final Map<String, String> attributes = new HashMap<>();
@@ -116,7 +116,7 @@ public class TestStandardPreparedQuery {
         attributes.put("question", "hello");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAnyMatching() {
         final Map<String, String> attributes = new HashMap<>();
@@ -130,7 +130,7 @@ public class TestStandardPreparedQuery {
         attributes.put("auditorium", "hello");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAllMatching() {
         final Map<String, String> attributes = new HashMap<>();
@@ -144,7 +144,7 @@ public class TestStandardPreparedQuery {
         attributes.remove("audience");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAnyDelineated() {
         final Map<String, String> attributes = new HashMap<>();
@@ -157,7 +157,7 @@ public class TestStandardPreparedQuery {
         attributes.put("number_list", "5");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionAllDelineated() {
         final Map<String, String> attributes = new HashMap<>();
@@ -170,7 +170,7 @@ public class TestStandardPreparedQuery {
         attributes.put("word_list", "bee");
         assertEquals("true", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionJoin() {
         final Map<String, String> attributes = new HashMap<>();
@@ -181,7 +181,7 @@ public class TestStandardPreparedQuery {
         attributes.put("boat", "Friend.");
         assertEquals("Hello Friend.", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testPreparedQueryWithReducingFunctionCount() {
         final Map<String, String> attributes = new HashMap<>();
@@ -214,7 +214,7 @@ public class TestStandardPreparedQuery {
         attributes.put("hello", "hi");
         assertEquals("false", prepared.evaluateExpressions(attributes, null));
     }
-    
+
     @Test
     public void testVariableImpacted() {
         final Set<String> attr = new HashSet<>();

@@ -40,7 +40,7 @@ public class CompiledExpression implements Expression {
         this.allEvaluators = allEvaluators;
         List<Evaluator<?>> needCleanUp = extractEvaluatorsNeedingCleanUp(allEvaluators);
         evaluatorsNeedingCleanUp = needCleanUp.toArray(new Evaluator<?>[needCleanUp.size()]);
-        
+
     }
 
     private static List<Evaluator<?>> extractEvaluatorsNeedingCleanUp(final Set<Evaluator<?>> allEvaluators) {

@@ -84,14 +84,14 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     public int getEvaluationType() {
         return evaluationType;
     }
-    
+
     @Override
     public void cleanUpState() {
         evaluationCount = 0;
         delineatedValues = null;
         evaluationsLeft = 1;
     }
-    
+
     @Override
     public boolean cleanUpNeeded() {
         return true;

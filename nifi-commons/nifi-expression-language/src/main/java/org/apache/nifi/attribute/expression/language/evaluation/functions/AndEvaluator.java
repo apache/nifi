@@ -71,7 +71,7 @@ public class AndEvaluator extends BooleanEvaluator {
     public void cleanUpState() {
         rhsResult = null;
     }
-    
+
     @Override
     public boolean cleanUpNeeded() {
         return true;

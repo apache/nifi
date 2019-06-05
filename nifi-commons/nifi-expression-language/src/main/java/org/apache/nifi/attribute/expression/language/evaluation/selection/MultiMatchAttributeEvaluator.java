@@ -84,13 +84,13 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
     public Evaluator<?> getLogicEvaluator() {
         return this;
     }
-    
+
     @Override
     public void cleanUpState() {
         evaluationCount = 0;
         attributeNames.clear();
     }
-    
+
     @Override
     public boolean cleanUpNeeded() {
         return true;

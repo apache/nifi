@@ -33,7 +33,8 @@ public interface Evaluator<T> {
     /**
      * Sets the token that was used in the query to cause this Evaluator to be created
      *
-     * @param token the token that caused this Evaluator to be created
+     * @param token
+     *            the token that caused this Evaluator to be created
      */
     void setToken(String token);
 
@@ -41,19 +42,20 @@ public interface Evaluator<T> {
      * @return the token that caused this Evaluator to be created
      */
     String getToken();
-    
+
     /**
-     * Override if the evaluator has state that should be cleaned up between individual
-     * calls with different attributes
-     * If you override this method make sure to return true in {@link #cleanUpNeeded()}
+     * Override if the evaluator has state that should be cleaned up between individual calls
+     * with different attributes If you override this method make sure to return true in
+     * {@link #cleanUpNeeded()}
      */
     default void cleanUpState() {
-        
+
     }
+
     /**
-     * Override if the evaluator has state that should be cleaned up between individual
-     * calls with different attributes. If this returns true, {@link #cleanUpState()} should
-     * be called between individual evaluations with different attributes.
+     * Override if the evaluator has state that should be cleaned up between individual calls
+     * with different attributes. If this returns true, {@link #cleanUpState()} should be
+     * called between individual evaluations with different attributes.
      */
     default boolean cleanUpNeeded() {
         return false;
