@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
@@ -27,9 +28,6 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     private final Evaluator<String> subjectEvaluator;
     private final Evaluator<String> delimiterEvaluator;
     private final int evaluationType;
-    private String[] delineatedValues;
-    private int evaluationCount = 0;
-    private int evaluationsLeft = 1;
 
     public DelineatedAttributeEvaluator(final Evaluator<String> subjectEvaluator, final Evaluator<String> delimiterEvaluator, final int evaluationType) {
         this.subjectEvaluator = subjectEvaluator;
@@ -38,31 +36,36 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        if (delineatedValues == null) {
-            final QueryResult<String> subjectValue = subjectEvaluator.evaluate(attributes);
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        State state = context.getState(this, State.class);
+        if (state == null) {
+            state = new State();
+            context.putState(this, state);
+        }
+        if (state.delineatedValues == null) {
+            final QueryResult<String> subjectValue = subjectEvaluator.evaluate(attributes, context);
             if (subjectValue.getValue() == null) {
-                evaluationsLeft = 0;
+                state.evaluationsLeft = 0;
                 return new StringQueryResult(null);
             }
 
-            final QueryResult<String> delimiterValue = delimiterEvaluator.evaluate(attributes);
-            if (subjectValue.getValue() == null) {
-                evaluationsLeft = 0;
+            final QueryResult<String> delimiterValue = delimiterEvaluator.evaluate(attributes, context);
+            if (delimiterValue.getValue() == null) {
+                state.evaluationsLeft = 0;
                 return new StringQueryResult(null);
             }
 
-            delineatedValues = subjectValue.getValue().split(delimiterValue.getValue());
+            state.delineatedValues = subjectValue.getValue().split(delimiterValue.getValue());
         }
 
-        if (evaluationCount > delineatedValues.length || delineatedValues.length == 0) {
-            evaluationsLeft = 0;
+        if (state.evaluationCount > state.delineatedValues.length || state.delineatedValues.length == 0) {
+            state.evaluationsLeft = 0;
             return new StringQueryResult(null);
         }
 
-        evaluationsLeft = delineatedValues.length - evaluationCount - 1;
+        state.evaluationsLeft = state.delineatedValues.length - state.evaluationCount - 1;
 
-        return new StringQueryResult(delineatedValues[evaluationCount++]);
+        return new StringQueryResult(state.delineatedValues[state.evaluationCount++]);
     }
 
     @Override
@@ -71,8 +74,13 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public int getEvaluationsRemaining() {
-        return evaluationsLeft;
+    public int getEvaluationsRemaining(final EvaluationContext context) {
+        State state = context.getState(this, State.class);
+        if (state == null) {
+            state = new State();
+            context.putState(this, state);
+        }
+        return state.evaluationsLeft;
     }
 
     @Override
@@ -83,5 +91,11 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
     @Override
     public int getEvaluationType() {
         return evaluationType;
+    }
+
+    private class State {
+        private String[] delineatedValues;
+        private int evaluationCount = 0;
+        private int evaluationsLeft = 1;
     }
 }

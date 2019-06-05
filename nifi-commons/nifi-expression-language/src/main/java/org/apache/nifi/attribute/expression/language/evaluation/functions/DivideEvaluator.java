@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -34,13 +35,13 @@ public class DivideEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
-        final Number subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final Number subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Number divide = divideValue.evaluate(attributes).getValue();
+        final Number divide = divideValue.evaluate(attributes, context).getValue();
         if (divide == null) {
             return new NumberQueryResult(null);
         }

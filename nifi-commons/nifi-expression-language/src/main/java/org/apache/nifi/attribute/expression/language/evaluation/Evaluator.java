@@ -22,11 +22,11 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public interface Evaluator<T> {
 
-    QueryResult<T> evaluate(Map<String, String> attributes);
+    QueryResult<T> evaluate(Map<String, String> attributes, EvaluationContext context);
 
     ResultType getResultType();
 
-    int getEvaluationsRemaining();
+    int getEvaluationsRemaining(EvaluationContext context);
 
     Evaluator<?> getSubjectEvaluator();
 

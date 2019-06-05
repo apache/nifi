@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AllAttributesEvaluator;
@@ -99,7 +100,7 @@ public class StandardPreparedQuery implements PreparedQuery {
                     final Evaluator<String> nameEval = attributeEval.getNameEvaluator();
 
                     if (nameEval instanceof StringLiteralEvaluator) {
-                        final String referencedVar = nameEval.evaluate(Collections.emptyMap()).getValue();
+                        final String referencedVar = nameEval.evaluate(Collections.emptyMap(), new EvaluationContext()).getValue();
                         variables.add(referencedVar);
                     }
                 } else if (evaluator instanceof AllAttributesEvaluator) {

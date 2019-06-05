@@ -16,28 +16,19 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
-import org.apache.nifi.expression.AttributeExpression.ResultType;
+import java.util.HashMap;
+import java.util.Map;
 
-public abstract class DecimalEvaluator implements Evaluator<Double> {
-    private String token;
+public class EvaluationContext {
 
-    @Override
-    public ResultType getResultType() {
-        return ResultType.DECIMAL;
+    private final Map<Evaluator<?>, Object> statePerEvaluator = new HashMap<>();
+
+    public <T> T getState(Evaluator<?> evaluator, Class<T> clazz) {
+        return clazz.cast(statePerEvaluator.get(evaluator));
     }
 
-    @Override
-    public int getEvaluationsRemaining(final EvaluationContext context) {
-        return 0;
+    public void putState(Evaluator<?> evaluator, Object state) {
+        statePerEvaluator.put(evaluator, state);
     }
 
-    @Override
-    public String getToken() {
-        return token;
-    }
-
-    @Override
-    public void setToken(final String token) {
-        this.token = token;
-    }
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -33,12 +34,12 @@ public class ReplaceEmptyEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final QueryResult<String> subjectResult = subjectEvaluator.evaluate(attributes);
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final QueryResult<String> subjectResult = subjectEvaluator.evaluate(attributes, context);
         final String subjectValue = subjectResult.getValue();
         final boolean isEmpty = subjectValue == null || subjectValue.toString().trim().isEmpty();
         if (isEmpty) {
-            return replacementEvaluator.evaluate(attributes);
+            return replacementEvaluator.evaluate(attributes, context);
         } else {
             return subjectResult;
         }

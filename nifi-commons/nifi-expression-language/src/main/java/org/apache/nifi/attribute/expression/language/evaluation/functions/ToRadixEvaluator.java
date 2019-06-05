@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -41,20 +42,20 @@ public class ToRadixEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final Long result = numberEvaluator.evaluate(attributes).getValue();
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final Long result = numberEvaluator.evaluate(attributes, context).getValue();
         if (result == null) {
             return new StringQueryResult(null);
         }
 
-        final Long radix = radixEvaluator.evaluate(attributes).getValue();
+        final Long radix = radixEvaluator.evaluate(attributes, context).getValue();
         if (radix == null) {
             return new StringQueryResult(null);
         }
 
         String stringValue = Long.toString(result.longValue(), radix.intValue());
         if (minimumWidthEvaluator != null) {
-            final Long minimumWidth = minimumWidthEvaluator.evaluate(attributes).getValue();
+            final Long minimumWidth = minimumWidthEvaluator.evaluate(attributes, context).getValue();
             if (minimumWidth != null) {
                 final int paddingWidth = minimumWidth.intValue() - stringValue.length();
                 if (paddingWidth > 0) {

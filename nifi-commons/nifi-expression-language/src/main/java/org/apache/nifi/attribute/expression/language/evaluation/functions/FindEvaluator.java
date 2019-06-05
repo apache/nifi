@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
@@ -39,21 +40,21 @@ public class FindEvaluator extends BooleanEvaluator {
         // if the search string is a literal, we don't need to evaluate it each time; we can just
         // pre-compile it. Otherwise, it must be compiled every time.
         if (search instanceof StringLiteralEvaluator) {
-            this.compiledPattern = Pattern.compile(search.evaluate(null).getValue());
+            this.compiledPattern = Pattern.compile(search.evaluate(null, new EvaluationContext()).getValue());
         } else {
             this.compiledPattern = null;
         }
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final String subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final String subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
         final Pattern pattern;
         if (compiledPattern == null) {
-            String expression = search.evaluate(attributes).getValue();
+            String expression = search.evaluate(attributes, context).getValue();
             if (expression == null) {
                 return new BooleanQueryResult(false);
             }

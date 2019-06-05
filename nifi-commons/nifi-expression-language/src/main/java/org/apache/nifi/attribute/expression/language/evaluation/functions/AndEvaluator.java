@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -27,7 +28,6 @@ public class AndEvaluator extends BooleanEvaluator {
 
     private final Evaluator<Boolean> subjectEvaluator;
     private final Evaluator<Boolean> rhsEvaluator;
-    private BooleanQueryResult rhsResult;
 
     public AndEvaluator(final Evaluator<Boolean> subjectEvaluator, final Evaluator<Boolean> rhsEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
@@ -35,8 +35,8 @@ public class AndEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final QueryResult<Boolean> subjectValue = subjectEvaluator.evaluate(attributes, context);
         if (subjectValue == null) {
             return new BooleanQueryResult(null);
         }
@@ -48,18 +48,20 @@ public class AndEvaluator extends BooleanEvaluator {
         // Returning previously evaluated result.
         // The same AndEvaluator can be evaluated multiple times if subjectEvaluator is IteratingEvaluator.
         // In that case, it's enough to evaluate the right hand side.
+        final BooleanQueryResult rhsResult = context.getState(this, BooleanQueryResult.class);
         if (rhsResult != null) {
             return rhsResult;
         }
 
-        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes);
+        final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(attributes, context);
+        BooleanQueryResult result;
         if (rhsValue == null) {
-            rhsResult = new BooleanQueryResult(false);
+            result = new BooleanQueryResult(false);
         } else {
-            rhsResult = new BooleanQueryResult(rhsValue.getValue());
+            result = new BooleanQueryResult(rhsValue.getValue());
         }
-
-        return new BooleanQueryResult(rhsValue.getValue());
+        context.putState(this, result);
+        return result;
     }
 
     @Override

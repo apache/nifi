@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -33,7 +34,7 @@ public class DecimalLiteralEvaluator extends DecimalEvaluator {
     }
 
     @Override
-    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
+    public QueryResult<Double> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
         return new DecimalQueryResult(literal);
     }
 

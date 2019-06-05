@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.cast;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -42,8 +43,8 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
     }
 
     @Override
-    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
-        final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Double> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final QueryResult<?> result = subjectEvaluator.evaluate(attributes, context);
         if (result.getValue() == null) {
             return new DecimalQueryResult(null);
         }
