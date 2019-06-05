@@ -79,7 +79,7 @@ public class TestXMLFileLookupService {
 
         } catch (final Throwable e) {
             // Assert
-            assertTrue(e.getMessage().contains("XML configuration file contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled."));
+            assertTrue(e.getMessage().contains("contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled."));
         }
     }
 }
