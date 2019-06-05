@@ -184,13 +184,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             return;
         }
         final long statusCheckInterval = context.getProperty(STATUS_CHECK_INTERVAL).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
-        Charset charset;
-        try {
-            charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
-        } catch (Exception e) {
-            log.warn("Illegal character set name specified, defaulting to UTF-8");
-            charset = StandardCharsets.UTF_8;
-        }
+        Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         String sessionId = livyController.get("sessionId");
         String livyUrl = livyController.get("livyUrl");
@@ -217,13 +211,13 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             } else {
                 try {
                     final JSONObject output = result.getJSONObject("data");
-                    flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes()));
+                    flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes(charset)));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
                     session.transfer(flowFile, REL_SUCCESS);
                 } catch (JSONException je) {
                     // The result doesn't contain the data, just send the output object as the flow file content to failure (after penalizing)
                     log.error("Spark Session returned an error, sending the output JSON object as the flow file content to failure (after penalizing)");
-                    flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
+                    flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes(charset)));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);

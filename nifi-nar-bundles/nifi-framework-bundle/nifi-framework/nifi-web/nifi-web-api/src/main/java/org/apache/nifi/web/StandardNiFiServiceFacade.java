@@ -122,7 +122,6 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -3088,7 +3087,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * authorized for the transfer. This method is only invoked when obtaining the site to site
      * details so the entire chain isn't necessary.
      */
-    private boolean isUserAuthorized(final NiFiUser user, final RootGroupPort port) {
+    private boolean isUserAuthorized(final NiFiUser user, final Port port) {
         final boolean isSiteToSiteSecure = Boolean.TRUE.equals(properties.isSiteToSiteSecure());
 
         // if site to site is not secure, allow all users
@@ -3128,8 +3127,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // serialize the input ports this NiFi has access to
         final Set<PortDTO> inputPortDtos = new LinkedHashSet<>();
-        final Set<RootGroupPort> inputPorts = controllerFacade.getInputPorts();
-        for (final RootGroupPort inputPort : inputPorts) {
+        for (final Port inputPort : controllerFacade.getPublicInputPorts()) {
             if (isUserAuthorized(user, inputPort)) {
                 final PortDTO dto = new PortDTO();
                 dto.setId(inputPort.getIdentifier());
@@ -3142,7 +3140,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // serialize the output ports this NiFi has access to
         final Set<PortDTO> outputPortDtos = new LinkedHashSet<>();
-        for (final RootGroupPort outputPort : controllerFacade.getOutputPorts()) {
+        for (final Port outputPort : controllerFacade.getPublicOutputPorts()) {
             if (isUserAuthorized(user, outputPort)) {
                 final PortDTO dto = new PortDTO();
                 dto.setId(outputPort.getIdentifier());
@@ -3778,24 +3776,46 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String registryId = requestEntity.getVersionedFlow().getRegistryId();
         final VersionedFlowSnapshot registeredSnapshot;
         final VersionedFlow registeredFlow;
+        final boolean registerNewFlow = versionedFlowDto.getFlowId() == null;
 
-        String action = "create the flow";
         try {
             // first, create the flow in the registry, if necessary
-            if (versionedFlowDto.getFlowId() == null) {
+            if (registerNewFlow) {
                 registeredFlow = registerVersionedFlow(registryId, versionedFlow);
             } else {
                 registeredFlow = getVersionedFlow(registryId, versionedFlowDto.getBucketId(), versionedFlowDto.getFlowId());
             }
-
-            action = "add the local flow to the Flow Registry as the first Snapshot";
-
-            // add first snapshot to the flow in the registry
-            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), expectedVersion);
         } catch (final NiFiRegistryException e) {
             throw new IllegalArgumentException(e.getLocalizedMessage());
         } catch (final IOException ioe) {
-            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to " + action);
+            throw new IllegalStateException("Failed to communicate with Flow Registry when attempting to create the flow");
+        }
+
+        try {
+            // add a snapshot to the flow in the registry
+            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), expectedVersion);
+        } catch (final NiFiCoreException e) {
+            // If the flow has been created, but failed to add a snapshot,
+            // then we need to capture the created versioned flow information as a partial successful result.
+            if (registerNewFlow) {
+                logger.error("The flow has been created, but failed to add a snapshot. Returning the created flow information.", e);
+                final VersionControlInformationDTO vci = new VersionControlInformationDTO();
+                vci.setBucketId(registeredFlow.getBucketIdentifier());
+                vci.setBucketName(registeredFlow.getBucketName());
+                vci.setFlowId(registeredFlow.getIdentifier());
+                vci.setFlowName(registeredFlow.getName());
+                vci.setFlowDescription(registeredFlow.getDescription());
+                vci.setGroupId(groupId);
+                vci.setRegistryId(registryId);
+                vci.setRegistryName(getFlowRegistryName(registryId));
+                vci.setVersion(0);
+                vci.setState(VersionedFlowState.SYNC_FAILURE.name());
+                vci.setStateExplanation(e.getLocalizedMessage());
+
+                return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+            }
+
+            throw e;
         }
 
         final Bucket bucket = registeredSnapshot.getBucket();
@@ -3814,6 +3834,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         vci.setVersion(registeredSnapshot.getSnapshotMetadata().getVersion());
         vci.setState(VersionedFlowState.UP_TO_DATE.name());
 
+        return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+    }
+
+    private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(String groupId, InstantiatedVersionedProcessGroup versionedProcessGroup, VersionControlInformationDTO vci) {
         final Map<String, String> mapping = dtoFactory.createVersionControlComponentMappingDto(versionedProcessGroup);
 
         final Revision groupRevision = revisionManager.getRevision(groupId);
@@ -4069,6 +4093,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // Ignore differences for adding remote ports
             if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
+                continue;
+            }
+
+            // Ignore name changes to public ports
+            if (FlowDifferenceFilters.isPublicPortNameChange(difference)) {
                 continue;
             }
 
@@ -4772,6 +4801,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         };
     }
 
+    @Override
+    public void verifyPublicInputPortUniqueness(final String portId, final String portName) {
+        inputPortDAO.verifyPublicPortUniqueness(portId, portName);
+    }
+
+    @Override
+    public void verifyPublicOutputPortUniqueness(final String portId, final String portName) {
+        outputPortDAO.verifyPublicPortUniqueness(portId, portName);
+    }
 
     /* setters */
     public void setProperties(final NiFiProperties properties) {

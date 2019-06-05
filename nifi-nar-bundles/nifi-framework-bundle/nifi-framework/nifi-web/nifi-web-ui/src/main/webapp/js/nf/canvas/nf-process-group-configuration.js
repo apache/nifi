@@ -129,7 +129,7 @@
             });
 
             nfCanvasUtils.reload();
-        }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
     /**

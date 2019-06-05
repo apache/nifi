@@ -30,6 +30,22 @@
             </div>
         </div>
         <div class="port-setting">
+            <div class="setting-name">Allow Remote Access
+                <div class="fa fa-question-circle" alt="Info" title="Whether this port can be accessed as a RemoteGroupPort via Site-to-Site protocol."></div>
+            </div>
+            <div class="setting-field">
+                <span id="read-only-port-allow-remote-access"></span>
+            </div>
+        </div>
+        <div class="port-setting">
+            <div class="setting-name">Concurrent Tasks
+                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this port."></div>
+            </div>
+            <div class="setting-field">
+                <span id="read-only-port-concurrent-tasks"></span>
+            </div>
+        </div>
+        <div class="port-setting">
             <div class="setting-name">Comments</div>
             <div class="setting-field">
                 <div id="read-only-port-comments"></div>

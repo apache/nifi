@@ -17,7 +17,6 @@
 package org.apache.nifi.properties
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.util.encoders.DecoderException
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.Assume
@@ -302,9 +301,10 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
             String cipherText = spp.protect(PLAINTEXT)
+
             // Remove the IV from the "complete" cipher text
             final String MISSING_IV_CIPHER_TEXT = cipherText[18..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(163)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(172)}")
 
             def msg = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT)
@@ -313,9 +313,9 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text but keep the delimiter
             final String MISSING_IV_CIPHER_TEXT_WITH_DELIMITER = cipherText[16..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(163)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(172)}")
 
-            def msgWithDelimiter = shouldFail(DecoderException) {
+            def msgWithDelimiter = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER)
             }
             logger.expected("${msgWithDelimiter} for keySize ${keySize} and cipher text [${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER}]")
@@ -324,7 +324,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             assert msg == "The cipher text does not contain the delimiter || -- it should be of the form Base64(IV) || Base64(cipherText)"
 
             // Assert
-            assert msgWithDelimiter =~ "unable to decode base64 string"
+            assert msgWithDelimiter == "The IV (0 bytes) must be at least 12 bytes"
         }
     }
 

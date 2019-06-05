@@ -30,6 +30,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -72,7 +73,7 @@ public class ITestHandleHttpRequest {
         return props;
     }
 
-    private static Map<String, String> getKeystoreProperties() {
+    private static Map<String, String> getServerKeystoreProperties() {
         final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
@@ -80,7 +81,15 @@ public class ITestHandleHttpRequest {
         return properties;
     }
 
-    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
+    private static Map<String, String> getClientKeystoreProperties() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/client-keystore.p12");
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
+        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
+        return properties;
+    }
+
+    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, SSLContextService.ClientAuth clientAuth) {
         final SSLContextService service = new StandardRestrictedSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, sslProperties);
@@ -91,7 +100,7 @@ public class ITestHandleHttpRequest {
         }
 
         controller.setProperty(HandleHttpRequest.SSL_CONTEXT, "ssl-service");
-        return service.createSSLContext(SSLContextService.ClientAuth.WANT);
+        return service.createSSLContext(clientAuth);
     }
 
     @Test(timeout=30000)
@@ -427,6 +436,15 @@ public class ITestHandleHttpRequest {
 
     @Test
     public void testSecure() throws InitializationException {
+        secureTest(false);
+    }
+
+    @Test
+    public void testSecureTwoWaySsl() throws InitializationException {
+        secureTest(true);
+    }
+
+    private void secureTest(boolean twoWaySsl) throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");
 
@@ -435,10 +453,10 @@ public class ITestHandleHttpRequest {
         runner.enableControllerService(contextMap);
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
 
-        final Map<String, String> sslProperties = getKeystoreProperties();
+        final Map<String, String> sslProperties = getServerKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
         sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), "TLSv1.2");
-        final SSLContext sslContext = useSSLContextService(runner, sslProperties);
+        useSSLContextService(runner, sslProperties, twoWaySsl ? SSLContextService.ClientAuth.WANT : SSLContextService.ClientAuth.NONE);
 
         // trigger processor to stop but not shutdown.
         runner.run(1, false);
@@ -451,7 +469,27 @@ public class ITestHandleHttpRequest {
                         final HttpsURLConnection connection = (HttpsURLConnection) new URL("https://localhost:"
                                 + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
 
-                        connection.setSSLSocketFactory(sslContext.getSocketFactory());
+                        if (twoWaySsl) {
+                            // use a client certificate, do not reuse the server's keystore
+                            SSLContext clientSslContext = SslContextFactory.createSslContext(
+                                    getClientKeystoreProperties().get(StandardSSLContextService.KEYSTORE.getName()),
+                                    getClientKeystoreProperties().get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()).toCharArray(),
+                                    "JKS",
+                                    getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE.getName()),
+                                    getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()).toCharArray(),
+                                    "JKS",
+                                    null,
+                                    "TLSv1.2");
+                            connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
+                        } else {
+                            // with one-way SSL, the client still needs a truststore
+                            SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
+                                    getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE.getName()),
+                                    getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()).toCharArray(),
+                                    "JKS",
+                                    "TLSv1.2");
+                            connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
+                        }
                         connection.setDoOutput(false);
                         connection.setRequestMethod("GET");
                         connection.setRequestProperty("header1", "value1");

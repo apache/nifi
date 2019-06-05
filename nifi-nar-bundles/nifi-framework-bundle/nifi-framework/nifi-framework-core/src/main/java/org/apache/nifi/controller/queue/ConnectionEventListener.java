@@ -21,4 +21,14 @@ public interface ConnectionEventListener {
     void triggerSourceEvent();
 
     void triggerDestinationEvent();
+
+    ConnectionEventListener NOP_EVENT_LISTENER = new ConnectionEventListener() {
+        @Override
+        public void triggerSourceEvent() {
+        }
+
+        @Override
+        public void triggerDestinationEvent() {
+        }
+    };
 }

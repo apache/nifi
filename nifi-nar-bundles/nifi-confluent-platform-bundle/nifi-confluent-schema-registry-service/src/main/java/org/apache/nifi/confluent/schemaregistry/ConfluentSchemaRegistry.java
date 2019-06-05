@@ -185,7 +185,13 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
-        final RecordSchema schema = client.getSchema(schemaName.get());
+        final RecordSchema schema;
+        if (schemaIdentifier.getVersion().isPresent()) {
+            schema = client.getSchema(schemaName.get(), schemaIdentifier.getVersion().getAsInt());
+        } else {
+            schema = client.getSchema(schemaName.get());
+        }
+
         return schema;
     }
 

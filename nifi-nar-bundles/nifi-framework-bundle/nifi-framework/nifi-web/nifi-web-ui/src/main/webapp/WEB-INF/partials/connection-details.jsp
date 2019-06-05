@@ -27,10 +27,13 @@
                             <div id="read-only-connection-source" class="ellipsis"></div>
                         </div>
                     </div>
-                    <div class="setting">
+                    <div id="read-only-connection-source-group" class="setting">
                         <div class="setting-name">Within group</div>
                         <div class="setting-field">
                             <div id="read-only-connection-source-group-name"></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="read-only-connection-remote-source-url" class="hidden"></div>
                         </div>
                     </div>
                     <div id="read-only-relationship-names-container" class="setting">
@@ -51,10 +54,13 @@
                             <div id="read-only-connection-target" class="ellipsis"></div>
                         </div>
                     </div>
-                    <div class="setting">
+                    <div id="read-only-connection-target-group" class="setting">
                         <div class="setting-name">Within group</div>
                         <div class="setting-field">
                             <div id="read-only-connection-target-group-name"></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="read-only-connection-remote-target-url" class="hidden"></div>
                         </div>
                     </div>
                 </div>

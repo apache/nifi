@@ -361,7 +361,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
-        group.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
+        group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
         final StandardVersionControlInformation svci = StandardVersionControlInformation.Builder.fromDto(versionControlInformation)
             .flowSnapshot(proposedSnapshot.getFlowContents())

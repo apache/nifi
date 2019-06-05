@@ -358,6 +358,7 @@ public class FlowFromDOMFactory {
         portDTO.setPosition(getPosition(DomUtils.getChild(element, "position")));
         portDTO.setName(getString(element, "name"));
         portDTO.setComments(getString(element, "comments"));
+        portDTO.setAllowRemoteAccess(getBoolean(element, "allowRemoteAccess"));
         final ScheduledState scheduledState = getScheduledState(element);
         portDTO.setState(scheduledState.toString());
 

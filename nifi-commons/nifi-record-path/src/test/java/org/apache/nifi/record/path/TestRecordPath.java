@@ -25,6 +25,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
@@ -1211,6 +1212,68 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    private Record getCaseTestRecord() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("middleName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        values.put("middleName", "Smith");
+        return new MapRecord(schema, values);
+    }
+
+    @Test
+    public void testToUpperCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testToLowerCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("john smith doe", RecordPath.compile("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testTrimString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("fullName", "   John Smith     ");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testTrimArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        final DataType dataType = new ArrayDataType(RecordFieldType.STRING.getDataType());
+        fields.add(new RecordField("names", dataType));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("names", new String[]{"   John Smith     ", "   Jane Smith     "});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> results = RecordPath.compile("trim(/names[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals("John Smith", results.get(0).getValue());
+        assertEquals("Jane Smith", results.get(1).getValue());
+    }
     @Test
     public void testFieldName() {
         final List<RecordField> fields = new ArrayList<>();
@@ -1243,6 +1306,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
     }
 
     @Test
@@ -1263,6 +1327,7 @@ public class TestRecordPath {
 
         // since the field is a long it shouldn't do the conversion and should return the value unchanged
         assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
     }
 
     @Test
@@ -1281,6 +1346,8 @@ public class TestRecordPath {
         // since the field is a string it shouldn't do the conversion and should return the value unchanged
         final FieldValue fieldValue = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("John Doe", fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue2.getValue());
     }
 
     @Test
@@ -1298,9 +1365,19 @@ public class TestRecordPath {
 
         final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("2017-10-20", fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' , 'GMT+8:00')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("2017-10-20", fieldValue2.getValue());
+
+        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("2017-10-20 19:00", fieldValue3.getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' , 'INVALID')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1320,9 +1397,12 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1343,9 +1423,12 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1362,6 +1445,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test

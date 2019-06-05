@@ -58,6 +58,7 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.nio.charset.StandardCharsets;
@@ -434,6 +435,13 @@ public class NiFiRegistryFlowMapper {
         versionedPort.setName(port.getName());
         versionedPort.setPosition(mapPosition(port.getPosition()));
         versionedPort.setType(PortType.valueOf(port.getConnectableType().name()));
+
+        if (port instanceof PublicPort) {
+            versionedPort.setAllowRemoteAccess(true);
+        } else {
+            versionedPort.setAllowRemoteAccess(false);
+        }
+
         return versionedPort;
     }
 

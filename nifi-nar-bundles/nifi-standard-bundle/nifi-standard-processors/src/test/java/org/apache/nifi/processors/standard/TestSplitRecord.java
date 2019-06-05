@@ -80,10 +80,13 @@ public class TestSplitRecord {
             fragmentIndex++;
         }
 
-
         assertEquals(1, out.stream().filter(mff -> mff.isContentEqual("header\nJohn Doe,48\n")).count());
         assertEquals(1, out.stream().filter(mff -> mff.isContentEqual("header\nJane Doe,47\n")).count());
         assertEquals(1, out.stream().filter(mff -> mff.isContentEqual("header\nJimmy Doe,14\n")).count());
+
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitRecord.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeEquals(SplitRecord.FRAGMENT_COUNT, "3");
+        originalFlowFile.assertAttributeEquals(SplitRecord.FRAGMENT_ID, fragmentUUID);
     }
 
     @Test

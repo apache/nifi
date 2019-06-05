@@ -463,6 +463,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         // Use Files.move and convert to Path's instead of File.rename so that we get an IOException on failure that describes why we failed.
         Files.move(existingFile.toPath(), newFile.toPath());
 
+        logger.debug("Changed Partition for Swap File by renaming from {} to {}", swapLocation, newPartitionName);
         return newFile.getAbsolutePath();
     }
 }

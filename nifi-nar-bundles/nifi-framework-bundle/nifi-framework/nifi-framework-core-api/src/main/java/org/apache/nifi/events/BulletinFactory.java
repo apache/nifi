@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.events;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ComponentType;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class BulletinFactory {
 
@@ -47,7 +47,7 @@ public final class BulletinFactory {
         }
 
         final ProcessGroup group = connectable.getProcessGroup();
-        final String groupId = group == null ? null : group.getIdentifier();
+        final String groupId = connectable.getProcessGroupIdentifier();
         final String groupName = group == null ? null : group.getName();
         return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message);
     }

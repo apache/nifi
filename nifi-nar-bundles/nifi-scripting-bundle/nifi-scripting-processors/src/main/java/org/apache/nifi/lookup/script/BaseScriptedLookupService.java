@@ -26,6 +26,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.lookup.LookupService;
@@ -312,6 +313,11 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                                 @Override
                                 public StateManager getStateManager() {
                                     return BaseScriptedLookupService.this.getStateManager();
+                                }
+
+                                @Override
+                                public NodeTypeProvider getNodeTypeProvider() {
+                                    return BaseScriptedLookupService.this.getNodeTypeProvider();
                                 }
 
                                 @Override

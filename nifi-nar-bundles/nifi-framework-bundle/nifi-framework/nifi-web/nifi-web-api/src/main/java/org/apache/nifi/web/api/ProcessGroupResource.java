@@ -64,6 +64,7 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -474,6 +475,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     // update the process group
                     final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, processGroupEntity.getComponent());
                     populateRemainingProcessGroupEntityContent(entity);
+
+                    // prune response as necessary
+                    if (entity.getComponent() != null) {
+                        entity.getComponent().setContents(null);
+                    }
 
                     return generateOkResponse(entity).build();
                 }
@@ -1596,6 +1602,11 @@ public class ProcessGroupResource extends ApplicationResource {
                 (revision, processGroupEntity) -> {
                     // delete the process group
                     final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, processGroupEntity.getId());
+
+                    // prune response as necessary
+                    if (entity.getComponent() != null) {
+                        entity.getComponent().setContents(null);
+                    }
 
                     // create the response
                     return generateOkResponse(entity).build();
@@ -2954,7 +2965,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 connectionEntity -> {
                     final ConnectionDTO connection = connectionEntity.getComponent();
 
-                    // set the processor id as appropriate
+                    // set the connection id as appropriate
                     connection.setId(generateUuid());
 
                     // create the new relationship target
@@ -3281,9 +3292,14 @@ public class ProcessGroupResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyComponentTypes(requestInstantiateTemplateRequestEntity.getSnippet()),
                 instantiateTemplateRequestEntity -> {
+                    final FlowSnippetDTO snippet = instantiateTemplateRequestEntity.getSnippet();
+
+                    // Check if the snippet contains any public port violating public port unique constraint with the current flow
+                    verifyPublicPortUniqueness(snippet);
+
                     // create the template and generate the json
                     final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
-                        instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
+                        instantiateTemplateRequestEntity.getEncodingVersion(), snippet, getIdGenerationSeed().orElse(null));
 
                     final FlowDTO flowSnippet = entity.getFlow();
 
@@ -3299,6 +3315,33 @@ public class ProcessGroupResource extends ApplicationResource {
                     return generateCreatedResponse(getAbsolutePath(), entity).build();
                 }
         );
+    }
+
+    private void verifyPublicPortUniqueness(FlowSnippetDTO snippet) {
+        snippet.getInputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
+            .forEach(portDTO -> {
+                try {
+                    serviceFacade.verifyPublicInputPortUniqueness(portDTO.getId(), portDTO.getName());
+                } catch (IllegalStateException e) {
+                    throw toPublicPortUniqueConstraintViolationException("input", portDTO);
+                }
+            });
+
+        snippet.getOutputPorts().stream().filter(portDTO -> Boolean.TRUE.equals(portDTO.getAllowRemoteAccess()))
+            .forEach(portDTO -> {
+                try {
+                    serviceFacade.verifyPublicOutputPortUniqueness(portDTO.getId(), portDTO.getName());
+                } catch (IllegalStateException e) {
+                    throw toPublicPortUniqueConstraintViolationException("output", portDTO);
+                }
+            });
+
+        snippet.getProcessGroups().forEach(processGroupDTO -> verifyPublicPortUniqueness(processGroupDTO.getContents()));
+    }
+
+    private IllegalStateException toPublicPortUniqueConstraintViolationException(final String portType, final PortDTO portDTO) {
+        return new IllegalStateException(String.format("The %s port [%s] named '%s' will violate the public port unique constraint." +
+            " Rename the existing port name, or the one in the template to instantiate the template in this flow.", portType, portDTO.getId(), portDTO.getName()));
     }
 
     // ---------

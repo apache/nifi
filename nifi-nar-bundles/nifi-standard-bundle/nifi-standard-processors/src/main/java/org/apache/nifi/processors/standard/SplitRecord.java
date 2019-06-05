@@ -206,7 +206,8 @@ public class SplitRecord extends AbstractProcessor {
             return;
         }
 
-        session.transfer(original, REL_ORIGINAL);
+        final FlowFile originalFlowFile = FragmentAttributes.copyAttributesToOriginal(session, original, fragmentId, splits.size());
+        session.transfer(originalFlowFile, REL_ORIGINAL);
         // Add the fragment count to each split
         for(FlowFile split : splits) {
             session.putAttribute(split, FRAGMENT_COUNT, String.valueOf(splits.size()));

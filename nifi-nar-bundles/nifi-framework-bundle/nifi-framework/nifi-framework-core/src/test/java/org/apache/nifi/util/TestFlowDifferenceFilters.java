@@ -18,6 +18,7 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.registry.flow.ComponentType;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
+import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
@@ -122,5 +123,49 @@ public class TestFlowDifferenceFilters {
         Assert.assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
     }
 
+    @Test
+    public void testFilterPublicPortNameChangeWhenNotNameChange() {
+        final VersionedPort portA = new VersionedPort();
+        final VersionedPort portB = new VersionedPort();
+
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
+                DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED,
+                portA, portB,
+                "http://localhost:18080", "http://localhost:17080",
+                "");
+
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+    }
+
+    @Test
+    public void testFilterPublicPortNameChangeWhenNotAllowRemoteAccess() {
+        final VersionedPort portA = new VersionedPort();
+        final VersionedPort portB = new VersionedPort();
+
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
+                DifferenceType.NAME_CHANGED,
+                portA, portB,
+                "Port A", "Port B",
+                "");
+
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+    }
+
+    @Test
+    public void testFilterPublicPortNameChangeWhenAllowRemoteAccess() {
+        final VersionedPort portA = new VersionedPort();
+        portA.setAllowRemoteAccess(true);
+
+        final VersionedPort portB = new VersionedPort();
+        portB.setAllowRemoteAccess(false);
+
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
+                DifferenceType.NAME_CHANGED,
+                portA, portB,
+                "Port A", "Port B",
+                "");
+
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+    }
 }
 

@@ -51,6 +51,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -247,6 +248,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
 
@@ -268,7 +270,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, scrollurl,
                         username, password, "POST", body);
-                this.getPage(getResponse, scrollurl, context, session, flowFile, logger, startNanos);
+                this.getPage(getResponse, scrollurl, context, session, flowFile, logger, startNanos, charset);
                 getResponse.close();
             } else {
                 logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index,
@@ -281,7 +283,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
-                this.getPage(getResponse, queryUrl, context, session, flowFile, logger, startNanos);
+                this.getPage(getResponse, queryUrl, context, session, flowFile, logger, startNanos, charset);
                 getResponse.close();
             }
 
@@ -302,7 +304,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     }
 
     private void getPage(final Response getResponse, final URL url, final ProcessContext context,
-            final ProcessSession session, FlowFile flowFile, final ComponentLog logger, final long startNanos)
+            final ProcessSession session, FlowFile flowFile, final ComponentLog logger, final long startNanos, Charset charset)
             throws IOException {
         final int statusCode = getResponse.code();
 
@@ -342,7 +344,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
 
             flowFile = session.write(flowFile, out -> {
-                out.write(builder.toString().getBytes());
+                out.write(builder.toString().getBytes(charset));
             });
             session.transfer(flowFile, REL_SUCCESS);
 

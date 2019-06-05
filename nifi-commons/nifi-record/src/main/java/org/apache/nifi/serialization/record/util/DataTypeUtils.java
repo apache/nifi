@@ -736,7 +736,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
-        return value != null && value instanceof Map;
+        return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
 
@@ -1016,6 +1016,15 @@ public class DataTypeUtils {
         }
         final DateFormat df = new SimpleDateFormat(format);
         df.setTimeZone(gmt);
+        return df;
+    }
+
+    public static DateFormat getDateFormat(final String format, final String timezoneID) {
+        if (format == null || timezoneID == null) {
+            return null;
+        }
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
         return df;
     }
 

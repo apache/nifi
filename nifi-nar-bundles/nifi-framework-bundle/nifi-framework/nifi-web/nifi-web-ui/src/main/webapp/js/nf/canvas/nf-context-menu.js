@@ -61,7 +61,15 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isConfigurable = function (selection) {
-        return nfCanvasUtils.isConfigurable(selection);
+        if(selection.size() == 1 &&
+            nfCanvasUtils.isProcessor(selection) &&
+            nfCanvasUtils.canModify(selection) &&
+            (nfCanvasUtils.isConfigurable(selection) ||
+                canTerminate(selection))){
+            return true;
+        } else {
+            return nfCanvasUtils.isConfigurable(selection);
+        }
     };
 
     /**
@@ -79,7 +87,13 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var hasDetails = function (selection) {
-        return nfCanvasUtils.hasDetails(selection);
+        if(selection.size() == 1 &&
+            nfCanvasUtils.isProcessor(selection) &&
+            nfCanvasUtils.canModify(selection)){
+            return !isConfigurable(selection);
+        } else {
+            return nfCanvasUtils.hasDetails(selection);
+        }
     };
 
     /**

@@ -31,6 +31,24 @@
             </includes>
         </dependencySet>
 
+        <!-- Write out the bootstrap libs for java11 to its own dir -->
+        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>javax.xml.bind:jaxb-api</include>
+                <include>com.sun.xml.bind:jaxb-impl</include>
+                <include>com.sun.xml.bind:jaxb-core</include>
+                <include>javax.activation:javax.activation-api</include>
+                <include>javax.annotation:javax.annotation-api</include>
+            </includes>
+        </dependencySet>
+
         <!-- Write out the conf directory contents -->
         <dependencySet>
             <scope>runtime</scope>

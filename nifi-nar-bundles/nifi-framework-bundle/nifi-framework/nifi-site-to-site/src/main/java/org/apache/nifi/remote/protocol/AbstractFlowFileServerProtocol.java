@@ -28,7 +28,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PortAuthorizationResult;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
@@ -60,7 +60,7 @@ import java.util.zip.CheckedOutputStream;
 public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     protected ProcessGroup rootGroup;
-    protected RootGroupPort port;
+    protected PublicPort port;
 
     protected boolean handshakeCompleted;
     protected boolean shutdown = false;
@@ -134,20 +134,20 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     }
 
     protected void checkPortStatus(final Peer peer, String portId) throws HandshakeException {
-        Port receivedPort = rootGroup.getInputPort(portId);
+        Port receivedPort = rootGroup.findInputPort(portId);
         if (receivedPort == null) {
-            receivedPort = rootGroup.getOutputPort(portId);
+            receivedPort = rootGroup.findOutputPort(portId);
         }
         if (receivedPort == null) {
             logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
             throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received unknown port identifier: " + portId);
         }
-        if (!(receivedPort instanceof RootGroupPort)) {
+        if (!(receivedPort instanceof PublicPort)) {
             logger.debug("Responding with ResponseCode UNKNOWN_PORT for identifier {}", portId);
-            throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received port identifier " + portId + ", but this Port is not a RootGroupPort");
+            throw new HandshakeException(ResponseCode.UNKNOWN_PORT, "Received port identifier " + portId + ", but this Port is not remotely accessible");
         }
 
-        this.port = (RootGroupPort) receivedPort;
+        this.port = (PublicPort) receivedPort;
         final PortAuthorizationResult portAuthResult = this.port.checkUserAuthorization(peer.getCommunicationsSession().getUserDn());
         if (!portAuthResult.isAuthorized()) {
             logger.debug("Responding with ResponseCode UNAUTHORIZED: ", portAuthResult.getExplanation());
@@ -178,7 +178,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     }
 
     @Override
-    public RootGroupPort getPort() {
+    public PublicPort getPort() {
         return port;
     }
 

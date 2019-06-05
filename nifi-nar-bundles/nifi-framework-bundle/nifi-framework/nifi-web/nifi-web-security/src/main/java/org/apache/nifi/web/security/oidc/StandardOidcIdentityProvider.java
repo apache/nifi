@@ -38,7 +38,6 @@ import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
-import com.nimbusds.openid.connect.sdk.OIDCScopeValue;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import com.nimbusds.openid.connect.sdk.UserInfoErrorResponse;
@@ -66,8 +65,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static com.nimbusds.openid.connect.sdk.claims.UserInfo.EMAIL_CLAIM_NAME;
 
 
 /**
@@ -151,17 +148,6 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             // ensure the token endpoint is present
             if (oidcProviderMetadata.getTokenEndpointURI() == null) {
                 throw new RuntimeException("OpenId Connect Provider metadata does not contain a Token Endpoint.");
-            }
-
-            // ensure the required scopes are present
-            if (oidcProviderMetadata.getScopes() == null) {
-                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.OPENID)) {
-                    throw new RuntimeException("OpenId Connect Provider does not support the required scope: " + OIDCScopeValue.OPENID.getValue());
-                }
-
-                if (!oidcProviderMetadata.getScopes().contains(OIDCScopeValue.EMAIL) && oidcProviderMetadata.getUserInfoEndpointURI() == null) {
-                    throw new RuntimeException(String.format("OpenId Connect Provider does not support '%s' scope and does not provide a UserInfo Endpoint.", OIDCScopeValue.EMAIL.getValue()));
-                }
             }
 
             // ensure the oidc provider supports basic or post client auth
@@ -258,12 +244,13 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        final Scope scope = new Scope("openid");
+        Scope scope = new Scope("openid", "email");
 
-        // if this provider supports email scope, include it to prevent a subsequent request to the user endpoint
-        if (oidcProviderMetadata.getScopes() != null && oidcProviderMetadata.getScopes().contains(OIDCScopeValue.EMAIL)) {
-            scope.add("email");
+        for (String additionalScope : properties.getOidcAdditionalScopes()) {
+            // Scope automatically prevents duplicated entries
+            scope.add(additionalScope);
         }
+
         return scope;
     }
 
@@ -307,9 +294,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 // validate the token - no nonce required for authorization code flow
                 final IDTokenClaimsSet claimsSet = tokenValidator.validate(oidcJwt, null);
 
-                // attempt to extract the email from the id token if possible
-                String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
-                if (StringUtils.isBlank(email)) {
+                // attempt to extract the configured claim to access the user's identity; default is 'email'
+                String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
+                if (StringUtils.isBlank(identity)) {
+                    // explicitly try to get the identity from the UserInfo endpoint with the configured claim
+                    logger.warn("The identity of the user was tried to get with the claim '" +
+                            properties.getOidcClaimIdentifyingUser() + "'. The according additional scope is not " +
+                            "configured correctly. Trying to get it from the UserInfo endpoint.");
+
                     // extract the bearer access token
                     final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
                     if (bearerAccessToken == null) {
@@ -317,7 +309,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                     }
 
                     // invoke the UserInfo endpoint
-                    email = lookupEmail(bearerAccessToken);
+                    identity = lookupIdentityInUserInfo(bearerAccessToken);
                 }
 
                 // extract expiration details from the claims set
@@ -326,18 +318,20 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
                 // convert into a nifi jwt for retrieval later
-                final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(email, email, expiresIn, claimsSet.getIssuer().getValue());
+                final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(identity, identity, expiresIn,
+                        claimsSet.getIssuer().getValue());
                 return jwtService.generateSignedToken(loginToken);
             } else {
                 final TokenErrorResponse errorResponse = (TokenErrorResponse) response;
-                throw new RuntimeException("An error occurred while invoking the Token endpoint: " + errorResponse.getErrorObject().getDescription());
+                throw new RuntimeException("An error occurred while invoking the Token endpoint: " +
+                        errorResponse.getErrorObject().getDescription());
             }
         } catch (final ParseException | JOSEException | BadJOSEException e) {
             throw new RuntimeException("Unable to parse the response from the Token request: " + e.getMessage());
         }
     }
 
-    private String lookupEmail(final BearerAccessToken bearerAccessToken) throws IOException {
+    private String lookupIdentityInUserInfo(final BearerAccessToken bearerAccessToken) throws IOException {
         try {
             // build the user request
             final UserInfoRequest request = new UserInfoRequest(oidcProviderMetadata.getUserInfoEndpointURI(), bearerAccessToken);
@@ -359,13 +353,14 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                     claimsSet = successResponse.getUserInfoJWT().getJWTClaimsSet();
                 }
 
-                final String email = claimsSet.getStringClaim(EMAIL_CLAIM_NAME);
+                final String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
 
-                // ensure we were able to get the user email
-                if (StringUtils.isBlank(email)) {
-                    throw new IllegalStateException("Unable to extract email from the UserInfo token.");
+                // ensure we were able to get the user's identity
+                if (StringUtils.isBlank(identity)) {
+                    throw new IllegalStateException("Unable to extract identity from the UserInfo token using the claim '" +
+                            properties.getOidcClaimIdentifyingUser() + "'.");
                 } else {
-                    return email;
+                    return identity;
                 }
             } else {
                 final UserInfoErrorResponse errorResponse = (UserInfoErrorResponse) response;

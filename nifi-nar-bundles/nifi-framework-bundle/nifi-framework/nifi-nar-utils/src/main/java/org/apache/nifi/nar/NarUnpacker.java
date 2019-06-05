@@ -54,7 +54,7 @@ import java.util.jar.Manifest;
  *
  */
 public final class NarUnpacker {
-
+    public static final String BUNDLED_DEPENDENCIES_DIRECTORY = "NAR-INF/bundled-dependencies";
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static String HASH_FILENAME = "nar-md5sum";
     private static final FileFilter NAR_FILTER = new FileFilter() {
@@ -210,14 +210,14 @@ public final class NarUnpacker {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
 
-            final File bundledDependencies = new File(unpackedNar, "NAR-INF/bundled-dependencies");
+            final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
 
             unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
         }
     }
 
     public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
-        final File bundledDependencies = new File(unpackedNar, "NAR-INF/bundled-dependencies");
+        final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
         unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
     }
 
@@ -282,7 +282,7 @@ public final class NarUnpacker {
                 JarEntry jarEntry = jarEntries.nextElement();
                 String name = jarEntry.getName();
                 if(name.contains("META-INF/bundled-dependencies")){
-                    name = name.replace("META-INF/bundled-dependencies", "NAR-INF/bundled-dependencies");
+                    name = name.replace("META-INF/bundled-dependencies", BUNDLED_DEPENDENCIES_DIRECTORY);
                 }
                 File f = new File(workingDirectory, name);
                 if (jarEntry.isDirectory()) {

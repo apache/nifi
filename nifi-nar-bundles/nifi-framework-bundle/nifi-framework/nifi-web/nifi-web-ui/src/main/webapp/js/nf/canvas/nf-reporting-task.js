@@ -82,33 +82,6 @@
     };
 
     /**
-     * Handle any expected reporting task configuration errors.
-     *
-     * @argument {object} xhr       The XmlHttpRequest
-     * @argument {string} status    The status of the request
-     * @argument {string} error     The error
-     */
-    var handleReportingTaskConfigurationError = function (xhr, status, error) {
-        if (xhr.status === 400) {
-            var errors = xhr.responseText.split('\n');
-
-            var content;
-            if (errors.length === 1) {
-                content = $('<span></span>').text(errors[0]);
-            } else {
-                content = nfCommon.formatUnorderedList(errors);
-            }
-
-            nfDialog.showOkDialog({
-                dialogContent: content,
-                headerText: 'Reporting Task'
-            });
-        } else {
-            nfErrorHandler.handleAjaxError(xhr, status, error);
-        }
-    };
-
-    /**
      * Determines whether the user has made any changes to the reporting task configuration
      * that needs to be saved.
      */
@@ -322,7 +295,7 @@
             }).done(function (response) {
                 // update the reporting task
                 renderReportingTask(response);
-            }).fail(handleReportingTaskConfigurationError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();
