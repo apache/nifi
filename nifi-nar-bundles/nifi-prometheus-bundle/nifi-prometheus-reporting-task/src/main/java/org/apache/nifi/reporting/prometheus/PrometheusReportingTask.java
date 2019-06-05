@@ -164,5 +164,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
     @Override
     public void onTrigger(final ReportingContext context) {
         this.prometheusServer.setReportingContext(context);
+        this.prometheusServer.setMetricsStrategy(context.getProperty(METRICS_STRATEGY).getValue());
     }
 }
