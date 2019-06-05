@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.cast;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -32,8 +33,8 @@ public class StringCastEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final QueryResult<?> result = subjectEvaluator.evaluate(attributes, context);
         if (result.getValue() == null) {
             return new StringQueryResult(null);
         }

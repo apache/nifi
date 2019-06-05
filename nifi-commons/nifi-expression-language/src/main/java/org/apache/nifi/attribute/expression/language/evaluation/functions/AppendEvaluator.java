@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -34,9 +35,9 @@ public class AppendEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final String subjectValue = subject.evaluate(attributes).getValue();
-        final String appendValue = appendEvaluator.evaluate(attributes).getValue();
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final String subjectValue = subject.evaluate(attributes, context).getValue();
+        final String appendValue = appendEvaluator.evaluate(attributes, context).getValue();
 
         final String result = (subjectValue == null ? "" : subjectValue)
                 + (appendValue == null ? "" : appendValue);

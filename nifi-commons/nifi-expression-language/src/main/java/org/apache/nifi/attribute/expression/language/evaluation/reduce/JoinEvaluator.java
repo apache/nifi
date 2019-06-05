@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -28,33 +29,40 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     private final Evaluator<String> subjectEvaluator;
     private final Evaluator<String> delimiterEvaluator;
 
-    private final StringBuilder sb = new StringBuilder();
-    private int evalCount = 0;
-
     public JoinEvaluator(final Evaluator<String> subject, final Evaluator<String> delimiter) {
         this.subjectEvaluator = subject;
         this.delimiterEvaluator = delimiter;
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        String subject = subjectEvaluator.evaluate(attributes).getValue();
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        String subject = subjectEvaluator.evaluate(attributes, context).getValue();
         if (subject == null) {
             subject = "";
         }
 
-        final String delimiter = delimiterEvaluator.evaluate(attributes).getValue();
-        if (evalCount > 0) {
-            sb.append(delimiter);
+        final String delimiter = delimiterEvaluator.evaluate(attributes, context).getValue();
+        State state = context.getState(this, State.class);
+        if (state == null) {
+            state = new State();
+            context.putState(this, state);
         }
-        sb.append(subject);
+        if (state.evalCount > 0) {
+            state.sb.append(delimiter);
+        }
+        state.sb.append(subject);
 
-        evalCount++;
-        return new StringQueryResult(sb.toString());
+        state.evalCount++;
+        return new StringQueryResult(state.sb.toString());
     }
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;
+    }
+
+    private class State {
+        private final StringBuilder sb = new StringBuilder();
+        private int evalCount = 0;
     }
 }

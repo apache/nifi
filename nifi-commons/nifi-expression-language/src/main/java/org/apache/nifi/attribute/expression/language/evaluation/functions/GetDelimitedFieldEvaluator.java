@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -64,13 +65,13 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final String subject = subjectEval.evaluate(attributes).getValue();
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final String subject = subjectEval.evaluate(attributes, context).getValue();
         if (subject == null || subject.isEmpty()) {
             return new StringQueryResult("");
         }
 
-        final Long index = indexEval.evaluate(attributes).getValue();
+        final Long index = indexEval.evaluate(attributes, context).getValue();
         if (index == null) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the index (which field to obtain) was not specified");
         }
@@ -78,7 +79,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
             return new StringQueryResult("");
         }
 
-        final String delimiter = delimiterEval.evaluate(attributes).getValue();
+        final String delimiter = delimiterEval.evaluate(attributes, context).getValue();
         if (delimiter == null || delimiter.isEmpty()) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the delimiter was not specified");
         } else if (delimiter.length() > 1) {
@@ -86,7 +87,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
                 + "\", but only a single character is allowed.");
         }
 
-        final String quoteString = quoteCharEval.evaluate(attributes).getValue();
+        final String quoteString = quoteCharEval.evaluate(attributes, context).getValue();
         if (quoteString == null || quoteString.isEmpty()) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the quote character "
                 + "(which character is used to enclose values that contain the delimiter) was not specified");
@@ -95,7 +96,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
                 + "(which character is used to enclose values that contain the delimiter) evaluated to \"" + quoteString + "\", but only a single character is allowed.");
         }
 
-        final String escapeString = escapeCharEval.evaluate(attributes).getValue();
+        final String escapeString = escapeCharEval.evaluate(attributes, context).getValue();
         if (escapeString == null || escapeString.isEmpty()) {
             throw new AttributeExpressionLanguageException("Cannot evaluate getDelimitedField function because the escape character "
                 + "(which character is used to escape the quote character or delimiter) was not specified");
@@ -104,7 +105,7 @@ public class GetDelimitedFieldEvaluator extends StringEvaluator {
                 + "(which character is used to escape the quote character or delimiter) evaluated to \"" + escapeString + "\", but only a single character is allowed.");
         }
 
-        Boolean stripChars = stripCharsEval.evaluate(attributes).getValue();
+        Boolean stripChars = stripCharsEval.evaluate(attributes, context).getValue();
         if (stripChars == null) {
             stripChars = Boolean.FALSE;
         }

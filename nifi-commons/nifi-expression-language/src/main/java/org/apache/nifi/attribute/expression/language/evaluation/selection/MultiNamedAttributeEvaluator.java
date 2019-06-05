@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
@@ -28,8 +29,6 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
 
     private final List<String> attributeNames;
     private final int evaluationType;
-    private int evaluationCount = 0;
-    private List<String> matchingAttributeNames = null;
 
     public MultiNamedAttributeEvaluator(final List<String> attributeNames, final int evaluationType) {
         this.attributeNames = attributeNames;
@@ -37,19 +36,29 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        matchingAttributeNames = new ArrayList<>(attributeNames);
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        State state = context.getState(this, State.class);
+        if (state == null) {
+            state = new State();
+            context.putState(this, state);
+        }
+        state.matchingAttributeNames = new ArrayList<>(attributeNames);
 
-        if (matchingAttributeNames.size() <= evaluationCount) {
+        if (state.matchingAttributeNames.size() <= state.evaluationCount) {
             return new StringQueryResult(null);
         }
 
-        return new StringQueryResult(attributes.get(matchingAttributeNames.get(evaluationCount++)));
+        return new StringQueryResult(attributes.get(state.matchingAttributeNames.get(state.evaluationCount++)));
     }
 
     @Override
-    public int getEvaluationsRemaining() {
-        return matchingAttributeNames.size() - evaluationCount;
+    public int getEvaluationsRemaining(final EvaluationContext context) {
+        State state = context.getState(this, State.class);
+        if (state == null) {
+            state = new State();
+            context.putState(this, state);
+        }
+        return state.matchingAttributeNames.size() - state.evaluationCount;
     }
 
     @Override
@@ -69,5 +78,10 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
 
     public List<String> getAttributeNames() {
         return attributeNames;
+    }
+
+    private class State {
+        private int evaluationCount = 0;
+        private List<String> matchingAttributeNames = null;
     }
 }

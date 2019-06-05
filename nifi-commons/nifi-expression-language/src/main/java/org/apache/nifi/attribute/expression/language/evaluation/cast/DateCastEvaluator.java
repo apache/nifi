@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -56,8 +57,8 @@ public class DateCastEvaluator extends DateEvaluator {
     }
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes) {
-        final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final QueryResult<?> result = subjectEvaluator.evaluate(attributes, context);
         if (result.getValue() == null) {
             return new DateQueryResult(null);
         }

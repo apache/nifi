@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -34,8 +35,8 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes);
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes, context);
         Boolean result = attributeValueQuery.getValue();
         if (result == null) {
             return new BooleanQueryResult(false);
@@ -45,8 +46,8 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
             return new BooleanQueryResult(true);
         }
 
-        while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
-            attributeValueQuery = booleanEvaluator.evaluate(attributes);
+        while (multiAttributeEvaluator.getEvaluationsRemaining(context) > 0) {
+            attributeValueQuery = booleanEvaluator.evaluate(attributes, context);
             result = attributeValueQuery.getValue();
             if (result != null && result) {
                 return attributeValueQuery;
@@ -57,7 +58,7 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public int getEvaluationsRemaining() {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

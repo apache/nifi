@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AttributeEvaluator;
@@ -42,6 +43,7 @@ public class Query {
     private final Tree tree;
     private final Evaluator<?> evaluator;
     private final AtomicBoolean evaluated = new AtomicBoolean(false);
+    private final EvaluationContext context = new EvaluationContext();
 
     private Query(final String query, final Tree tree, final Evaluator<?> evaluator) {
         this.query = query;
@@ -199,9 +201,10 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
+    static String evaluateExpression(final Tree tree, Evaluator<?> rootEvaluator, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
                                      final Map<String, String> stateVariables) throws ProcessException {
-        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap, stateVariables).getValue();
+        Query query = new Query(queryText, tree, rootEvaluator);
+        final Object evaluated = query.evaluate(valueMap, stateVariables).getValue();
         if (evaluated == null) {
             return null;
         }
@@ -358,9 +361,9 @@ public class Query {
         }
         if (stateMap != null) {
             AttributesAndState attributesAndState = new AttributesAndState(attributes, stateMap);
-            return evaluator.evaluate(attributesAndState);
+            return evaluator.evaluate(attributesAndState, context);
         } else {
-            return evaluator.evaluate(attributes);
+            return evaluator.evaluate(attributes, context);
         }
     }
 

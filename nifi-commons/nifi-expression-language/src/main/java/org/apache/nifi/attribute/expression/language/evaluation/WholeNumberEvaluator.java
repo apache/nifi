@@ -27,7 +27,7 @@ public abstract class WholeNumberEvaluator implements Evaluator<Long> {
     }
 
     @Override
-    public int getEvaluationsRemaining() {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

@@ -27,7 +27,7 @@ public abstract class DecimalEvaluator implements Evaluator<Double> {
     }
 
     @Override
-    public int getEvaluationsRemaining() {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

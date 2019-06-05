@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
@@ -29,7 +30,7 @@ public class OneUpSequenceEvaluator extends WholeNumberEvaluator {
     private static final AtomicLong value = new AtomicLong(0L);
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
+    public QueryResult<Long> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
         return new WholeNumberQueryResult(value.getAndIncrement());
     }
 

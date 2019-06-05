@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -34,7 +35,7 @@ public class IPEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
         return ipAddress;
     }
 

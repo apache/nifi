@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
@@ -36,13 +37,13 @@ public class EqualsEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Object a = subject.evaluate(attributes).getValue();
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final Object a = subject.evaluate(attributes, context).getValue();
         if (a == null) {
             return new BooleanQueryResult(false);
         }
 
-        final Object b = compareTo.evaluate(attributes).getValue();
+        final Object b = compareTo.evaluate(attributes, context).getValue();
         if (b == null) {
             return new BooleanQueryResult(false);
         }

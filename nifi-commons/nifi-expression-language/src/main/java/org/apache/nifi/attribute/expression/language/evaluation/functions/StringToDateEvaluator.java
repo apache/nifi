@@ -25,6 +25,7 @@ import java.util.TimeZone;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
@@ -42,9 +43,9 @@ public class StringToDateEvaluator extends DateEvaluator {
     }
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes) {
-        final String subjectValue = subject.evaluate(attributes).getValue();
-        final String formatValue = format.evaluate(attributes).getValue();
+    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final String subjectValue = subject.evaluate(attributes, context).getValue();
+        final String formatValue = format.evaluate(attributes, context).getValue();
         if (subjectValue == null || formatValue == null) {
             return new DateQueryResult(null);
         }
@@ -52,7 +53,7 @@ public class StringToDateEvaluator extends DateEvaluator {
         final SimpleDateFormat sdf = new SimpleDateFormat(formatValue, Locale.US);
 
         if(timeZone != null) {
-            final QueryResult<String> tzResult = timeZone.evaluate(attributes);
+            final QueryResult<String> tzResult = timeZone.evaluate(attributes, context);
             final String tz = tzResult.getValue();
             if(tz != null && TimeZone.getTimeZone(tz) != null) {
                 sdf.setTimeZone(TimeZone.getTimeZone(tz));

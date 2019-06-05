@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -34,13 +35,13 @@ public class GreaterThanEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Number subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final Number subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
 
-        final Number comparisonValue = comparison.evaluate(attributes).getValue();
+        final Number comparisonValue = comparison.evaluate(attributes, context).getValue();
         if (comparisonValue == null) {
             return new BooleanQueryResult(false);
         }

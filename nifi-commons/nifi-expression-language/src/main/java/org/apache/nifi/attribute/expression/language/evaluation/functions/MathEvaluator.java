@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
+
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Map;
 
 public class MathEvaluator extends NumberEvaluator {
 
@@ -39,15 +40,15 @@ public class MathEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
-        final String methodNamedValue = methodName.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+        final String methodNamedValue = methodName.evaluate(attributes, context).getValue();
         if (methodNamedValue == null) {
             return new NumberQueryResult(null);
         }
 
         final Number subjectValue;
         if(subject != null) {
-            subjectValue = subject.evaluate(attributes).getValue();
+            subjectValue = subject.evaluate(attributes, context).getValue();
             if(subjectValue == null){
                 return new NumberQueryResult(null);
             }
@@ -57,7 +58,7 @@ public class MathEvaluator extends NumberEvaluator {
 
         final Number optionalArgValue;
         if(optionalArg != null) {
-            optionalArgValue = optionalArg.evaluate(attributes).getValue();
+            optionalArgValue = optionalArg.evaluate(attributes, context).getValue();
 
             if(optionalArgValue == null) {
                 return new NumberQueryResult(null);

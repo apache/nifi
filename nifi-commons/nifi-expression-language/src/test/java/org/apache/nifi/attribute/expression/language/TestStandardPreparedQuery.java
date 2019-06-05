@@ -90,6 +90,152 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
+    public void testPreparedQueryWithReducingFunctionAny() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyAttribute('comma', 'question'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("comma", "hello");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAll() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('comma', 'question'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("comma", "hello");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("question", "hello");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAnyMatching() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyMatchingAttribute('audi.*'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("auditorium", "hello");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAllMatching() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", "hello");
+        attributes.put("question", "hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allMatchingAttributes('.*'):matches('hello')}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.remove("audience");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAnyDelineated() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("number_list", "1,2,3,4,5,6,7");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyDelineatedValue(${number_list}, ','):contains('5')}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("number_list", "1,2,3");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("number_list", "5");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAllDelineated() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("word_list", "beach,bananas,web");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allDelineatedValues(${word_list}, ','):contains('b')}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("word_list", "beach,party,web");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+        attributes.put("word_list", "bee");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionJoin() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):join(' ')}");
+        assertEquals("Hello World!", prepared.evaluateExpressions(attributes, null));
+        attributes.put("boat", "Friend.");
+        assertEquals("Hello Friend.", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionCount() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):contains('e'):count()}");
+        assertEquals("1", prepared.evaluateExpressions(attributes, null));
+        attributes.put("boat", "end");
+        assertEquals("2", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithSelectingAnd() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):isEmpty():not():and(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithAnd() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${hello:contains('H'):and(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "Hell");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithSelectingOr() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):matches('strict'):or(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
+    public void testPreparedQueryWithOr() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${hello:contains('X'):or(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        attributes.put("hello", "Hell");
+        assertEquals("false", prepared.evaluateExpressions(attributes, null));
+    }
+
+    @Test
     public void testVariableImpacted() {
         final Set<String> attr = new HashSet<>();
         attr.add("attr");

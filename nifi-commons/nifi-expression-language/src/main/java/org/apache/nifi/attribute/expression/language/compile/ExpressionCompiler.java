@@ -28,6 +28,7 @@ import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLe
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
@@ -947,7 +948,7 @@ public class ExpressionCompiler {
 
                 final List<String> attributeNames = new ArrayList<>();
                 for (int i = 1; i < tree.getChildCount(); i++) {  // skip the first child because that's the name of the multi-attribute function
-                    attributeNames.add(newStringLiteralEvaluator(tree.getChild(i).getText()).evaluate(null).getValue());
+                    attributeNames.add(newStringLiteralEvaluator(tree.getChild(i).getText()).evaluate(null, new EvaluationContext()).getValue());
                 }
 
                 switch (multiAttrType) {
