@@ -103,9 +103,9 @@ public class TestPrometheusReportingTask {
         HttpEntity entity = response.getEntity();
         String content = EntityUtils.toString(entity);
         Assert.assertEquals(true, content.contains(
-                "nifi_process_group_amount_flowfiles_received{instance=\"localhost\",process_group_name=\"root\",process_group_id=\"1234\",} 5.0"));
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
         Assert.assertEquals(true, content.contains(
-                "nifi_process_group_amount_threads_active{instance=\"localhost\",process_group_name=\"root\",process_group_id=\"1234\",} 5.0"));
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
     }
 
 }

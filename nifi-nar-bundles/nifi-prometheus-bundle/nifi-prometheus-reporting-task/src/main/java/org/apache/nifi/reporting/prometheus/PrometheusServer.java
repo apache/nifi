@@ -54,6 +54,7 @@ public class PrometheusServer {
     private Server server;
     private ServletContextHandler handler;
     private ReportingContext context;
+    private String metricsStrategy;
     private boolean sendJvmMetrics;
     private String instanceId;
 
@@ -70,7 +71,8 @@ public class PrometheusServer {
             rootGroupStatus = PrometheusServer.this.context.getEventAccess().getControllerStatus();
             ServletOutputStream response = resp.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(response);
-            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.instanceId);
+
+            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.instanceId, "", "RootProcessGroup", metricsStrategy);
             TextFormat.write004(osw, nifiRegistry.metricFamilySamples());
 
             if (PrometheusServer.this.sendJvmMetrics == true) {
@@ -167,4 +169,11 @@ public class PrometheusServer {
         this.instanceId = iid;
     }
 
+    public String getMetricsStrategy() {
+        return metricsStrategy;
+    }
+
+    public void setMetricsStrategy(String metricsStrategy) {
+        this.metricsStrategy = metricsStrategy;
+    }
 }
