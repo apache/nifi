@@ -240,7 +240,7 @@ public class TestGetFile {
     }
 
     @Test
-    public void testMinAgeWithFutureDateFiles() throws IOException {
+    public void testMinAgeWithFutureDateFiles() throws IOException, InterruptedException {
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
         final String dirStruc = sdf.format(new Date());
 
@@ -257,9 +257,11 @@ public class TestGetFile {
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
         // Keep source file to simplify age testing
         runner.setProperty(GetFile.KEEP_SOURCE_FILE, "true");
-        // Set min age to 1 second
-        runner.setProperty(GetFile.MIN_AGE, "1 sec");
+        // Set min age to 100 msec
+        runner.setProperty(GetFile.MIN_AGE, "100 millis");
         runner.setProperty(GetFile.DIRECTORY, "target/test/data/in/${now():format('yyyy/MM/dd')}");
+        // Wait 200 msec so file is old enough
+        Thread.sleep(200);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
