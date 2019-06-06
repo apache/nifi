@@ -35,7 +35,6 @@ import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerAccessResultProcessor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -51,7 +50,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.notNull;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -332,7 +331,7 @@ public class TestRangerNiFiAuthorizer {
         // no result processor should be provided used non-direct access
         when(rangerBasePlugin.isAccessAllowed(
                 argThat(new RangerAccessRequestMatcher(expectedRangerRequest)),
-                notNull(RangerAccessResultProcessor.class))
+                isNotNull())
         ).thenReturn(notAllowedResult);
 
         // return false when checking if a policy exists for the resource
@@ -537,7 +536,7 @@ public class TestRangerNiFiAuthorizer {
     /**
      * Custom Mockito matcher for RangerAccessRequest objects.
      */
-    private static class RangerAccessRequestMatcher extends ArgumentMatcher<RangerAccessRequest> {
+    private static class RangerAccessRequestMatcher implements ArgumentMatcher<RangerAccessRequest> {
 
         private final RangerAccessRequest request;
 
@@ -546,20 +545,18 @@ public class TestRangerNiFiAuthorizer {
         }
 
         @Override
-        public boolean matches(Object o) {
-            if (!(o instanceof RangerAccessRequest)) {
+        public boolean matches(RangerAccessRequest argument) {
+            if (argument == null) {
                 return false;
             }
 
-            final RangerAccessRequest other = (RangerAccessRequest) o;
+            final boolean clientIpsMatch = (argument.getClientIPAddress() == null && request.getClientIPAddress() == null)
+                    || (argument.getClientIPAddress() != null && request.getClientIPAddress() != null && argument.getClientIPAddress().equals(request.getClientIPAddress()));
 
-            final boolean clientIpsMatch = (other.getClientIPAddress() == null && request.getClientIPAddress() == null)
-                    || (other.getClientIPAddress() != null && request.getClientIPAddress() != null && other.getClientIPAddress().equals(request.getClientIPAddress()));
-
-            return other.getResource().equals(request.getResource())
-                    && other.getAccessType().equals(request.getAccessType())
-                    && other.getAction().equals(request.getAction())
-                    && other.getUser().equals(request.getUser())
+            return argument.getResource().equals(request.getResource())
+                    && argument.getAccessType().equals(request.getAccessType())
+                    && argument.getAction().equals(request.getAction())
+                    && argument.getUser().equals(request.getUser())
                     && clientIpsMatch;
         }
     }

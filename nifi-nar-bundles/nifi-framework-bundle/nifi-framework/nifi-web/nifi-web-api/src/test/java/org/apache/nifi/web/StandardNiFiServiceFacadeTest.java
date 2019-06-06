@@ -44,7 +44,6 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -56,8 +55,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -85,7 +84,7 @@ public class StandardNiFiServiceFacadeTest {
         // audit service
         final AuditService auditService = mock(AuditService.class);
         when(auditService.getAction(anyInt())).then(invocation -> {
-            final Integer actionId = invocation.getArgumentAt(0, Integer.class);
+            final Integer actionId = invocation.getArgument(0);
 
             FlowChangeAction action = null;
             if (ACTION_ID_1.equals(actionId)) {
@@ -106,7 +105,7 @@ public class StandardNiFiServiceFacadeTest {
         // authorizable lookup
         final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
         when(authorizableLookup.getProcessor(Mockito.anyString())).then(getProcessorInvocation -> {
-            final String processorId = getProcessorInvocation.getArgumentAt(0, String.class);
+            final String processorId = getProcessorInvocation.getArgument(0);
 
             // processor-2 is no longer part of the flow
             if (processorId.equals(PROCESSOR_ID_2)) {
@@ -139,7 +138,7 @@ public class StandardNiFiServiceFacadeTest {
         // authorizer
         authorizer = mock(Authorizer.class);
         when(authorizer.authorize(any(AuthorizationRequest.class))).then(invocation -> {
-            final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
+            final AuthorizationRequest request = invocation.getArgument(0);
 
             AuthorizationResult result = AuthorizationResult.denied();
             if (request.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)) {
@@ -201,18 +200,8 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(entity.getCanRead());
 
         // resource exists and is approved, no need to check the controller
-        verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_1);
-            }
-        }));
-        verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-            }
-        }));
+        verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
+        verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -227,18 +216,8 @@ public class StandardNiFiServiceFacadeTest {
             fail();
         } finally {
             // resource exists, but should trigger access denied and will not check the controller
-            verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-                @Override
-                public boolean matches(Object o) {
-                    return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_1);
-                }
-            }));
-            verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-                @Override
-                public boolean matches(Object o) {
-                    return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-                }
-            }));
+            verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
+            verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
         }
     }
 
@@ -256,18 +235,8 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(entity.getCanRead());
 
         // component does not exists, so only checks against the controller
-        verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_2);
-            }
-        }));
-        verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-            }
-        }));
+        verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_2)));
+        verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
     @Test

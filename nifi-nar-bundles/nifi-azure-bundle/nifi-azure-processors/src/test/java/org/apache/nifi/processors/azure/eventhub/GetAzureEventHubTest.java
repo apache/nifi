@@ -23,6 +23,7 @@ import com.microsoft.azure.servicebus.ServiceBusException;
 import com.microsoft.azure.servicebus.amqp.AmqpConstants;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
@@ -38,7 +40,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
 
 
 public class GetAzureEventHubTest {
@@ -187,7 +188,12 @@ public class GetAzureEventHubTest {
                     properties.put(AmqpConstants.ENQUEUED_TIME_UTC_ANNOTATION_NAME, ENQUEUED_TIME_VALUE);
 
                     SystemProperties systemProperties = new SystemProperties(properties);
-                    Whitebox.setInternalState(eventData, "systemProperties", systemProperties);
+                    Field systemPropertiesField = FieldUtils.getDeclaredField(EventData.class, "systemProperties", true);
+                    try {
+                        systemPropertiesField.set(eventData, systemProperties);
+                    } catch (IllegalAccessException e) {
+                        throw new ProcessException("Could not set systemProperties on EventData", e);
+                    }
                 }
                 receivedEvents.add(eventData);
             }

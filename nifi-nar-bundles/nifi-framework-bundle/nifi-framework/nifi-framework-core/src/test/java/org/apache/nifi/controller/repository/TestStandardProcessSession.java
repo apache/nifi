@@ -95,8 +95,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.notNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -255,14 +255,14 @@ public class TestStandardProcessSession {
         Mockito.doAnswer(new Answer<FlowFile>() {
             @Override
             public FlowFile answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgumentAt(0, Set.class));
+                return localFlowFileQueue.poll(invocation.getArgument(0));
             }
         }).when(connection).poll(any(Set.class));
 
         Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgumentAt(0, FlowFileFilter.class), invocation.getArgumentAt(1, Set.class));
+                return localFlowFileQueue.poll(invocation.getArgument(0), invocation.getArgument(1));
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
@@ -1392,7 +1392,7 @@ public class TestStandardProcessSession {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
                 if (iterations++ == 0) {
-                    final Set<FlowFileRecord> expired = invocation.getArgumentAt(1, Set.class);
+                    final Set<FlowFileRecord> expired = invocation.getArgument(1);
                     expired.add(flowFileRecord);
                 }
 

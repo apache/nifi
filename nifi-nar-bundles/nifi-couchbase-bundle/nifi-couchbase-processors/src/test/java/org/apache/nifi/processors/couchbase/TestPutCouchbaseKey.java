@@ -26,9 +26,9 @@ import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.RE
 import static org.apache.nifi.processors.couchbase.AbstractCouchbaseProcessor.REL_SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.couchbase.client.deps.io.netty.buffer.Unpooled;
-import com.couchbase.client.java.document.BinaryDocument;
+import com.couchbase.client.java.document.ByteArrayDocument;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.couchbase.DocumentType;
@@ -134,8 +134,8 @@ public class TestPutCouchbaseKey {
         byte[] inFileDataBytes = inFileData.getBytes(StandardCharsets.UTF_8);
 
         Bucket bucket = mock(Bucket.class);
-        when(bucket.upsert(any(BinaryDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE)))
-                .thenReturn(BinaryDocument.create(docId, expiry, Unpooled.copiedBuffer(inFileData.getBytes(StandardCharsets.UTF_8)), cas));
+        when(bucket.upsert(any(ByteArrayDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE)))
+                .thenReturn(ByteArrayDocument.create(docId, expiry, Unpooled.copiedBuffer(inFileData.getBytes(StandardCharsets.UTF_8)).array(), cas));
         setupMockBucket(bucket);
 
         testRunner.enqueue(inFileDataBytes);
@@ -144,7 +144,7 @@ public class TestPutCouchbaseKey {
         testRunner.setProperty(DOCUMENT_TYPE, DocumentType.Binary.name());
         testRunner.run();
 
-        verify(bucket, times(1)).upsert(any(BinaryDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
+        verify(bucket, times(1)).upsert(any(ByteArrayDocument.class), eq(PersistTo.NONE), eq(ReplicateTo.NONE));
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
         testRunner.assertTransferCount(REL_SUCCESS, 1);
