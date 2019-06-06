@@ -30,7 +30,12 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.*;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -118,7 +123,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .autoTerminateDefault(true)
-            .description("If Failure Route is set to 'Relationship', FlowFiles that could not be updated are routed to this relationship")
+            .description("If Failure Action is set to 'Relationship', FlowFiles that could not be updated are routed to this relationship")
             .build();
     public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
             .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
@@ -216,7 +221,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .required(true)
             .allowableValues(new AllowableValue(FAILURE_ACTION_ROLLBACK, "Rollback Session",
                             "Rolls back the session, reverting any changes to the FlowFile and returning it" +
-                                    "to it's queue."),
+                                    "to its queue."),
                     new AllowableValue(FAILURE_ACTION_ROUTE, "Route to Failure",
                             "Reverts any changes to the FlowFile, and routes it to the Failure relationship"))
             .defaultValue(FAILURE_ACTION_ROLLBACK)
@@ -534,10 +539,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             final String failureAction = context.getProperty(FAILURE_ACTION).getValue();
 
             if(failureAction.equals(FAILURE_ACTION_ROLLBACK)) {
+                logger.warn("Updating attributes failed for {}; reverting to original queue.", new Object[]{incomingFlowFile});
+
                 throw e;
             }
 
-            session.penalize(incomingFlowFile);
+            logger.warn("Updating attributes failed for {}; transferring to '{}'", new Object[]{incomingFlowFile, REL_FAILURE.getName()});
             session.transfer(incomingFlowFile, REL_FAILURE);
         }
 
