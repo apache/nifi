@@ -270,7 +270,7 @@ final class KafkaProcessorUtils {
             final boolean knownValue = KafkaProcessorUtils.isStaticStringFieldNamePresent(subject, classType, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class);
             return new ValidationResult.Builder().subject(subject).explanation("Must be a known configuration parameter for this kafka client").valid(knownValue).build();
         }
-    };
+    }
 
     /**
      * Builds transit URI for provenance event. The transit URI will be in the
