@@ -49,7 +49,13 @@ abstract class ShellUserGroupProviderBase {
         return !isWindows && !systemCheckFailed;
     }
 
-    void testGetUsers(UserGroupProvider provider) {
+
+    /**
+     * Tests the provider behavior by getting its users and checking minimum size.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetUsersAndUsersMinimumCount(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         Set<User> users = provider.getUsers();
@@ -57,7 +63,13 @@ abstract class ShellUserGroupProviderBase {
         assertTrue(users.size() > 0);
     }
 
-    void testGetUser(UserGroupProvider provider) {
+
+    /**
+     * Tests the provider behavior by getting a known user by uid.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetKnownUserByUsername(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         User root = provider.getUser(KNOWN_UID);
@@ -66,7 +78,12 @@ abstract class ShellUserGroupProviderBase {
         assertEquals(KNOWN_UID, root.getIdentifier());
     }
 
-    void testGetUserByIdentity(UserGroupProvider provider) {
+    /**
+     * Tests the provider behavior by getting a known user by id.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetKnownUserByUid(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         User root = provider.getUserByIdentity(KNOWN_USER);
@@ -75,7 +92,12 @@ abstract class ShellUserGroupProviderBase {
         assertEquals(KNOWN_UID, root.getIdentifier());
     }
 
-    void testGetGroups(UserGroupProvider provider) {
+    /**
+     * Tests the provider behavior by getting its groups and checking minimum size.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetGroupsAndMinimumGroupCount(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         Set<Group> groups = provider.getGroups();
@@ -83,7 +105,12 @@ abstract class ShellUserGroupProviderBase {
         assertTrue(groups.size() > 0);
     }
 
-    void testGetGroup(UserGroupProvider provider) {
+    /**
+     * Tests the provider behavior by getting a known group by GID.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetKnownGroupByGid(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         Group group = provider.getGroup(KNOWN_GID);
@@ -92,7 +119,12 @@ abstract class ShellUserGroupProviderBase {
         assertEquals(KNOWN_GID, group.getIdentifier());
     }
 
-    void testGroupMembership(UserGroupProvider provider) {
+    /**
+     * Tests the provider behavior by getting a known group and checking for a known member of it.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetGroupByGidAndGetGroupMembership(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         Group group = provider.getGroup(KNOWN_GID);
@@ -104,18 +136,25 @@ abstract class ShellUserGroupProviderBase {
 
         try {
             assertTrue(group.getUsers().size() > 0);
+            logger.info("root group count: " + group.getUsers().size());
         } catch (final AssertionError ignored) {
-            logger.warn("root group count zero on this system");
+            logger.info("root group count zero on this system");
         }
 
         try {
             assertTrue(group.getUsers().contains(KNOWN_USER));
+            logger.info("root group membership: " + group.getUsers());
         } catch (final AssertionError ignored) {
-            logger.warn("root group membership unexpected on this system");
+            logger.info("root group membership unexpected on this system");
         }
     }
 
-    void testGetUserAndGroups(UserGroupProvider provider) {
+    /**
+     * Tests the provider behavior by getting a known user and checking its group membership.
+     *
+     * @param provider {@link UserGroupProvider}
+     */
+    void testGetUserByUidAndGetGroupMembership(UserGroupProvider provider) {
         assumeTrue(isTestableEnvironment());
 
         UserAndGroups user = provider.getUserAndGroups(KNOWN_UID);
@@ -123,8 +162,9 @@ abstract class ShellUserGroupProviderBase {
 
         try {
             assertTrue(user.getGroups().size() > 0);
+            logger.info("root user group count: " + user.getGroups().size());
         } catch (final AssertionError ignored) {
-            logger.warn("root user and groups group count zero on this system");
+            logger.info("root user and groups group count zero on this system");
         }
 
         Set<Group> groups = provider.getGroups();

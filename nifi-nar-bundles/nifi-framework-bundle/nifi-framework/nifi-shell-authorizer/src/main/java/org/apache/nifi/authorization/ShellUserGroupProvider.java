@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.util.ShellRunner;
 
+import org.apache.nifi.components.PropertyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,13 +42,20 @@ import java.util.concurrent.TimeUnit;
  * ShellUserGroupProvider implements UserGroupProvider by way of shell commands.
  */
 public class ShellUserGroupProvider implements UserGroupProvider {
+
     private final static Logger logger = LoggerFactory.getLogger(ShellUserGroupProvider.class);
 
     private final static String OS_TYPE_ERROR = "Unsupported operating system.";
     private final static String SYS_CHECK_ERROR = "System check failed - cannot provide users and groups.";
-    private final Map<String, User> usersById = new HashMap<>();   // id == identifier
-    private final Map<String, User> usersByName = new HashMap<>(); // name == identity
-    private final Map<String, Group> groupsById = new HashMap<>();
+    private final static Map<String, User> usersById = new HashMap<>();   // id == identifier
+    private final static Map<String, User> usersByName = new HashMap<>(); // name == identity
+    private final static Map<String, Group> groupsById = new HashMap<>();
+
+    public static final String INITIAL_REFRESH_DELAY_PROPERTY = "Initial Refresh Delay";
+    public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
+
+    private int initialDelay;
+    private int fixedDelay;
 
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -59,7 +67,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     // Commands selected during initialization:
     private ShellCommandsProvider selectedShellCommands;
 
-    // Start of the UserGroupProvider implementation.  Docstrings
+    // Start of the UserGroupProvider implementation.  Javadoc strings
     // copied from the interface definition for reference.
 
     /**
@@ -192,19 +200,10 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         // Our first init step is to select the command set based on the
         // operating system name:
-        final String osName = System.getProperty("os.name");
-        ShellCommandsProvider commands = getCommandsProvider();
+        ShellCommandsProvider commands = getCommands();
 
         if (commands == null) {
-            if (osName.startsWith("Linux")) {
-                logger.debug("Selected Linux command set.");
-                commands = new NssShellCommands();
-            } else if (osName.startsWith("Mac OS X")) {
-                logger.debug("Selected OSX command set.");
-                commands = new OsxShellCommands();
-            } else {
-                throw new AuthorizerCreationException(OS_TYPE_ERROR);
-            }
+            commands = getShellCommandsProvider(null);
             setCommandsProvider(commands);
         }
 
@@ -220,13 +219,40 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
         // With our command set selected, and our system check passed,
         // we can pull in the users and groups:
-        refreshUsers();
-        refreshGroups();
+        refreshUsersAndGroups();
 
         // Our last init step is to fire off the refresh threads:
-        Integer initialDelay = 30, fixedDelay = 30;
-        scheduler.scheduleWithFixedDelay(this::refreshUsers, initialDelay, fixedDelay, TimeUnit.SECONDS);
-        scheduler.scheduleWithFixedDelay(this::refreshGroups, initialDelay, fixedDelay, TimeUnit.SECONDS);
+        initialDelay = getIntegerPropertyWithDefault(configurationContext, INITIAL_REFRESH_DELAY_PROPERTY, 30);
+        fixedDelay = getIntegerPropertyWithDefault(configurationContext, REFRESH_DELAY_PROPERTY, 30);
+
+        scheduler.scheduleWithFixedDelay(this::refreshUsersAndGroups, initialDelay, fixedDelay, TimeUnit.SECONDS);
+    }
+
+    private static ShellCommandsProvider getShellCommandsProvider(String osName) {
+        if (osName == null) {
+            osName = System.getProperty("os.name");
+        }
+
+        ShellCommandsProvider commands;
+        if (osName.startsWith("Linux")) {
+            logger.debug("Selected Linux command set.");
+            commands = new NssShellCommands();
+        } else if (osName.startsWith("Mac OS X")) {
+            logger.debug("Selected OSX command set.");
+            commands = new OsxShellCommands();
+        } else {
+            throw new AuthorizerCreationException(OS_TYPE_ERROR);
+        }
+        return commands;
+    }
+
+    private int getIntegerPropertyWithDefault(AuthorizerConfigurationContext context, String name, int defaultValue) {
+        final PropertyValue property = context.getProperty(name);
+        if (property != null) {
+            return property.asInteger();
+        } else {
+            return defaultValue;
+        }
     }
 
     /**
@@ -242,7 +268,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    public ShellCommandsProvider getCommandsProvider() {
+    public ShellCommandsProvider getCommands() {
         return selectedShellCommands;
     }
 
@@ -250,118 +276,163 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         selectedShellCommands = commandsProvider;
     }
 
-    private void refreshUsers() {
-        Map<String, User> byId = new HashMap<>();
-        Map<String, User> byName = new HashMap<>();
-        List<String> lines;
+    /**
+     * This is our entry point for user and group refresh.  This method runs the top-level
+     * `getUserList()` and `getGroupsList()` shell commands, then passes those results to the
+     * other methods for record parse, extract, and object construction.
+     */
+    private void refreshUsersAndGroups() {
+        Map<String, User> uidToUser = new HashMap<>();
+        Map<String, User> usernameToUser = new HashMap<>();
+        Map<String, User> gidToUser = new HashMap<>();
+        Map<String, Group> gidToGroup = new HashMap<>();
+
+        List<String> userLines;
+        List<String> groupLines;
 
         try {
-            lines = ShellRunner.runShell(selectedShellCommands.getUsersList());
+            userLines = ShellRunner.runShell(selectedShellCommands.getUsersList(), "Get Users List");
+            groupLines = ShellRunner.runShell(selectedShellCommands.getGroupsList(), "Get Groups List");
         } catch (final IOException ioexc)  {
-            logger.error("refreshUsers shell exception: " + ioexc);
+            logger.error("refreshUsersAndGroups shell exception: " + ioexc);
             return;
         }
 
-        lines.forEach(line -> {
-                String[] record = line.split(":");
-                if (record.length > 1) {
-                    String name = record[0],
-                        id = record[1];
-                    if (name != null && id != null && !name.equals("") && !id.equals("")) {
-                        User user = new User.Builder().identity(name).identifier(id).build();
-                        byId.put(id, user);
-                        byName.put(name, user);
-                        logger.debug("refreshed user: " + user);
-                    } else {
-                        logger.warn("null or empty user name: " + name + " or id: " + id);
-                    }
-                }
-            });
+        rebuildUsers(userLines, uidToUser, usernameToUser, gidToUser);
+        rebuildGroups(groupLines, gidToGroup);
+        reconcilePrimaryGroups(gidToUser, gidToGroup);
 
         synchronized (usersById) {
             usersById.clear();
-            usersById.putAll(byId);
+            usersById.putAll(uidToUser);
         }
 
         synchronized (usersByName) {
             usersByName.clear();
-            usersByName.putAll(byName);
-            logger.debug("refreshUsers users now size: " + usersByName.size());
+            usersByName.putAll(usernameToUser);
+            logger.debug("users now size: " + usersByName.size());
+        }
+
+        synchronized (groupsById) {
+            groupsById.clear();
+            groupsById.putAll(gidToGroup);
+            logger.debug("groups now size: " + groupsById.size());
         }
     }
 
-    private void refreshGroups() {
-        Map<String, Group> groups = new HashMap<>();
-        List<String> lines;
+    /**
+     * This method parses the output of the `getUsersList()` shell command, where we expect the output
+     * to look like `user-name:user-id:primary-group-id`.
+     *
+     * This method splits each output line on the ":" and attempts to build a User object
+     * from the resulting name, uid, and primary gid.  Unusable records are logged.
+     */
+    private void rebuildUsers(List<String> userLines, Map<String, User> idToUser, Map<String, User> usernameToUser, Map<String, User> gidToUser) {
+        userLines.forEach(line -> {
+                String[] record = line.split(":");
+                if (record.length > 2) {
+                    String name = record[0], id = record[1], gid = record[2];
 
-        try {
-            lines = ShellRunner.runShell(selectedShellCommands.getGroupsList());
-        } catch (final IOException ioexc) {
-            logger.error("refreshGroups list groups shell exception: " + ioexc);
-            return;
-        }
+                    if (name != null && id != null && !name.equals("") && !id.equals("")) {
 
-        lines.forEach(line -> {
+                        User user = new User.Builder().identity(name).identifier(id).build();
+                        idToUser.put(id, user);
+                        usernameToUser.put(name, user);
+
+                        if (gid != null && !gid.equals("")) {
+                            gidToUser.put(gid, user);
+                        } else {
+                            logger.warn("Null or empty primary group id for: " + name);
+                        }
+
+                    } else {
+                        logger.warn("Null or empty user name: " + name + " or id: " + id);
+                    }
+                } else {
+                    logger.warn("Unexpected record format.  Expected 3 or more comma separated values per line.");
+                }
+            });
+    }
+
+    /**
+     * This method parses the output of the `getGroupsList()` shell command, where we expect the output
+     * to look like `group-name:group-id`.
+     *
+     * This method splits each output line on the ":" and attempts to build a Group object
+     * from the resulting name and gid.  Unusable records are logged.
+     *
+     * This command also runs the `getGroupMembers(username)` command once per group.  The expected output
+     * of that command should look like `group-name-1,group-name-2`.
+     */
+    private void rebuildGroups(List<String> groupLines, Map<String, Group> groupsById) {
+        groupLines.forEach(line -> {
                 String[] record = line.split(":");
                 if (record.length > 1) {
                     Set<String> users = new HashSet<>();
                     String name = record[0], id = record[1];
 
                     try {
-                        List<String> userLines = ShellRunner.runShell(String.format(selectedShellCommands.getGroupMembers(), name));
-                        if (userLines.size() > 0) {
-                            users.addAll(Arrays.asList(userLines.get(0).split(",")));
+                        List<String> memberLines = ShellRunner.runShell(selectedShellCommands.getGroupMembers(name));
+                        // Use the first line only, and log if the line count isn't exactly one:
+                        if (!memberLines.isEmpty()) {
+                            users.addAll(Arrays.asList(memberLines.get(0).split(",")));
+                        } else {
+                            logger.error("refreshGroup list membership returned zero lines.");
                         }
+                        if (memberLines.size() > 1) {
+                            logger.error("refreshGroup list membership returned too many lines, only used the first.");
+                        }
+
                     } catch (final IOException ioexc) {
-                        logger.error("refreshGroups list membership shell exception: " + ioexc);
+                        logger.error("refreshUsersAndGroups list membership shell exception: " + ioexc);
                     }
 
                     if (name != null && id != null && !name.equals("") && !id.equals("")) {
                         Group group = new Group.Builder().name(name).identifier(id).addUsers(users).build();
-                        groups.put(id, group);
-                        logger.debug("refreshed group: " + group);
+                        groupsById.put(id, group);
+                        logger.debug("Refreshed group: " + group);
                     } else {
-                        logger.warn("null or empty group name: " + name + " or id: " + id);
+                        logger.warn("Null or empty group name: " + name + " or id: " + id);
                     }
+                } else {
+                    logger.warn("Unexpected record format.  Expected 1 or more comma separated values.");
                 }
             });
-
-        List<String> sublines;
-        try {
-            sublines = ShellRunner.runShell(selectedShellCommands.getUsersList());
-        } catch (final IOException ioexc) {
-            logger.error("refreshGroups list groups shell exception: " + ioexc);
-            return;
-        }
-
-        sublines.forEach(line -> {
-                String[] subrecord = line.split(":");
-
-                if (subrecord.length > 2) {
-                    String primaryGid = subrecord[2];
-                    Group primaryGroup = groups.get(primaryGid);
-                    Group group;
-
-                    if (primaryGroup == null) {
-                        logger.warn("user: " + subrecord[0] + " primary group not found");
-                    } else {
-                        Set<String> groupUsers = primaryGroup.getUsers();
-                        if (!groupUsers.contains(subrecord[0])) {
-                            Set<String> secondSet = new HashSet<>();
-                            secondSet.addAll(groupUsers);
-                            secondSet.add(subrecord[0]);
-                            group = new Group.Builder().name( primaryGroup.getName() ).identifier(primaryGid).addUsers(secondSet).build();
-                            groups.put(primaryGid, group);
-                        }
-                    }
-                }
-            });
-
-
-        synchronized (groupsById) {
-            groupsById.clear();
-            groupsById.putAll(groups);
-            logger.debug("refreshGroups groups now size: " + groupsById.size());
-        }
     }
+
+    /**
+     * This method parses the output of the `getGroupsList()` shell command, where we expect the output
+     * to look like `group-name:group-id`.
+     *
+     * This method splits each output line on the ":" and attempts to build a Group object
+     * from the resulting name and gid.
+     */
+    private void reconcilePrimaryGroups(Map<String, User> uidToUser, Map<String, Group> gidToGroup) {
+        uidToUser.forEach((primaryGid, primaryUser) -> {
+            Group primaryGroup = gidToGroup.get(primaryGid);
+
+            if (primaryGroup == null) {
+                logger.warn("user: " + primaryUser + " primary group not found");
+            } else {
+                Set<String> groupUsers = primaryGroup.getUsers();
+                if (!groupUsers.contains(primaryUser.getIdentity())) {
+                    Set<String> secondSet = new HashSet<>(groupUsers);
+                    secondSet.add(primaryUser.getIdentity());
+                    Group group = new Group.Builder().name(primaryGroup.getName()).identifier(primaryGid).addUsers(secondSet).build();
+                    gidToGroup.put(primaryGid, group);
+                }
+            }
+        });
+    }
+
+    public int getInitialRefreshDelay() {
+        return initialDelay;
+    }
+
+
+    public int getRefreshDelay() {
+        return fixedDelay;
+    }
+
+
 }

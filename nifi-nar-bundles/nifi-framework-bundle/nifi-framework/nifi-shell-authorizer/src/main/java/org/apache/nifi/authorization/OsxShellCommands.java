@@ -16,23 +16,47 @@
  */
 package org.apache.nifi.authorization;
 
+
+/**
+ * Provides shell commands to read users and groups on Mac OSX systems.
+ *
+ * See `man dscl` for more info.
+ */
 class OsxShellCommands implements ShellCommandsProvider {
+    /**
+     * @return Shell command string that will return a list of users.
+     */
     public String getUsersList() {
-        return "dscl . -list /Users UniqueID | grep -v '^_' | sed 's/ \\{1,\\}/:/g'";
+        return "dscl . -readall /Users UniqueID PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} " +
+            " /RecordName: / {name = $2;i = 0;}/PrimaryGroupID: / {gid = $2;} /^ / {if (i == 0) { i++; name = $1;}} " +
+            " /UniqueID: / {uid = $2;print name, uid, gid;}' | grep -v ^_";
     }
 
+    /**
+     * @return Shell command string that will return a list of groups for a user.
+     */
     public String getUserGroups() {
         return "id -nG %s | sed 's/\\ /,/g'";
     }
 
+    /**
+     * @return Shell command string that will return a list of groups.
+     */
     public String getGroupsList() {
         return "dscl . -list /Groups PrimaryGroupID  | grep -v '^_' | sed 's/ \\{1,\\}/:/g'";
     }
 
-    public String getGroupMembers() {
-        return "dscl . -read /Groups/%s GroupMembership | cut -f 2- -d ' ' | sed 's/\\ /,/g'";
+    /**
+     * @return Shell command string that will return a list of users for a group.
+     * @param groupName name of group.
+     */
+    public String getGroupMembers(String groupName) {
+        return String.format("dscl . -read /Groups/%s GroupMembership | cut -f 2- -d ' ' | sed 's/\\ /,/g'", groupName);
     }
 
+    /**
+     * @return Shell command string that will exit normally (0) on a suitable system.
+     */
     public String getSystemCheck() {
         return "which dscl";
     }

@@ -31,17 +31,20 @@ import java.util.concurrent.TimeUnit;
 public class ShellRunner {
     private final static Logger logger = LoggerFactory.getLogger(ShellRunner.class);
 
-    static String SHELL = "bash";
+    static String SHELL = "sh";
     static String OPTS = "-c";
     static Integer TIMEOUT = 30;
 
     public static List<String> runShell(String command) throws IOException {
+        return runShell(command, "<unknown>");
+    }
+
+    public static List<String> runShell(String command, String description) throws IOException {
         final ProcessBuilder builder = new ProcessBuilder(SHELL, OPTS, command);
         final List<String> builderCommand = builder.command();
 
-        logger.debug("Starting command: " + builderCommand + ", with timeout: " + TIMEOUT);
+        logger.debug("Run Command '" + description + "': " + builderCommand);
         final Process proc = builder.start();
-        logger.debug("Started command: " + builderCommand);
 
         try {
             proc.waitFor(TIMEOUT, TimeUnit.SECONDS);
@@ -54,13 +57,12 @@ public class ShellRunner {
                  final BufferedReader reader = new BufferedReader(stderr)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    logger.debug("" + line.trim());
+                    logger.warn(line.trim());
                 }
             }
             throw new IOException("Command exit non-zero: " + proc.exitValue());
         }
 
-        logger.debug("Completed command: " + builderCommand);
         final List<String> lines = new ArrayList<>();
         try (final Reader stdin = new InputStreamReader(proc.getInputStream());
              final BufferedReader reader = new BufferedReader(stdin)) {

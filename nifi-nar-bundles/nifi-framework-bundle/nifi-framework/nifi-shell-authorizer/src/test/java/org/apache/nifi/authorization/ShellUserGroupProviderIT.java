@@ -19,18 +19,19 @@ package org.apache.nifi.authorization;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.nifi.util.MockPropertyValue;
+
+import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.List;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
-
-import static org.mockito.Mockito.mock;
+import org.junit.Assert;
+import org.mockito.Mockito;
 
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -45,6 +46,9 @@ import org.apache.nifi.authorization.util.ShellRunner;
 public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     private static final Logger logger = LoggerFactory.getLogger(ShellUserGroupProviderIT.class);
 
+    // These images are publicly available on the hub.docker.com, and the source to each
+    // is available on github.  In lieu of using named images, the Dockerfiles could be
+    // migrated into module and referenced in the testcontainer setup.
     private final static String ALPINE_IMAGE = "natural/alpine-sshd:latest";
     private final static String CENTOS_IMAGE = "natural/centos-sshd:latest";
     private final static String DEBIAN_IMAGE = "natural/debian-sshd:latest";
@@ -70,22 +74,6 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     @ClassRule
     static public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    @Before
-    public void setup() throws IOException {
-        authContext = mock(AuthorizerConfigurationContext.class);
-        initContext = mock(UserGroupProviderInitializationContext.class);
-
-        localProvider = new ShellUserGroupProvider();
-        try {
-            localProvider.initialize(initContext);
-            localProvider.onConfigured(authContext);
-        } catch (final Exception exc) {
-            systemCheckFailed = true;
-            logger.error("setup() exception: " + exc + "; tests cannot run on this system.");
-            return;
-        }
-    }
-
     @BeforeClass
     public static void setupOnce() throws IOException {
         sshPrivKeyFile = tempFolder.getRoot().getAbsolutePath() + "/id_rsa";
@@ -105,44 +93,73 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
         // requirements:
         Arrays.asList(sshPrivKeyFile, sshPubKeyFile).forEach(name -> {
                 final File f = new File(name);
-                assertTrue(f.setReadable(false, false));
-                assertTrue(f.setReadable(true));
+                Assert.assertTrue(f.setReadable(false, false));
+                Assert.assertTrue(f.setReadable(true));
             });
     }
 
+    @Before
+    public void setup() throws IOException {
+        authContext = Mockito.mock(AuthorizerConfigurationContext.class);
+        initContext = Mockito.mock(UserGroupProviderInitializationContext.class);
+
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("15"));
+
+        localProvider = new ShellUserGroupProvider();
+        try {
+            localProvider.initialize(initContext);
+            localProvider.onConfigured(authContext);
+        } catch (final Exception exc) {
+            systemCheckFailed = true;
+            logger.error("setup() exception: " + exc + "; tests cannot run on this system.");
+            return;
+        }
+        Assert.assertEquals(10, localProvider.getInitialRefreshDelay());
+        Assert.assertEquals(15, localProvider.getRefreshDelay());
+    }
+
+    @After
+    public void tearDown() {
+        localProvider.preDestruction();
+    }
+
+    // Our primary test methods all accept a provider; here we define overloads to those methods to
+    // use the local provider.  This allows the reuse of those test methods with the remote provider.
+
     @Test
-    public void testGetUsers() {
-        testGetUsers(localProvider);
+    public void testGetUsersAndUsersMinimumCount() {
+        testGetUsersAndUsersMinimumCount(localProvider);
     }
 
     @Test
-    public void testGetUser() {
-        testGetUser(localProvider);
+    public void testGetKnownUserByUsername() {
+        testGetKnownUserByUsername(localProvider);
     }
 
     @Test
-    public void testGetUserByIdentity() {
-        testGetUserByIdentity(localProvider);
+    public void testGetKnownUserByUid() {
+        testGetKnownUserByUid(localProvider);
     }
 
     @Test
-    public void testGetGroups() {
-        testGetGroups(localProvider);
+    public void testGetGroupsAndMinimumGroupCount() {
+        testGetGroupsAndMinimumGroupCount(localProvider);
     }
 
     @Test
-    public void testGetGroup() {
-        testGetGroup(localProvider);
+    public void testGetKnownGroupByGid() {
+        testGetKnownGroupByGid(localProvider);
     }
 
     @Test
-    public void testGroupMembership() {
-        testGroupMembership(localProvider);
+    public void testGetGroupByGidAndGetGroupMembership() {
+        testGetGroupByGidAndGetGroupMembership(localProvider);
     }
 
     @Test
-    public void testGetUserAndGroups() {
-        testGetUserAndGroups(localProvider);
+    public void testGetUserByUidAndGetGroupMembership() {
+        testGetUserByUidAndGetGroupMembership(localProvider);
     }
 
     @SuppressWarnings("RedundantThrows")
@@ -171,11 +188,15 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
         return remoteProvider;
     }
 
+    @Ignore
+    public void someOtherTest() {}
+
     @Test
     public void testVariousSystemImages() {
         // Here we explicitly clear the system check flag to allow the remote checks that follow:
         systemCheckFailed = false;
-        assumeTrue(isTestableEnvironment());
+        Assume.assumeTrue(isTestableEnvironment());
+        // systemCheckFailed = true;
 
         TEST_CONTAINER_IMAGES.forEach(image -> {
                 GenericContainer container;
@@ -188,7 +209,6 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
                     logger.error("create container exception: " + exc);
                     return;
                 }
-
                 try {
                     remoteProvider = createRemoteProvider(container);
                 } catch (final Exception exc) {
@@ -197,12 +217,12 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
                 }
 
                 try {
-                    testGetUsers(remoteProvider);
-                    testGetUser(remoteProvider);
-                    testGetGroups(remoteProvider);
-                    testGetGroup(remoteProvider);
-                    testGroupMembership(remoteProvider);
-                    testGetUserAndGroups(remoteProvider);
+                    testGetUsersAndUsersMinimumCount(remoteProvider);
+                    testGetKnownUserByUsername(remoteProvider);
+                    testGetGroupsAndMinimumGroupCount(remoteProvider);
+                    testGetKnownGroupByGid(remoteProvider);
+                    testGetGroupByGidAndGetGroupMembership(remoteProvider);
+                    testGetUserByUidAndGetGroupMembership(remoteProvider);
                 } catch (final Exception e) {
                     logger.error("Exception running remote provider on image: " + image +  ", exception: " + e);
                 }

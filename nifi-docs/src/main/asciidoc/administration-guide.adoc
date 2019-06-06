@@ -454,7 +454,24 @@ NOTE: Any identity mapping rules specified in _nifi.properties_ will also be app
 
 ==== ShellUserGroupProvider
 
-The ShellUserGroupProvider syncs user and groups from Unix-like systems using shell commands.  It has no user-configurable properties.
+The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
+
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+
+Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
+will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
+
+The ShellUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Initial Refresh Delay` | Number of seconds to delay the initial user/group listing refresh.
+|`Refresh Delay` | Number of seconds to pause between each listing refresh.
+|==================================================================================================================================================
+
+Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _nifi.properties_ file.  Refer to that comment for usage examples.
+
 
 ==== Composite Implementations
 

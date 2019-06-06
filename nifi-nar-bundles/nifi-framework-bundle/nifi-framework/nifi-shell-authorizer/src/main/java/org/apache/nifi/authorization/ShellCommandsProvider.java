@@ -16,10 +16,63 @@
  */
 package org.apache.nifi.authorization;
 
+/**
+ * Common interface for shell command strings to read users and groups.
+ *
+ */
 interface ShellCommandsProvider {
+    /**
+     * Gets the command for listing users.
+     *
+     * When executed, this command should output one record per line in this format:
+     *
+     * `username:user-id:primary-group-id`
+     *
+     * @return Shell command string that will return a list of users.
+     */
     String getUsersList();
+
+    /**
+     * Gets the command for listing the group membership of a user.
+     *
+     * When executed, this command should output one line in this format:
+     *
+     * `group-name-1,group-name-2,group-name-n`
+     *
+     * @return Shell command string that will return a list of groups for a user.
+     */
     String getUserGroups();
+
+    /**
+     * Gets the command for listing groups.
+     *
+     * When executed, this command should output one record per line in this format:
+     *
+     * `group-name:group-id`
+     *
+     * @return Shell command string that will return a list of groups.
+     */
     String getGroupsList();
-    String getGroupMembers();
+
+    /**
+     * Gets the command for listing the members of a group.
+     *
+     * When executed, this command should output one line in this format:
+     *
+     * `user-name-1,user-name-2,user-name-n`
+     *
+     * @return Shell command string that will return a list of users for a group.
+     * @param groupName name of group.
+     */
+    String getGroupMembers(String groupName);
+
+    /**
+     * Gets the command for checking the suitability of the host system.
+     *
+     * The command is expected to exit with status 0 (zero) to indicate success, and any other status
+     * to indicate failure.
+     *
+     * @return Shell command string that will exit normally (0) on a suitable system.
+     */
     String getSystemCheck();
 }
