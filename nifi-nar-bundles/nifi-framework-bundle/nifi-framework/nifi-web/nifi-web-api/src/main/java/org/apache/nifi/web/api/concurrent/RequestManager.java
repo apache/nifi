@@ -20,6 +20,7 @@ package org.apache.nifi.web.api.concurrent;
 import java.util.function.Consumer;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.web.ResourceNotFoundException;
 
 public interface RequestManager<T> {
 
