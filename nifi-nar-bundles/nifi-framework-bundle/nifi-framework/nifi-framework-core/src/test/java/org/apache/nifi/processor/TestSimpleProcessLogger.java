@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processor;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,8 +30,6 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
-import org.mockito.internal.matchers.VarargMatcher;
 import org.slf4j.Logger;
 
 public class TestSimpleProcessLogger {
@@ -71,51 +68,36 @@ public class TestSimpleProcessLogger {
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnError() {
         componentLog.error("Hello {}", e);
-        verify(logger, times(1)).error(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).error(anyString(), eq(task), eq(e.toString()), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnInfo() {
         componentLog.info("Hello {}", e);
-        verify(logger, times(1)).info(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).info(anyString(), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnTrace() {
         componentLog.trace("Hello {}", e);
-        verify(logger, times(1)).trace(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).trace(anyString(), eq(task), eq(e.toString()), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnWarn() {
         componentLog.warn("Hello {}", e);
-        verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).warn(anyString(), eq(task), eq(e.toString()), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnLogWithLevel() {
         componentLog.log(LogLevel.WARN, "Hello {}", e);
-        verify(logger, times(1)).warn(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).warn(anyString(), eq(task), eq(e.toString()), eq(e));
         componentLog.log(LogLevel.ERROR, "Hello {}", e);
-        verify(logger, times(1)).error(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).error(anyString(), eq(task), eq(e.toString()), eq(e));
         componentLog.log(LogLevel.INFO, "Hello {}", e);
-        verify(logger, times(1)).info(anyString(), argThat(new MyVarargMatcher()));
+        verify(logger, times(1)).info(anyString(), eq(e));
         componentLog.log(LogLevel.TRACE, "Hello {}", e);
-        verify(logger, times(1)).trace(anyString(), argThat(new MyVarargMatcher()));
-    }
-
-    /**
-     *
-     */
-    private class MyVarargMatcher extends ArgumentMatcher<Object[]>implements VarargMatcher {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean matches(Object argument) {
-            Object[] args = (Object[]) argument;
-            assertEquals(task, args[0]);
-            assertEquals(e.toString(), args[1]);
-            return true;
-        }
+        verify(logger, times(1)).trace(anyString(), eq(task), eq(e.toString()), eq(e));
     }
 }

@@ -94,8 +94,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyCollection;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -150,7 +150,7 @@ public class LoadBalancedQueueIT {
         doAnswer(new Answer() {
             @Override
             public Object answer(final InvocationOnMock invocation) {
-                clusterEventListeners.add(invocation.getArgumentAt(0, ClusterTopologyEventListener.class));
+                clusterEventListeners.add(invocation.getArgument(0));
                 return null;
             }
         }).when(clusterCoordinator).registerEventListener(any(ClusterTopologyEventListener.class));
@@ -1029,7 +1029,7 @@ public class LoadBalancedQueueIT {
                     };
                 }
 
-                final ContentClaim contentClaim = invocation.getArgumentAt(0, ContentClaim.class);
+                final ContentClaim contentClaim = invocation.getArgument(0);
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
                     @Override
                     public void close() throws IOException {
@@ -1287,7 +1287,7 @@ public class LoadBalancedQueueIT {
     private FlowFileRepository createFlowFileRepository(final List<RepositoryRecord> repoRecords) throws IOException {
         final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
         doAnswer(invocation -> {
-            final Collection records = invocation.getArgumentAt(0, Collection.class);
+            final Collection records = invocation.getArgument(0);
             repoRecords.addAll(records);
             return null;
         }).when(flowFileRepo).updateRepository(anyCollection());
@@ -1310,7 +1310,7 @@ public class LoadBalancedQueueIT {
         Mockito.doAnswer(new Answer<OutputStream>() {
             @Override
             public OutputStream answer(final InvocationOnMock invocation) {
-                final ContentClaim contentClaim = invocation.getArgumentAt(0, ContentClaim.class);
+                final ContentClaim contentClaim = invocation.getArgument(0);
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
                     @Override
@@ -1328,7 +1328,7 @@ public class LoadBalancedQueueIT {
         Mockito.doAnswer(new Answer<InputStream>() {
             @Override
             public InputStream answer(final InvocationOnMock invocation) {
-                final ContentClaim contentClaim = invocation.getArgumentAt(0, ContentClaim.class);
+                final ContentClaim contentClaim = invocation.getArgument(0);
                 if (contentClaim == null) {
                     return new ByteArrayInputStream(new byte[0]);
                 }

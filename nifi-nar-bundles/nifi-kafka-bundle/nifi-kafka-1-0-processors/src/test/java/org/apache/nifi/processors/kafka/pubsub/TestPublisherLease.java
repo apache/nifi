@@ -19,9 +19,9 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -128,7 +128,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Callback callback = invocation.getArgumentAt(1, Callback.class);
+                final Callback callback = invocation.getArgument(1);
                 callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
                 return null;
             }
@@ -160,7 +160,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("1234567890".equals(valueString)) {
@@ -221,7 +221,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("".equals(valueString)) {

@@ -23,8 +23,8 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,7 +38,7 @@ public class ControllerServiceTestContext {
 
     public ControllerServiceTestContext(ControllerService controllerService, String id) {
         initializationContext = new MockControllerServiceInitializationContext(controllerService, id);
-        doAnswer(invocation -> configurationContext.getProperty(invocation.getArgumentAt(0, PropertyDescriptor.class)))
+        doAnswer(invocation -> configurationContext.getProperty(invocation.getArgument(0)))
                 .when(validationContext).getProperty(any(PropertyDescriptor.class));
         controllerService.getPropertyDescriptors().forEach(prop -> setDefaultValue(prop));
     }

@@ -31,8 +31,8 @@ import org.junit.Test;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -45,7 +45,7 @@ public class TestStandardPublicPort {
 
         final Authorizer authorizer = mock(Authorizer.class);
         doAnswer(invocation -> {
-            final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
+            final AuthorizationRequest request = invocation.getArgument(0);
             if ("node1@nifi.test".equals(request.getIdentity())) {
                 return AuthorizationResult.approved();
             } else if ("NODE1@NIFI.TEST".equals(request.getIdentity())) {

@@ -293,7 +293,8 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             PropertyValue keyspaceProperty = context.getProperty(KEYSPACE).evaluateAttributeExpressions();
 
             final Session newSession;
-            if (keyspaceProperty != null) {
+            // For Java 11, the getValue() call was added so the test could pass
+            if (keyspaceProperty != null && keyspaceProperty.getValue() != null) {
                 newSession = newCluster.connect(keyspaceProperty.getValue());
             } else {
                 newSession = newCluster.connect();

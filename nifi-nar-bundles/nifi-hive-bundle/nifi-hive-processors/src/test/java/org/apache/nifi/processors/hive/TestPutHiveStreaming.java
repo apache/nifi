@@ -44,6 +44,7 @@ import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -66,8 +67,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -98,7 +100,7 @@ public class TestPutHiveStreaming {
         processor = new MockPutHiveStreaming();
         hiveConfigurator = mock(HiveConfigurator.class);
         hiveConf = mock(HiveConf.class);
-        when(hiveConfigurator.getConfigurationFromFiles(anyString())).thenReturn(hiveConf);
+        when(hiveConfigurator.getConfigurationFromFiles(AdditionalMatchers.or(anyString(), isNull()))).thenReturn(hiveConf);
         processor.hiveConfigurator = hiveConfigurator;
         processor.setKerberosProperties(kerberosPropsWithFile);
         runner = TestRunners.newTestRunner(processor);
@@ -129,7 +131,7 @@ public class TestPutHiveStreaming {
     public void testUgiGetsSetIfSecure() throws AuthenticationFailedException, IOException {
         when(hiveConf.get(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION)).thenReturn(SecurityUtil.KERBEROS);
         ugi = mock(UserGroupInformation.class);
-        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        when(hiveConfigurator.authenticate(eq(hiveConf), AdditionalMatchers.or(anyString(), isNull()), AdditionalMatchers.or(anyString(), isNull()))).thenReturn(ugi);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");

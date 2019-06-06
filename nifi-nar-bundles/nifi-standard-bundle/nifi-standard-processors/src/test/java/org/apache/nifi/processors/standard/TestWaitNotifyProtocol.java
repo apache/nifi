@@ -45,7 +45,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
@@ -56,7 +56,7 @@ public class TestWaitNotifyProtocol {
     private AtomicDistributedMapCacheClient<Long> cache;
     @SuppressWarnings("unchecked")
     private final Answer successfulReplace = invocation -> {
-        final AtomicCacheEntry<String, String, Long> entry = invocation.getArgumentAt(0, AtomicCacheEntry.class);
+        final AtomicCacheEntry<String, String, Long> entry = invocation.getArgument(0);
         cacheEntries.put(entry.getKey(), new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), entry.getRevision().orElse(0L) + 1));
         return true;
     };

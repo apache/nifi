@@ -314,6 +314,6 @@ public class TestTagS3Object {
 
     private void mockGetExistingTags(Tag... currentTag) {
         List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
-        Mockito.when(mockS3Client.getObjectTagging(Mockito.anyObject())).thenReturn(new GetObjectTaggingResult(currentTags));
+        Mockito.when(mockS3Client.getObjectTagging(Mockito.any())).thenReturn(new GetObjectTaggingResult(currentTags));
     }
 }

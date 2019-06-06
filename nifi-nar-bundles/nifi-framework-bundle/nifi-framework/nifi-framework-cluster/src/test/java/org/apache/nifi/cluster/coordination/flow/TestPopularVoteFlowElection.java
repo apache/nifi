@@ -22,7 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,7 +91,7 @@ public class TestPopularVoteFlowElection {
         Mockito.when(fingerprintFactory.createFingerprint(Mockito.any(byte[].class))).thenAnswer(new Answer<String>() {
             @Override
             public String answer(final InvocationOnMock invocation) throws Throwable {
-                final byte[] flow = invocation.getArgumentAt(0, byte[].class);
+                final byte[] flow = invocation.getArgument(0);
                 final String xml = new String(flow);
 
                 // Return the ID of the root group as the fingerprint.
@@ -217,7 +217,7 @@ public class TestPopularVoteFlowElection {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM)).thenReturn("PBEWITHMD5AND256BITAES-CBC-OPENSSL");
         when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER)).thenReturn("BC");
-        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgumentAt(1, String.class));
+        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgument(1));
         return nifiProperties;
     }
 

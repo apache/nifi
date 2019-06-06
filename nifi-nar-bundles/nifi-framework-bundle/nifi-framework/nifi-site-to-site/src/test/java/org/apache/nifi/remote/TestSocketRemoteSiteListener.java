@@ -28,7 +28,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -62,7 +62,7 @@ public class TestSocketRemoteSiteListener {
 
         final ServerProtocol serverProtocol = mock(ServerProtocol.class);
         doAnswer(invocation -> {
-            final NodeInformation self = invocation.getArgumentAt(2, NodeInformation.class);
+            final NodeInformation self = invocation.getArgument(2);
             // Listener should inform about itself properly:
             assertEquals(remoteInputHost, self.getSiteToSiteHostname());
             assertEquals(remoteSocketPort, self.getSiteToSitePort().intValue());

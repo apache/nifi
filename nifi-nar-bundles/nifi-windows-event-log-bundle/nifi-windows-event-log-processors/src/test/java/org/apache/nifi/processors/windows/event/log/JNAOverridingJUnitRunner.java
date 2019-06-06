@@ -25,7 +25,7 @@ import org.junit.runner.Description;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.model.InitializationError;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.URLClassLoader;
 import java.util.Map;
@@ -67,7 +67,7 @@ public abstract class JNAOverridingJUnitRunner extends Runner {
                     } catch (Exception e) {
                         throw new ClassNotFoundException(name, e);
                     }
-                } else if (name.startsWith("org.junit.")) {
+                } else if (name.startsWith("org.junit.") || name.startsWith("org.mockito")) {
                     Class<?> result = JNAOverridingJUnitRunner.class.getClassLoader().loadClass(name);
                     if (resolve) {
                         resolveClass(result);

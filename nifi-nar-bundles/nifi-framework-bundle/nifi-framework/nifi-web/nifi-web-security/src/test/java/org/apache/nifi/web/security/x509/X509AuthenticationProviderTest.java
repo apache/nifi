@@ -42,7 +42,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +72,7 @@ public class X509AuthenticationProviderTest {
 
         certificateIdentityProvider = mock(X509IdentityProvider.class);
         when(certificateIdentityProvider.authenticate(any(X509Certificate[].class))).then(invocation -> {
-            final X509Certificate[] certChain = invocation.getArgumentAt(0, X509Certificate[].class);
+            final X509Certificate[] certChain = invocation.getArgument(0);
             final String identity = extractor.extractPrincipal(certChain[0]).toString();
 
             if (INVALID_CERTIFICATE.equals(identity)) {
@@ -84,7 +84,7 @@ public class X509AuthenticationProviderTest {
 
         authorizer = mock(Authorizer.class);
         when(authorizer.authorize(any(AuthorizationRequest.class))).then(invocation -> {
-            final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
+            final AuthorizationRequest request = invocation.getArgument(0);
 
             if (UNTRUSTED_PROXY.equals(request.getIdentity())) {
                 return AuthorizationResult.denied();
