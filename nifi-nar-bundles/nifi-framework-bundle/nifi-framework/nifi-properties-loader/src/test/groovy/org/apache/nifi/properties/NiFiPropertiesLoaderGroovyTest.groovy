@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties
 
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -429,6 +430,11 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
             [(it): passwordProperties.getProperty(it)]
         }
 
+        readPasswordPropertiesAndValues.keySet().each { String key ->
+            if (!readPropertiesAndValues.get(key).equals(readPasswordPropertiesAndValues.get(key))) {
+                logger.info("Failed to match values. key=" + key + " read val: " + readPropertiesAndValues.get(key) + " and pass val: " + readPasswordPropertiesAndValues.get(key));
+            }
+        }
         assert readPropertiesAndValues == readPasswordPropertiesAndValues
     }
 }

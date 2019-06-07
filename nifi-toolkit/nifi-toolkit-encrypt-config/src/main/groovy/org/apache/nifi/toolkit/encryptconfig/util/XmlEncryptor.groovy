@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.util.slurpersupport.GPathResult
 import groovy.xml.XmlUtil
-import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

@@ -23,6 +23,10 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice

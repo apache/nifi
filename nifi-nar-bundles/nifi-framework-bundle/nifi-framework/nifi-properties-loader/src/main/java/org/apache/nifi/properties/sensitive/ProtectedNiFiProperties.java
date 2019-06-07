@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive;
 
 import static java.util.Arrays.asList;
 
@@ -28,6 +28,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.properties.SensitivePropertyProviderFactorySelector;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * This encapsulates the sensitive property access logic from external consumers
  * of {@code NiFiProperties}.
  */
-class ProtectedNiFiProperties extends StandardNiFiProperties {
+public class ProtectedNiFiProperties extends StandardNiFiProperties {
     private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiProperties.class);
 
     private NiFiProperties niFiProperties;
@@ -373,7 +376,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      *
      * @param sensitivePropertyProvider the provider
      */
-    void addSensitivePropertyProvider(SensitivePropertyProvider sensitivePropertyProvider) {
+    public void addSensitivePropertyProvider(SensitivePropertyProvider sensitivePropertyProvider) {
         if (sensitivePropertyProvider == null) {
             throw new IllegalArgumentException("Cannot add null SensitivePropertyProvider");
         }
@@ -492,9 +495,16 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     private SensitivePropertyProvider getSensitivePropertyProvider(String protectionScheme) {
         if (isProviderAvailable(protectionScheme)) {
             return getSensitivePropertyProviders().get(protectionScheme);
-        } else {
-            throw new SensitivePropertyProtectionException("No provider available for " + protectionScheme);
         }
+        try {
+            return SensitivePropertyProviderFactorySelector.selectProviderFactory(protectionScheme).getProvider();
+        } catch (final Exception ex) {
+            throw new SensitivePropertyProtectionException(ex);
+        }
+    }
+
+    private SensitivePropertyProvider getSensitivePropertyProvider(SensitivePropertyValueDescriptor propertyDescription) {
+        return getSensitivePropertyProvider(propertyDescription.getProtectionScheme());
     }
 
     private boolean isProviderAvailable(String protectionScheme) {
@@ -510,22 +520,26 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      */
     private String unprotectValue(String key, String retrievedValue) {
         // Checks if the key is sensitive and marked as protected
-        if (isPropertyProtected(key)) {
-            final String protectionScheme = getProperty(getProtectionKey(key));
+        if (!isPropertyProtected(key)) {
+            return retrievedValue;
+        }
+        final String protectionScheme = getProperty(getProtectionKey(key));
+        final SensitivePropertyValueDescriptor propertyDescription = SensitivePropertyValueDescriptor.fromValueAndScheme(retrievedValue, protectionScheme);
 
-            // No provider registered for this scheme, so just return the value
-            if (!isProviderAvailable(protectionScheme)) {
-                logger.warn("No provider available for {} so passing the protected {} value back", protectionScheme, key);
+        // No provider registered for this scheme, so ...
+        if (!isProviderAvailable(protectionScheme)) {
+            // try and make one to unprotect, and if that fails...
+            try {
+                return getSensitivePropertyProvider(propertyDescription).unprotect(retrievedValue);
+            } catch (SensitivePropertyProtectionException e) {
+                // just return the value
                 return retrievedValue;
             }
-
-            try {
-                SensitivePropertyProvider sensitivePropertyProvider = getSensitivePropertyProvider(protectionScheme);
-                return sensitivePropertyProvider.unprotect(retrievedValue);
-            } catch (SensitivePropertyProtectionException e) {
-                throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
-            }
         }
-        return retrievedValue;
+        try {
+            return getSensitivePropertyProvider(propertyDescription).unprotect(retrievedValue);
+        } catch (SensitivePropertyProtectionException e) {
+            throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
+        }
     }
 }

@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.properties
 
+import org.apache.nifi.properties.sensitive.MultipleSensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After

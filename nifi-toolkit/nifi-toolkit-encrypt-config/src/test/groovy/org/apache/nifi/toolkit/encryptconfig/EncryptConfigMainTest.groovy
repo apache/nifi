@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -35,7 +34,9 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.security.Security
 
-import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.KEY_HEX
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.PASSWORD
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.setupTmpDir
 
 @RunWith(JUnit4.class)
 class EncryptConfigMainTest extends GroovyTestCase {

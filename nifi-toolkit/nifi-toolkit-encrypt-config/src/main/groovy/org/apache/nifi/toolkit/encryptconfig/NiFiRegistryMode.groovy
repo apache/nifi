@@ -18,9 +18,8 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.http.annotation.Experimental
-import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor

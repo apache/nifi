@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.slf4j.Logger

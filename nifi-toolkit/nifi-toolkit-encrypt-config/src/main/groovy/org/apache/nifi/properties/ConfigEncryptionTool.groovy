@@ -28,6 +28,9 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -873,12 +876,15 @@ class ConfigEncryptionTool {
     }
 
     String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyHex) {
+        // TODO: Use factory to determine which property provider to use here and instantiate
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
             def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
+                // TODO: Update filter to include AWS identifier
+                // TODO: This should be refactored to a method and pluggable
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -909,6 +915,7 @@ class ConfigEncryptionTool {
     }
 
     String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyHex) {
+        // TODO: Same as in LIP decryption method
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
@@ -918,6 +925,7 @@ class ConfigEncryptionTool {
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
             }.property.findAll {
+                // TODO: Same as in LIP decryption method
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -951,6 +959,7 @@ class ConfigEncryptionTool {
     }
 
     String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyHex) {
+        // TODO: Same as in LIP decryption method
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
@@ -993,6 +1002,7 @@ class ConfigEncryptionTool {
     }
 
     String encryptAuthorizers(String plainXml, String newKeyHex = keyHex) {
+        // TODO: Same as in LIP decryption method
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
@@ -1059,6 +1069,7 @@ class ConfigEncryptionTool {
         // Holder for encrypted properties and protection schemes
         Properties encryptedProperties = new Properties()
 
+        // TODO: Same as in LIP decryption method
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
         protectedWrapper.addSensitivePropertyProvider(spp)
 
@@ -1602,6 +1613,7 @@ class ConfigEncryptionTool {
                 // Do this as part of a transaction?
                 synchronized (this) {
                     if (!tool.ignorePropertiesFiles) {
+                        // TODO: This should be abstracted to be different per SPP
                         tool.writeKeyToBootstrapConf()
                     }
                     if (tool.handlingFlowXml) {

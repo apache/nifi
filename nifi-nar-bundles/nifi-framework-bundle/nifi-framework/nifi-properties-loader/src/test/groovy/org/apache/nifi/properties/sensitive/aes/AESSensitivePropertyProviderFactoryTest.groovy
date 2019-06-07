@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties
+package org.apache.nifi.properties.sensitive.aes
 
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProviderFactory
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
@@ -36,7 +39,7 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210" * 2
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -45,18 +48,18 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
 
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
 
     }
 
     @Ignore("This is resolved in PR 1216")
     @Test
-    public void testShouldNotGetProviderWithoutKey() throws Exception {
+    void testShouldNotGetProviderWithoutKey() throws Exception {
         // Arrange
         SensitivePropertyProviderFactory factory = new AESSensitivePropertyProviderFactory()
 
@@ -71,7 +74,7 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGetProviderWithKey() throws Exception {
+    void testShouldGetProviderWithKey() throws Exception {
         // Arrange
         SensitivePropertyProviderFactory factory = new AESSensitivePropertyProviderFactory(KEY_HEX)
 
@@ -86,7 +89,7 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
 
     @Ignore("This is resolved in PR 1216")
     @Test
-    public void testGetProviderShouldHandleEmptyKey() throws Exception {
+    void testGetProviderShouldHandleEmptyKey() throws Exception {
         // Arrange
         SensitivePropertyProviderFactory factory = new AESSensitivePropertyProviderFactory("")
 
