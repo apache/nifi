@@ -197,7 +197,7 @@ public class RecordBinManager {
         final String mergeStrategy = context.getProperty(MergeRecord.MERGE_STRATEGY).getValue();
         if (MergeRecord.MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             fragmentCountAttribute = MergeContent.FRAGMENT_COUNT_ATTRIBUTE;
-            if (!StringUtils.isEmpty(fragmentCountAttribute)) {
+            if (!StringUtils.isEmpty(flowfile.getAttribute(fragmentCountAttribute))) {
                 minRecords = Integer.parseInt(flowfile.getAttribute(fragmentCountAttribute));
             }
         } else {
