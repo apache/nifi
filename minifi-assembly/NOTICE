@@ -2,7 +2,7 @@ Apache NiFi MiNiFi
 Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
+The Apache Software Foundation (https://www.apache.org/).
 
 ===========================================
 Apache Software License v2
@@ -16,7 +16,7 @@ The following binary components are provided under the Apache Software License v
         Copyright 2014-2018 The Apache Software Foundation
 
         This product includes software developed at
-        The Apache Software Foundation (http://www.apache.org/).
+        The Apache Software Foundation (https://www.apache.org/).
 
         This product includes the following work from the Apache Hadoop project:
 
@@ -51,7 +51,7 @@ The following binary components are provided under the Apache Software License v
       were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
       which has been placed in the public domain:
 
-      "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
+      "LZMA SDK is placed in the public domain." (https://www.7-zip.org/sdk.html)
 
   (ASLv2) Apache Commons Codec
     The following NOTICE information applies:
@@ -65,7 +65,7 @@ The following binary components are provided under the Apache Software License v
       ===============================================================================
 
       The content of package org.apache.commons.codec.language.bm has been translated
-      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      from the original php source code available at https://stevemorse.org/phoneticinfo.htm
       with permission from the original authors.
       Original source copyright:
       Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
@@ -87,7 +87,7 @@ The following binary components are provided under the Apache Software License v
       Copyright 1999-2013 The Apache Software Foundation
 
       This project contains annotations derived from JCIP-ANNOTATIONS
-      Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See https://www.jcip.net
 
   (ASLv2) Apache Jakarta HttpClient
     The following NOTICE information applies:
@@ -124,13 +124,13 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Xalan
      This product includes software developed by
-      The Apache Software Foundation (http://www.apache.org/).
+      The Apache Software Foundation (https://www.apache.org/).
 
       Portions of this software was originally based on the following:
 
-        - software copyright (c) 1999-2002, Lotus Development Corporation., http://www.lotus.com.
-        - software copyright (c) 2001-2002, Sun Microsystems., http://www.sun.com.
-        - software copyright (c) 2003, IBM Corporation., http://www.ibm.com.
+        - software copyright (c) 1999-2002, Lotus Development Corporation., https://www.lotus.com.
+        - software copyright (c) 2001-2002, Sun Microsystems., https://www.sun.com.
+        - software copyright (c) 2003, IBM Corporation., https://www.ibm.com.
         - voluntary contributions made by Ovidiu Predescu (ovidiu@cup.hp.com) on behalf of the
           Apache Software Foundation and was originally developed at Hewlett Packard Company.
 
@@ -138,12 +138,12 @@ The following binary components are provided under the Apache Software License v
     Copyright 2006 The Apache Software Foundation.
 
     This product includes software developed at
-    The Apache Software Foundation (http://www.apache.org/).
+    The Apache Software Foundation (https://www.apache.org/).
 
     Portions of this software were originally based on the following:
-      - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
-      - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
-      - software copyright (c) 2000 World Wide Web Consortium, http://www.w3.org
+      - software copyright (c) 1999, IBM Corporation., https://www.ibm.com.
+      - software copyright (c) 1999, Sun Microsystems., https://www.sun.com.
+      - software copyright (c) 2000 World Wide Web Consortium, https://www.w3.org
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
@@ -160,7 +160,7 @@ The following binary components are provided under the Apache Software License v
       Jackson core and extension components may licensed under different licenses.
       To find the details that apply to this artifact see the accompanying LICENSE file.
       For more information, including possible other licensing options, contact
-      FasterXML.com (http://fasterxml.com).
+      FasterXML.com (https://fasterxml.com).
 
       ## Credits
 
@@ -194,21 +194,21 @@ The following binary components are provided under the Apache Software License v
       Copyright 2001-2012 The Apache Software Foundation
 
       This product includes software developed by
-      The Apache Software Foundation (http://www.apache.org/).
+      The Apache Software Foundation (https://www.apache.org/).
 
       ===============================================================================
 
       The BracketFinder (package org.apache.commons.math3.optimization.univariate)
       and PowellOptimizer (package org.apache.commons.math3.optimization.general)
       classes are based on the Python code in module "optimize.py" (version 0.5)
-      developed by Travis E. Oliphant for the SciPy library (http://www.scipy.org/)
+      developed by Travis E. Oliphant for the SciPy library (https://www.scipy.org/)
       Copyright © 2003-2009 SciPy Developers.
       ===============================================================================
 
       The LinearConstraint, LinearObjectiveFunction, LinearOptimizer,
       RelationShip, SimplexSolver and SimplexTableau classes in package
       org.apache.commons.math3.optimization.linear include software developed by
-      Benjamin McCann (http://www.benmccann.com) and distributed with
+      Benjamin McCann (https://www.benmccann.com) and distributed with
       the following copyright: Copyright 2009 Google Inc.
       ===============================================================================
 
@@ -270,13 +270,13 @@ The following binary components are provided under the Apache Software License v
       Copyright 2015 The Apache Software Foundation
 
       This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
+      The Apache Software Foundation (https://www.apache.org/).
 
       Copyright 1993-2010 University Corporation for Atmospheric Research/Unidata
       This software contains code derived from UCAR/Unidata's NetCDF library.
 
-      Tika-server component uses CDDL-licensed dependencies: jersey (http://jersey.java.net/) and
-      Grizzly (http://grizzly.java.net/)
+      Tika-server component uses CDDL-licensed dependencies: jersey (https://jersey.java.net/) and
+      Grizzly (https://grizzly.java.net/)
 
       Tika-parsers component uses CDDL/LGPL dual-licensed dependency: jhighlight (https://github.com/codelibs/jhighlight)
 
@@ -299,22 +299,18 @@ The following binary components are provided under the Apache Software License v
       Apache Avro
       Copyright 2009-2013 The Apache Software Foundation
 
-  (ASLv2) Jasypt
-    The following NOTICE information applies:
-	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
-
   (ASLv2) Snappy Java
     The following NOTICE information applies:
       This product includes software developed by Google
-       Snappy: http://code.google.com/p/snappy/ (New BSD License)
+       Snappy: https://code.google.com/p/snappy/ (New BSD License)
 
       This product includes software developed by Apache
-       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+       PureJavaCrc32C from apache-hadoop-common https://hadoop.apache.org/
        (Apache 2.0 license)
 
       This library containd statically linked libstdc++. This inclusion is allowed by
       "GCC RUntime Library Exception"
-      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+      https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 
   (ASLv2) Apache Lucene
     The following NOTICE information applies:
@@ -332,30 +328,30 @@ The following binary components are provided under the Apache Software License v
       and Copyright (c) 1995-2008 International Business Machines Corporation and others
 
       Some data files (under analysis/icu/src/data) are derived from Unicode data such
-      as the Unicode Character Database. See http://unicode.org/copyright.html for more
+      as the Unicode Character Database. See https://unicode.org/copyright.html for more
       details.
 
       Brics Automaton (under core/src/java/org/apache/lucene/util/automaton) is
-      BSD-licensed, created by Anders Møller. See http://www.brics.dk/automaton/
+      BSD-licensed, created by Anders Møller. See https://www.brics.dk/automaton/
 
       The levenshtein automata tables (under core/src/java/org/apache/lucene/util/automaton) were
       automatically generated with the moman/finenight FSA library, created by
       Jean-Philippe Barrette-LaPierre. This library is available under an MIT license,
-      see http://sites.google.com/site/rrettesite/moman and
-      http://bitbucket.org/jpbarrette/moman/overview/
+      see https://sites.google.com/site/rrettesite/moman and
+      https://bitbucket.org/jpbarrette/moman/overview/
 
       The class org.apache.lucene.util.WeakIdentityMap was derived from
       the Apache CXF project and is Apache License 2.0.
 
       The Google Code Prettify is Apache License 2.0.
-      See http://code.google.com/p/google-code-prettify/
+      See https://code.google.com/p/google-code-prettify/
 
       JUnit (junit-4.10) is licensed under the Common Public License v. 1.0
-      See http://junit.sourceforge.net/cpl-v10.html
+      See https://junit.sourceforge.net/cpl-v10.html
 
       This product includes code (JaspellTernarySearchTrie) from Java Spelling Checkin
-      g Package (jaspell): http://jaspell.sourceforge.net/
-      License: The BSD License (http://www.opensource.org/licenses/bsd-license.php)
+      g Package (jaspell): https://jaspell.sourceforge.net/
+      License: The BSD License (https://www.opensource.org/licenses/bsd-license.php)
 
       The snowball stemmers in
         analysis/common/src/java/net/sf/snowball
@@ -364,7 +360,7 @@ The following binary components are provided under the Apache Software License v
         analysis/common/src/resources/org/apache/lucene/analysis/snowball
       were developed by Martin Porter and Richard Boulton.
       The full snowball package is available from
-        http://snowball.tartarus.org/
+        https://snowball.tartarus.org/
 
       The KStem stemmer in
         analysis/common/src/org/apache/lucene/analysis/en
@@ -378,7 +374,7 @@ The following binary components are provided under the Apache Software License v
       analysis/common/src/resources/org/apache/lucene/analysis/ro/stopwords.txt,
       analysis/common/src/resources/org/apache/lucene/analysis/bg/stopwords.txt,
       analysis/common/src/resources/org/apache/lucene/analysis/hi/stopwords.txt
-      See http://members.unine.ch/jacques.savoy/clef/index.html.
+      See https://members.unine.ch/jacques.savoy/clef/index.html.
 
       The German,Spanish,Finnish,French,Hungarian,Italian,Portuguese,Russian and Swedish light stemmers
       (common) are based on BSD-licensed reference implementations created by Jacques Savoy and
@@ -396,33 +392,33 @@ The following binary components are provided under the Apache Software License v
       analysis/common/src/java/org/apache/lucene/analysis/sv/SwedishLightStemmer.java
 
       The Stempel analyzer (stempel) includes BSD-licensed software developed
-      by the Egothor project http://egothor.sf.net/, created by Leo Galambos, Martin Kvapil,
+      by the Egothor project https://egothor.sf.net/, created by Leo Galambos, Martin Kvapil,
       and Edmond Nolan.
 
       The Polish analyzer (stempel) comes with a default
       stopword list that is BSD-licensed created by the Carrot2 project. The file resides
       in stempel/src/resources/org/apache/lucene/analysis/pl/stopwords.txt.
-      See http://project.carrot2.org/license.html.
+      See https://project.carrot2.org/license.html.
 
       The SmartChineseAnalyzer source code (smartcn) was
       provided by Xiaoping Gao and copyright 2009 by www.imdict.net.
 
       WordBreakTestUnicode_*.java (under modules/analysis/common/src/test/)
       is derived from Unicode data such as the Unicode Character Database.
-      See http://unicode.org/copyright.html for more details.
+      See https://www.unicode.org/copyright.html for more details.
 
       The Morfologik analyzer (morfologik) includes BSD-licensed software
-      developed by Dawid Weiss and Marcin Miłkowski (http://morfologik.blogspot.com/).
+      developed by Dawid Weiss and Marcin Miłkowski (https://morfologik.blogspot.com/).
 
       Morfologik uses data from Polish ispell/myspell dictionary
-      (http://www.sjp.pl/slownik/en/) licenced on the terms of (inter alia)
+      (https://www.sjp.pl/slownik/en/) licenced on the terms of (inter alia)
       LGPL and Creative Commons ShareAlike.
 
       Morfologic includes data from BSD-licensed dictionary of Polish (SGJP)
-      (http://sgjp.pl/morfeusz/)
+      (https://sgjp.pl/morfeusz/)
 
       Servlet-api.jar and javax.servlet-*.jar are under the CDDL license, the original
-      source code for this can be found at http://www.eclipse.org/jetty/downloads.php
+      source code for this can be found at https://www.eclipse.org/jetty/downloads.php
 
       ===========================================================================
       Kuromoji Japanese Morphological Analyzer - Apache Lucene Integration
@@ -434,11 +430,11 @@ The following binary components are provided under the Apache Software License v
 
       which can be obtained from
 
-        http://atilika.com/releases/mecab-ipadic/mecab-ipadic-2.7.0-20070801.tar.gz
+        https://atilika.com/releases/mecab-ipadic/mecab-ipadic-2.7.0-20070801.tar.gz
 
       or
 
-        http://jaist.dl.sourceforge.net/project/mecab/mecab-ipadic/2.7.0-20070801/mecab-ipadic-2.7.0-20070801.tar.gz
+        https://jaist.dl.sourceforge.net/project/mecab/mecab-ipadic/2.7.0-20070801/mecab-ipadic-2.7.0-20070801.tar.gz
 
       ===========================================================================
       mecab-ipadic-2.7.0-20070801 Notice
@@ -510,7 +506,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Joda Time
     The following NOTICE information applies:
       This product includes software developed by
-      Joda.org (http://www.joda.org/).
+      Joda.org (https://www.joda.org/).
 
   (ASLv2) Apache ActiveMQ
     The following NOTICE information applies:
@@ -561,11 +557,11 @@ The following binary components are provided under the Apache Software License v
         Copyright 1999-2007 The Apache Software Foundation
 
         This product includes software developed at
-        The Apache Software Foundation (http://www.apache.org/).
+        The Apache Software Foundation (https://www.apache.org/).
 
         Portions of this software were originally based on the following:
-          - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
-          - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+          - software copyright (c) 1999, IBM Corporation., https://www.ibm.com.
+          - software copyright (c) 1999, Sun Microsystems., https://www.sun.com.
           - voluntary contributions made by Paul Eng on behalf of the
             Apache Software Foundation that were originally developed at iClick, Inc.,
             software copyright (c) 1999.
@@ -625,13 +621,13 @@ The following binary components are provided under the Apache Software License v
         The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
         and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
 
-        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at https://softwareag.com/licenses.
 
         Third Party declaration
         This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
         Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
         Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
-        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+        https://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
 
         Confidentiality Disclaimer:
         Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
@@ -654,21 +650,21 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.5.0-b42 - https://hk2.java.net/external/javax.inject)
 
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
-    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation (org.glassfish.web:javax.servlet.jsp:jar:2.3.2 - http://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:1.2.2 - http://jstl.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:jar:3.0.0 - http://el-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:jar:2.3.1 - http://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - http://jcp.org/en/jsr/detail?id=52)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - http://servlet-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - https://kenai.com/projects/javamail/mail)
+    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation (org.glassfish.web:javax.servlet.jsp:jar:2.3.2 - https://jsp.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:1.2.2 - https://jstl.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:jar:3.0.0 - https://el-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:jar:2.3.1 - https://jsp.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - https://uel-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - https://jcp.org/en/jsr/detail?id=52)
+    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - https://servlet-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - https://java.net/projects/jms-spec/pages/Home)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - https://json-processing-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - http://glassfish.org/osgi-resource-locator)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - http://jcp.org/en/jsr/detail?id=250)
+    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - https://glassfish.org/osgi-resource-locator)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - https://jcp.org/en/jsr/detail?id=250)
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - https://jax-rs-spec.java.net)
 
 ************************
 Common Development and Distribution License 1.0
@@ -676,7 +672,7 @@ Common Development and Distribution License 1.0
 
 The following binary components are provided under the Common Development and Distribution License 1.0. See project link for details.
 
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - https://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
 
 ************************
@@ -685,10 +681,10 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.aspectj.org)
-    (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.8 - http://logback.qos.ch/)
-    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.8 - http://logback.qos.ch/)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - https://www.aspectj.org)
+    (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - https://www.h2database.com/html/license.html)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.8 - https://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.8 - https://logback.qos.ch/)
 
 *****************
 Mozilla Public License v2.0
@@ -696,7 +692,7 @@ Mozilla Public License v2.0
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - https://www.saxonica.com/)
 
 *****************
 Mozilla Public License v1.1
@@ -704,8 +700,8 @@ Mozilla Public License v1.1
 
 The following binary components are provided under the Mozilla Public License v1.1.  See project link for details.
 
-    (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://hl7api.sourceforge.net/)
-    (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://hl7api.sourceforge.net/)
+    (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - https://hl7api.sourceforge.net/)
+    (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - https://hl7api.sourceforge.net/)
 
 *****************
 Public Domain
@@ -713,8 +709,8 @@ Public Domain
 
 The following binary components are provided to the 'Public Domain'.  See project link for details.
 
-    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
-    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - https://tukaani.org/xz/java.html
+    (Public Domain) AOP Alliance 1.0 (https://aopalliance.sourceforge.net/)
 
 The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
 

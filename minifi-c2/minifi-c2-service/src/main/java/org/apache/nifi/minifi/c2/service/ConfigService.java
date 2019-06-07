@@ -250,7 +250,7 @@ public class ConfigService {
         }
     }
 
-    // see: http://stackoverflow.com/questions/15429257/how-to-convert-byte-array-to-hexstring-in-java#answer-15429408
+    // see: https://stackoverflow.com/questions/15429257/how-to-convert-byte-array-to-hexstring-in-java#answer-15429408
     protected static String bytesToHex(byte[] in) {
         final StringBuilder builder = new StringBuilder();
         for (byte b : in) {

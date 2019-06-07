@@ -108,9 +108,9 @@ docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/confi
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
+([archive](https://mail-archives.apache.org/mod_mbox/nifi-dev)).
 For more interactive conversations and chat, we're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML). 
+[irc.freenode.net](https://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML). 
 
 ## Documentation
 
@@ -140,7 +140,7 @@ currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -154,11 +154,10 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi - MiNiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
+Apache NiFi - MiNiFi uses BouncyCastle, JCraft Inc., and the built-in
 java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
 https://bouncycastle.org/about.html
-http://www.jasypt.org/faq.html
-http://jcraft.com/c-info.html
+https://jcraft.com/c-info.html
 https://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.

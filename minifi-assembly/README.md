@@ -28,7 +28,7 @@ MiNiFi is a child project effort of Apache NiFi
 
 ## Features
 
-Apache NiFi - MiNiFi is a complementary data collection approach that supplements the core tenets of [NiFi](http://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
+Apache NiFi - MiNiFi is a complementary data collection approach that supplements the core tenets of [NiFi](https://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
 
 Specific goals for MiNiFi are comprised of:
 - small and lightweight footprint
@@ -59,18 +59,18 @@ To run MiNiFi:
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
+([archive](https://mail-archives.apache.org/mod_mbox/nifi-dev)).
 We're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
+[irc.freenode.net](https://webchat.freenode.net/?channels=#nifi).
 
 ## Documentation
 
-See http://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/NIFI/MiNiFi for the latest documentation.
+See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/NIFI/MiNiFi for the latest documentation.
 
 ## License
 
 Except as otherwise noted this software is licensed under the
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -105,11 +105,10 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi - MiNiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
+Apache NiFi - MiNiFi uses BouncyCastle, JCraft Inc., and the built-in
 java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
-http://bouncycastle.org/about.html
-http://www.jasypt.org/faq.html
-http://jcraft.com/c-info.html
-http://www.oracle.com/us/products/export/export-regulations-345813.html
+https://bouncycastle.org/about.html
+https://jcraft.com/c-info.html
+https://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.

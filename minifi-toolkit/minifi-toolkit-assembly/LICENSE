@@ -210,7 +210,7 @@ subcomponents is subject to the terms and conditions of the following
 licenses.
 
 The binary distribution of this product bundles 'Slf4j' which is available
-under a "3-clause BSD" license.  For details see http://www.slf4j.org/
+under a "3-clause BSD" license.  For details see https://www.slf4j.org/
 
     Copyright (c) 2004-2013 QOS.ch
      All rights reserved.
@@ -235,7 +235,7 @@ under a "3-clause BSD" license.  For details see http://www.slf4j.org/
      WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 The binary distribution of this product bundles 'Antlr 3' which is available
-under a "3-clause BSD" license.  For details see http://www.antlr3.org/license.html
+under a "3-clause BSD" license.  For details see https://www.antlr3.org/license.html
 
     Copyright (c) 2010 Terence Parr
     All rights reserved.
@@ -264,7 +264,7 @@ under a "3-clause BSD" license.  For details see http://www.antlr3.org/license.h
     THE POSSIBILITY OF SUCH DAMAGE.
 
 This product bundles 'asm' which is available under a 3-Clause BSD style license.
-For details see http://asm.ow2.org/asmdex-license.html
+For details see https://asm.ow2.org/asmdex-license.html
 
     Copyright (c) 2012 France Télécom
     All rights reserved.

@@ -7,7 +7,7 @@ The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java,
 
 
 This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
+The Apache Software Foundation (https://www.apache.org/).
 
 ******************
 Apache Software License v2
@@ -21,7 +21,7 @@ The following binary components are provided under the Apache Software License v
         Copyright 2014-2018 The Apache Software Foundation
 
         This product includes software developed at
-        The Apache Software Foundation (http://www.apache.org/).
+        The Apache Software Foundation (https://www.apache.org/).
 
         This product includes the following work from the Apache Hadoop project:
 
@@ -46,12 +46,12 @@ The following binary components are provided under the Apache Software License v
       were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
       which has been placed in the public domain:
 
-      "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
+      "LZMA SDK is placed in the public domain." (https://www.7-zip.org/sdk.html)
 
   (ASLv2) Joda Time
     The following NOTICE information applies:
       This product includes software developed by
-      Joda.org (http://www.joda.org/).
+      Joda.org (https://www.joda.org/).
 
   (ASLv2) Apache ActiveMQ
     The following NOTICE information applies:
@@ -75,7 +75,7 @@ The following binary components are provided under the Apache Software License v
 
           Written by Doug Lea with assistance from members of JCP JSR-166
           Expert Group and released to the public domain, as explained at
-          http://creativecommons.org/publicdomain/zero/1.0/
+          https://creativecommons.org/publicdomain/zero/1.0/
 
   (ASLv2) JSON-SMART
     The following NOTICE information applies:
@@ -97,7 +97,7 @@ The following binary components are provided under the Apache Software License v
       ===============================================================================
 
       The content of package org.apache.commons.codec.language.bm has been translated
-      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      from the original php source code available at https://stevemorse.org/phoneticinfo.htm
       with permission from the original authors.
       Original source copyright:
       Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
@@ -122,7 +122,7 @@ The following binary components are provided under the Apache Software License v
       Jackson core and extension components may licensed under different licenses.
       To find the details that apply to this artifact see the accompanying LICENSE file.
       For more information, including possible other licensing options, contact
-      FasterXML.com (http://fasterxml.com).
+      FasterXML.com (https://fasterxml.com).
 
       ## Credits
 
@@ -138,15 +138,15 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Snappy Java
     The following NOTICE information applies:
       This product includes software developed by Google
-       Snappy: http://code.google.com/p/snappy/ (New BSD License)
+       Snappy: https://code.google.com/p/snappy/ (New BSD License)
       
       This product includes software developed by Apache
-       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+       PureJavaCrc32C from apache-hadoop-common https://hadoop.apache.org/
        (Apache 2.0 license)
 
       This library containd statically linked libstdc++. This inclusion is allowed by 
       "GCC RUntime Library Exception" 
-      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+      https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 
   (ASLv2) Jolt
     The following NOTICE information applies:
@@ -164,8 +164,8 @@ The following binary components are provided under the Common Development and Di
 
     (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19 - https://jersey.java.net/jersey-core/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19 - https://jersey.java.net/jersey-client/)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - https://kenai.com/projects/javamail/mail)
+    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - https://java.net/projects/jms-spec/pages/Home)
 
 *****************
 Common Development and Distribution License v1.0:
@@ -173,7 +173,7 @@ Common Development and Distribution License v1.0:
 
 The following binary components are provided under the Common Development and Distribution License v1.0.  See project link for details.
 
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - https://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
 *****************
@@ -182,7 +182,7 @@ Mozilla Public License v2.0
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - https://www.saxonica.com/)
 
 *****************
 Public Domain
@@ -190,7 +190,7 @@ Public Domain
 
 The following binary components are provided to the 'Public Domain'.  See project link for details.
 
-    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - https://tukaani.org/xz/java.html
 
 
 

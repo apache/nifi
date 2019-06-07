@@ -2,7 +2,7 @@ minifi-provenance-reporting-nar
 Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
+The Apache Software Foundation (https://www.apache.org/).
 
 ===========================================
 Apache Software License v2
@@ -16,7 +16,7 @@ The following binary components are provided under the Apache Software License v
         Copyright 2014-2018 The Apache Software Foundation
 
         This product includes software developed at
-        The Apache Software Foundation (http://www.apache.org/).
+        The Apache Software Foundation (https://www.apache.org/).
 
 ************************
 Common Development and Distribution License 1.1
@@ -24,5 +24,5 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - https://json-processing-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)

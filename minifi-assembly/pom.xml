@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
  -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>minifi</artifactId>
@@ -54,7 +54,7 @@ limitations under the License.
                                     </then>
                                     <else>
                                         <echo message="Downloading Commons Daemon Windows binaries." />
-                                        <get src="http://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" skipexisting="true" />
+                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" skipexisting="true" />
                                         <local name="checksum.matches" />
                                         <property name="sha256sum" value="b5a211f826dc4c0d90508eb1222fe00d70c04a960a6c06540b13ccc5ca71d377" />
                                         <checksum file="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />

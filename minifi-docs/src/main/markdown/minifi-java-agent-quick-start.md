@@ -19,7 +19,7 @@
 
 [Apache NiFi Team](dev@nifi.apache.org)
 
-[NiFi Homepage](http://nifi.apache.org)
+[NiFi Homepage](https://nifi.apache.org)
 
 # Overview
 
@@ -40,14 +40,14 @@ MiNiFi Java Agent is supported on the following operating systems:
 * Debian 7
 * SUSE Linux Enterprise Server (SLES) 11 SP3 (64-bit)
 
-You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](http://nifi.apache.org/minifi/download.html).
+You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/minifi/download.html).
 
 # Installing and Starting MiNiFi
 You have several options for installing and starting MiNiFi.
 
 ## For Linux and Mac OS X Users
 To install MiNiFi:
-1. [Download](http://nifi.apache.org/minifi/download.html) MiNiFi.
+1. [Download](https://nifi.apache.org/minifi/download.html) MiNiFi.
 2. Extract the file to the location from which you want to the application.
 
 You can also install MiNiFi as a service:
@@ -271,7 +271,7 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 
 **Note:** Any connections, remote process groups or processors names that contain ":", ";" or "," will cause parsing errors when querying.
 
-For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administration Guide](http://nifi.apache.org/minifi/system-admin-guide.html).
+For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administration Guide](https://nifi.apache.org/minifi/system-admin-guide.html).
 
 ## Loading a New Dataflow
 You can load a new dataflow for a MiNiFi instance to run:

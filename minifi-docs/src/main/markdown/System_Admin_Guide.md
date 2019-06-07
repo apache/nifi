@@ -342,7 +342,7 @@ Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/m
 
 # Config File
 
-The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML file and follows the YAML format laid out [here](http://www.yaml.org/).
+The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML file and follows the YAML format laid out [here](https://www.yaml.org/).
 
 Alternatively, the MiNiFi Toolkit Converter can aid in creating a *config.yml* from a generated template exported from a NiFi instance.  This tool can be downloaded from https://nifi.apache.org/minifi/download.html under the "MiNiFi Toolkit Binaries" section.  Information on the toolkit's usage is available at https://nifi.apache.org/minifi/minifi-toolkit.html.
 
