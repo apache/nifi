@@ -176,7 +176,7 @@ public class TestPutHive3Streaming {
         };
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         if (recordGenerator == null) {
@@ -209,7 +209,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         if (recordGenerator == null) {
@@ -733,7 +733,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         List<String> enumc = Arrays.asList("SPADES", "HEARTS", "DIAMONDS", "CLUBS");
@@ -811,7 +811,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         readerFactory.addRecord(new Object[] { null });
@@ -845,7 +845,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         readerFactory.addRecord(new Object[] { null });
@@ -880,7 +880,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         readerFactory.addRecord(new Object[] { null });
@@ -914,7 +914,7 @@ public class TestPutHive3Streaming {
         MockRecordParser readerFactory = new MockRecordParser();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType(), recordField.isNullable());
         }
 
         readerFactory.addRecord(new Object[] { null });
