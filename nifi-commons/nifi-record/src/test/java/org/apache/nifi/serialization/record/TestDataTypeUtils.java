@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -268,6 +269,7 @@ public class TestDataTypeUtils {
                     String toTest = prefix + "100" + decimal + exp;
                     assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
                     assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                    assertTrue(toTest + " not valid decimal", DataTypeUtils.isDecimalTypeCompatible(toTest));
 
                     Double.parseDouble(toTest); // ensure we can actually parse it
                     Float.parseFloat(toTest);
@@ -276,8 +278,10 @@ public class TestDataTypeUtils {
                         toTest = prefix + decimal + exp;
                         assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
                         assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                        assertTrue(toTest + " not valid decimal", DataTypeUtils.isDecimalTypeCompatible(toTest));
                         Double.parseDouble(toTest); // ensure we can actually parse it
                         Float.parseFloat(toTest);
+                        new BigDecimal(toTest);
                     }
                 }
             }

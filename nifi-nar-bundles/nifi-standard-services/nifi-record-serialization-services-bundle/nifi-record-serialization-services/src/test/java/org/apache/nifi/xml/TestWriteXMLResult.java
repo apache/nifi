@@ -35,7 +35,9 @@ import org.xmlunit.matchers.CompareMatcher;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -150,6 +152,7 @@ public class TestWriteXMLResult {
     public void testDataTypes() throws IOException, ParseException {
         OutputStream out = new ByteArrayOutputStream();
 
+        final int scale = 1;
         final List<RecordField> fields = new ArrayList<>();
 
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
@@ -164,6 +167,8 @@ public class TestWriteXMLResult {
             } else if (fieldType == RecordFieldType.MAP) {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getMapDataType(RecordFieldType.INT.getDataType())));
 
+            } else if (fieldType == RecordFieldType.DECIMAL) {
+                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDecimalDataType(2, scale)));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
             }
@@ -189,6 +194,7 @@ public class TestWriteXMLResult {
         valueMap.put("long", 8L);
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
+        valueMap.put("decimal", new BigDecimal("8.0").setScale(scale, RoundingMode.HALF_UP));
         valueMap.put("date", new Date(time));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
@@ -207,7 +213,7 @@ public class TestWriteXMLResult {
         writer.flush();
 
         String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><short>8</short>" +
-                "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><date>2017-01-01</date>" +
+                "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><decimal>8.0</decimal><date>2017-01-01</date>" +
                 "<time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
                 "<map><height>48</height><width>96</width></map></RECORD></ROOT>";
 

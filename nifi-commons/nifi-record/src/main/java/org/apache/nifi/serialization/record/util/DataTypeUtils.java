@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -33,7 +34,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
@@ -142,6 +145,11 @@ public class DataTypeUtils {
                 return toDouble(value, fieldName);
             case FLOAT:
                 return toFloat(value, fieldName);
+            case DECIMAL:
+                final DecimalDataType decimal = (DecimalDataType) dataType;
+                final int precision = decimal.getPrecision();
+                final int scale = decimal.getScale();
+                return toDecimal(value, fieldName, precision, scale);
             case INT:
                 return toInteger(value, fieldName);
             case LONG:
@@ -196,6 +204,8 @@ public class DataTypeUtils {
                 return isDoubleTypeCompatible(value);
             case FLOAT:
                 return isFloatTypeCompatible(value);
+            case DECIMAL:
+                return isDecimalTypeCompatible(value);
             case INT:
                 return isIntegerTypeCompatible(value);
             case LONG:
@@ -1231,6 +1241,51 @@ public class DataTypeUtils {
         // Just to ensure that the exponents are in range, etc.
         try {
             Double.parseDouble(value);
+        } catch (final NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static BigDecimal toDecimal(final Object value, final String fieldName, final int precision, final int scale) {
+        if (value == null) {
+            return null;
+        }
+        final BigDecimal decimal;
+        if (value instanceof BigDecimal) {
+            decimal = ((BigDecimal) value).setScale(scale, RoundingMode.HALF_UP);
+        } else if (value instanceof Double) {
+            decimal = BigDecimal.valueOf((Double) value).setScale(scale, RoundingMode.HALF_UP);
+        } else if (value instanceof String) {
+            decimal = new BigDecimal((String) value).setScale(scale, RoundingMode.HALF_UP);
+        } else if (value instanceof Long) {
+            decimal = new BigDecimal((Long) value).setScale(scale, RoundingMode.HALF_UP);
+        } else {
+            throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a logical decimal for field " + fieldName);
+        }
+        if (decimal.precision() > precision) {
+            throw new IllegalTypeConversionException("Cannot convert value " + value + " to a logical type decimal with precision of " + precision + " for field " + fieldName);
+        }
+        return decimal;
+    }
+
+    public static boolean isDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isDecimal);
+    }
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (!FLOATING_POINT_PATTERN.matcher(value).matches()) {
+            return false;
+        }
+
+        // Just to ensure that the exponents are in range, etc.
+        try {
+            new BigDecimal(value);
         } catch (final NumberFormatException nfe) {
             return false;
         }
