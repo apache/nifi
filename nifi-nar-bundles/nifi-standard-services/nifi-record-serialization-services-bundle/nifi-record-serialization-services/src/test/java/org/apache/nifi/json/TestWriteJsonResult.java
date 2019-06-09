@@ -34,7 +34,9 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -57,6 +59,7 @@ public class TestWriteJsonResult {
 
     @Test
     public void testDataTypes() throws IOException, ParseException {
+        final int scale = 1;
         final List<RecordField> fields = new ArrayList<>();
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
             if (fieldType == RecordFieldType.CHOICE) {
@@ -67,6 +70,8 @@ public class TestWriteJsonResult {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getChoiceDataType(possibleTypes)));
             } else if (fieldType == RecordFieldType.MAP) {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getMapDataType(RecordFieldType.INT.getDataType())));
+            } else if (fieldType == RecordFieldType.DECIMAL) {
+                fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDecimalDataType(2, scale)));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
             }
@@ -93,6 +98,7 @@ public class TestWriteJsonResult {
         valueMap.put("long", 8L);
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
+        valueMap.put("decimal", new BigDecimal("8.0").setScale(scale, RoundingMode.HALF_UP));
         valueMap.put("date", new Date(time));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));

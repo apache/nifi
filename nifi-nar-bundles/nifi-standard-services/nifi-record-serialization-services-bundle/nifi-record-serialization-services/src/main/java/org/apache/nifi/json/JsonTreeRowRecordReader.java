@@ -159,6 +159,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case CHAR:
             case DOUBLE:
             case FLOAT:
+            case DECIMAL:
             case INT:
             case LONG:
             case SHORT:

@@ -32,7 +32,9 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
@@ -89,6 +91,7 @@ public class TestWriteCSVResult {
             valueMap.put("long", 8L);
             valueMap.put("float", 8.0F);
             valueMap.put("double", 8.0D);
+            valueMap.put("decimal", new BigDecimal("8.0").setScale(1, RoundingMode.HALF_UP));
             valueMap.put("date", new Date(now));
             valueMap.put("time", new Time(now));
             valueMap.put("timestamp", new Timestamp(now));
@@ -117,7 +120,7 @@ public class TestWriteCSVResult {
 
         final String values = splits[1];
         final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"" + dateValue + "\",\"" + timeValue + "\",\"" + timestampValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
+        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.0\",\"" + dateValue + "\",\"" + timeValue + "\",\"" + timestampValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
 
         final String expectedValues = expectedBuilder.toString();
 
