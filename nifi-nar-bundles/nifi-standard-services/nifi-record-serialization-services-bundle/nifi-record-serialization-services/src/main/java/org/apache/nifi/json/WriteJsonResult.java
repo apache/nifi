@@ -32,6 +32,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -326,6 +327,12 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             case FLOAT:
                 generator.writeNumber(DataTypeUtils.toFloat(coercedValue, fieldName));
+                break;
+            case DECIMAL:
+                final DecimalDataType decimalDataType = (DecimalDataType) chosenDataType;
+                final int precision = decimalDataType.getPrecision();
+                final int scale = decimalDataType.getScale();
+                generator.writeNumber(DataTypeUtils.toDecimal(coercedValue, fieldName, precision, scale));
                 break;
             case LONG:
                 generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));

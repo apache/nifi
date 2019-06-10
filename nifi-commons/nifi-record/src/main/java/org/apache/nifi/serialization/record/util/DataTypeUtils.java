@@ -1248,7 +1248,7 @@ public class DataTypeUtils {
         return true;
     }
 
-    private static BigDecimal toDecimal(final Object value, final String fieldName, final int precision, final int scale) {
+    public static BigDecimal toDecimal(final Object value, final String fieldName, final int precision, final int scale) {
         if (value == null) {
             return null;
         }
