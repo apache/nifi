@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.security.xml;
 
-import java.io.Closeable;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
