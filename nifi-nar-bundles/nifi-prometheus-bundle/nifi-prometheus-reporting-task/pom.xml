@@ -21,7 +21,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 <properties>
         <prometheus.version>0.3.0</prometheus.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <jetty.version>9.3.8.v20160314</jetty.version>
 </properties>
 
 <artifactId>nifi-prometheus-reporting-task</artifactId>
