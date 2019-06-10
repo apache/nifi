@@ -239,6 +239,17 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor ALLOW_MULTIPLE_STATEMENTS = new PropertyDescriptor.Builder()
+            .name("put-db-record-allow-multiple-statements")
+            .displayName("Allow Multiple SQL Statements")
+            .description("If the Statement Type is 'SQL' (as set in the statement.type attribute), this field indicates whether to split the field value by a semicolon and execute each statement "
+                    + "separately. If any statement causes an error, the entire set of statements will be rolled back. If the Statement Type is not 'SQL', this field is ignored.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
             .name("put-db-record-quoted-identifiers")
             .displayName("Quote Column Identifiers")
@@ -309,6 +320,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(UNMATCHED_COLUMN_BEHAVIOR);
         pds.add(UPDATE_KEYS);
         pds.add(FIELD_CONTAINING_SQL);
+        pds.add(ALLOW_MULTIPLE_STATEMENTS);
         pds.add(QUOTED_IDENTIFIERS);
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
@@ -404,7 +416,15 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             getLogger().warn("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
 
-            if (e instanceof BatchUpdateException) {
+            // Check if there was a BatchUpdateException or if multiple SQL statements were being executed and one failed
+            final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
+            String statementType = statementTypeProperty;
+            if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
+                statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+            }
+
+            if (e instanceof BatchUpdateException
+                    || (SQL_TYPE.equalsIgnoreCase(statementType) && context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean())) {
                 try {
                     // Although process session will move forward in order to route the failed FlowFile,
                     // database transaction should be rolled back to avoid partial batch update.
@@ -567,8 +587,16 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     throw new MalformedRecordException(format("Record had no (or null) value for Field Containing SQL: %s, FlowFile %s", sqlField, flowFile));
                 }
 
-                // Execute the statement as-is
-                s.execute((String) sql);
+                // Execute the statement(s) as-is
+                if (context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean()) {
+                    String regex = "(?<!\\\\);";
+                    String[] sqlStatements = ((String) sql).split(regex);
+                    for (String statement : sqlStatements) {
+                        s.execute(statement);
+                    }
+                } else {
+                    s.execute((String) sql);
+                }
             }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
