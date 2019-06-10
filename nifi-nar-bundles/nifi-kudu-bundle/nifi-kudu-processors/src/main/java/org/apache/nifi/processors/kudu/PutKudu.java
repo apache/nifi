@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.kudu;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -427,7 +426,6 @@ public class PutKudu extends AbstractProcessor {
         return insert;
     }
 
-    @VisibleForTesting
     void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames) {
         for (String colName : fieldNames) {
             int colIdx = this.getColumnIndex(schema, colName);
