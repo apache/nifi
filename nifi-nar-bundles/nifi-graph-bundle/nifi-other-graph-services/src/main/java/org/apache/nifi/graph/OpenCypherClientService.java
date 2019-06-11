@@ -38,7 +38,7 @@ import java.util.Map;
         "databases other than Neo4J that are on the supported list of OpenCypher-compatible products. For more information, see: " +
         "http://www.opencypher.org/")
 @Tags({ "cypher", "opencypher", "graph", "database", "janus" })
-public class OpenCypherClientService extends AbstractTinkerpopClientService implements GraphClientService {
+public class OpenCypherClientService extends AbstractTinkerpopClientService implements TinkerPopClientService {
     private volatile Driver gremlinDriver;
     private volatile String transitUrl;
 

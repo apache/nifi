@@ -33,7 +33,7 @@ import java.util.Map;
 
 @CapabilityDescription("A client service that connects to a graph database that can accept queries in the Tinkerpop Gremlin DSL.")
 @Tags({ "graph", "database", "gremlin", "tinkerpop", })
-public class GremlinClientService extends AbstractTinkerpopClientService implements GraphClientService {
+public class GremlinClientService extends AbstractTinkerpopClientService implements TinkerPopClientService {
     private Cluster cluster;
     protected Client client;
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
