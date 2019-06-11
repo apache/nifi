@@ -881,7 +881,7 @@ public abstract class ApplicationResource {
 
     private void ensureFlowInitialized() {
         if (!flowController.isInitialized()) {
-            throw new IllegalClusterStateException("Cluster is still in the process of voting on the appropriate Data Flow.");
+            throw new IllegalClusterStateException("The Flow Controller is initializing the Data Flow.");
         }
     }
 

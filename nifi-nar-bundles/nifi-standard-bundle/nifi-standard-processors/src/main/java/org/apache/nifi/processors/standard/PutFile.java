@@ -49,6 +49,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -203,8 +204,9 @@ public class PutFile extends AbstractProcessor {
         Path tempDotCopyFile = null;
         try {
             final Path rootDirPath = configuredRootDirPath;
-            final Path tempCopyFile = rootDirPath.resolve("." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            final Path copyFile = rootDirPath.resolve(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            final Path tempCopyFile = rootDirPath.resolve("." + filename);
+            final Path copyFile = rootDirPath.resolve(filename);
 
             if (!Files.exists(rootDirPath)) {
                 if (context.getProperty(CREATE_DIRS).asBoolean()) {
@@ -224,7 +226,7 @@ public class PutFile extends AbstractProcessor {
 
             final Path finalCopyFileDir = finalCopyFile.getParent();
             if (Files.exists(finalCopyFileDir) && maxDestinationFiles != null) { // check if too many files already
-                final int numFiles = finalCopyFileDir.toFile().list().length;
+                final long numFiles = getFilesNumberInFolder(finalCopyFileDir, filename);
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
@@ -334,6 +336,13 @@ public class PutFile extends AbstractProcessor {
             logger.error("Penalizing {} and transferring to failure due to {}", new Object[]{flowFile, t});
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private long getFilesNumberInFolder(Path folder, String filename) {
+        String[] filesInFolder = folder.toFile().list();
+        return Arrays.stream(filesInFolder)
+                .filter(eachFilename -> !eachFilename.equals(filename))
+                .count();
     }
 
     protected String stringPermissions(String perms) {

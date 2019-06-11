@@ -31,10 +31,6 @@ public class RecordWriterLease {
     private boolean markedRollable = false;
     private boolean closed = false;
 
-    public RecordWriterLease(final RecordWriter writer, final long maxBytes) {
-        this(writer, maxBytes, Integer.MAX_VALUE);
-    }
-
     public RecordWriterLease(final RecordWriter writer, final long maxBytes, final int maxEvents) {
         this.writer = writer;
         this.maxBytes = maxBytes;

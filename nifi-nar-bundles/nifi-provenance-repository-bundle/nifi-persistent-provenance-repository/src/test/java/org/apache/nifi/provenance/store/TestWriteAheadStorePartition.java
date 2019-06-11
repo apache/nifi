@@ -17,21 +17,6 @@
 
 package org.apache.nifi.provenance.store;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
 import org.apache.nifi.provenance.IdentifierLookup;
@@ -50,6 +35,21 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class TestWriteAheadStorePartition {
 
     @Test
@@ -66,10 +66,10 @@ public class TestWriteAheadStorePartition {
             return new EventIdFirstSchemaRecordWriter(file, idGenerator, tocWriter, compressed, 32 * 1024, IdentifierLookup.EMPTY);
         };
 
-        final RecordReaderFactory recordReaderFactory = (file, logs, maxChars) -> RecordReaders.newRecordReader(file, logs, maxChars);
+        final RecordReaderFactory recordReaderFactory = RecordReaders::newRecordReader;
 
         final WriteAheadStorePartition partition = new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig, recordWriterFactory,
-            recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP);
+            recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP, Mockito.mock(EventFileManager.class));
 
         for (int i = 0; i < 100; i++) {
             partition.addEvents(Collections.singleton(TestUtil.createEvent()));
@@ -113,10 +113,10 @@ public class TestWriteAheadStorePartition {
             return new EventIdFirstSchemaRecordWriter(file, idGenerator, tocWriter, compressed, 32 * 1024, IdentifierLookup.EMPTY);
         };
 
-        final RecordReaderFactory recordReaderFactory = (file, logs, maxChars) -> RecordReaders.newRecordReader(file, logs, maxChars);
+        final RecordReaderFactory recordReaderFactory = RecordReaders::newRecordReader;
 
         WriteAheadStorePartition partition = new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig, recordWriterFactory,
-                recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP);
+                recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP, Mockito.mock(EventFileManager.class));
 
         for (int i = 0; i < 100; i++) {
             partition.addEvents(Collections.singleton(TestUtil.createEvent()));
@@ -133,7 +133,7 @@ public class TestWriteAheadStorePartition {
         assertTrue(new File(storageDirectory, "1" + fileList.get(0).getName()).createNewFile());
 
         partition = new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig, recordWriterFactory,
-                recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP);
+                recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP, Mockito.mock(EventFileManager.class));
 
         partition.initialize();
 

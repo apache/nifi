@@ -17,6 +17,14 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.lucene.util.NamedThreadFactory;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.RepositoryConfiguration;
+import org.apache.nifi.provenance.index.EventIndex;
+import org.apache.nifi.provenance.serialization.EventFileCompressor;
+import org.apache.nifi.provenance.store.iterator.AggregateEventIterator;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,12 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.lucene.util.NamedThreadFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.apache.nifi.provenance.index.EventIndex;
-import org.apache.nifi.provenance.serialization.EventFileCompressor;
 
 public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
     private final BlockingQueue<File> filesToCompress;
@@ -54,8 +56,8 @@ public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
         this.eventReporter = eventReporter;
         this.filesToCompress = new LinkedBlockingQueue<>(100);
         final AtomicLong idGenerator = new AtomicLong(0L);
-        this.partitions = createPartitions(repoConfig, recordWriterFactory, recordReaderFactory, idGenerator);
         this.fileManager = fileManager;
+        this.partitions = createPartitions(repoConfig, recordWriterFactory, recordReaderFactory, idGenerator);
 
         // Creates tasks to compress data on rollover
         if (repoConfig.isCompressOnRollover()) {
@@ -78,7 +80,7 @@ public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
             final String partitionName = entry.getKey();
             final File storageDirectory = entry.getValue();
             partitions.add(new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig,
-                recordWriterFactory, recordReaderFactory, filesToCompress, idGenerator, eventReporter));
+                recordWriterFactory, recordReaderFactory, filesToCompress, idGenerator, eventReporter, fileManager));
         }
 
         return partitions;
@@ -138,5 +140,17 @@ public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
     @Override
     protected List<WriteAheadStorePartition> getPartitions() {
         return partitions;
+    }
+
+    @Override
+    public EventIterator getEventsByTimestamp(final long minTimestamp, final long maxTimestamp) throws IOException {
+        final List<EventIterator> eventIterators = new ArrayList<>();
+
+        for (final WriteAheadStorePartition partition : getPartitions()) {
+            final EventIterator partitionEventIterator = partition.getEventsByTimestamp(minTimestamp, maxTimestamp);
+            eventIterators.add(partitionEventIterator);
+        }
+
+        return new AggregateEventIterator(eventIterators);
     }
 }

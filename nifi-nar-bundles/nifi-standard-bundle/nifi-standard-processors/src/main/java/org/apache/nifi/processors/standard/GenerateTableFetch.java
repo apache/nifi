@@ -154,6 +154,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor CUSTOM_ORDERBY_COLUMN = new PropertyDescriptor.Builder()
+            .name("gen-table-custom-orderby-column")
+            .displayName("Custom ORDER BY Column")
+            .description("The name of a column to be used for ordering the results if Max-Value Columns are not provided and partitioning is enabled. This property is ignored if either "
+                    + "Max-Value Columns is set or Partition Size = 0. NOTE: If neither Max-Value Columns nor Custom ORDER BY Column is set, then depending on the "
+                    + "the database/driver, the processor may report an error and/or the generated SQL may result in missing and/or duplicate rows. This is because without an explicit "
+                    + "ordering, fetching each partition is done using an arbitrary ordering.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
@@ -176,6 +188,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(PARTITION_SIZE);
         pds.add(COLUMN_FOR_VALUE_PARTITIONING);
         pds.add(WHERE_CLAUSE);
+        pds.add(CUSTOM_ORDERBY_COLUMN);
         pds.add(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS);
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -260,6 +273,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnForPartitioning = context.getProperty(COLUMN_FOR_VALUE_PARTITIONING).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean useColumnValsForPaging = !StringUtils.isEmpty(columnForPartitioning);
         final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String customOrderByColumn = context.getProperty(CUSTOM_ORDERBY_COLUMN).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
 
         final StateManager stateManager = context.getStateManager();
@@ -497,7 +511,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
                         Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
                         // Don't use an ORDER BY clause if there's only one partition
-                        final String orderByClause = partitionSize == 0 ? null : maxColumnNames;
+                        final String orderByClause = partitionSize == 0 ? null : (maxColumnNames.isEmpty() ? customOrderByColumn : maxColumnNames);
 
                         final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, columnForPartitioning);
                         FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);

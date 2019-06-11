@@ -203,6 +203,10 @@ public class RecordBin {
                 return false;
             }
 
+            if(thresholds.getFragmentCountAttribute().isPresent() && this.fragmentCount == getMinimumRecordCount()) {
+                return true;
+            }
+
             int maxRecords = thresholds.getMaxRecords();
 
             if (recordCount >= maxRecords) {
@@ -213,22 +217,6 @@ public class RecordBin {
                 return true;
             }
 
-            Optional<String> fragmentCountAttribute = thresholds.getFragmentCountAttribute();
-            if(fragmentCountAttribute != null && fragmentCountAttribute.isPresent()) {
-                final Optional<String> fragmentCountValue = flowFiles.stream()
-                        .filter(ff -> ff.getAttribute(fragmentCountAttribute.get()) != null)
-                        .map(ff -> ff.getAttribute(fragmentCountAttribute.get()))
-                        .findFirst();
-                if (fragmentCountValue.isPresent()) {
-                    try {
-                        int expectedFragments = Integer.parseInt(fragmentCountValue.get());
-                        if (this.fragmentCount == expectedFragments)
-                            return true;
-                    } catch (NumberFormatException nfe) {
-                        this.logger.error(nfe.getMessage(), nfe);
-                    }
-                }
-            }
             return false;
         } finally {
             readLock.unlock();
@@ -349,14 +337,14 @@ public class RecordBin {
                         count = Integer.parseInt(countVal);
                     } catch (final NumberFormatException nfe) {
                         logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but expected a number",
-                            new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile});
+                                new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile});
                         fail();
                         return;
                     }
 
                     if (expectedBinCount != null && count != expectedBinCount) {
                         logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but another FlowFile in the bin had a value of {}",
-                            new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile, expectedBinCount});
+                                new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile, expectedBinCount});
                         fail();
                         return;
                     }
@@ -366,15 +354,15 @@ public class RecordBin {
 
                 if (expectedBinCount == null) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute was not present on any of the FlowFiles",
-                        new Object[] {flowFiles.size(), countAttr.get()});
+                            new Object[] {flowFiles.size(), countAttr.get()});
                     fail();
                     return;
                 }
 
                 if (expectedBinCount != flowFiles.size()) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' but only {} of {} FlowFiles were encountered before this bin was evicted "
-                        + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
-                        new Object[] {flowFiles.size(), countAttr.get(), expectedBinCount, flowFiles.size(), expectedBinCount});
+                                    + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
+                            new Object[] {flowFiles.size(), countAttr.get(), expectedBinCount, flowFiles.size(), expectedBinCount});
                     fail();
                     return;
                 }

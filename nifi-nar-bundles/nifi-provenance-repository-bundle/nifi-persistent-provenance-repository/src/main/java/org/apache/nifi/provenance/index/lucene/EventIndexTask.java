@@ -18,9 +18,9 @@
 package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.search.NumericRangeQuery;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.search.Query;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.provenance.RepositoryConfiguration;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.provenance.lucene.IndexManager;
@@ -56,7 +56,7 @@ public class EventIndexTask implements Runnable {
 
     private volatile CompletableFuture<Void> shutdownComplete;
 
-    public EventIndexTask(final BlockingQueue<StoredDocument> documentQueue, final RepositoryConfiguration repoConfig, final IndexManager indexManager,
+    public EventIndexTask(final BlockingQueue<StoredDocument> documentQueue, final IndexManager indexManager,
         final IndexDirectoryManager directoryManager, final int maxEventsPerCommit, final EventReporter eventReporter) {
         this.documentQueue = documentQueue;
         this.indexManager = indexManager;
@@ -154,8 +154,7 @@ public class EventIndexTask implements Runnable {
                     }
                 }
 
-                final NumericRangeQuery<Long> query = NumericRangeQuery.newLongRange(
-                    SearchableFields.Identifier.getSearchableFieldName(), minId, maxId, true, true);
+                final Query query = LongPoint.newRangeQuery(SearchableFields.Identifier.getSearchableFieldName(), minId, maxId);
                 indexWriter.getIndexWriter().deleteDocuments(query);
 
                 final List<Document> documents = documentsForIndex.stream()
@@ -177,7 +176,7 @@ public class EventIndexTask implements Runnable {
 
         // Convert the IndexableDocument list into a List of Documents so that we can pass them to the Index Writer.
         final List<Document> documents = toIndex.stream()
-            .map(doc -> doc.getDocument())
+            .map(StoredDocument::getDocument)
             .collect(Collectors.toList());
 
         boolean requestClose = false;

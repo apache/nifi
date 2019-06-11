@@ -73,4 +73,23 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/lucene-4-prov-repo/0.prov</exclude>
+                        <exclude>src/test/resources/lucene-4-prov-repo/toc/0.toc</exclude>
+                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_0.fdt</exclude>
+                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_0.fdx</exclude>
+                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_1.fdt</exclude>
+                        <exclude>src/test/resources/lucene-4-prov-repo/index-1554304717707/_1.fdx</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

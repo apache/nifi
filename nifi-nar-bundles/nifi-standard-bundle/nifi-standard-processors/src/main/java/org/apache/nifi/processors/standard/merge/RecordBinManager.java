@@ -27,6 +27,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.standard.MergeContent;
 import org.apache.nifi.processors.standard.MergeRecord;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -146,7 +147,8 @@ public class RecordBinManager {
         }
 
         // if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
-        final RecordBin bin = new RecordBin(context, sessionFactory.createSession(), logger, createThresholds());
+
+        final RecordBin bin = new RecordBin(context, sessionFactory.createSession(), logger, createThresholds(flowFile));
         final boolean binAccepted = bin.offer(flowFile, reader, session, true);
         if (!binAccepted) {
             session.rollback();
@@ -179,8 +181,8 @@ public class RecordBinManager {
     }
 
 
-    private RecordBinThresholds createThresholds() {
-        final int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).asInteger();
+    private RecordBinThresholds createThresholds(FlowFile flowfile) {
+        int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).asInteger();
         final int maxRecords = context.getProperty(MergeRecord.MAX_RECORDS).asInteger();
         final long minBytes = context.getProperty(MergeRecord.MIN_SIZE).asDataSize(DataUnit.B).longValue();
 
@@ -195,6 +197,9 @@ public class RecordBinManager {
         final String mergeStrategy = context.getProperty(MergeRecord.MERGE_STRATEGY).getValue();
         if (MergeRecord.MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             fragmentCountAttribute = MergeContent.FRAGMENT_COUNT_ATTRIBUTE;
+            if (!StringUtils.isEmpty(flowfile.getAttribute(fragmentCountAttribute))) {
+                minRecords = Integer.parseInt(flowfile.getAttribute(fragmentCountAttribute));
+            }
         } else {
             fragmentCountAttribute = null;
         }

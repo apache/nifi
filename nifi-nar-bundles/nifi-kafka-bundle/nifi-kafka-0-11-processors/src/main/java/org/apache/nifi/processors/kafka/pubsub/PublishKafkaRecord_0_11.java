@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "0.11.x"})
@@ -219,6 +220,14 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
+    static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new PropertyDescriptor.Builder()
+      .name("transactional-id-prefix")
+      .displayName("Transactional Id Prefix")
+      .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
+      .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+      .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+      .required(false)
+      .build();
     static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
         .name("message-header-encoding")
         .displayName("Message Header Encoding")
@@ -251,6 +260,7 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
         properties.add(USE_TRANSACTIONS);
+        properties.add(TRANSACTIONAL_ID_PREFIX);
         properties.add(DELIVERY_GUARANTEE);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
@@ -332,6 +342,8 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
         final String attributeNameRegex = context.getProperty(ATTRIBUTE_NAME_REGEX).getValue();
         final Pattern attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
+        final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
+        Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
@@ -342,7 +354,7 @@ public class PublishKafkaRecord_0_11 extends AbstractProcessor {
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
 
-        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis, useTransactions, attributeNamePattern, charset);
+        return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis, useTransactions, transactionalIdSupplier, attributeNamePattern, charset);
     }
 
     @OnStopped

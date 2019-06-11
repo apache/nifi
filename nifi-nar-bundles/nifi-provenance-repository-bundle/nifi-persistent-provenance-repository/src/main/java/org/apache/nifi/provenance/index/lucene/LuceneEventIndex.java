@@ -20,7 +20,7 @@ package org.apache.nifi.provenance.index.lucene;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.nifi.authorization.AccessDeniedException;
@@ -49,6 +49,7 @@ import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.util.DirectoryUtils;
 import org.apache.nifi.provenance.util.NamedThreadFactory;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.timebuffer.LongEntityAccess;
 import org.apache.nifi.util.timebuffer.TimedBuffer;
@@ -75,8 +76,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 
 public class LuceneEventIndex implements EventIndex {
     private static final Logger logger = LoggerFactory.getLogger(LuceneEventIndex.class);
@@ -86,6 +87,7 @@ public class LuceneEventIndex implements EventIndex {
     public static final int MAX_DELETE_INDEX_WAIT_SECONDS = 30;
     public static final int MAX_LINEAGE_NODES = 1000;
     public static final int MAX_INDEX_THREADS = 100;
+    public static final int MAX_LINEAGE_UUIDS = 100;
 
     private final ConcurrentMap<String, AsyncQuerySubmission> querySubmissionMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, AsyncLineageSubmission> lineageSubmissionMap = new ConcurrentHashMap<>();
@@ -109,6 +111,7 @@ public class LuceneEventIndex implements EventIndex {
     private ScheduledExecutorService maintenanceExecutor; // effectively final
     private ScheduledExecutorService cacheWarmerExecutor;
     private EventStore eventStore;
+    private volatile boolean newestIndexDefunct = false;
 
     public LuceneEventIndex(final RepositoryConfiguration config, final IndexManager indexManager, final EventReporter eventReporter) {
         this(config, indexManager, EventIndexTask.DEFAULT_MAX_EVENTS_PER_COMMIT, eventReporter);
@@ -140,10 +143,11 @@ public class LuceneEventIndex implements EventIndex {
         }
 
         for (int i = 0; i < numIndexThreads; i++) {
-            final EventIndexTask task = new EventIndexTask(documentQueue, config, indexManager, directoryManager, maxEventsPerCommit, eventReporter);
+            final EventIndexTask task = new EventIndexTask(documentQueue, indexManager, directoryManager, maxEventsPerCommit, eventReporter);
             indexTasks.add(task);
             indexExecutor.submit(task);
         }
+
         this.config = config;
         this.indexManager = indexManager;
         this.eventConverter = new ConvertEventToLuceneDocument(config.getSearchableFields(), config.getSearchableAttributes());
@@ -155,12 +159,76 @@ public class LuceneEventIndex implements EventIndex {
         directoryManager.initialize();
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("Provenance Repository Maintenance"));
-        maintenanceExecutor.scheduleWithFixedDelay(() -> performMaintenance(), 1, 1, TimeUnit.MINUTES);
+        maintenanceExecutor.scheduleWithFixedDelay(this::performMaintenance, 1, 1, TimeUnit.MINUTES);
         maintenanceExecutor.scheduleWithFixedDelay(this::purgeObsoleteQueries, 30, 30, TimeUnit.SECONDS);
 
         cachedQueries.add(new LatestEventsQuery());
         cachedQueries.add(new LatestEventsPerProcessorQuery());
 
+        triggerReindexOfDefunctIndices();
+        triggerCacheWarming();
+    }
+
+    private void triggerReindexOfDefunctIndices() {
+        final ExecutorService rebuildIndexExecutor = Executors.newScheduledThreadPool(2, new NamedThreadFactory("Rebuild Defunct Provenance Indices", true));
+        final List<File> allIndexDirectories = directoryManager.getAllIndexDirectories(true, true);
+        allIndexDirectories.sort(DirectoryUtils.OLDEST_INDEX_FIRST);
+        final List<File> defunctIndices = detectDefunctIndices(allIndexDirectories);
+
+        final AtomicInteger rebuildCount = new AtomicInteger(0);
+        final int totalCount = defunctIndices.size();
+
+        for (final File defunctIndex : defunctIndices) {
+            try {
+                if (isLucene4IndexPresent(defunctIndex)) {
+                    logger.info("Encountered Lucene 8 index {} and also the corresponding Lucene 4 index; will only trigger rebuilding of one directory.", defunctIndex);
+                    rebuildCount.incrementAndGet();
+                    continue;
+                }
+
+                logger.info("Determined that Lucene Index Directory {} is defunct. Will destroy and rebuild index", defunctIndex);
+
+                final Tuple<Long, Long> timeRange = getTimeRange(defunctIndex, allIndexDirectories);
+                rebuildIndexExecutor.submit(new MigrateDefunctIndex(defunctIndex, indexManager, directoryManager, timeRange.getKey(), timeRange.getValue(),
+                    eventStore, eventReporter, eventConverter, rebuildCount, totalCount));
+            } catch (final Exception e) {
+                logger.error("Detected defunct index {} but failed to rebuild index", defunctIndex, e);
+            }
+        }
+
+        rebuildIndexExecutor.shutdown();
+
+        if (!allIndexDirectories.isEmpty()) {
+            final File newestIndexDirectory = allIndexDirectories.get(allIndexDirectories.size() - 1);
+            if (defunctIndices.contains(newestIndexDirectory)) {
+                newestIndexDefunct = true;
+            }
+        }
+    }
+
+    /**
+     * Returns true if the given Index Directory appears to be a later version of the Lucene Index and there also exists a version 4 Lucene
+     * Index for the same timestamp
+     * @param indexDirectory the index directory to check
+     * @return <code>true</code> if there exists a Lucene 4 index directory for the same timestamp, <code>false</code> otherwise
+     */
+    private boolean isLucene4IndexPresent(final File indexDirectory) {
+        final String indexName = indexDirectory.getName();
+        if (indexName.contains("lucene-8-")) {
+            final int prefixEnd = indexName.indexOf("index-");
+            final String oldIndexName = indexName.substring(prefixEnd);
+
+            final File oldIndexFile = new File(indexDirectory.getParentFile(), oldIndexName);
+            final boolean oldIndexExists = oldIndexFile.exists();
+            if (oldIndexExists) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void triggerCacheWarming() {
         final Optional<Integer> warmCacheMinutesOption = config.getWarmCacheFrequencyMinutes();
         if (warmCacheMinutesOption.isPresent() && warmCacheMinutesOption.get() > 0) {
             for (final File storageDir : config.getStorageDirectories().values()) {
@@ -168,6 +236,72 @@ public class LuceneEventIndex implements EventIndex {
                 cacheWarmerExecutor.scheduleWithFixedDelay(new LuceneCacheWarmer(storageDir, indexManager), 1, minutes, TimeUnit.MINUTES);
             }
         }
+    }
+
+    /**
+     * Takes a list of index directories sorted from the earliest timestamp to the latest, and determines the time range of the given index directory based on that.
+     * @param indexDirectory the index directory whose time range is desired
+     * @param sortedIndexDirectories the list of all index directories from the earliest timestamp to the latest
+     * @return a Tuple whose LHS is the earliest timestamp and RHS is the latest timestamp that the given index directory encompasses
+     */
+    protected static Tuple<Long, Long> getTimeRange(final File indexDirectory, final List<File> sortedIndexDirectories) {
+        final long startTimestamp = DirectoryUtils.getIndexTimestamp(indexDirectory);
+
+        // If no index directories, assume that the time range extends from the start time until now.
+        if (sortedIndexDirectories.isEmpty()) {
+            return new Tuple<>(startTimestamp, System.currentTimeMillis());
+        }
+
+        final int index = sortedIndexDirectories.indexOf(indexDirectory);
+        if (index < 0) {
+            // Index is not in our set of indices.
+            final long firstIndexTimestamp = DirectoryUtils.getIndexTimestamp(sortedIndexDirectories.get(0));
+
+            // If the index comes before our first index, use the time range from when the index starts to the time when the first in the list starts.
+            if (startTimestamp < firstIndexTimestamp) {
+                return new Tuple<>(startTimestamp, firstIndexTimestamp);
+            }
+
+            // Otherwise, assume time range from when the index starts until now.
+            return new Tuple<>(startTimestamp, System.currentTimeMillis());
+        }
+
+        // IF there's no index that comes after this one, use current time as the end of the time range.
+        if (index + 1 > sortedIndexDirectories.size() - 1) {
+            return new Tuple<>(startTimestamp, System.currentTimeMillis());
+        }
+
+        final File upperBoundIndexDir = sortedIndexDirectories.get(index + 1);
+        final long endTimestamp = DirectoryUtils.getIndexTimestamp(upperBoundIndexDir);
+        return new Tuple<>(startTimestamp, endTimestamp);
+    }
+
+    private List<File> detectDefunctIndices(final Collection<File> indexDirectories) {
+        final List<File> defunct = new ArrayList<>();
+
+        for (final File indexDir : indexDirectories) {
+            if (isIndexDefunct(indexDir)) {
+                defunct.add(indexDir);
+            }
+        }
+
+        return defunct;
+    }
+
+    private boolean isIndexDefunct(final File indexDir) {
+        EventIndexSearcher indexSearcher = null;
+        try {
+            indexSearcher = indexManager.borrowIndexSearcher(indexDir);
+        } catch (final IOException ioe) {
+            logger.warn("Lucene Index {} could not be opened. Assuming that index is defunct and will re-index events belonging to this index.", indexDir);
+            return true;
+        } finally {
+            if (indexSearcher !=  null) {
+                indexManager.returnIndexSearcher(indexSearcher);
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -213,7 +347,7 @@ public class LuceneEventIndex implements EventIndex {
             return -1L;
         }
 
-        Collections.sort(allDirectories, DirectoryUtils.NEWEST_INDEX_FIRST);
+        allDirectories.sort(DirectoryUtils.NEWEST_INDEX_FIRST);
 
         for (final File directory : allDirectories) {
             final EventIndexSearcher searcher;
@@ -241,9 +375,20 @@ public class LuceneEventIndex implements EventIndex {
         return -1L;
     }
 
+    public boolean isReindexNecessary() {
+        // If newest index is defunct, there's no reason to re-index, as it will happen in the background thread
+        logger.info("Will avoid re-indexing Provenance Events because the newest index is defunct, so it will be re-indexed in the background");
+        return !newestIndexDefunct;
+    }
+
     @Override
     public void reindexEvents(final Map<ProvenanceEventRecord, StorageSummary> events) {
-        final EventIndexTask indexTask = new EventIndexTask(documentQueue, config, indexManager, directoryManager, EventIndexTask.DEFAULT_MAX_EVENTS_PER_COMMIT, eventReporter);
+        if (newestIndexDefunct) {
+            logger.info("Will avoid re-indexing {} events because the newest index is defunct, so it will be re-indexed in the background", events.size());
+            return;
+        }
+
+        final EventIndexTask indexTask = new EventIndexTask(documentQueue, indexManager, directoryManager, EventIndexTask.DEFAULT_MAX_EVENTS_PER_COMMIT, eventReporter);
 
         File lastIndexDir = null;
         long lastEventTime = -2L;
@@ -265,8 +410,14 @@ public class LuceneEventIndex implements EventIndex {
                 if (event.getEventTime() == lastEventTime) {
                     indexDir = lastIndexDir;
                 } else {
-                    final List<File> files = getDirectoryManager().getDirectories(event.getEventTime(), null);
-                    indexDir = files.isEmpty() ? null : files.get(0);
+                    final List<File> files = getDirectoryManager().getDirectories(event.getEventTime(), null, false);
+                    if (files.isEmpty()) {
+                        final String partitionName = summary.getPartitionName().get();
+                        indexDir = getDirectoryManager().getWritableIndexingDirectory(event.getEventTime(), partitionName);
+                    } else {
+                        indexDir = files.get(0);
+                    }
+
                     lastIndexDir = indexDir;
                 }
 
@@ -391,6 +542,10 @@ public class LuceneEventIndex implements EventIndex {
     private ComputeLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final EventAuthorizer eventAuthorizer,
         final LineageComputationType computationType, final Long eventId, final long startTimestamp, final long endTimestamp) {
 
+        if (flowFileUuids.size() > MAX_LINEAGE_UUIDS) {
+            throw new IllegalArgumentException(String.format("Cannot compute lineage for more than %s FlowFiles. This lineage contains %s.", MAX_LINEAGE_UUIDS, flowFileUuids.size()));
+        }
+
         final List<File> indexDirs = directoryManager.getDirectories(startTimestamp, endTimestamp);
         final AsyncLineageSubmission submission = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user == null ? null : user.getIdentity());
         lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
@@ -400,7 +555,7 @@ public class LuceneEventIndex implements EventIndex {
         if (indexDirectories.isEmpty()) {
             submission.getResult().update(Collections.emptyList(), 0L);
         } else {
-            Collections.sort(indexDirectories, DirectoryUtils.OLDEST_INDEX_FIRST);
+            indexDirectories.sort(DirectoryUtils.OLDEST_INDEX_FIRST);
 
             for (final File indexDir : indexDirectories) {
                 queryExecutor.submit(new QueryTask(lineageQuery, submission.getResult(), MAX_LINEAGE_NODES, indexManager, indexDir,
@@ -427,11 +582,13 @@ public class LuceneEventIndex implements EventIndex {
         if (flowFileUuids == null || flowFileUuids.isEmpty()) {
             lineageQuery = null;
         } else {
-            lineageQuery = new BooleanQuery();
+            final BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
             for (final String flowFileUuid : flowFileUuids) {
-                lineageQuery.add(new TermQuery(new Term(SearchableFields.FlowFileUUID.getSearchableFieldName(), flowFileUuid)), Occur.SHOULD);
+                final TermQuery termQuery = new TermQuery(new Term(SearchableFields.FlowFileUUID.getSearchableFieldName(), flowFileUuid));
+                queryBuilder.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD));
             }
-            lineageQuery.setMinimumNumberShouldMatch(1);
+
+            lineageQuery = queryBuilder.build();
         }
 
         return lineageQuery;
@@ -487,7 +644,7 @@ public class LuceneEventIndex implements EventIndex {
         if (indexDirectories.isEmpty()) {
             submission.getResult().update(Collections.emptyList(), 0L);
         } else {
-            Collections.sort(indexDirectories, DirectoryUtils.NEWEST_INDEX_FIRST);
+            indexDirectories.sort(DirectoryUtils.NEWEST_INDEX_FIRST);
 
             for (final File indexDir : indexDirectories) {
                 queryExecutor.submit(new QueryTask(luceneQuery, submission.getResult(), query.getMaxResults(), indexManager, indexDir,
@@ -713,7 +870,7 @@ public class LuceneEventIndex implements EventIndex {
                     + "However, the directory could not be deleted.", e);
             }
 
-            directoryManager.deleteDirectory(indexDirectory);
+            directoryManager.removeDirectory(indexDirectory);
             logger.info("Successfully removed expired Lucene Index {}", indexDirectory);
         } else {
             logger.warn("The Lucene Index located at {} has expired and contains no Provenance Events that still exist in the respository. "
