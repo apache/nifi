@@ -101,11 +101,8 @@ public class XXEValidatorTest {
         assertEquals("XML file " + parameterInput + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
     }
 
-    /** !ENTITY keyword spread over multiple lines will be a Valid result with this validator. This is not ideal, but the
-     external entity will still not ever be called because the Xerces parser will throw an exception instead due to invalid XML.
-     **/
     @Test
-    public void testXmlFileWithMultilineXXEIsValid() {
+    public void testXmlFileWithMultilineXXEIsInvalid() {
         // Arrange
         String parameterKey = configurationKey;
         String parameterInput = multilineXXEFile;
@@ -115,7 +112,8 @@ public class XXEValidatorTest {
         ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
-        assertTrue(val.isValid());
+        assertFalse(val.isValid());
+        assertEquals("XML file " + parameterInput + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
     }
 
     @Test
