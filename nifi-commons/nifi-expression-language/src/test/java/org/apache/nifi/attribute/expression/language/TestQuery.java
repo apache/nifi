@@ -74,30 +74,6 @@ public class TestQuery {
         //System.out.println(Query.compile("").evaluate(null));
     }
 
-
-    @Test
-    public void testCompiledQueryCanBeRunMultipleTimes() {
-        final Map<String, String> values = new HashMap<>();
-        values.put("abc", "xyz");
-        values.put("a", "xyz");
-        values.put("cba", "a");
-
-        final PreparedQuery truePreparedQuery = Query.prepare("${allMatchingAttributes('a.*'):length():gt(1)}");
-        for (int i=0; i < 100; i++) {
-            assertEquals("true", truePreparedQuery.evaluateExpressions(values, null));
-        }
-
-        final PreparedQuery falsePreparedQuery = Query.prepare("${anyMatchingAttribute('a.*'):length():gt(10000)}");
-        for (int i=0; i < 100; i++) {
-            assertEquals("false", falsePreparedQuery.evaluateExpressions(values, null));
-        }
-
-        final PreparedQuery singleAttributeQuery = Query.prepare("${abc:length():equals(3)}");
-        for (int i=0; i < 100; i++) {
-            assertEquals("true", singleAttributeQuery.evaluateExpressions(values, null));
-        }
-    }
-
     @Test
     public void testPrepareWithEscapeChar() {
         final Map<String, String> variables = Collections.singletonMap("foo", "bar");
