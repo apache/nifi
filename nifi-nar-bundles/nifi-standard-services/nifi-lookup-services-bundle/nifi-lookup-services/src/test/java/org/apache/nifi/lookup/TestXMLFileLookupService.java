@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.lookup;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Optional;
-
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.Optional;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
 
 public class TestXMLFileLookupService {
 
@@ -79,7 +78,7 @@ public class TestXMLFileLookupService {
 
         } catch (final Throwable e) {
             // Assert
-            assertTrue(e.getMessage().contains("contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled."));
+            assertTrue(e.getMessage().contains("contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled."));
         }
     }
 }

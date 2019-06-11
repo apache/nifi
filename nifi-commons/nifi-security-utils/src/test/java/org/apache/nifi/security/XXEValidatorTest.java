@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 package org.apache.nifi.security;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.xml.XXEValidator;
@@ -24,11 +30,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 @RunWith(JUnit4.class)
 public class XXEValidatorTest {
@@ -82,7 +83,7 @@ public class XXEValidatorTest {
 
         //Assert
         assertFalse(val.isValid());
-        assertEquals("XML file " + parameterInput + " contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
+        assertEquals("XML file " + parameterInput + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
     }
 
     @Test
@@ -97,7 +98,7 @@ public class XXEValidatorTest {
 
         //Assert
         assertFalse(val.isValid());
-        assertEquals("XML file " + parameterInput + " contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
+        assertEquals("XML file " + parameterInput + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
     }
 
     /** !ENTITY keyword spread over multiple lines will be a Valid result with this validator. This is not ideal, but the
@@ -129,7 +130,7 @@ public class XXEValidatorTest {
 
         //Assert
         assertFalse(val.isValid());
-        assertEquals("XML file " + parameterInput + " contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
+        assertEquals("XML file " + parameterInput + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.", val.getExplanation());
     }
 
     @Test

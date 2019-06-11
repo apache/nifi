@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.security.xml;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +23,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 
 /* This validator is a quick method to block XML files being used which contain external entity ("!ENTITY") declarations.
  */
@@ -54,7 +53,7 @@ public class XXEValidator implements Validator {
 
                 if(containsXXE) {
                     return new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                            .explanation("XML file " + input + " contained an external entity. To eliminate XXE vulnerabilities, NiFi has external entity processing disabled.")
+                            .explanation("XML file " + input + " contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.")
                             .build();
                 } else {
                     return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Does not contain XXE.").build();
