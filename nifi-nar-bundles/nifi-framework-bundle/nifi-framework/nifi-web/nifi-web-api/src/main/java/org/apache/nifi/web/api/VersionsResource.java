@@ -468,6 +468,9 @@ public class VersionsResource extends ApplicationResource {
         if (versionedFlowDto.getComments() != null && versionedFlowDto.getComments().length() > 65535) {
             throw new IllegalArgumentException("Comments cannot exceed 65,535 characters");
         }
+        if (StringUtils.isEmpty(versionedFlowDto.getAction())) {
+            throw new IllegalArgumentException("Action is required");
+        }
         if (!VersionedFlowDTO.COMMIT_ACTION.equals(versionedFlowDto.getAction())
                 && !VersionedFlowDTO.FORCE_COMMIT_ACTION.equals(versionedFlowDto.getAction())) {
             throw new IllegalArgumentException("Action must be one of " + VersionedFlowDTO.COMMIT_ACTION + " or " + VersionedFlowDTO.FORCE_COMMIT_ACTION);
