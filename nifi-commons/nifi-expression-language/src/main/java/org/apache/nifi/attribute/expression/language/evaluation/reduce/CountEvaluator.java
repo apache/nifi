@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+
+import java.util.Map;
 
 public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvaluator<Long> {
 
@@ -53,4 +53,8 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
         return subjectEvaluator;
     }
 
+    @Override
+    public void reset() {
+        count = 0L;
+    }
 }

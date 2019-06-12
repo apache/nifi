@@ -17,15 +17,16 @@
 
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 
+import java.util.Map;
+import java.util.Set;
+
 public class CompiledExpression implements Expression {
     private final Evaluator<?> rootEvaluator;
+    private final Query query;
     private final Tree tree;
     private final String expression;
     private final Set<Evaluator<?>> allEvaluators;
@@ -35,6 +36,7 @@ public class CompiledExpression implements Expression {
         this.tree = tree;
         this.expression = expression;
         this.allEvaluators = allEvaluators;
+        this.query = Query.fromTree(tree, expression, rootEvaluator);
     }
 
     public Evaluator<?> getRootEvaluator() {
@@ -55,6 +57,14 @@ public class CompiledExpression implements Expression {
 
     @Override
     public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
-        return Query.evaluateExpression(getTree(), expression, variables, decorator, stateVariables);
+        allEvaluators.forEach(Evaluator::reset);
+
+        final Object evaluated = query.evaluate(variables, stateVariables).getValue();
+        if (evaluated == null) {
+            return null;
+        }
+
+        final String value = evaluated.toString();
+        return decorator == null ? value : decorator.decorate(value);
     }
 }

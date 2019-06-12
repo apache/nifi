@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+
+import java.util.Map;
 
 public class OrEvaluator extends BooleanEvaluator {
 
@@ -67,4 +67,8 @@ public class OrEvaluator extends BooleanEvaluator {
         return subjectEvaluator;
     }
 
+    @Override
+    public void reset() {
+        rhsResult = null;
+    }
 }

@@ -29,7 +29,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Class used for creating and evaluating NiFi Expression Language. Once a Query
@@ -41,7 +40,6 @@ public class Query {
     private final String query;
     private final Tree tree;
     private final Evaluator<?> evaluator;
-    private final AtomicBoolean evaluated = new AtomicBoolean(false);
 
     private Query(final String query, final Tree tree, final Evaluator<?> evaluator) {
         this.query = query;
@@ -236,7 +234,12 @@ public class Query {
 
     public static Query fromTree(final Tree tree, final String text) {
         final ExpressionCompiler compiler = new ExpressionCompiler();
-        return new Query(text, tree, compiler.buildEvaluator(tree));
+        final Evaluator<?> rootEvaluator = compiler.buildEvaluator(tree);
+        return fromTree(tree, text, rootEvaluator);
+    }
+
+    public static Query fromTree(final Tree tree, final String text, final Evaluator<?> rootEvaluator) {
+        return new Query(text, tree, rootEvaluator);
     }
 
     private static String unescapeLeadingDollarSigns(final String value) {
@@ -353,9 +356,6 @@ public class Query {
     }
 
     QueryResult<?> evaluate(final Map<String, String> attributes, final Map<String, String> stateMap) {
-        if (evaluated.getAndSet(true)) {
-            throw new IllegalStateException("A Query cannot be evaluated more than once");
-        }
         if (stateMap != null) {
             AttributesAndState attributesAndState = new AttributesAndState(attributes, stateMap);
             return evaluator.evaluate(attributesAndState);

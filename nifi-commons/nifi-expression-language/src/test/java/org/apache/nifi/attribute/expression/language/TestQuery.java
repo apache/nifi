@@ -75,6 +75,18 @@ public class TestQuery {
     }
 
     @Test
+    public void testPerformance() {
+        final Map<String, String> attributes = new HashMap<String, String>() {{
+            put("hello", "Hello");
+            put("boat", "World!");
+        }};
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):isEmpty():not():and(${hello:contains('o')})}");
+        for (int i = 0; i < 1000000; i++) {
+            assertEquals("true", prepared.evaluateExpressions(attributes, null));
+        }
+    }
+
+    @Test
     public void testPrepareWithEscapeChar() {
         final Map<String, String> variables = Collections.singletonMap("foo", "bar");
 

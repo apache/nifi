@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.util.Map;
 
 public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<String> {
 
@@ -56,5 +56,11 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;
+    }
+
+    @Override
+    public void reset() {
+        sb.setLength(0);
+        evalCount = 0;
     }
 }
