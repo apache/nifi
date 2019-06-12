@@ -85,7 +85,7 @@ public class PutFile extends AbstractProcessor {
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     
     public static final Pattern RWX_PATTERN = Pattern.compile("^([r-][w-])([x-])([r-][w-])([x-])([r-][w-])([x-])$");
-    public static final Pattern NUM_PATTERN = Pattern.compile("//d+");
+    public static final Pattern NUM_PATTERN = Pattern.compile("\\d+");
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
