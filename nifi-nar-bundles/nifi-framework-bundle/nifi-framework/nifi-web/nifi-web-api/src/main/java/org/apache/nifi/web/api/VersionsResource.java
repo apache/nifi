@@ -468,6 +468,10 @@ public class VersionsResource extends ApplicationResource {
         if (versionedFlowDto.getComments() != null && versionedFlowDto.getComments().length() > 65535) {
             throw new IllegalArgumentException("Comments cannot exceed 65,535 characters");
         }
+        if (!VersionedFlowDTO.COMMIT_ACTION.equals(versionedFlowDto.getAction())
+                && !VersionedFlowDTO.FORCE_COMMIT_ACTION.equals(versionedFlowDto.getAction())) {
+            throw new IllegalArgumentException("Action must be one of " + VersionedFlowDTO.COMMIT_ACTION + " or " + VersionedFlowDTO.FORCE_COMMIT_ACTION);
+        }
 
         if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
@@ -534,7 +538,8 @@ public class VersionsResource extends ApplicationResource {
                 final String registryId = versionedFlow.getRegistryId();
                 final String bucketId = versionedFlow.getBucketId();
                 final String flowId = versionedFlow.getFlowId();
-                serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, bucketId, flowId);
+                final String action = versionedFlow.getAction();
+                serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, bucketId, flowId, action);
             },
             (rev, flowEntity) -> {
                 // Register the current flow with the Flow Registry.

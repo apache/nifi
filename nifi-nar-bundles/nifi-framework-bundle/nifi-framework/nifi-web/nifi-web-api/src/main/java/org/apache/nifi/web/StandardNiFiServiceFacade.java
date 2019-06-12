@@ -4024,9 +4024,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(final String groupId, final String registryId, final String bucketId, final String flowId) {
+    public void verifyCanSaveToFlowRegistry(final String groupId, final String registryId, final String bucketId, final String flowId, final String saveAction) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-        group.verifyCanSaveToFlowRegistry(registryId, bucketId, flowId);
+        group.verifyCanSaveToFlowRegistry(registryId, bucketId, flowId, saveAction);
     }
 
     @Override

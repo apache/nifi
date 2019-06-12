@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -145,8 +120,35 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -4688,7 +4690,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(final String registryId, final String bucketId, final String flowId) {
+    public void verifyCanSaveToFlowRegistry(final String registryId, final String bucketId, final String flowId, final String saveAction) {
         verifyNoDescendantsWithLocalModifications("be saved to a Flow Registry");
 
         final StandardVersionControlInformation vci = versionControlInfo.get();
@@ -4697,7 +4699,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // Flow ID is the same. We want to publish the Process Group as the next version of the Flow.
                 // In order to do this, we have to ensure that the Process Group is 'current'.
                 final VersionedFlowState state = vci.getStatus().getState();
-                if (state == VersionedFlowState.STALE) {
+                if (state == VersionedFlowState.STALE
+                        || (state == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE && VersionedFlowDTO.COMMIT_ACTION.equals(saveAction))) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
                             + " because the Process Group in the flow is not synchronized with the most recent version of the Flow in the Flow Registry. "
                             + "In order to publish a new version of the Flow, the Process Group must first be in synch with the latest version in the Flow Registry.");
