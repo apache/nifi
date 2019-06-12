@@ -95,7 +95,7 @@
         <org.slf4j.version>1.7.26</org.slf4j.version>
         <ranger.version>1.0.0</ranger.version>
         <jetty.version>9.4.19.v20190610</jetty.version>
-        <jackson.version>2.9.8</jackson.version>
+        <jackson.version>2.9.9</jackson.version>
         <nifi.registry.version>0.4.0</nifi.registry.version>
     </properties>
 
