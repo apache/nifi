@@ -128,7 +128,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         final SSLContext sslContext;
         try {
-            sslContext = (sslService != null && sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured())
+            sslContext = (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
                 ? sslService.createSSLContext(SSLContextService.ClientAuth.NONE) : null;
         } catch (Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);

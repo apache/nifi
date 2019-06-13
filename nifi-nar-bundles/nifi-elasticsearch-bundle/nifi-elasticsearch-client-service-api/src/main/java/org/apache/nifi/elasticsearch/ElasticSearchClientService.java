@@ -19,6 +19,7 @@ package org.apache.nifi.elasticsearch;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -46,6 +47,7 @@ public interface ElasticSearchClientService extends ControllerService {
                     + "connections. This service only applies if the Elasticsearch endpoint(s) have been secured with TLS/SSL.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .addValidator(Validator.VALID)
             .build();
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("el-cs-username")
