@@ -87,6 +87,7 @@
                   nfSettings) {
 
     var groupId = null;
+    var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
 
@@ -99,6 +100,20 @@
     var PARAM_SUPPORTED_DESCRIPTION = '<div>After beginning with the start delimiter <span class="hint-pattern">#{</span> use the keystroke '
         + '<span class="hint-keystroke">control+space</span> to see a list of available parameters.</div>';
     var PARAM_UNSUPPORTED_TITLE = '<div>Parameters (PARAM) not supported</div>';
+
+    /**
+     * Determines if the specified value represents a reference to a parameter.
+     *
+     * @param value         The value to check
+     * @returns {boolean}   Whether the value represents a reference to a parameter
+     */
+    var referencesParameter = function (value) {
+        if (nfCommon.isDefinedAndNotNull(value)) {
+            return value.startsWith('#{') && value.endsWith('}');
+        }
+
+        return false;
+    };
 
     var getSupportTip = function (isEl, isSupported) {
         var supportContainer = $('<div></div>');
@@ -422,212 +437,287 @@
     };
 
     // combo editor
-    var comboEditor = function (args) {
-        var scope = this;
-        var initialValue = null;
-        var wrapper;
-        var combo;
-        var propertyDescriptor;
+    var getComboEditor = function (loadParameters) {
+        return function (args) {
+            var PARAMETER_REFERENCE_OPTION = {
+                text: 'Reference parameter...',
+                value: undefined,
+                optionClass: 'unset'
+            };
+            var CREATE_CONTROLLER_SERVICE_OPTION = {
+                text: 'Create new service...',
+                value: undefined,
+                optionClass: 'unset'
+            };
 
-        this.init = function () {
-            var container = $('body');
+            var scope = this;
+            var allowableValueOptions = [];
+            var parameterOptions = [];
+            var initialValue = null;
+            var wrapper;
+            var allowableValuesCombo;
+            var parameterCombo;
+            var propertyDescriptor;
 
-            // get the property descriptor
-            var gridContainer = $(args.grid.getContainerNode());
-            var descriptors = gridContainer.data('descriptors');
-            propertyDescriptor = descriptors[args.item.property];
+            this.init = function () {
+                var container = $('body');
 
-            // get the options
-            var propertyContainer = gridContainer.closest('.property-container');
-            var configurationOptions = propertyContainer.data('options');
+                // get the property descriptor
+                var gridContainer = $(args.grid.getContainerNode());
+                var descriptors = gridContainer.data('descriptors');
+                propertyDescriptor = descriptors[args.item.property];
 
-            // create the wrapper
-            wrapper = $('<div class="combo-editor"></div>').css({
-                'z-index': 1999,
-                'position': 'absolute',
-                'padding': '10px 20px',
-                'overflow': 'hidden',
-                'border-radius': '2px',
-                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move',
-                'transform': 'translate3d(0px, 0px, 0px)'
-            }).draggable({
-                cancel: '.button, .combo',
-                containment: 'parent'
-            }).appendTo(container);
+                // get the options
+                var propertyContainer = gridContainer.closest('.property-container');
+                var configurationOptions = propertyContainer.data('options');
 
-            // check for allowable values which will drive which editor to use
-            var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
+                // create the wrapper
+                wrapper = $('<div class="combo-editor"></div>').css({
+                    'z-index': 1999,
+                    'position': 'absolute',
+                    'padding': '10px 20px',
+                    'overflow': 'hidden',
+                    'border-radius': '2px',
+                    'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                    'background-color': 'rgb(255, 255, 255)',
+                    'cursor': 'move',
+                    'transform': 'translate3d(0px, 0px, 0px)'
+                }).draggable({
+                    cancel: '.button, .combo',
+                    containment: 'parent'
+                }).appendTo(container);
 
-            // show the output port options
-            var options = [];
-            if (propertyDescriptor.required === false) {
-                options.push({
-                    text: 'No value',
-                    value: null,
-                    optionClass: 'unset'
-                });
-            }
-            if ($.isArray(allowableValues)) {
-                $.each(allowableValues, function (i, allowableValueEntity) {
-                    var allowableValue = allowableValueEntity.allowableValue;
-                    options.push({
-                        text: allowableValue.displayName,
-                        value: allowableValue.value,
-                        disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
-                        description: nfCommon.escapeHtml(allowableValue.description)
+                // check for allowable values which will drive which editor to use
+                var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
+
+                // show the allowable values
+                if ($.isArray(allowableValues)) {
+                    $.each(allowableValues, function (i, allowableValueEntity) {
+                        var allowableValue = allowableValueEntity.allowableValue;
+                        allowableValueOptions.push({
+                            text: allowableValue.displayName,
+                            value: allowableValue.value,
+                            disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
+                            description: nfCommon.escapeHtml(allowableValue.description)
+                        });
                     });
+                }
+
+                if (propertyDescriptor.required === false) {
+                    allowableValueOptions.push({
+                        text: 'No value',
+                        value: null,
+                        optionClass: 'unset'
+                    });
+                }
+
+                // if this does not represent an identify a controller service
+                if (!nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                    allowableValueOptions.push(PARAMETER_REFERENCE_OPTION);
+                }
+
+                // ensure the options there is at least one option
+                if (allowableValueOptions.length === 0) {
+                    allowableValueOptions.push({
+                        text: 'No value',
+                        value: null,
+                        optionClass: 'unset',
+                        disabled: true
+                    });
+                }
+
+                // if this descriptor identifies a controller service, provide a way to create one
+                if (nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                    allowableValueOptions.push(CREATE_CONTROLLER_SERVICE_OPTION);
+                }
+
+                // determine the max height
+                var position = args.position;
+                var windowHeight = $(window).height();
+                var maxHeight = windowHeight - position.bottom - 16;
+
+                // determine the width
+                var comboWidth = Math.max(position.width - 16, COMBO_MIN_WIDTH);
+
+                // build the combo field
+                allowableValuesCombo = $('<div class="value-combo combo"></div>').combo({
+                    options: allowableValueOptions,
+                    maxHeight: maxHeight,
+                    select: function (option) {
+                        if (nfCommon.isDefinedAndNotNull(parameterCombo)) {
+                            if (option === PARAMETER_REFERENCE_OPTION) {
+                                parameterCombo.show();
+                            } else {
+                                parameterCombo.hide();
+
+                                if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
+                                    // cancel the current edit
+                                    scope.cancel();
+
+                                    // prompt for the new service type
+                                    promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                                }
+                            }
+                        }
+                    }
+                }).css({
+                    'margin-top': '10px',
+                    'margin-bottom': '10px',
+                    'width': comboWidth + 'px'
+                }).appendTo(wrapper);
+
+                // load the parameters
+                loadParameters(propertyDescriptor, function (parameterListing) {
+                    parameterListing.forEach(function (parameter) {
+                        parameterOptions.push({
+                            text: parameter.name,
+                            value: '#{' + parameter.name + '}',
+                            description: nfCommon.escapeHtml(parameter.description)
+                        });
+                    });
+
+                    // create the parameter combo
+                    parameterCombo = $('<div class="value-combo combo"></div>')
+                        .combo({
+                            options: parameterOptions,
+                            maxHeight: maxHeight
+                        })
+                        .css({
+                            'margin-bottom': '10px',
+                            'width': comboWidth + 'px'
+                        })
+                        .appendTo(wrapper);
                 });
-            }
 
-            // ensure the options there is at least one option
-            if (options.length === 0) {
-                options.push({
-                    text: 'No value',
-                    value: null,
-                    optionClass: 'unset',
-                    disabled: true
+                // add buttons for handling user input
+                var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                    'color': '#004849',
+                    'background': '#E3E8EB'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#C7D2D7');
+                    }, function () {
+                        $(this).css('background', '#E3E8EB');
+                    }).on('click', scope.cancel);
+                var ok = $('<div class="button">Ok</div>').css({
+                    'color': '#fff',
+                    'background': '#728E9B'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#004849');
+                    }, function () {
+                        $(this).css('background', '#728E9B');
+                    }).on('click', scope.save);
+
+                $('<div></div>').css({
+                    'position': 'relative',
+                    'top': '10px',
+                    'left': '20px',
+                    'width': '212px',
+                    'float': 'right'
+                }).append(ok).append(cancel).appendTo(wrapper);
+
+                // position and focus
+                scope.position(position);
+            };
+
+            this.save = function () {
+                args.commitChanges();
+            };
+
+            this.cancel = function () {
+                args.cancelChanges();
+            };
+
+            this.hide = function () {
+                wrapper.hide();
+            };
+
+            this.show = function () {
+                wrapper.show();
+            };
+
+            this.position = function (position) {
+                wrapper.css({
+                    'top': position.top - 24,
+                    'left': position.left - 20
                 });
-            }
+            };
 
-            // if this descriptor identifies a controller service, provide a way to create one
-            if (nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
-                options.push({
-                    text: 'Create new service...',
-                    value: undefined,
-                    optionClass: 'unset'
-                });
-            }
+            this.destroy = function () {
+                parameterCombo.combo('destroy');
+                allowableValuesCombo.combo('destroy');
+                wrapper.remove();
+                allowableValueOptions.length = 0;
+                parameterOptions.length = 0;
+            };
 
-            // determine the max height
-            var position = args.position;
-            var windowHeight = $(window).height();
-            var maxHeight = windowHeight - position.bottom - 16;
+            this.focus = function () {
+            };
 
-            // build the combo field
-            combo = $('<div class="value-combo combo"></div>').combo({
-                options: options,
-                maxHeight: maxHeight,
-                select: function (option) {
-                    if (typeof option.value === 'undefined') {
-                        // cancel the current edit
-                        scope.cancel();
+            this.loadValue = function (item) {
+                var configuredValue;
+                if (!nfCommon.isUndefined(item.value)) {
+                    configuredValue = item.value;
+                } else if (nfCommon.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
+                    configuredValue = propertyDescriptor.defaultValue;
+                }
 
-                        // prompt for the new service type
-                        promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                // if there is a value determine how to populate the editor
+                if (!nfCommon.isUndefined(configuredValue)) {
+                    initialValue = configuredValue;
+
+                    // determine if the initial value is an allowable value
+                    var selectedOption = allowableValueOptions.find(function (option) {
+                        return initialValue === option.value;
+                    });
+
+                    // if the initial value is an allowable value select it, otherwise see if it is a parameter reference
+                    if (!nfCommon.isUndefined(selectedOption)) {
+                        allowableValuesCombo.combo('setSelectedOption', selectedOption);
+                    } else if (referencesParameter(initialValue)) {
+                        // select the option for reference a parameter
+                        allowableValuesCombo.combo('setSelectedOption', PARAMETER_REFERENCE_OPTION);
+
+                        // populate the parameter combo with the parameter reference
+                        parameterCombo.combo('setSelectedOption', {
+                            value: initialValue
+                        });
                     }
                 }
-            }).css({
-                'margin-top': '10px',
-                'margin-bottom': '10px',
-                'width': ((position.width - 16) < 212) ? 212 : (position.width - 16) + 'px'
-            }).appendTo(wrapper);
-
-            // add buttons for handling user input
-            var cancel = $('<div class="secondary-button">Cancel</div>').css({
-                'color': '#004849',
-                'background': '#E3E8EB'
-            }).hover(
-                function () {
-                    $(this).css('background', '#C7D2D7');
-                }, function () {
-                    $(this).css('background', '#E3E8EB');
-                }).on('click', scope.cancel);
-            var ok = $('<div class="button">Ok</div>').css({
-                'color': '#fff',
-                'background': '#728E9B'
-            }).hover(
-                function () {
-                    $(this).css('background', '#004849');
-                }, function () {
-                    $(this).css('background', '#728E9B');
-                }).on('click', scope.save);
-
-            $('<div></div>').css({
-                'position': 'relative',
-                'top': '10px',
-                'left': '20px',
-                'width': '212px',
-                'clear': 'both',
-                'float': 'right'
-            }).append(ok).append(cancel).appendTo(wrapper);
-
-            // position and focus
-            scope.position(position);
-        };
-
-        this.save = function () {
-            args.commitChanges();
-        };
-
-        this.cancel = function () {
-            args.cancelChanges();
-        };
-
-        this.hide = function () {
-            wrapper.hide();
-        };
-
-        this.show = function () {
-            wrapper.show();
-        };
-
-        this.position = function (position) {
-            wrapper.css({
-                'top': position.top - 24,
-                'left': position.left - 20
-            });
-        };
-
-        this.destroy = function () {
-            combo.combo('destroy');
-            wrapper.remove();
-        };
-
-        this.focus = function () {
-        };
-
-        this.loadValue = function (item) {
-            // select as appropriate
-            if (!nfCommon.isUndefined(item.value)) {
-                initialValue = item.value;
-
-                combo.combo('setSelectedOption', {
-                    value: item.value
-                });
-            } else if (nfCommon.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
-                initialValue = propertyDescriptor.defaultValue;
-
-                combo.combo('setSelectedOption', {
-                    value: propertyDescriptor.defaultValue
-                });
-            }
-        };
-
-        this.serializeValue = function () {
-            var selectedOption = combo.combo('getSelectedOption');
-            return selectedOption.value;
-        };
-
-        this.applyValue = function (item, state) {
-            item[args.column.field] = state;
-        };
-
-        this.isValueChanged = function () {
-            var selectedOption = combo.combo('getSelectedOption');
-            return (!(selectedOption.value === "" && initialValue === null)) && (selectedOption.value !== initialValue);
-        };
-
-        this.validate = function () {
-            return {
-                valid: true,
-                msg: null
             };
-        };
 
-        // initialize the custom long text editor
-        this.init();
+            this.serializeValue = function () {
+                var selectedOption = allowableValuesCombo.combo('getSelectedOption');
+                var selectedValue = selectedOption.value;
+
+                // if the value is undefined, it indicates that the value in the editor references a parameter
+                if (_.isUndefined(selectedValue)) {
+                    selectedValue = parameterCombo.combo('getSelectedOption').value;
+                }
+
+                return selectedValue;
+            };
+
+            this.applyValue = function (item, state) {
+                item[args.column.field] = state;
+            };
+
+            this.isValueChanged = function () {
+                var configuredValue = scope.serializeValue();
+                return configuredValue !== initialValue;
+            };
+
+            this.validate = function () {
+                return {
+                    valid: true,
+                    msg: null
+                };
+            };
+
+            // initialize the custom long text editor
+            this.init();
+        };
     };
 
     /**
@@ -1251,6 +1341,38 @@
             var descriptors = table.data('descriptors');
             var propertyDescriptor = descriptors[item.property];
 
+            // sets the available parameters for the specified property descriptor
+            var loadParameters = function (propertyDescriptor, setParameters) {
+                var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                // set the available parameters TODO - base on sensitive property
+                setParameters([
+                    {
+                        name: 'param 1',
+                        sensitive: false,
+                        description: 'this is the description for param 1',
+                        value: 'value 1'
+                    },
+                    {
+                        name: 'param 2',
+                        sensitive: true,
+                        description: 'this is the description for param 2',
+                        value: 'value 2'
+                    },
+                    {
+                        name: 'param 3',
+                        sensitive: false,
+                        value: 'value 3'
+                    },
+                    {
+                        name: 'param 4',
+                        sensitive: false,
+                        description: 'this is the description for param 4',
+                        value: 'value 4'
+                    }
+                ]);
+            };
+
             // support el if specified or unsure yet (likely a dynamic property)
             if (nfCommon.isUndefinedOrNull(propertyDescriptor) || nfCommon.supportsEl(propertyDescriptor)) {
                 return {
@@ -1258,33 +1380,7 @@
                         value: {
                             editor: getNfEditor(function (propertyDescriptor) {
                                 // set the available parameters
-                                // TODO - obtain actual parameters and filter accordingly to sensitivity
-                                nf.nfel.setParameters([
-                                    {
-                                        name: 'param 1',
-                                        sensitive: false,
-                                        description: 'this is the description for param 1',
-                                        value: 'value 1'
-                                    },
-                                    {
-                                        name: 'param 2',
-                                        sensitive: true,
-                                        description: 'this is the description for param 2',
-                                        value: 'value 2'
-                                    },
-                                    {
-                                        name: 'param 3',
-                                        sensitive: false,
-                                        value: 'value 3'
-                                    },
-                                    {
-                                        name: 'param 4',
-                                        sensitive: false,
-                                        description: 'this is the description for param 4',
-                                        value: 'value 4'
-                                    }
-                                ]);
-
+                                loadParameters(propertyDescriptor, nf.nfel.setParameters);
                                 return nf.nfel;
                             })
                         }
@@ -1297,7 +1393,10 @@
                     return {
                         columns: {
                             value: {
-                                editor: comboEditor
+                                editor: getComboEditor(function (propertyDescriptor, setParameters) {
+                                    // set the available parameters
+                                    loadParameters(propertyDescriptor, setParameters);
+                                })
                             }
                         }
                     };
@@ -1306,36 +1405,8 @@
                         columns: {
                             value: {
                                 editor: getNfEditor(function (propertyDescriptor) {
-                                    var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor)
-
                                     // set the available parameters
-                                    // TODO - obtain actual parameters and filter accordingly to sensitivity
-                                    nf.nfpr.setParameters([
-                                        {
-                                            name: 'param 1',
-                                            sensitive: false,
-                                            description: 'this is the description for param 1',
-                                            value: 'value 1'
-                                        },
-                                        {
-                                            name: 'param 2',
-                                            sensitive: true,
-                                            description: 'this is the description for param 2',
-                                            value: 'value 2'
-                                        },
-                                        {
-                                            name: 'param 3',
-                                            sensitive: false,
-                                            value: 'value 3'
-                                        },
-                                        {
-                                            name: 'param 4',
-                                            sensitive: false,
-                                            description: 'this is the description for param 4',
-                                            value: 'value 4'
-                                        }
-                                    ]);
-
+                                    loadParameters(propertyDescriptor, nf.nfpr.setParameters);
                                     return nf.nfpr;
                                 })
                             }
