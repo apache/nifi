@@ -25,7 +25,7 @@ public interface Evaluator<T> {
 
     ResultType getResultType();
 
-    int getEvaluationsRemaining(EvaluationContext context);
+    int getEvaluationsRemaining(EvaluatorState context);
 
     Evaluator<?> getSubjectEvaluator();
 
