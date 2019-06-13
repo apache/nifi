@@ -29,7 +29,7 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleArt
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleGroups;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleVersions;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.UploadBundle;
-import org.apache.nifi.toolkit.cli.impl.command.registry.extension.UploadNarBundles;
+import org.apache.nifi.toolkit.cli.impl.command.registry.extension.UploadBundles;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.CreateFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.DeleteFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportFlowVersion;
@@ -70,7 +70,7 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new SyncFlowVersions());
         commandList.add(new TransferFlowVersion());
         commandList.add(new UploadBundle());
-        commandList.add(new UploadNarBundles());
+        commandList.add(new UploadBundles());
         commandList.add(new ListBundleGroups());
         commandList.add(new ListBundleArtifacts());
         commandList.add(new ListBundleVersions());
