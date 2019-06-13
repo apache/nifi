@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -35,7 +35,7 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         String subject = subjectEvaluator.evaluate(attributes, context).getValue();
         if (subject == null) {
             subject = "";

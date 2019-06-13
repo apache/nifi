@@ -19,14 +19,33 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 import java.util.HashMap;
 import java.util.Map;
 
-public class EvaluationContext {
+/**
+ * A storage mechanism for {@link Evaluator}s to stash & retrieve state. While most Evaluators are stateless,
+ * some must maintain state, for instance to iterate over many Attributes. By stashing that state and retrieving
+ * it from this EvaluatorState instead of using member variables, Evaluators are able to be kept both threadsafe
+ * and in-and-of-themselves stateless, which means that new Evaluators need not be created for each iteration of
+ * the function.
+ */
+public class EvaluatorState {
 
     private final Map<Evaluator<?>, Object> statePerEvaluator = new HashMap<>();
 
+    /**
+     * Fetches state for the given evaluator, casting it into the given type
+     * @param evaluator the Evaluator to retrieve state for
+     * @param clazz the Class to which the value should be cast
+     * @param <T> type Type of the value
+     * @return the state for the given Evaluator, or <code>null</code> if no state has been stored
+     */
     public <T> T getState(Evaluator<?> evaluator, Class<T> clazz) {
         return clazz.cast(statePerEvaluator.get(evaluator));
     }
 
+    /**
+     * Updates state for the given Evaluator
+     * @param evaluator the Evaluator to store state for
+     * @param state the state to store
+     */
     public void putState(Evaluator<?> evaluator, Object state) {
         statePerEvaluator.put(evaluator, state);
     }

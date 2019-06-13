@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -43,7 +43,7 @@ public class SubstringEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final String subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new StringQueryResult("");

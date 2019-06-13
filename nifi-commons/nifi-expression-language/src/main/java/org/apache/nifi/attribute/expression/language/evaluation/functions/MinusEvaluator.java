@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -35,7 +35,7 @@ public class MinusEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final Number subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);

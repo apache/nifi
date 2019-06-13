@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
@@ -40,14 +40,14 @@ public class MatchesEvaluator extends BooleanEvaluator {
         // if the search string is a literal, we don't need to evaluate it each time; we can just
         // pre-compile it. Otherwise, it must be compiled every time.
         if (search instanceof StringLiteralEvaluator) {
-            this.compiledPattern = Pattern.compile(search.evaluate(null, new EvaluationContext()).getValue());
+            this.compiledPattern = Pattern.compile(search.evaluate(null, new EvaluatorState()).getValue());
         } else {
             this.compiledPattern = null;
         }
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final String subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);

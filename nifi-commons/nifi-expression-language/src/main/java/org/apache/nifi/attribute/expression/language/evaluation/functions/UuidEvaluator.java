@@ -19,7 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -28,7 +28,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 public class UuidEvaluator extends StringEvaluator {
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         return new StringQueryResult(UUID.randomUUID().toString());
     }
 

@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -34,7 +34,7 @@ public class NumberToDateEvaluator extends DateEvaluator {
     }
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final QueryResult<Long> result = subject.evaluate(attributes, context);
         final Long value = result.getValue();
         if (value == null) {

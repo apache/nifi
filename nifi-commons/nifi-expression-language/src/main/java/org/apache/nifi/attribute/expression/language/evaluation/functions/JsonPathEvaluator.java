@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -53,7 +53,7 @@ public class JsonPathEvaluator extends StringEvaluator {
         // time; we can just
         // pre-compile it. Otherwise, it must be compiled every time.
         if (jsonPathExp instanceof StringLiteralEvaluator) {
-            precompiledJsonPathExp = compileJsonPathExpression(jsonPathExp.evaluate(null, new EvaluationContext()).getValue());
+            precompiledJsonPathExp = compileJsonPathExpression(jsonPathExp.evaluate(null, new EvaluatorState()).getValue());
         } else {
             precompiledJsonPathExp = null;
         }
@@ -61,7 +61,7 @@ public class JsonPathEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final String subjectValue = subject.evaluate(attributes, context).getValue();
         if (subjectValue == null || subjectValue.length() == 0) {
             throw new  AttributeExpressionLanguageException("Subject is empty");

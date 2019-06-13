@@ -20,7 +20,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.AttributesAndState;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -35,7 +35,7 @@ public class GetStateVariableEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<String> evaluate(Map<String, String> attributes, final EvaluatorState context) {
         if (!(attributes instanceof AttributesAndState)){
             return new StringQueryResult(null);
         }

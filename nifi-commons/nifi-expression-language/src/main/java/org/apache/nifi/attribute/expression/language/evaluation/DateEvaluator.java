@@ -29,7 +29,7 @@ public abstract class DateEvaluator implements Evaluator<Date> {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluationContext context) {
+    public int getEvaluationsRemaining(final EvaluatorState context) {
         return 0;
     }
 

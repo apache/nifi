@@ -20,7 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
@@ -40,7 +40,7 @@ public class MathEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<Number> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         final String methodNamedValue = methodName.evaluate(attributes, context).getValue();
         if (methodNamedValue == null) {
             return new NumberQueryResult(null);

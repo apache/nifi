@@ -20,7 +20,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -35,7 +35,7 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluationContext context) {
+    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
         QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes, context);
         Boolean result = attributeValueQuery.getValue();
         if (result == null) {
@@ -58,7 +58,7 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluationContext context) {
+    public int getEvaluationsRemaining(final EvaluatorState context) {
         return 0;
     }
 

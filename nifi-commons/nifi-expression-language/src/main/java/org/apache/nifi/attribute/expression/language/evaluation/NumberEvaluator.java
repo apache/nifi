@@ -27,7 +27,7 @@ public abstract class NumberEvaluator implements Evaluator<Number> {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluationContext context) {
+    public int getEvaluationsRemaining(final EvaluatorState context) {
         return 0;
     }
 
