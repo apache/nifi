@@ -23,8 +23,8 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.DeleteBucket;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.ListBuckets;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.DownloadBundle;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.GetBundleChecksum;
-import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListExtensionsWithTags;
-import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListTagCounts;
+import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListExtensions;
+import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListExtensionTags;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleArtifacts;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleGroups;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleVersions;
@@ -76,8 +76,8 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new ListBundleVersions());
         commandList.add(new DownloadBundle());
         commandList.add(new GetBundleChecksum());
-        commandList.add(new ListTagCounts());
-        commandList.add(new ListExtensionsWithTags());
+        commandList.add(new ListExtensionTags());
+        commandList.add(new ListExtensions());
         return new ArrayList<>(commandList);
     }
 }

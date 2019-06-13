@@ -56,6 +56,7 @@ public enum CommandOption {
     EXT_BUNDLE_ARTIFACT("ar", "artifact", "The artifact id of a bundle", true),
     EXT_BUNDLE_VERSION("ver", "version", "The version of the bundle", true),
 
+    EXT_TYPE("et", "extensionType", "The type of extension, one of 'PROCESSOR', 'CONTROLLER_SERVICE', or 'REPORTING_TASK'.", true),
     EXT_BUNDLE_TYPE("ebt", "extensionBundleType", "The type of extension bundle, either nifi-nar or minifi-cpp", true),
     EXT_BUNDLE_FILE("ebf", "extensionBundleFile", "An extension bundle file, such as a NAR or MiNiFi CPP binary", true, true),
     EXT_BUNDLE_DIR("ebd", "extensionBundleDir", "A directory where extension bundles are located", true, true),

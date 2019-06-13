@@ -23,10 +23,12 @@ import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
 import org.apache.nifi.registry.extension.component.ExtensionMetadata;
 import org.apache.nifi.registry.extension.component.ExtensionMetadataContainer;
+import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.result.registry.ExtensionMetadataResult;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,43 +38,71 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ListExtensionsWithTags extends AbstractNiFiRegistryCommand<ExtensionMetadataResult> {
+public class ListExtensions extends AbstractNiFiRegistryCommand<ExtensionMetadataResult> {
 
-    public ListExtensionsWithTags() {
-        super("list-extensions-with-tags", ExtensionMetadataResult.class);
+    public ListExtensions() {
+        super("list-extensions", ExtensionMetadataResult.class);
     }
 
     @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.EXT_TAGS.createOption());
+        addOption(CommandOption.EXT_TYPE.createOption());
     }
 
     @Override
     public String getDescription() {
-        return "Lists info for extensions with the given tags.";
+        return "Lists info for extensions, optionally filtering by one or more tags. If specifying tags, multiple tags can " +
+                "be specified with a comma-separated list, and each tag will be OR'd together.";
     }
 
     @Override
     public ExtensionMetadataResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
-        final String tags = getRequiredArg(properties, CommandOption.EXT_TAGS);
-        final String[] splitTags = tags.split("[,]");
-
-        final Set<String> cleanedTags = Arrays.stream(splitTags)
-                .map(t -> t.trim())
-                .collect(Collectors.toSet());
-
-        if (cleanedTags.isEmpty()) {
-            throw new IllegalArgumentException("Invalid tag argument");
-        }
+        final String tags = getArg(properties, CommandOption.EXT_TAGS);
+        final String extensionType = getArg(properties, CommandOption.EXT_TYPE);
 
         final ExtensionClient extensionClient = client.getExtensionClient();
-
-        final ExtensionFilterParams filterParams = new ExtensionFilterParams.Builder().addTags(cleanedTags).build();
+        final ExtensionFilterParams filterParams = getFilterParams(tags, extensionType);
         final ExtensionMetadataContainer metadataContainer = extensionClient.findExtensions(filterParams);
 
         final List<ExtensionMetadata> metadataList = new ArrayList<>(metadataContainer.getExtensions());
         return new ExtensionMetadataResult(getResultType(properties), metadataList);
+    }
+
+    // NOTE: There is a bug in the nifi-registry-client that sends bundleType from filter params using the name() instead of toString().
+    // When that is resolved we can update this command to have an optional argument for bundle type and set it in the filter params.
+
+    private ExtensionFilterParams getFilterParams(final String tagsArg, final String extensionTypeArg) throws NiFiRegistryException {
+        final ExtensionFilterParams.Builder builder = new ExtensionFilterParams.Builder();
+
+        if (!StringUtils.isBlank(tagsArg)) {
+            final String[] splitTags = tagsArg.split("[,]");
+
+            final Set<String> cleanedTags = Arrays.stream(splitTags)
+                    .map(t -> t.trim())
+                    .collect(Collectors.toSet());
+
+            if (cleanedTags.isEmpty()) {
+                throw new IllegalArgumentException("Invalid tag argument");
+            }
+
+            builder.addTags(cleanedTags).build();
+        }
+
+        if (!StringUtils.isEmpty(extensionTypeArg)) {
+            try {
+                final ExtensionType extensionType = ExtensionType.valueOf(extensionTypeArg);
+                builder.extensionType(extensionType);
+            } catch (Exception e) {
+                throw new NiFiRegistryException("Invalid extension type, should be one of "
+                        + ExtensionType.PROCESSOR.toString() + ", "
+                        + ExtensionType.CONTROLLER_SERVICE.toString() + ", or "
+                        + ExtensionType.REPORTING_TASK.toString());
+            }
+        }
+
+        return builder.build();
     }
 }

@@ -28,10 +28,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
-public class ListTagCounts extends AbstractNiFiRegistryCommand<TagCountResult> {
+public class ListExtensionTags extends AbstractNiFiRegistryCommand<TagCountResult> {
 
-    public ListTagCounts() {
-        super("list-tag-counts", TagCountResult.class);
+    public ListExtensionTags() {
+        super("list-extension-tags", TagCountResult.class);
     }
 
     @Override
