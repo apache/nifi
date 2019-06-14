@@ -347,7 +347,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         try {
             RegisteredPartition partition;
             while ((partition = partitionQueue.poll()) != null) {
-                if (partition.isEmpty() || !filter.test(partition)) {
+                if (partition.isEmpty() || partition.isPenalized() || !filter.test(partition)) {
                     polledPartitions.add(partition);
                     continue;
                 }

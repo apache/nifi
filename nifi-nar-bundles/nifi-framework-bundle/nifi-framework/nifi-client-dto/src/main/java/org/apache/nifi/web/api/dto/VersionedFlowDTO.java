@@ -23,12 +23,16 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "versionedFlow")
 public class VersionedFlowDTO {
+    public static final String COMMIT_ACTION = "COMMIT";
+    public static final String FORCE_COMMIT_ACTION = "FORCE_COMMIT";
+
     private String registryId = "default"; // placeholder for now.
     private String bucketId;
     private String flowId;
     private String flowName;
     private String description;
     private String comments;
+    private String action;
 
     @ApiModelProperty("The ID of the registry that the flow is tracked to")
     public String getRegistryId() {
@@ -82,5 +86,14 @@ public class VersionedFlowDTO {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    @ApiModelProperty(value = "The action being performed", allowableValues = COMMIT_ACTION + ", " + FORCE_COMMIT_ACTION)
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
     }
 }

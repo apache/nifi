@@ -505,6 +505,46 @@
     };
 
     /**
+     * Returns whether the process group support supports force commit.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsForceCommitFlowVersion = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+    };
+
+
+    /**
      * Returns whether the process group supports revert local changes.
      *
      * @param selection
@@ -798,6 +838,7 @@
             {id: 'start-version-control-menu-item', condition: supportsStartFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Start version control', action: 'saveFlowVersion'}},
             {separator: true},
             {id: 'commit-menu-item', condition: supportsCommitFlowVersion, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'saveFlowVersion'}},
+            {id: 'force-commit-menu-item', condition: supportsForceCommitFlowVersion, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'forceSaveFlowVersion'}},
             {id: 'local-changes-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa', text: 'Show local changes', action: 'showLocalChanges'}},
             {id: 'revert-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa fa-undo', text: 'Revert local changes', action: 'revertLocalChanges'}},
             {id: 'change-version-menu-item', condition: supportsChangeFlowVersion, menuItem: {clazz: 'fa', text: 'Change version', action: 'changeFlowVersion'}},

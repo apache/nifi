@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.groups;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
-
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -45,6 +38,13 @@ import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.remote.RemoteGroupPort;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 /**
  * <p>
@@ -901,7 +901,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
      */
-    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId);
+    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String saveAction);
 
     /**
      * Adds the given template to this Process Group

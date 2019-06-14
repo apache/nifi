@@ -55,6 +55,6 @@ public class CompiledExpression implements Expression {
 
     @Override
     public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
-        return Query.evaluateExpression(getTree(), expression, variables, decorator, stateVariables);
+        return Query.evaluateExpression(tree, rootEvaluator, expression, variables, decorator, stateVariables);
     }
 }

@@ -60,7 +60,7 @@ class XmlUtilsTest {
     @Test
     void testShouldHandleXXEInUnmarshal() {
         // Arrange
-        final String XXE_TEMPLATE_FILEPATH = "src/test/resources/xxe_template.xml"
+        final String XXE_TEMPLATE_FILEPATH = "src/test/resources/local_xxe_file.xml"
         InputStream templateStream = new File(XXE_TEMPLATE_FILEPATH).newInputStream()
 
         JAXBContext context = JAXBContext.newInstance(XmlObject.class)

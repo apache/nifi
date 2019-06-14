@@ -578,7 +578,8 @@ public class LoadBalanceSession {
             logger.debug("Peer {} has confirmed that the queue is full for Connection {}", peerDescription, connectionId);
             phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
             checksum.reset(); // We are restarting the session entirely so we need to reset our checksum
-            penalize();
+            complete = true; // consider complete because there's nothing else that we can do in this session. Allow client to move on to a different session.
+            partition.penalize(1000L);
         } else {
             throw new TransactionAbortedException("After requesting to know whether or not Peer " + peerDescription + " has space available in Connection " + connectionId
                 + ", received unexpected response of " + response + ". Aborting transaction.");

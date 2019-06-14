@@ -48,7 +48,7 @@ public class MockHBaseClientService extends HBase_2_ClientService {
 
     private Table table;
     private String family;
-    private List<Result> results = new ArrayList<>();
+    private Map<String, Result> results = new HashMap<>();
     private KerberosProperties kerberosProperties;
 
     public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties) {
@@ -102,7 +102,7 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         final Result result = Mockito.mock(Result.class);
         when(result.getRow()).thenReturn(rowArray);
         when(result.rawCells()).thenReturn(cellArray);
-        results.add(result);
+        results.put(rowKey, result);
     }
 
     @Override
@@ -123,12 +123,12 @@ public class MockHBaseClientService extends HBase_2_ClientService {
 
     @Override
     public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
-        for (Result result : results) {
+        for (Result result : results.values()) {
             if (Arrays.equals(result.getRow(), rowId)) {
                 Cell[] cellArray = result.rawCells();
                 for (Cell cell : cellArray) {
                     if (Arrays.equals(cell.getFamilyArray(), family) && Arrays.equals(cell.getQualifierArray(), qualifier)) {
-                         if (value == null || Arrays.equals(cell.getValueArray(), value)) {
+                         if (value == null || !Arrays.equals(cell.getValueArray(), value)) {
                              return false;
                          }
                     }
@@ -144,21 +144,21 @@ public class MockHBaseClientService extends HBase_2_ClientService {
 
     protected ResultScanner getResults(Table table, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> labels) throws IOException {
         final ResultScanner scanner = Mockito.mock(ResultScanner.class);
-        Mockito.when(scanner.iterator()).thenReturn(results.iterator());
+        Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 
     @Override
     protected ResultScanner getResults(Table table, Collection<Column> columns, Filter filter, long minTime, List<String> labels) throws IOException {
         final ResultScanner scanner = Mockito.mock(ResultScanner.class);
-        Mockito.when(scanner.iterator()).thenReturn(results.iterator());
+        Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
             final Integer limitRows, final Boolean isReversed, final Collection<Column> columns)  throws IOException {
         final ResultScanner scanner = Mockito.mock(ResultScanner.class);
-        Mockito.when(scanner.iterator()).thenReturn(results.iterator());
+        Mockito.when(scanner.iterator()).thenReturn(results.values().iterator());
         return scanner;
     }
 

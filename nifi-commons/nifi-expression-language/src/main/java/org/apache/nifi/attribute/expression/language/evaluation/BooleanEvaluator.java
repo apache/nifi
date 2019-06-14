@@ -27,7 +27,7 @@ public abstract class BooleanEvaluator implements Evaluator<Boolean> {
     }
 
     @Override
-    public int getEvaluationsRemaining() {
+    public int getEvaluationsRemaining(final EvaluatorState context) {
         return 0;
     }
 
