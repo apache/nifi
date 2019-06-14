@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public interface RequestReplicator {
