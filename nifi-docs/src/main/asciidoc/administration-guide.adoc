@@ -466,8 +466,8 @@ The ShellUserGroupProvider has the following properties:
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Description
-|`Initial Refresh Delay` | Number of seconds to delay the initial user/group listing refresh.
-|`Refresh Delay` | Number of seconds to pause between each listing refresh.
+|`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `30 secs`.
+|`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `30 secs`.
 |==================================================================================================================================================
 
 Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _nifi.properties_ file.  Refer to that comment for usage examples.

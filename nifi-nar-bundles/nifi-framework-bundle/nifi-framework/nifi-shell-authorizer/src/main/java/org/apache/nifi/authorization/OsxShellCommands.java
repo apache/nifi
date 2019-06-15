@@ -40,8 +40,9 @@ class OsxShellCommands implements ShellCommandsProvider {
     }
 
     /**
-     * @return Shell command string that will return a list of users for a group.
+     *
      * @param groupName name of group.
+     * @return Shell command string that will return a list of users for a group.
      */
     public String getGroupMembers(String groupName) {
         return String.format("dscl . -read /Groups/%s GroupMembership | cut -f 2- -d ' ' | sed 's/\\ /,/g'", groupName);

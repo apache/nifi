@@ -50,8 +50,8 @@ interface ShellCommandsProvider {
      *
      * `user-name-1,user-name-2,user-name-n`
      *
-     * @return Shell command string that will return a list of users for a group.
      * @param groupName name of group.
+     * @return Shell command string that will return a list of users for a group.
      */
     String getGroupMembers(String groupName);
 

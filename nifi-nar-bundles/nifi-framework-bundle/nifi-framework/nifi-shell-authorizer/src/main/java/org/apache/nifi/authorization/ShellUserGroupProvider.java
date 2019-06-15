@@ -22,6 +22,8 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.util.ShellRunner;
 
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.util.FormatUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +38,8 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+
 
 
 /*
@@ -54,8 +58,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     public static final String INITIAL_REFRESH_DELAY_PROPERTY = "Initial Refresh Delay";
     public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
 
-    private int initialDelay;
-    private int fixedDelay;
+    private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
+    private long initialDelay;
+    private long fixedDelay;
 
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -198,18 +203,20 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-        // Our first init step is to select the command set based on the
-        // operating system name:
-        ShellCommandsProvider commands = getCommands();
+        // Our first init step is to fire off the refresh threads:
+        initialDelay = getDelayProperty(configurationContext, INITIAL_REFRESH_DELAY_PROPERTY, "30 secs");
+        fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "30 secs");
+
+        // Our next init step is to select the command set based on the operating system name:
+        ShellCommandsProvider commands = getCommandsProvider();
 
         if (commands == null) {
-            commands = getShellCommandsProvider(null);
+            commands = getCommandsProviderFromName(null);
             setCommandsProvider(commands);
         }
 
-        // Our second init step is to run the system check from that
-        // command set to determine if the other commands will work on
-        // this host or not.
+        // Our next init step is to run the system check from that command set to determine if the other commands
+        // will work on this host or not.
         try {
             ShellRunner.runShell(commands.getSystemCheck());
         } catch (final IOException ioexc) {
@@ -217,18 +224,14 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             throw new AuthorizerCreationException(SYS_CHECK_ERROR, ioexc.getCause());
         }
 
-        // With our command set selected, and our system check passed,
-        // we can pull in the users and groups:
+        // With our command set selected, and our system check passed, we can pull in the users and groups:
         refreshUsersAndGroups();
 
-        // Our last init step is to fire off the refresh threads:
-        initialDelay = getIntegerPropertyWithDefault(configurationContext, INITIAL_REFRESH_DELAY_PROPERTY, 30);
-        fixedDelay = getIntegerPropertyWithDefault(configurationContext, REFRESH_DELAY_PROPERTY, 30);
-
+        // And finally, our last init step is to fire off the refresh thread:
         scheduler.scheduleWithFixedDelay(this::refreshUsersAndGroups, initialDelay, fixedDelay, TimeUnit.SECONDS);
     }
 
-    private static ShellCommandsProvider getShellCommandsProvider(String osName) {
+    private static ShellCommandsProvider getCommandsProviderFromName(String osName) {
         if (osName == null) {
             osName = System.getProperty("os.name");
         }
@@ -246,13 +249,27 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         return commands;
     }
 
-    private int getIntegerPropertyWithDefault(AuthorizerConfigurationContext context, String name, int defaultValue) {
-        final PropertyValue property = context.getProperty(name);
-        if (property != null) {
-            return property.asInteger();
+    private long getDelayProperty(AuthorizerConfigurationContext context, String name, String defaultValue) {
+        final PropertyValue intervalProperty = context.getProperty(name);
+        final long syncInterval;
+        final String propValue;
+
+        if (intervalProperty.isSet()) {
+            propValue = intervalProperty.getValue();
         } else {
-            return defaultValue;
+            propValue = defaultValue;
         }
+
+        try {
+            syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(propValue, TimeUnit.MILLISECONDS));
+        } catch (final IllegalArgumentException ignored) {
+            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", name, propValue));
+        }
+
+        if (syncInterval < MINIMUM_SYNC_INTERVAL_MILLISECONDS) {
+            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'", name, propValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
+        }
+        return syncInterval;
     }
 
     /**
@@ -268,7 +285,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    public ShellCommandsProvider getCommands() {
+    public ShellCommandsProvider getCommandsProvider() {
         return selectedShellCommands;
     }
 
@@ -349,7 +366,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                         logger.warn("Null or empty user name: " + name + " or id: " + id);
                     }
                 } else {
-                    logger.warn("Unexpected record format.  Expected 3 or more comma separated values per line.");
+                    logger.warn("Unexpected record format.  Expected 3 or more colon separated values per line.");
                 }
             });
     }
@@ -425,12 +442,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         });
     }
 
-    public int getInitialRefreshDelay() {
+    public long getInitialRefreshDelay() {
         return initialDelay;
     }
 
 
-    public int getRefreshDelay() {
+    public long getRefreshDelay() {
         return fixedDelay;
     }
 

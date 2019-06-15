@@ -19,28 +19,31 @@ package org.apache.nifi.authorization;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.util.ShellRunner;
 import org.apache.nifi.util.MockPropertyValue;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.Assert;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
+
 import org.mockito.Mockito;
 
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
-
-import org.apache.nifi.authorization.util.ShellRunner;
 
 
 public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
@@ -74,6 +77,9 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     @ClassRule
     static public TemporaryFolder tempFolder = new TemporaryFolder();
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @BeforeClass
     public static void setupOnce() throws IOException {
         sshPrivKeyFile = tempFolder.getRoot().getAbsolutePath() + "/id_rsa";
@@ -103,8 +109,8 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
         authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         initContext = Mockito.mock(UserGroupProviderInitializationContext.class);
 
-        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("10"));
-        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("15"));
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("10 sec"));
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("15 sec"));
 
         localProvider = new ShellUserGroupProvider();
         try {
@@ -115,8 +121,8 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
             logger.error("setup() exception: " + exc + "; tests cannot run on this system.");
             return;
         }
-        Assert.assertEquals(10, localProvider.getInitialRefreshDelay());
-        Assert.assertEquals(15, localProvider.getRefreshDelay());
+        Assert.assertEquals(10000, localProvider.getInitialRefreshDelay());
+        Assert.assertEquals(15000, localProvider.getRefreshDelay());
     }
 
     @After
@@ -188,8 +194,29 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
         return remoteProvider;
     }
 
-    @Ignore
-    public void someOtherTest() {}
+    @Test
+    public void testTooShortDelayInterval() throws AuthorizerCreationException {
+        final AuthorizerConfigurationContext authContext = Mockito.mock(AuthorizerConfigurationContext.class);
+        final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("1 milliseconds"));
+
+        expectedException.expect(AuthorizerCreationException.class);
+        expectedException.expectMessage("The Initial Refresh Delay '1 milliseconds' is below the minimum value of '10000 ms'");
+
+        localProvider.onConfigured(authContext);
+    }
+
+    @Test
+    public void testInvalidDelayInterval() throws AuthorizerCreationException {
+        final AuthorizerConfigurationContext authContext = Mockito.mock(AuthorizerConfigurationContext.class);
+        final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
+        Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("Not an interval"));
+
+        expectedException.expect(AuthorizerCreationException.class);
+        expectedException.expectMessage("The Initial Refresh Delay 'Not an interval' is not a valid time interval.");
+
+        localProvider.onConfigured(authContext);
+    }
 
     @Test
     public void testVariousSystemImages() {
