@@ -203,6 +203,8 @@
     <userGroupProvider>
         <identifier>shell-user-group-provider</identifier>
         <class>org.apache.nifi.authorization.ShellUserGroupProvider</class>
+        <property name="Initial Refresh Delay">30</property
+        <property name="Refresh Delay">30</property>
     </userGroupProvider>
     To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
 
