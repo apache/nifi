@@ -33,17 +33,6 @@ interface ShellCommandsProvider {
     String getUsersList();
 
     /**
-     * Gets the command for listing the group membership of a user.
-     *
-     * When executed, this command should output one line in this format:
-     *
-     * `group-name-1,group-name-2,group-name-n`
-     *
-     * @return Shell command string that will return a list of groups for a user.
-     */
-    String getUserGroups();
-
-    /**
      * Gets the command for listing groups.
      *
      * When executed, this command should output one record per line in this format:

@@ -31,13 +31,6 @@ class NssShellCommands implements ShellCommandsProvider {
     }
 
     /**
-     * @return Shell command string that will return a list of groups for a user.
-     */
-    public String getUserGroups() {
-        return "id -nG %s | sed s/\\ /,/g";
-    }
-
-    /**
      * @return Shell command string that will return a list of groups.
      */
     public String getGroupsList() {
