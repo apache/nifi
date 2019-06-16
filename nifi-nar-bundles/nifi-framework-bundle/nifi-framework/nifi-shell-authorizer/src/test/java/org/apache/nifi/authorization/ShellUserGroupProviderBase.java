@@ -46,7 +46,9 @@ abstract class ShellUserGroupProviderBase {
 
     protected boolean isTestableEnvironment() {
         boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
-        return !isWindows && !systemCheckFailed;
+        boolean isMac = System.getProperty("os.name").toLowerCase().startsWith("mac");
+
+        return !isWindows && !isMac && !systemCheckFailed;
     }
 
 

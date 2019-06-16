@@ -195,7 +195,7 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     }
 
     @Test
-    public void testTooShortDelayInterval() throws AuthorizerCreationException {
+    public void testTooShortDelayIntervalThrowsException() throws AuthorizerCreationException {
         final AuthorizerConfigurationContext authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("1 milliseconds"));
@@ -207,7 +207,7 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     }
 
     @Test
-    public void testInvalidDelayInterval() throws AuthorizerCreationException {
+    public void testInvalidDelayIntervalThrowsException() throws AuthorizerCreationException {
         final AuthorizerConfigurationContext authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.INITIAL_REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("Not an interval"));
@@ -219,11 +219,33 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
     }
 
     @Test
+    public void testCacheSizesAfterClearingCaches() {
+        localProvider.clearCaches();
+        assert localProvider.userCacheSize() == 0;
+        assert localProvider.groupCacheSize() == 0;
+    }
+
+    @Test
+    public void testGetOneUserAfterClearingCaches() {
+        // assert known state:  empty, testable, not empty
+        localProvider.clearCaches();
+        testGetKnownUserByUid(localProvider);
+        assert localProvider.userCacheSize() > 0;
+    }
+
+    @Test
+    public void testGetOneGroupAfterClearingCaches() {
+        // assert known state:  empty, testable, not empty
+        localProvider.clearCaches();
+        testGetKnownGroupByGid(localProvider);
+        assert localProvider.groupCacheSize() > 0;
+    }
+
+    @Test
     public void testVariousSystemImages() {
         // Here we explicitly clear the system check flag to allow the remote checks that follow:
         systemCheckFailed = false;
         Assume.assumeTrue(isTestableEnvironment());
-        // systemCheckFailed = true;
 
         TEST_CONTAINER_IMAGES.forEach(image -> {
                 GenericContainer container;
@@ -251,6 +273,7 @@ public class ShellUserGroupProviderIT extends ShellUserGroupProviderBase {
                     testGetGroupByGidAndGetGroupMembership(remoteProvider);
                     testGetUserByUidAndGetGroupMembership(remoteProvider);
                 } catch (final Exception e) {
+                    // Some environments don't allow our tests to work.
                     logger.error("Exception running remote provider on image: " + image +  ", exception: " + e);
                 }
 

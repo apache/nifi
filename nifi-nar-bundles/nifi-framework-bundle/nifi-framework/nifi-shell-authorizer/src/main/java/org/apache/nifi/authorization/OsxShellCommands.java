@@ -49,6 +49,37 @@ class OsxShellCommands implements ShellCommandsProvider {
     }
 
     /**
+     * On OSX, we don't need to support this method because the user listing is (apparently) sufficient for now.
+     *
+     * @param userId name of user.
+     * @return Shell command string that will read a single user.
+     */
+    @Override
+    public String getUserById(String userId) {
+        return null;
+    }
+
+    /**
+     * On OSX, we don't need to support this method because the user listing is (apparently) sufficient for now.
+     *
+     * @param userId name of user.
+     * @return Shell command string that will read a single user.
+     */
+    public String getUserByName(String userId) {
+        return null;
+    }
+
+    /**
+     * On OSX, we don't need to support this method because the group listing is (apparently) sufficient for now.
+     *
+     * @param groupId name of group.
+     * @return Shell command string that will read a single group.
+     */
+    public String getGroupById(String groupId) {
+        return null;
+    }
+
+    /**
      * @return Shell command string that will exit normally (0) on a suitable system.
      */
     public String getSystemCheck() {

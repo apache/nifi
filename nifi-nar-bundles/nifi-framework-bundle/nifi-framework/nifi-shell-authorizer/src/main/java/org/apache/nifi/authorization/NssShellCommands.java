@@ -38,11 +38,45 @@ class NssShellCommands implements ShellCommandsProvider {
     }
 
     /**
-     * @return Shell command string that will return a list of users for a group.
      * @param groupName name of group.
+     * @return Shell command string that will return a list of users for a group.
      */
     public String getGroupMembers(String groupName) {
         return String.format("getent group %s | cut -f 4 -d ':'", groupName);
+    }
+
+    /**
+     * Gets the command for reading a single user by id.
+     *
+     * When executed, this command should output a single line, in the format used by `getUsersList`.
+     *
+     * @param userId name of user.
+     * @return Shell command string that will read a single user.
+     */
+    @Override
+    public String getUserById(String userId) {
+        return String.format("getent passwd %s | cut -f 1,3,4 -d ':'", userId);
+    }
+
+    /**
+     * This method reuses `getUserById` because the getent command is the same for
+     * both uid and username.
+     *
+     * @param userName name of user.
+     * @return Shell command string that will read a single user.
+     */
+    public String getUserByName(String userName) {
+        return getUserById(userName);
+    }
+
+    /**
+     * This method supports gid or group name because getent does.
+     *
+     * @param groupId name of group.
+     * @return Shell command string that will read a single group.
+     */
+    public String getGroupById(String groupId) {
+        return String.format("getent group %s | cut -f 1,3,4 -d ':'", groupId);
     }
 
     /**

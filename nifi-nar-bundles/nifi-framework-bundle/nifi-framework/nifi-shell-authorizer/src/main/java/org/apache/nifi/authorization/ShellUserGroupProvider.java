@@ -98,15 +98,23 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public User getUser(String identifier) throws AuthorizationAccessException {
+        User user;
+
         synchronized (usersById) {
-            User user = usersById.get(identifier);
-            if (user == null) {
-                logger.debug("getUser user not found: " + identifier);
-            } else {
-                logger.debug("getUser has user: " + user);
-            }
-            return user;
+            user = usersById.get(identifier);
         }
+
+        if (user == null) {
+            refreshOneUser(selectedShellCommands.getUserByName(identifier), "Get Single User by Id");
+            user = usersById.get(identifier);
+        }
+
+        if (user == null) {
+            logger.debug("getUser (by id) user not found: " + identifier);
+        } else {
+            logger.debug("getUser (by id) found user: " + user + " for id: " + identifier);
+        }
+        return user;
     }
 
     /**
@@ -118,11 +126,23 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+        User user;
+
         synchronized (usersByName) {
-            User user = usersByName.get(identity);
-            logger.debug("getUserByIdentity has user: " + user);
-            return user;
+            user = usersByName.get(identity);
         }
+
+        if (user == null) {
+            refreshOneUser(selectedShellCommands.getUserByName(identity), "Get Single User by Name");
+            user = usersByName.get(identity);
+        }
+
+        if (user == null) {
+            logger.debug("getUser (by name) user not found: " + identity);
+        } else {
+            logger.debug("getUser (by name) found user: " + user + " for name: " + identity);
+        }
+        return user;
     }
 
     /**
@@ -140,7 +160,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     }
 
     /**
-     * Retrieves a Group by id.
+     * Retrieves a Group by Id.
      *
      * @param identifier the identifier of the Group to retrieve
      * @return the Group with the given identifier, or null if no matching group was found
@@ -148,16 +168,28 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public Group getGroup(String identifier) throws AuthorizationAccessException {
+        Group group;
+
         synchronized (groupsById) {
-            Group group = groupsById.get(identifier);
-            logger.debug("getGroup has group: " + group);
-            return group;
+            group = groupsById.get(identifier);
         }
+
+        if (group == null) {
+            refreshOneGroup(selectedShellCommands.getGroupById(identifier), "Get Single Group by Id");
+            group = groupsById.get(identifier);
+        }
+
+        if (group == null) {
+            logger.debug("getGroup (by id) group not found: " + identifier);
+        } else {
+            logger.debug("getGroup (by id) found group: " + group + " for id: " + identifier);
+        }
+        return group;
+
     }
 
     /**
-     * Gets a user and their groups. Must be non null. If the user is not known the UserAndGroups.getUser() and
-     * UserAndGroups.getGroups() should return null
+     * Gets a user and their groups.
      *
      * @return the UserAndGroups for the specified identity
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
@@ -249,25 +281,25 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         return commands;
     }
 
-    private long getDelayProperty(AuthorizerConfigurationContext context, String name, String defaultValue) {
-        final PropertyValue intervalProperty = context.getProperty(name);
+    private long getDelayProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
+        final PropertyValue intervalProperty = authContext.getProperty(propertyName);
+        final String propertyValue;
         final long syncInterval;
-        final String propValue;
 
         if (intervalProperty.isSet()) {
-            propValue = intervalProperty.getValue();
+            propertyValue = intervalProperty.getValue();
         } else {
-            propValue = defaultValue;
+            propertyValue = defaultValue;
         }
 
         try {
-            syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(propValue, TimeUnit.MILLISECONDS));
+            syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue, TimeUnit.MILLISECONDS));
         } catch (final IllegalArgumentException ignored) {
-            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", name, propValue));
+            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
         }
 
         if (syncInterval < MINIMUM_SYNC_INTERVAL_MILLISECONDS) {
-            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'", name, propValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
+            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'", propertyName, propertyValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
         }
         return syncInterval;
     }
@@ -291,6 +323,70 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
     public void setCommandsProvider(ShellCommandsProvider commandsProvider) {
         selectedShellCommands = commandsProvider;
+    }
+
+    /**
+     * Refresh a single user.
+     *
+     * @param command Shell command to read a single user.  Pre-formatted by caller.
+     * @param description Shell command description.
+     */
+    private void refreshOneUser(String command, String description) {
+        if (command != null) {
+            Map<String, User> idToUser = new HashMap<>();
+            Map<String, User> usernameToUser = new HashMap<>();
+            Map<String, User> gidToUser = new HashMap<>();
+            List<String> userLines;
+
+            try {
+                userLines = ShellRunner.runShell(command, description);
+                rebuildUsers(userLines, idToUser, usernameToUser, gidToUser);
+            } catch (final IOException ioexc) {
+                logger.error("refreshOneUser shell exception: " + ioexc);
+            }
+
+            if (idToUser.size() > 0) {
+                synchronized (usersById) {
+                    usersById.putAll(idToUser);
+                }
+            }
+
+            if (usernameToUser.size() > 0) {
+                synchronized (usersByName) {
+                    usersByName.putAll(usernameToUser);
+                }
+            }
+        } else {
+            logger.info("Get Single User not supported on this system.");
+        }
+    }
+
+    /**
+     * Refresh a single group.
+     *
+     * @param command Shell command to read a single group.  Pre-formatted by caller.
+     * @param description Shell command description.
+     */
+    private void refreshOneGroup(String command, String description) {
+        if (command != null) {
+            Map<String, Group> gidToGroup = new HashMap<>();
+            List<String> groupLines;
+
+            try {
+                groupLines = ShellRunner.runShell(command, description);
+                rebuildGroups(groupLines, gidToGroup);
+            } catch (final IOException ioexc) {
+                logger.error("refreshOneGroup shell exception: " + ioexc);
+            }
+
+            if (gidToGroup.size() > 0) {
+                synchronized (groupsById) {
+                    groupsById.putAll(gidToGroup);
+                }
+            }
+        } else {
+            logger.info("Get Single Group not supported on this system.");
+        }
     }
 
     /**
@@ -394,14 +490,14 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                         if (!memberLines.isEmpty()) {
                             users.addAll(Arrays.asList(memberLines.get(0).split(",")));
                         } else {
-                            logger.error("refreshGroup list membership returned zero lines.");
+                            logger.error("list membership returned zero lines.");
                         }
                         if (memberLines.size() > 1) {
-                            logger.error("refreshGroup list membership returned too many lines, only used the first.");
+                            logger.error("list membership returned too many lines, only used the first.");
                         }
 
                     } catch (final IOException ioexc) {
-                        logger.error("refreshUsersAndGroups list membership shell exception: " + ioexc);
+                        logger.error("list membership shell exception: " + ioexc);
                     }
 
                     if (name != null && id != null && !name.equals("") && !id.equals("")) {
@@ -442,14 +538,49 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         });
     }
 
+    /**
+     * @return The initial refresh delay.
+     */
     public long getInitialRefreshDelay() {
         return initialDelay;
     }
 
 
+    /**
+     * @return The fixed refresh delay.
+     */
     public long getRefreshDelay() {
         return fixedDelay;
     }
 
+    /**
+     * Testing concession for clearing the internal caches.
+     */
+    void clearCaches() {
+        synchronized (usersById) {
+            usersById.clear();
+        }
 
+        synchronized (usersByName) {
+            usersByName.clear();
+        }
+
+        synchronized (groupsById) {
+            groupsById.clear();
+        }
+    }
+
+    /**
+     * @return The size of the internal user cache.
+     */
+    public int userCacheSize() {
+        return usersById.size();
+    }
+
+    /**
+     * @return The size of the internal group cache.
+     */
+    public int groupCacheSize() {
+        return groupsById.size();
+    }
 }

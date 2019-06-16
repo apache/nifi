@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+
 class RemoteShellCommands implements ShellCommandsProvider {
     // Carefully crafted command replacement string:
     private final static String remoteCommand = "ssh " +
@@ -53,6 +54,18 @@ class RemoteShellCommands implements ShellCommandsProvider {
 
     public String getGroupMembers(String groupName) {
         return String.format(remoteCommand, innerProvider.getGroupMembers(groupName), privateKeyPath, remotePort, remoteHost);
+    }
+
+    public String getUserById(String userId) {
+        return String.format(remoteCommand, innerProvider.getUserById(userId), privateKeyPath, remotePort, remoteHost);
+    }
+
+    public String getUserByName(String userName) {
+        return String.format(remoteCommand, innerProvider.getUserByName(userName), privateKeyPath, remotePort, remoteHost);
+    }
+
+    public String getGroupById(String groupId) {
+        return String.format(remoteCommand, innerProvider.getGroupById(groupId), privateKeyPath, remotePort, remoteHost);
     }
 
     public String getSystemCheck() {
