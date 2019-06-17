@@ -705,9 +705,9 @@
             </build>
         </profile>
         <profile>
-            <!-- This profile will disable DocLint which performs strict 
-                JavaDoc processing which was introduced in JDK 8. These are technically errors 
-                in the JavaDoc which we need to eventually address. However, if a release 
+            <!-- This profile will disable DocLint which performs strict
+                JavaDoc processing which was introduced in JDK 8. These are technically errors
+                in the JavaDoc which we need to eventually address. However, if a release
                 is performed using JDK 8 or newer, the JavaDoc generation would fail. By activating
                 this profile when running on JDK 8 or newer we can ensure the JavaDocs continue to
                 generate successfully -->

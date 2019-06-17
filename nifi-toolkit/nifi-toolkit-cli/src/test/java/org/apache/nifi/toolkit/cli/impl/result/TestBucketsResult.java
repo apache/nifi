@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.result.registry.BucketsResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
