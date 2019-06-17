@@ -180,6 +180,10 @@ public class ControllerFacade implements Authorizable {
         return flowController.getExtensionManager();
     }
 
+    public FlowManager getFlowManager() {
+        return flowController.getFlowManager();
+    }
+
     /**
      * Sets the name of this controller.
      *

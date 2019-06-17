@@ -3465,7 +3465,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (latestVersion == vci.getVersion()) {
                 versionControlFields.setStale(false);
                 if (latestVersion == 0) {
-                    LOG.debug("{} does not have any version in the Registry", this, latestVersion);
+                    LOG.debug("{} does not have any version in the Registry", this);
                     versionControlFields.setLocallyModified(true);
                 } else {
                     LOG.debug("{} is currently at the most recent version ({}) of the flow that is under Version Control", this, latestVersion);
@@ -4725,6 +4725,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
                 .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
+                .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, versionedGroup, flowManager))
                 .collect(Collectors.toCollection(HashSet::new));
 
         LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
