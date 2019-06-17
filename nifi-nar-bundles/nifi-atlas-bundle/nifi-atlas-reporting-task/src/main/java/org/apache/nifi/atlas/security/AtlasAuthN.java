@@ -35,7 +35,7 @@ public interface AtlasAuthN {
      * Populate required Atlas application properties.
      * This method is called when Atlas reporting task generates atlas-application.properties.
      */
-    default void populateProperties(final Properties properties){};
+    default void populateProperties(final Properties properties){}
 
     default Optional<ValidationResult> validateRequiredField(ValidationContext context, PropertyDescriptor prop) {
         if (!context.getProperty(prop).isSet()) {
