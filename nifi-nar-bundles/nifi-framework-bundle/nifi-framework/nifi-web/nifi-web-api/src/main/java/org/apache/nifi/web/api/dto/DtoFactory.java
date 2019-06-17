@@ -81,6 +81,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
@@ -132,6 +133,7 @@ import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -2310,8 +2312,10 @@ public final class DtoFactory {
     }
 
 
-    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison) {
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison, final FlowManager flowManager) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
+
+        final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
         for (final FlowDifference difference : comparison.getDifferences()) {
             // Ignore these as local differences for now because we can't do anything with it
@@ -2333,6 +2337,15 @@ public final class DtoFactory {
                 continue;
             }
 
+            if (FlowDifferenceFilters.isNewPropertyWithDefaultValue(difference, flowManager)) {
+                continue;
+            }
+
+            final VersionedProcessGroup relevantProcessGroup = versionedGroups.get(difference.getComponentA().getGroupIdentifier());
+            if (relevantProcessGroup != null && FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(difference, relevantProcessGroup, flowManager)) {
+                continue;
+            }
+
             final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
             final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
 
@@ -2348,6 +2361,20 @@ public final class DtoFactory {
         }
 
         return differencesByComponent.keySet();
+    }
+
+    private Map<String, VersionedProcessGroup> flattenProcessGroups(final VersionedProcessGroup group) {
+        final Map<String, VersionedProcessGroup> flattened = new HashMap<>();
+        flattenProcessGroups(group, flattened);
+        return flattened;
+    }
+
+    private void flattenProcessGroups(final VersionedProcessGroup group, final Map<String, VersionedProcessGroup> flattened) {
+        flattened.put(group.getIdentifier(), group);
+
+        for (final VersionedProcessGroup child : group.getProcessGroups()) {
+            flattenProcessGroups(child, flattened);
+        }
     }
 
     private ComponentDifferenceDTO createComponentDifference(final FlowDifference difference) {
