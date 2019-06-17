@@ -490,7 +490,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                         if (!memberLines.isEmpty()) {
                             users.addAll(Arrays.asList(memberLines.get(0).split(",")));
                         } else {
-                            logger.error("list membership returned zero lines.");
+                            logger.debug("list membership returned zero lines.");
                         }
                         if (memberLines.size() > 1) {
                             logger.error("list membership returned too many lines, only used the first.");

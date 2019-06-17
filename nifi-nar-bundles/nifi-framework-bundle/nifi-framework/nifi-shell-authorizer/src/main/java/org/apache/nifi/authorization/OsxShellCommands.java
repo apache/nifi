@@ -27,9 +27,7 @@ class OsxShellCommands implements ShellCommandsProvider {
      * @return Shell command string that will return a list of users.
      */
     public String getUsersList() {
-        return "dscl . -readall /Users UniqueID PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} " +
-            " /RecordName: / {name = $2;i = 0;}/PrimaryGroupID: / {gid = $2;} /^ / {if (i == 0) { i++; name = $1;}} " +
-            " /UniqueID: / {uid = $2;print name, uid, gid;}' | grep -v ^_";
+        return "dscl . -readall /Users UniqueID PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} /RecordName: / {name = $2;i = 0;}/PrimaryGroupID: / {gid = $2;} /^ / {if (i == 0) { i++; name = $1;}} /UniqueID: / {uid = $2;print name, uid, gid;}' | grep -v ^_";
     }
 
     /**
@@ -49,34 +47,28 @@ class OsxShellCommands implements ShellCommandsProvider {
     }
 
     /**
-     * On OSX, we don't need to support this method because the user listing is (apparently) sufficient for now.
-     *
      * @param userId name of user.
      * @return Shell command string that will read a single user.
      */
     @Override
     public String getUserById(String userId) {
-        return null;
+        return String.format("id -P %s | cut -f 1,3,4 -d ':'", userId);
     }
 
     /**
-     * On OSX, we don't need to support this method because the user listing is (apparently) sufficient for now.
-     *
-     * @param userId name of user.
+     * @param userName name of user.
      * @return Shell command string that will read a single user.
      */
-    public String getUserByName(String userId) {
-        return null;
+    public String getUserByName(String userName) {
+        return getUserById(userName); // 'id' command works for both uid/username
     }
 
     /**
-     * On OSX, we don't need to support this method because the group listing is (apparently) sufficient for now.
-     *
      * @param groupId name of group.
      * @return Shell command string that will read a single group.
      */
     public String getGroupById(String groupId) {
-        return null;
+        return String.format(" dscl . -read /Groups/`dscl . -search /Groups gid %$s | head -n 1 | cut -f 1` RecordName PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} /RecordName: / {name = $2;i = 1;}/PrimaryGroupID: / {gid = $2;}; {if (i==1) {print name,gid,\"\"}}'", groupId);
     }
 
     /**
