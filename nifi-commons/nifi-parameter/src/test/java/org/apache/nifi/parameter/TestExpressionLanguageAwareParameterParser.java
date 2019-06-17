@@ -188,4 +188,14 @@ public class TestExpressionLanguageAwareParameterParser {
         }
     }
 
+    @Test
+    public void testReferenceOutsideExpressionLanguage() {
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+        final List<ParameterToken> tokens = parameterParser.parseTokens("#{hello}").toList();
+        assertEquals(1, tokens.size());
+
+        for (final ParameterToken token : tokens) {
+            assertEquals("hello", ((ParameterReference) token).getParameterName());
+        }
+    }
 }

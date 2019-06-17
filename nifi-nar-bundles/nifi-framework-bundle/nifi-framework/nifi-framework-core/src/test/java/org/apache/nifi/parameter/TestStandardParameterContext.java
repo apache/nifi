@@ -66,6 +66,14 @@ public class TestStandardParameterContext {
         secondParameters.add(new Parameter(fooDescriptor, "baz"));
         context.setParameters(secondParameters);
 
+        assertTrue(context.getParameter("abc").isPresent());
+        assertTrue(context.getParameter("xyz").isPresent());
+
+        secondParameters.add(new Parameter(abcParam.getDescriptor(), null));
+        secondParameters.add(new Parameter(xyzParam.getDescriptor(), null));
+
+        context.setParameters(secondParameters);
+
         assertFalse(context.getParameter("abc").isPresent());
         assertFalse(context.getParameter("xyz").isPresent());
 
@@ -157,8 +165,12 @@ public class TestStandardParameterContext {
         } catch (final IllegalStateException expected) {
         }
 
+        context.setParameters(Collections.emptySet());
+
+        parameters.clear();
+        parameters.add(new Parameter(abcDescriptor, null));
         try {
-            context.setParameters(Collections.emptySet());
+            context.setParameters(parameters);
             Assert.fail("Was able to remove parameter while referencing processor was running");
         } catch (final IllegalStateException expected) {
         }
@@ -198,7 +210,9 @@ public class TestStandardParameterContext {
         }
 
         parameters.clear();
+        context.setParameters(parameters);
 
+        parameters.add(new Parameter(abcDescriptor, null));
         try {
             context.setParameters(parameters);
             Assert.fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");

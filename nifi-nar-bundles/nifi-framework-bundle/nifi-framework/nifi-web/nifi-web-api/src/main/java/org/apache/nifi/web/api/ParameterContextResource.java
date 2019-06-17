@@ -56,6 +56,7 @@ import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextValidationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.AffectedComponentUtils;
@@ -357,6 +358,9 @@ public class ParameterContextResource extends ApplicationResource {
         if (contextDto.getId() == null) {
             throw new IllegalArgumentException("Parameter Context's ID must be specified");
         }
+        if (requestEntity.getId() == null) {
+            throw new IllegalArgumentException("Entity's ID must be specified");
+        }
 
         // We will perform the updating of the Parameter Context in a background thread because it can be a long-running process.
         // In order to do this, we will need some objects that are only available as Thread-Local variables to the current
@@ -401,6 +405,10 @@ public class ParameterContextResource extends ApplicationResource {
                         final Authorizable processor = lookup.getProcessor(dto.getId()).getAuthorizable();
                         processor.authorize(authorizer, RequestAction.READ, user);
                         processor.authorize(authorizer, RequestAction.WRITE, user);
+                    } else if (AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getReferenceType())) {
+                        final Authorizable service = lookup.getControllerService(dto.getId()).getAuthorizable();
+                        service.authorize(authorizer, RequestAction.READ, user);
+                        service.authorize(authorizer, RequestAction.WRITE, user);
                     }
                 }
             },
@@ -445,7 +453,7 @@ public class ParameterContextResource extends ApplicationResource {
     @ApiOperation(
         value = "Deletes the Update Request with the given ID",
         response = ParameterContextUpdateRequestEntity.class,
-        notes = "Deletes the Update Request with the given ID. After a request is created via a POST to /nifi-api/parameter-contexts, it is expected "
+        notes = "Deletes the Update Request with the given ID. After a request is created via a POST to /nifi-api/parameter-contexts/update-requests, it is expected "
             + "that the client will properly clean up the request by DELETE'ing it, once the Update process has completed. If the request is deleted before the request "
             + "completes, then the Update request will finish the step that it is currently performing and then will cancel any subsequent steps.",
         authorizations = {
@@ -520,8 +528,19 @@ public class ParameterContextResource extends ApplicationResource {
             null,
             requestRevision,
             lookup -> {
+                final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
                 final Authorizable parameterContext = lookup.getParameterContext(parameterContextId);
-                parameterContext.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                parameterContext.authorize(authorizer, RequestAction.READ, user);
+                parameterContext.authorize(authorizer, RequestAction.WRITE, user);
+
+                final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, user);
+                for (final ProcessGroupEntity boundGroupEntity : contextEntity.getComponent().getBoundProcessGroups()) {
+                    final String groupId = boundGroupEntity.getId();
+                    final Authorizable groupAuthorizable = lookup.getProcessGroup(groupId).getAuthorizable();
+                    groupAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                    groupAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                }
             },
             () -> serviceFacade.verifyDeleteParameterContext(parameterContextId),
             (revision, groupEntity) -> {
@@ -540,7 +559,7 @@ public class ParameterContextResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("validation-requests")
     @ApiOperation(
-        value = "Initiate a Validation Request to determine how the validity of components will change if a Paramter Context were to be updated",
+        value = "Initiate a Validation Request to determine how the validity of components will change if a Parameter Context were to be updated",
         response = ParameterContextValidationRequestEntity.class,
         notes = "This will initiate the process of validating all components whose Process Group is bound to the specified Parameter Context. Performing validation against " +
             "an arbitrary number of components may be expect and take significantly more time than many other REST API actions. As a result, this endpoint will immediately return " +

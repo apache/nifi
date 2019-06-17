@@ -104,10 +104,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         if (parameterContextDto.getName() != null) {
             final boolean conflict = flowManager.getParameterContextManager().getParameterContexts().stream()
-                .anyMatch(paramContext -> paramContext.getName().equals(parameterContextDto.getName()));
+                .anyMatch(paramContext -> paramContext.getName().equals(parameterContextDto.getName()) && !paramContext.getIdentifier().equals(parameterContextDto.getId()));
 
             if (conflict) {
-                throw new IllegalStateException("Cannot update Paramter Context name because another Parameter Context already exists with the name '" + parameterContextDto.getName() + "'");
+                throw new IllegalStateException("Cannot update Parameter Context name because another Parameter Context already exists with the name '" + parameterContextDto.getName() + "'");
             }
 
             context.setName(parameterContextDto.getName());
@@ -183,7 +183,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             .anyMatch(paramContext -> paramContext.getName().equals(contextName));
 
         if (conflict) {
-            throw new IllegalStateException("Cannot update Paramter Context name because another Parameter Context already exists with the name '" + contextName + "'");
+            throw new IllegalStateException("Cannot update Parameter Context name because another Parameter Context already exists with the name '" + contextName + "'");
         }
     }
 

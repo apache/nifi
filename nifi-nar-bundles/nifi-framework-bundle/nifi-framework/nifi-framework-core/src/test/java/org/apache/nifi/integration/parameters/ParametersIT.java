@@ -177,4 +177,36 @@ public class ParametersIT extends FrameworkIntegrationTest {
 
         assertEquals("UNIT", flowFileRecord.getAttribute("bar"));
     }
+
+    @Test
+    public void testParametersWhereELSupportedByNotPresent() throws ExecutionException, InterruptedException {
+        final ProcessorNode generate = createProcessorNode(GenerateProcessor.class);
+        final ProcessorNode updateAttribute = createProcessorNode(UpdateAttributeWithEL.class);
+        final ProcessorNode terminate = getTerminateProcessor();
+
+        final Connection generatedFlowFileConnection = connect(generate, updateAttribute, REL_SUCCESS);
+        final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("foo", "#{test}");
+        properties.put("bar", "#{test}#{test}");
+        properties.put("baz", "foo#{test}bar");
+        updateAttribute.setProperties(properties);
+
+        triggerOnce(generate);
+        triggerOnce(updateAttribute);
+
+        final FlowFileQueue flowFileQueue = updatedAttributeConnection.getFlowFileQueue();
+        final FlowFileRecord flowFileRecord = flowFileQueue.poll(Collections.emptySet());
+
+        assertEquals("unit", flowFileRecord.getAttribute("foo"));
+        assertEquals("unitunit", flowFileRecord.getAttribute("bar"));
+        assertEquals("foounitbar", flowFileRecord.getAttribute("baz"));
+    }
 }

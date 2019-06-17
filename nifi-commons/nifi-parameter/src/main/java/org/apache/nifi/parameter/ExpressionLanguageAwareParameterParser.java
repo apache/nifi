@@ -34,7 +34,7 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
             return new StandardParameterTokenList(input, Collections.emptyList());
         }
 
-        final List<ParameterToken> references = new ArrayList<>();
+        final List<ParameterToken> tokens = new ArrayList<>();
 
         int sequentialStartTags = 0;
         boolean oddDollarCount = false;
@@ -71,7 +71,7 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
 
 
                     if (sequentialStartTags > 0) {
-                        final ParameterToken token = parseParameterToken(input, i, sequentialStartTags, references);
+                        final ParameterToken token = parseParameterToken(input, i, sequentialStartTags, tokens);
 
                         // If we found a reference, skip 'i' to the end of the reference, since there can't be any other references before that point.
                         if (token != null) {
@@ -103,8 +103,8 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
             lastChar = c;
         }
 
-        logger.debug("For input {} found {} Parameter references: {}", input, references.size(), references);
-        return new StandardParameterTokenList(input, references);
+        logger.debug("For input {} found {} Parameter references: {}", input, tokens.size(), tokens);
+        return new StandardParameterTokenList(input, tokens);
     }
 
 }

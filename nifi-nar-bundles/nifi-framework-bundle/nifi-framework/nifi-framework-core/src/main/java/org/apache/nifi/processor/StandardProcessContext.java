@@ -71,6 +71,15 @@ public class StandardProcessContext implements ProcessContext, ControllerService
             }
 
             if (value != null) {
+//                final List<Range> ranges = Query.extractExpressionRanges(value);
+//
+//                final PreparedQuery pq;
+//                if (ranges.isEmpty()) {
+//                    pq = EmptyPreparedQuery.forText(properties.get(desc));
+//                } else {
+//                    pq = Query.prepare(value);
+//                }
+
                 final PreparedQuery pq = Query.prepare(value);
                 preparedQueries.put(desc, pq);
             }

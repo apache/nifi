@@ -92,12 +92,21 @@ public class Query {
         return expressions;
     }
 
+
     public static List<Range> extractExpressionRanges(final String value) throws AttributeExpressionLanguageParsingException {
+        return extractExpressionRanges(value, false);
+    }
+
+    public static List<Range> extractEscapedRanges(final String value) throws AttributeExpressionLanguageParsingException {
+        return extractExpressionRanges(value, true);
+    }
+
+    private static List<Range> extractExpressionRanges(final String value, final boolean extractEscapeSequences) throws AttributeExpressionLanguageParsingException {
         final List<Range> ranges = new ArrayList<>();
         char lastChar = 0;
         int embeddedCount = 0;
         int expressionStart = -1;
-        boolean oddDollarCount = false;
+        int dollarCount = 0;
         int backslashCount = 0;
 
         charLoop:
@@ -115,9 +124,10 @@ public class Query {
                 }
 
                 if (c == '{') {
-                    if (oddDollarCount && lastChar == '$') {
+                    final boolean evenDollarCount = dollarCount % 2 == 0;
+                    if ((evenDollarCount == extractEscapeSequences) && lastChar == '$') {
                         if (embeddedCount == 0) {
-                            expressionStart = i - 1;
+                            expressionStart = i - (extractEscapeSequences ? dollarCount : 1);
                         }
                     }
 
@@ -144,11 +154,11 @@ public class Query {
                         expressionStart = -1;
                     }
                 } else if (c == '$') {
-                    oddDollarCount = !oddDollarCount;
+                    dollarCount++;
                 } else if (c == '\\') {
                     backslashCount++;
                 } else {
-                    oddDollarCount = false;
+                    dollarCount = 0;
                 }
 
                 lastChar = c;
@@ -296,11 +306,37 @@ public class Query {
         final List<Range> ranges = extractExpressionRanges(query);
 
         if (ranges.isEmpty()) {
-            // While in the other cases below, we are simply replacing "$$" with "$", we have to do this
-            // a bit differently. We want to treat $$ as an escaped $ only if it immediately precedes the
-            // start of an Expression, which is the case below. Here, we did not detect the start of an Expression
-            // and as such as must use the #unescape method instead of a simple replace() function.
-            return new EmptyPreparedQuery(unescape(query));
+            final List<Expression> expressions = new ArrayList<>();
+            final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+
+            final List<Range> escapedRanges = extractEscapedRanges(query);
+            int lastIndex = 0;
+            for (final Range range : escapedRanges) {
+                final String treeText = unescapeLeadingDollarSigns(query.substring(range.getStart(), range.getEnd() + 1));
+
+                if (range.getStart() > lastIndex) {
+                    String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
+                    addLiteralsAndParameters(parameterParser, substring, expressions);
+                }
+
+                addLiteralsAndParameters(parameterParser, treeText, expressions);
+            }
+
+            if (escapedRanges.isEmpty()) {
+                addLiteralsAndParameters(parameterParser, query, expressions);
+            } else {
+                final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
+                if (lastRange.getEnd() + 1 < query.length()) {
+                    final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
+                    addLiteralsAndParameters(parameterParser, treeText, expressions);
+                }
+            }
+
+            if (expressions.isEmpty()) {
+                return new EmptyPreparedQuery(query);
+            }
+
+            return new StandardPreparedQuery(expressions);
         }
 
         final ExpressionCompiler compiler = new ExpressionCompiler();
@@ -369,7 +405,7 @@ public class Query {
                 expressions.add(new StringLiteralExpression(token.getText()));
             }
 
-            index = token.getEndOffset();
+            index = token.getEndOffset() + 1;
             lastReference = token;
         }
 
