@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Test;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestValueLookup {
 

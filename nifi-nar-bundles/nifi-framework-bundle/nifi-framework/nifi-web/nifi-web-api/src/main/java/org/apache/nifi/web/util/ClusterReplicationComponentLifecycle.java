@@ -363,7 +363,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
      * @return <code>true</code> if successful, <code>false</code> if unable to wait for services to reach the desired state
      */
     private boolean waitForControllerServiceStatus(final NiFiUser user, final URI originalUri, final String groupId, final Set<String> serviceIds,
-                                                   final ControllerServiceState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws InterruptedException, LifecycleManagementException {
+                                                   final ControllerServiceState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction)
+                            throws InterruptedException, LifecycleManagementException {
 
         URI groupUri;
         try {
