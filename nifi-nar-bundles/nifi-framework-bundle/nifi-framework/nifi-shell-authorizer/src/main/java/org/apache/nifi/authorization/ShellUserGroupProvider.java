@@ -105,7 +105,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
 
         if (user == null) {
-            refreshOneUser(selectedShellCommands.getUserByName(identifier), "Get Single User by Id");
+            refreshOneUser(selectedShellCommands.getUserById(identifier), "Get Single User by Id");
             user = usersById.get(identifier);
         }
 
