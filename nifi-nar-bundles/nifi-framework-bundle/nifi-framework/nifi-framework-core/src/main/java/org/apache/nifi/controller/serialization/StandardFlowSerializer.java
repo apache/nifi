@@ -162,6 +162,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
             addStringElement(parameterContextElement, "id", parameterContext.getIdentifier());
             addStringElement(parameterContextElement, "name", parameterContext.getName());
+            addStringElement(parameterContextElement, "description", parameterContext.getDescription());
 
             for (final Parameter parameter : parameterContext.getParameters().values()) {
                 addParameter(parameterContextElement, parameter);

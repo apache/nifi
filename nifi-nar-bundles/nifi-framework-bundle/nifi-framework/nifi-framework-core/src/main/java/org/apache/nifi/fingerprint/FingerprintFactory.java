@@ -314,6 +314,7 @@ public class FingerprintFactory {
     private StringBuilder addParameterContext(final StringBuilder builder, final Element parameterContextElement) {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "id"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "name"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(parameterContextElement, "description"));
 
         final List<Element> parameterElements = DomUtils.getChildElementsByTagName(parameterContextElement, "parameter");
         if (parameterElements == null || parameterElements.isEmpty()) {

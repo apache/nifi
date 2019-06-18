@@ -148,6 +148,7 @@ public class FlowFromDOMFactory {
 
         dto.setId(getString(element, "id"));
         dto.setName(getString(element, "name"));
+        dto.setDescription(getString(element, "description"));
 
         final Set<ParameterDTO> parameterDtos = new LinkedHashSet<>();
         final List<Element> parameterElements = FlowFromDOMFactory.getChildrenByTagName(element, "parameter");

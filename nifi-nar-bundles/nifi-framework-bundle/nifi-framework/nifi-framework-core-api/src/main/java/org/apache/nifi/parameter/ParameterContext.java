@@ -41,6 +41,17 @@ public interface ParameterContext extends ParameterLookup, Authorizable {
     void setName(String name);
 
     /**
+     * @return a user-supplied description for the Parameter Context
+     */
+    String getDescription();
+
+    /**
+     * Sets the description for the Parameter Context
+     * @param description the description
+     */
+    void setDescription(String description);
+
+    /**
      * Updates the Parameters within this context to match the given set of Parameters.
      * @param updatedParameters the updated set of parameters
      * @throws IllegalStateException if any parameter is modified or removed and that parameter is being referenced by a running Processor or an enabled Controller Service, or if

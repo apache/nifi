@@ -57,7 +57,11 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     @Override
     public ParameterContext createParameterContext(final ParameterContextDTO parameterContextDto) {
         final Set<Parameter> parameters = getParameters(parameterContextDto);
-        return flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters);
+        final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters);
+        if (parameterContextDto.getDescription() != null) {
+            parameterContext.setDescription(parameterContextDto.getDescription());
+        }
+        return parameterContext;
     }
 
     private Set<Parameter> getParameters(final ParameterContextDTO parameterContextDto) {
@@ -111,6 +115,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             }
 
             context.setName(parameterContextDto.getName());
+        }
+
+        if (parameterContextDto.getDescription() != null) {
+            context.setDescription(parameterContextDto.getDescription());
         }
 
         if (parameterContextDto.getParameters() != null) {

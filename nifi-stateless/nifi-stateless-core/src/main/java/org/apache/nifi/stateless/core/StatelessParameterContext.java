@@ -52,6 +52,15 @@ public class StatelessParameterContext implements ParameterContext {
     }
 
     @Override
+    public String getDescription() {
+        return "NiFi Stateless Parameter Context";
+    }
+
+    @Override
+    public void setDescription(final String description) {
+    }
+
+    @Override
     public void setParameters(final Set<Parameter> updatedParameters) {
         throw new UnsupportedOperationException();
     }

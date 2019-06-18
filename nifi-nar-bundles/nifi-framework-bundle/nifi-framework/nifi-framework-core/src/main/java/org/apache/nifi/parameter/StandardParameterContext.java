@@ -48,6 +48,7 @@ public class StandardParameterContext implements ParameterContext {
     private String name;
     private long version = 0L;
     private final Map<ParameterDescriptor, Parameter> parameters = new LinkedHashMap<>();
+    private volatile String description;
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -82,6 +83,16 @@ public class StandardParameterContext implements ParameterContext {
         } finally {
             writeLock.unlock();
         }
+    }
+
+    @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
     }
 
     public void setParameters(final Set<Parameter> updatedParameters) {

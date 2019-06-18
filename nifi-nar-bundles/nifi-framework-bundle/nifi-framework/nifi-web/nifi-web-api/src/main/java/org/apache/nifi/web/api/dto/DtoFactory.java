@@ -1364,6 +1364,7 @@ public final class DtoFactory {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
+        dto.setDescription(parameterContext.getDescription());
 
         final Set<ProcessGroupEntity> boundGroups = new HashSet<>();
         for (final ProcessGroup processGroup : parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext)) {

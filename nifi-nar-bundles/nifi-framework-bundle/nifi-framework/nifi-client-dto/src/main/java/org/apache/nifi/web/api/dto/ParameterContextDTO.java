@@ -26,6 +26,7 @@ import java.util.Set;
 public class ParameterContextDTO {
     private String identifier;
     private String name;
+    private String description;
     private Set<ParameterDTO> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
 
@@ -45,6 +46,15 @@ public class ParameterContextDTO {
     @ApiModelProperty("The Name of the Parameter Context.")
     public String getName() {
         return name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @ApiModelProperty("The Description of the Parameter Context.")
+    public String getDescription() {
+        return description;
     }
 
     public void setParameters(final Set<ParameterDTO> parameters) {
