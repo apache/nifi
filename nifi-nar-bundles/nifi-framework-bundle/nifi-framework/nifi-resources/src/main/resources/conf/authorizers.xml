@@ -167,6 +167,23 @@
     To enable the ldap-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
+        The ShellUserGroupProvider provides support for retrieving users and groups by way of shell commands
+        on systems that support `sh`.  Implementations available for Linux and Mac OS, and are selected by the
+        provider based on the system property `os.name`.
+
+        'Initial Refresh Delay' - duration to wait before first refresh.  Default is '5 mins'.
+        'Refresh Delay' - duration to wait between subsequent refreshes.  Default is '5 mins'.
+    -->
+    <!-- To enable the shell-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>shell-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.ShellUserGroupProvider</class>
+        <property name="Initial Refresh Delay">5 mins</property>
+        <property name="Refresh Delay">5 mins</property>
+    </userGroupProvider>
+    To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
         The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources.
 
         - User Group Provider [unique key] - The identifier of user group providers to load from. The name of
@@ -198,6 +215,7 @@
             NOTE: Any identity mapping rules specified in nifi.properties are not applied in this implementation. This behavior
             would need to be applied by the base implementation.
     -->
+
     <!-- To enable the composite-configurable-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
         <identifier>composite-configurable-user-group-provider</identifier>

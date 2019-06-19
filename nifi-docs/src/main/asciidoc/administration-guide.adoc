@@ -452,6 +452,27 @@ The LdapUserGroupProvider has the following properties:
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the user identities. Group names are not mapped.
 
+==== ShellUserGroupProvider
+
+The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
+
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+
+Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
+will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
+
+The ShellUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|==================================================================================================================================================
+
+Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
+
+
 ==== Composite Implementations
 
 Another option for the UserGroupProvider are composite implementations. This means that multiple sources/implementations can be configured and composed. For instance, an admin can configure users/groups to be loaded from a file and a directory server. There are two composite implementations, one that supports multiple UserGroupProviders and one that supports multiple UserGroupProviders and a single configurable UserGroupProvider.
