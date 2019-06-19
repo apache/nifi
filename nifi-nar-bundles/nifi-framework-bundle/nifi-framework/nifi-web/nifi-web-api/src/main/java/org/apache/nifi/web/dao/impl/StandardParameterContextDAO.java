@@ -107,13 +107,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final ParameterContext context = getParameterContext(parameterContextDto.getId());
 
         if (parameterContextDto.getName() != null) {
-            final boolean conflict = flowManager.getParameterContextManager().getParameterContexts().stream()
-                .anyMatch(paramContext -> paramContext.getName().equals(parameterContextDto.getName()) && !paramContext.getIdentifier().equals(parameterContextDto.getId()));
-
-            if (conflict) {
-                throw new IllegalStateException("Cannot update Parameter Context name because another Parameter Context already exists with the name '" + parameterContextDto.getName() + "'");
-            }
-
+            verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
             context.setName(parameterContextDto.getName());
         }
 
@@ -131,7 +125,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     @Override
     public void verifyUpdate(final ParameterContextDTO parameterContextDto, final boolean verifyComponentStates) {
-        verifyNoNamingConflict(parameterContextDto.getName());
+        verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
         for (final ParameterDTO parameterDto : parameterContextDto.getParameters()) {
@@ -182,16 +176,35 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
     }
 
+    /**
+     * Ensures that no Parameter Context exists with the given name. If any does already exist with this name, an IllegalStateException will be thrown.
+     * @param contextName the name of the Parameter Context
+     * @throws IllegalStateException if any Parameter Context already exists with the given name
+     */
     private void verifyNoNamingConflict(final String contextName) {
+        verifyNoNamingConflict(contextName, null);
+    }
+
+    /**
+     * Ensures that no Parameter Context exists with the given name, unless that Parameter Context also has the given identifier. If any does already exist with this name, and its identifier does
+     * not match the given identifier, an IllegalStateException will be thrown. Otherwise, this method will return gracefully.
+     * @param contextName the name of the Parameter Context
+     * @param contextId the Identifier of the Parameter Context whose name should not be compared against the given name
+     * @throws IllegalStateException if any Parameter Context already exists with the given name and a non-matching identifier
+     */
+    private void verifyNoNamingConflict(final String contextName, final String contextId) {
         if (contextName == null) {
             return;
         }
 
-        final boolean conflict = flowManager.getParameterContextManager().getParameterContexts().stream()
-            .anyMatch(paramContext -> paramContext.getName().equals(contextName));
+        for (final ParameterContext parameterContext : flowManager.getParameterContextManager().getParameterContexts()) {
+            if (parameterContext.getName().equals(contextName)) {
+                if (contextId == null || contextId.equals(parameterContext.getIdentifier())) {
+                    continue;
+                }
 
-        if (conflict) {
-            throw new IllegalStateException("Cannot update Parameter Context name because another Parameter Context already exists with the name '" + contextName + "'");
+                throw new IllegalStateException("Cannot update Parameter Context name because another Parameter Context already exists with the name '" + contextName + "'");
+            }
         }
     }
 
