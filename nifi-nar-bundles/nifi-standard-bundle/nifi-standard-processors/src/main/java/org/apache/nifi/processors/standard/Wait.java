@@ -212,6 +212,23 @@ public class Wait extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    public static final PropertyDescriptor PENALIZE_WAITING_FLOWFILES = new PropertyDescriptor.Builder()
+        .name("penalize-waiting-flowfiles")
+        .displayName("Penalize Waiting FlowFiles")
+        .description("If enabled, penalize waiting FlowFiles so that they will not be checked again" +
+            " for the next configured 'Penalty Duration', and let other queued FlowFiles get checked at the next run." +
+            " If disabled, only FlowFiles routed to 'failure' relationship are penalized." +
+            " Thus, the same FlowFile may be processed repeatedly depend on how Prioritizers are configured." +
+            " For example, with PriorityAttributePrioritizer, the highest priority FlowFile will be processed first," +
+            " and prevent other FlowFiles to be released even if their signal have been notified earlier." +
+            " If other FlowFiles should be released first in that case, enable this property," +
+            " but be aware longer 'Penalty Duration' may increase latency for a FlowFile to go through this processor.")
+        .defaultValue("false")
+        .required(true)
+        .allowableValues("true", "false")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile with a matching release signal in the cache will be routed to this relationship")
@@ -255,6 +272,7 @@ public class Wait extends AbstractProcessor {
         descriptors.add(DISTRIBUTED_CACHE_SERVICE);
         descriptors.add(ATTRIBUTE_COPY_MODE);
         descriptors.add(WAIT_MODE);
+        descriptors.add(PENALIZE_WAITING_FLOWFILES);
         return descriptors;
     }
 
@@ -320,6 +338,7 @@ public class Wait extends AbstractProcessor {
             getFlowFilesFor.apply(REL_FAILURE).add(flowFile);
         };
 
+        final boolean penalizeWaitingFlowFiles = context.getProperty(PENALIZE_WAITING_FLOWFILES).asBoolean();
         final Consumer<Entry<Relationship, List<FlowFile>>> transferFlowFiles = routedFlowFiles -> {
             Relationship relationship = routedFlowFiles.getKey();
 
@@ -337,6 +356,10 @@ public class Wait extends AbstractProcessor {
                         if (REL_SUCCESS.equals(finalRelationship)) {
                             // These flowFiles will be exiting the wait, clear the timer
                             f = clearWaitState(session, f);
+
+                        } else if ((REL_WAIT.equals(finalRelationship) || Relationship.SELF.equals(finalRelationship))
+                            && penalizeWaitingFlowFiles) {
+                            f = session.penalize(f);
                         }
                         return copySignalAttributes(session, f, signalRef.get(),
                             originalSignalCounts,
