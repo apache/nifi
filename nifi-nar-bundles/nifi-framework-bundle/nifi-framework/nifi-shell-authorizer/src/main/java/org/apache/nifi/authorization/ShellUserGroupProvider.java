@@ -235,9 +235,8 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-        // Our first init step is to fire off the refresh threads:
-        initialDelay = getDelayProperty(configurationContext, INITIAL_REFRESH_DELAY_PROPERTY, "30 secs");
-        fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "30 secs");
+        initialDelay = getDelayProperty(configurationContext, INITIAL_REFRESH_DELAY_PROPERTY, "5 mins");
+        fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "5 mins");
 
         // Our next init step is to select the command set based on the operating system name:
         ShellCommandsProvider commands = getCommandsProvider();
