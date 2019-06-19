@@ -198,12 +198,22 @@
             NOTE: Any identity mapping rules specified in nifi.properties are not applied in this implementation. This behavior
             would need to be applied by the base implementation.
     -->
+
+    <!-- To enable the shell-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>shell-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.ShellUserGroupProvider</class>
+        <property name="Initial Refresh Delay">30 secs</property
+        <property name="Refresh Delay">30 secs</property>
+    </userGroupProvider>
+    To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
+
     <!-- To enable the composite-configurable-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
         <identifier>composite-configurable-user-group-provider</identifier>
         <class>org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider</class>
         <property name="Configurable User Group Provider">file-user-group-provider</property>
-        <property name="User Group Provider 1"></property>
+        <property name="User Group Provider 1">shell-user-group-provider</property>
     </userGroupProvider>
     To enable the composite-configurable-user-group-provider remove 2 lines. This is 2 of 2. -->
 
