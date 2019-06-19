@@ -199,7 +199,7 @@ public class StandardParameterContext implements ParameterContext {
         }
 
         final ParameterDescriptor existingDescriptor = existingParameter.getDescriptor();
-        if (existingDescriptor.isSensitive() != updatedDescriptor.isSensitive()) {
+        if (existingDescriptor.isSensitive() != updatedDescriptor.isSensitive() && updatedParameter.getValue() != null) {
             final String existingSensitiveDescription = existingDescriptor.isSensitive() ? "sensitive" : "not sensitive";
             final String updatedSensitiveDescription = updatedDescriptor.isSensitive() ? "sensitive" : "not sensitive";
 
