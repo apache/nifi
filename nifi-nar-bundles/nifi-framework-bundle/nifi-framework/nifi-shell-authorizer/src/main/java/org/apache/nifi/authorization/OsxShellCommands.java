@@ -27,7 +27,8 @@ class OsxShellCommands implements ShellCommandsProvider {
      * @return Shell command string that will return a list of users.
      */
     public String getUsersList() {
-        return "dscl . -readall /Users UniqueID PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} /RecordName: / {name = $2;i = 0;}/PrimaryGroupID: / {gid = $2;} /^ / {if (i == 0) { i++; name = $1;}} /UniqueID: / {uid = $2;print name, uid, gid;}' | grep -v ^_";
+        return "dscl . -readall /Users UniqueID PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} /RecordName: / {name = $2;i = 0;}" +
+               "/PrimaryGroupID: / {gid = $2;} /^ / {if (i == 0) { i++; name = $1;}} /UniqueID: / {uid = $2;print name, uid, gid;}' | grep -v ^_";
     }
 
     /**
@@ -68,7 +69,8 @@ class OsxShellCommands implements ShellCommandsProvider {
      * @return Shell command string that will read a single group.
      */
     public String getGroupById(String groupId) {
-        return String.format(" dscl . -read /Groups/`dscl . -search /Groups gid %$s | head -n 1 | cut -f 1` RecordName PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} /RecordName: / {name = $2;i = 1;}/PrimaryGroupID: / {gid = $2;}; {if (i==1) {print name,gid,\"\"}}'", groupId);
+        return String.format(" dscl . -read /Groups/`dscl . -search /Groups gid %$s | head -n 1 | cut -f 1` RecordName PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} " +
+                             "/RecordName: / {name = $2;i = 1;}/PrimaryGroupID: / {gid = $2;}; {if (i==1) {print name,gid,\"\"}}'", groupId);
     }
 
     /**
