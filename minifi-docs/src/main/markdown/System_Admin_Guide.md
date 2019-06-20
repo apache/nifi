@@ -647,6 +647,36 @@ NiFi Properties Overrides:
   nifi.database.directory: ./database_repository_override
 ```
 
+# Security Configuration
+Currently, it is possible to specify keystore and truststore information to allow mutual TLS communication across the Site to Site protocol as well as provisioning an SSL Context for components in the config.yml
+
+Security can be configured in two ways for instances via:
+    
+* **config.yml**:  These properties are specified as outlined in the 'Security Properties' and 'Sensitive Properties' in the config.yml sections above.  These allow the specification of security properties to be versioned with the flow and consumed via Change Ingestors. 
+* **bootstrap.conf**:   This is an alternative means of configuration that takes precedence over the config.yml configuration and is a way of separating security concerns from the processing flow.  The following properties should be defined:
+
+## Security Properties in bootstrap.conf
+
+*bootstrap.conf Property*               | *config.yml Property* | *Description*
+--------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
+`nifi.minifi.security.keystore`         | `keystore`            | The full path and name of the keystore. It is blank by default.
+`nifi.minifi.security.keystoreType`     | `keystore type`       | The keystore type. It is blank by default.
+`nifi.minifi.security.keystorePasswd`   | `keystore password`   | The keystore password. It is blank by default.
+`nifi.minifi.security.keyPasswd`        | `key password`        | The key password. It is blank by default.
+`nifi.minifi.security.truststore`       | `truststore`          | The full path and name of the truststore. It is blank by default.
+`nifi.minifi.security.truststoreType`   | `truststore type`     | The truststore type. It is blank by default.
+`nifi.minifi.security.truststorePasswd` | `truststore password` | The truststore password. It is blank by default.
+`nifi.minifi.security.ssl.protocol`     | `ssl protocol`        | The protocol to use when communicating via https. Necessary to transfer provenance securely.
+
+## Sensitive Property Configuration in bootstrap.conf
+
+*bootstrap.conf Property*               | *config.yml Property* | *Description*
+--------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
+`nifi.minifi.sensitive.props.key`       | `key`                 | This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
+`nifi.minifi.sensitive.props.algorithm` | `algorithm`           | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
+`nifi.minifi.sensitive.props.provider`  | `provider`            | The sensitive property provider. The default value is `BC`.
+
+
 # Running as a Windows Service
 
 MiNiFi can run as a Windows service. To do so, you must modify the _conf/bootstrap.conf_ to set absolute paths for some properties. The properties are:

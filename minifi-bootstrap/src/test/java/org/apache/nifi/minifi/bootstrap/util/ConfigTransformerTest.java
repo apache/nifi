@@ -17,11 +17,36 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
+import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
+import org.apache.nifi.minifi.commons.schema.PortSchema;
+import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
+import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -40,34 +65,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
-import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
-import org.apache.nifi.minifi.commons.schema.ConfigSchema;
-import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
-import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
-import org.apache.nifi.minifi.commons.schema.FunnelSchema;
-import org.apache.nifi.minifi.commons.schema.PortSchema;
-import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
-import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
-import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
-import org.apache.nifi.minifi.commons.schema.common.StringUtil;
-import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
-import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.junit.Before;
-import org.junit.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ConfigTransformerTest {
     public static final Map<String, Integer> PG_ELEMENT_ORDER_MAP = generateOrderMap(
@@ -76,6 +77,9 @@ public class ConfigTransformerTest {
     private Document document;
     private Element config;
     private DocumentBuilder documentBuilder;
+
+    @Rule
+    final public TemporaryFolder tempOutputFolder = new TemporaryFolder();
 
     @Before
     public void setup() throws ParserConfigurationException {
