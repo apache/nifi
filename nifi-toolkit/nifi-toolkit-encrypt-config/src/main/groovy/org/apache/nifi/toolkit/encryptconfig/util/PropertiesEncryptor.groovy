@@ -20,7 +20,7 @@ import groovy.io.GroovyPrintWriter
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.commons.configuration2.PropertiesConfigurationLayout
 import org.apache.commons.configuration2.builder.fluent.Configurations
-import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -49,7 +49,7 @@ class PropertiesEncryptor {
             if (!ToolUtilities.canRead(file)) {
                 return false
             }
-            Pattern p = Pattern.compile(SUPPORTED_PROPERTY_FILE_REGEX);
+            Pattern p = Pattern.compile(SUPPORTED_PROPERTY_FILE_REGEX)
             return file.readLines().any { it =~ SUPPORTED_PROPERTY_FILE_REGEX }
         } catch (Throwable ignored) {
             return false
@@ -130,7 +130,7 @@ class PropertiesEncryptor {
 
         logger.debug("Encrypting ${propertiesToEncrypt.size()} properties")
 
-        Properties protectedProperties = new Properties();
+        Properties protectedProperties = new Properties()
         for (String propertyName : properties.stringPropertyNames()) {
             String propertyValue = properties.getProperty(propertyName)
             // empty properties are not encrypted
@@ -234,7 +234,7 @@ class PropertiesEncryptor {
      * @return the Map of protected property keys and the protection identifier for each
      */
     private static Map<String, String> getProtectedPropertyKeys(Properties properties) {
-        Map<String, String> protectedProperties = new HashMap<>();
+        Map<String, String> protectedProperties = new HashMap<>()
         properties.stringPropertyNames().forEach({ key ->
             String protectionKey = protectionPropertyForProperty(key)
             String protectionIdentifier = properties.getProperty(protectionKey)
@@ -249,7 +249,7 @@ class PropertiesEncryptor {
         Set<String> protectedProperties = properties.stringPropertyNames().findAll { key ->
             key.endsWith(PROPERTY_PART_DELIMINATOR + PROTECTION_ID_PROPERTY_SUFFIX)
         }
-        return protectedProperties;
+        return protectedProperties
     }
 
     private static String protectionPropertyForProperty(String propertyName) {

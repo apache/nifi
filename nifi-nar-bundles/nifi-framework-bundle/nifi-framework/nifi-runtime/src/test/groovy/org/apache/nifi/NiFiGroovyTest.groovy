@@ -18,9 +18,10 @@ package org.apache.nifi
 
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.AppenderBase
-import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -34,7 +35,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
 import javax.crypto.Cipher
-import java.nio.file.Paths
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -64,7 +64,6 @@ class NiFiGroovyTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
-        NiFiPropertiesLoader.@sensitivePropertyProviderFactory = null
         TestAppender.reset()
         System.setIn(System.in)
     }
@@ -212,7 +211,7 @@ class NiFiGroovyTest extends GroovyTestCase {
     }
 
     private static NiFiProperties decrypt(NiFiProperties encryptedProperties, String keyHex) {
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
+        SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(keyHex)
         def map = encryptedProperties.getPropertyKeys().collectEntries { String key ->
             if (encryptedProperties.getProperty(key + ".protected") == spp.getIdentifierKey()) {
                 [(key): spp.unprotect(encryptedProperties.getProperty(key))]

@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties
+package org.apache.nifi.properties.sensitive.aes
 
+import org.apache.nifi.properties.sensitive.SensitivePropertyMetadata
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
@@ -295,6 +298,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     void testShouldHandleUnprotectMissingIV() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
+        def loggerAlignmentOffset = 150
 
         // Act
         KEY_SIZES.each { int keySize ->
@@ -304,7 +308,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text
             final String MISSING_IV_CIPHER_TEXT = cipherText[18..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(172)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(loggerAlignmentOffset)}")
 
             def msg = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT)
@@ -313,7 +317,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text but keep the delimiter
             final String MISSING_IV_CIPHER_TEXT_WITH_DELIMITER = cipherText[16..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(172)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(loggerAlignmentOffset)}")
 
             def msgWithDelimiter = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER)
@@ -465,6 +469,30 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
         // Assert
         assert values == encryptedValues.collect { spp.unprotect(it) }
+    }
+
+    /**
+     * This test is to ensure the pass-through methods do not change the encrypt/decrypt behavior.
+     */
+    @Test
+    void testShouldEncryptArbitraryValuesWithMetadata() {
+        // Arrange
+        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message", "nififtw!"]
+
+        String key = getKeyOfSize(128)
+
+        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)
+        SensitivePropertyMetadata spm = AESSensitivePropertyMetadata.fromIdentifier("aes/gcm/128")
+
+        // Act
+        def encryptedValues = values.collect { String v ->
+            def encryptedValue = spp.protect(v, spm)
+            logger.info("${v} -> ${encryptedValue}")
+            encryptedValue
+        }
+
+        // Assert
+        assert values == encryptedValues.collect { spp.unprotect(it, spm) }
     }
 
     /**

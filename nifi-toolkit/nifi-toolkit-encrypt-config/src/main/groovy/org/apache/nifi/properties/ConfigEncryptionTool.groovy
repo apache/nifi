@@ -28,6 +28,10 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -873,12 +877,14 @@ class ConfigEncryptionTool {
     }
 
     String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyHex) {
-        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
+        SensitivePropertyProvider sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(existingKeyHex)
 
         try {
             def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
+                // TODO: Update filter to include AWS identifier
+                // TODO: This should be refactored to a method and pluggable
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -909,7 +915,7 @@ class ConfigEncryptionTool {
     }
 
     String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyHex) {
-        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
+        SensitivePropertyProvider sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(existingKeyHex)
 
         try {
             def filename = "authorizers.xml"
@@ -918,6 +924,7 @@ class ConfigEncryptionTool {
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
             }.property.findAll {
+                // TODO: Same as in LIP decryption method
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -951,7 +958,7 @@ class ConfigEncryptionTool {
     }
 
     String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyHex) {
-        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
+        SensitivePropertyProvider sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
@@ -993,7 +1000,7 @@ class ConfigEncryptionTool {
     }
 
     String encryptAuthorizers(String plainXml, String newKeyHex = keyHex) {
-        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
+        SensitivePropertyProvider sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
@@ -1043,12 +1050,12 @@ class ConfigEncryptionTool {
      * @param plainProperties the NiFiProperties instance containing the raw values
      * @return the NiFiProperties containing protected values
      */
-    private NiFiProperties encryptSensitiveProperties(NiFiProperties plainProperties) {
+    private NiFiProperties encryptSensitiveProperties(NiFiProperties plainProperties, String keyHex) {
         if (!plainProperties) {
             throw new IllegalArgumentException("Cannot encrypt empty NiFiProperties")
         }
 
-        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties)
+        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties, keyHex)
 
         List<String> sensitivePropertyKeys = protectedWrapper.getSensitivePropertyKeys()
         if (sensitivePropertyKeys.isEmpty()) {
@@ -1058,10 +1065,7 @@ class ConfigEncryptionTool {
 
         // Holder for encrypted properties and protection schemes
         Properties encryptedProperties = new Properties()
-
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
-        protectedWrapper.addSensitivePropertyProvider(spp)
-
+        SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(keyHex)
         List<String> keysToSkip = []
 
         // Iterate over each -- encrypt and add .protected if populated
@@ -1091,7 +1095,7 @@ class ConfigEncryptionTool {
             encryptedProperties.setProperty(key, plainProperties.getProperty(key))
         }
         NiFiProperties mergedProperties = new StandardNiFiProperties(encryptedProperties)
-        logger.info("Final result: ${mergedProperties.size()} keys including ${ProtectedNiFiProperties.countProtectedProperties(mergedProperties)} protected keys")
+        logger.info("Final result: ${mergedProperties.size()} keys including ${ProtectedNiFiProperties.countProtectedProperties(mergedProperties, keyHex)} protected keys")
 
         mergedProperties
     }
@@ -1251,7 +1255,7 @@ class ConfigEncryptionTool {
                 File niFiPropertiesFile = new File(niFiPropertiesPath)
                 if (niFiPropertiesFile.exists() && niFiPropertiesFile.canRead()) {
                     // Instead of just writing the NiFiProperties instance to a properties file, this method attempts to maintain the structure of the original file and preserves comments
-                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile)
+                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile, keyHex)
                 } else {
                     linesToPersist = serializeNiFiProperties(niFiProperties)
                 }
@@ -1269,10 +1273,10 @@ class ConfigEncryptionTool {
     }
 
     private
-    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile) {
+    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile, String keyHex) {
         List<String> lines = originalPropertiesFile.readLines()
 
-        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties)
+        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties, keyHex) // BOOM WHAT
         // Only need to replace the keys that have been protected AND nifi.sensitive.props.key
         Map<String, String> protectedKeys = protectedNiFiProperties.getProtectedPropertyKeys()
         if (!protectedKeys.containsKey(NiFiProperties.SENSITIVE_PROPS_KEY)) {
@@ -1568,7 +1572,7 @@ class ConfigEncryptionTool {
 
                         // If the tool is not going to encrypt NiFiProperties and the existing file is already encrypted, encrypt and update the new sensitive props key
                         if (!tool.handlingNiFiProperties && existingNiFiPropertiesAreEncrypted) {
-                            AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(tool.keyHex)
+                            SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(tool.keyHex)
                             String encryptedSPK = spp.protect(newFlowPassword)
                             rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
                             // Manually update the protection scheme or it will be lost
@@ -1584,7 +1588,7 @@ class ConfigEncryptionTool {
                 }
 
                 if (tool.handlingNiFiProperties) {
-                    tool.niFiProperties = tool.encryptSensitiveProperties(tool.niFiProperties)
+                    tool.niFiProperties = tool.encryptSensitiveProperties(tool.niFiProperties, tool.keyHex)
                 }
             } catch (CommandLineParseException e) {
                 if (e.exitCode == ExitCode.HELP) {
@@ -1602,6 +1606,7 @@ class ConfigEncryptionTool {
                 // Do this as part of a transaction?
                 synchronized (this) {
                     if (!tool.ignorePropertiesFiles) {
+                        // TODO: This should be abstracted to be different per SPP
                         tool.writeKeyToBootstrapConf()
                     }
                     if (tool.handlingFlowXml) {
