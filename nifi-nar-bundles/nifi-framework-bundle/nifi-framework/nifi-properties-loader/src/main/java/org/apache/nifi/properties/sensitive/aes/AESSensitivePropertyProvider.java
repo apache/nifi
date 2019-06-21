@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive.aes;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -23,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.BadPaddingException;
@@ -33,6 +34,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.SensitivePropertyMetadata;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.EncoderException;
@@ -54,7 +58,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
     private Cipher cipher;
     private final SecretKey key;
 
-    public AESSensitivePropertyProvider(String keyHex) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    public AESSensitivePropertyProvider(String keyHex) {
         byte[] key = validateKey(keyHex);
 
         try {
@@ -185,6 +189,24 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
         }
     }
 
+    /**
+     * Returns the "protected" form of this value. This is a form which can safely be persisted in the {@code nifi.properties} file without compromising the value.
+     * An encryption-based provider would return a cipher text, while a remote-lookup provider could return a unique ID to retrieve the secured value.
+     *
+     * <strong>Note: </strong>This method is implemented as a passthrough for backward
+     * compatibility; version 1 of the AES provider doesn't require any per-value metadata
+     * because it only uses a single key provided at instantiation. Future versions may
+     * implement multiple-key handling.
+     *
+     * @param unprotectedValue the sensitive value
+     * @param metadata         per-value metadata necessary to perform the protection
+     * @return the value to persist in the {@code nifi.properties} file
+     */
+    @Override
+    public String protect(String unprotectedValue, SensitivePropertyMetadata metadata) throws SensitivePropertyProtectionException {
+        return protect(unprotectedValue);
+    }
+
     private String base64Encode(byte[] input) {
         return Base64.toBase64String(input).replaceAll("=", "");
     }
@@ -247,6 +269,24 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
         }
     }
 
+    /**
+     * Returns the "unprotected" form of this value. This is the raw sensitive value which is used by the application logic.
+     * An encryption-based provider would decrypt a cipher text and return the plaintext, while a remote-lookup provider could retrieve the secured value.
+     *
+     * <strong>Note: </strong>This method is implemented as a passthrough for backward
+     * compatibility; version 1 of the AES provider doesn't require any per-value metadata
+     * because it only uses a single key provided at instantiation. Future versions may
+     * implement multiple-key handling.
+     *
+     * @param protectedValue the protected value read from the {@code nifi.properties} file
+     * @param metadata       per-value metadata necessary to perform the unprotection
+     * @return the raw value to be used by the application
+     */
+    @Override
+    public String unprotect(String protectedValue, SensitivePropertyMetadata metadata) throws SensitivePropertyProtectionException {
+        return unprotect(protectedValue);
+    }
+
     public static int getIvLength() {
         return IV_LENGTH;
     }
@@ -258,4 +298,36 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
     public static String getDelimiter() {
         return DELIMITER;
     }
+
+    private static int getMaxValidKeyLength() {
+        return Collections.max(getValidKeyLengths());
+    }
+
+    /**
+     * @return key type and max key length, e.g., "aes/gcm/128".
+     */
+    public static String getDefaultProtectionScheme() {
+        return IMPLEMENTATION_KEY + getMaxValidKeyLength();
+    }
+
+
+    /**
+     * True if this provider can handle the given combination of key and options.
+     *
+     * @param key Hex-encoded key
+     * @param options array of string options; currently unused
+     * @return true if the key looks like a suitable encryption key
+     */
+    public static boolean isProviderFor(String key, String... options) {
+        if (options.length == 0) {
+            return true; // existing behavior when no options are given, this provider should handle it.
+        }
+
+        if (options[0].startsWith(IMPLEMENTATION_KEY)) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

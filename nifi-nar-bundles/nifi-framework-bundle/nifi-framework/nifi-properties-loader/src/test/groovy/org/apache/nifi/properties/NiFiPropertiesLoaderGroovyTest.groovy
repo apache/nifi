@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties
 
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -81,11 +82,6 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
-        // Clear the sensitive property providers between runs
-//        if (ProtectedNiFiProperties.@localProviderCache) {
-//            ProtectedNiFiProperties.@localProviderCache = [:]
-//        }
-        NiFiPropertiesLoader.@sensitivePropertyProviderFactory = null
     }
 
     @AfterClass
@@ -119,6 +115,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiPropertiesLoader.@keyHex == KEY_HEX
     }
 
+    @Ignore // functionality / test should move to StandardSensitivePropertyProvider class
     @Test
     void testShouldGetDefaultProviderKey() throws Exception {
         // Arrange
@@ -130,18 +127,6 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.info("Default key: ${defaultKey}")
         // Assert
         assert defaultKey == EXPECTED_PROVIDER_KEY
-    }
-
-    @Test
-    void testShouldInitializeSensitivePropertyProviderFactory() throws Exception {
-        // Arrange
-        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
-
-        // Act
-        niFiPropertiesLoader.initializeSensitivePropertyProviderFactory()
-
-        // Assert
-        assert niFiPropertiesLoader.@sensitivePropertyProviderFactory
     }
 
     @Test
@@ -429,6 +414,11 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
             [(it): passwordProperties.getProperty(it)]
         }
 
+        readPasswordPropertiesAndValues.keySet().each { String key ->
+            if (!readPropertiesAndValues.get(key).equals(readPasswordPropertiesAndValues.get(key))) {
+                logger.info("Failed to match values. key=" + key + " read val: " + readPropertiesAndValues.get(key) + " and pass val: " + readPasswordPropertiesAndValues.get(key));
+            }
+        }
         assert readPropertiesAndValues == readPasswordPropertiesAndValues
     }
 }

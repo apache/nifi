@@ -17,8 +17,8 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.cli.HelpFormatter
-import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
@@ -230,7 +230,7 @@ class DecryptMode implements ToolMode {
             if (!key) {
                 throw new RuntimeException("Failed to configure tool, could not determine key.")
             }
-            decryptionProvider = new AESSensitivePropertyProvider(key)
+            decryptionProvider = StandardSensitivePropertyProvider.fromKey(key)
 
             if (rawOptions.t) {
                 fileType = FileType.valueOf(rawOptions.t)

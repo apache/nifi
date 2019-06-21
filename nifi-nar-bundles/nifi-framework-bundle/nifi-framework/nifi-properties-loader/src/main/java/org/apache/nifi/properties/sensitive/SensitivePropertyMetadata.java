@@ -14,10 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive;
 
-public interface SensitivePropertyProviderFactory {
+/**
+ * Parent interface to allow provider-specific encryption metadata around protected property values.
+ */
+public interface SensitivePropertyMetadata {
 
-    SensitivePropertyProvider getProvider();
-
+    /**
+     * Returns the String to use to identify the protected vaue in the {@code .protected} property. Depending on the implementation, this may include an algorithm & mode, a key ID, KMS URL, etc.
+     * @return the identifier
+     */
+    String getIdentifier();
 }

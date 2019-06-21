@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -109,7 +109,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
                 }
             }
 
-            config.decryptionProvider = new AESSensitivePropertyProvider(config.key)
+            config.decryptionProvider = StandardSensitivePropertyProvider.fromKey(config.key)
 
             run(config)
 
