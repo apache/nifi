@@ -20,11 +20,7 @@ import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StopWatch
 import org.apache.nifi.util.TestRunners
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -32,7 +28,9 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
 
+import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
 class ExecuteScriptGroovyTest extends BaseScriptTest {
@@ -95,6 +93,46 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         flowFile.assertAttributeExists("time-updated")
         flowFile.assertAttributeExists("thread")
         assert flowFile.getAttribute("thread") =~ SINGLE_POOL_THREAD_PATTERN
+    }
+
+    @Test
+    public void testShouldSeeDynamicRelationships() throws Exception {
+        logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
+        runner.setProperty("rel.test", "")
+        runner.assertValid()
+
+        // Act
+        runner.run()
+
+        // Assert
+        [ExecuteScript.REL_SUCCESS, "test"].each {
+            runner.assertTransferCount(it, 1)
+            final List<MockFlowFile> result = runner.getFlowFilesForRelationship(it)
+            MockFlowFile flowFile = result.get(0)
+            logger.info("Resulting flowfile attributes: ${flowFile.attributes}")
+            flowFile.assertAttributeExists("time-updated")
+        }
+    }
+
+    @Test
+    public void testShouldThrowOnInvalidDynamicRelationship() throws Exception {
+        def badRelationship = "rel.123test"
+        logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
+        runner.setProperty(badRelationship, "")
+        runner.assertNotValid()
+        assertFalse(
+                "relationship '${badRelationship.substring(4)}' should not exist",
+                runner.processor.relationships.any { it.name == badRelationship.substring(4) }
+        )
+        runner.removeProperty(badRelationship)
+        runner.setProperty("rel.test", "")
+        runner.assertValid()
+        assertTrue("relationship 'test' should exist", runner.processor.relationships.any { it.name == 'test' })
+        runner.removeProperty("rel.test")
+        runner.assertValid()
+        assertFalse("relationship 'test' should not exist", runner.processor.relationships.any { it.name == 'test' })
     }
 
     @Test

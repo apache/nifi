@@ -20,6 +20,7 @@ package org.apache.nifi.processors.script;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -34,6 +35,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
@@ -41,6 +43,7 @@ import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -61,11 +64,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.regex.Pattern;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
@@ -73,11 +78,18 @@ import java.util.Set;
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "
         + "Impact of sustained usage not yet verified.")
 @DynamicProperty(
-        name = "A script engine property to update",
+        name = "A script engine property to update, or a dynamic relationship",
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
+@DynamicRelationship(
+        name = "A relationship to add",
+        description = "If a dynamic property starts with 'rel.', it is assumed to be the name of a dynamic "
+        + "relationship to add. It must obey to the pattern '^rel\\.[a-zA-Z][a-zA-Z0-9_]*$'. All (dynamic) "
+        + "relationships can be accessed in the script variable 'relationships', which is a Map<String, Relationship> "
+        + "[name of relationship] -> relationship"
+)
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -91,13 +103,30 @@ import java.util.Set;
 @SeeAlso({InvokeScriptedProcessor.class})
 public class ExecuteScript extends AbstractSessionFactoryProcessor implements Searchable {
 
-    // Constants maintained for backwards compatibility
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
     public static final Relationship REL_FAILURE = ScriptingComponentUtils.REL_FAILURE;
+    public static final String DYNAMIC_RELATIONSHIP_PATTERN_AS_STRING = "^rel\\.[a-zA-Z_][a-zA-Z0-9]*$";
+    private static final Pattern DYNAMIC_RELATIONSHIP_PATTERN = Pattern.compile(DYNAMIC_RELATIONSHIP_PATTERN_AS_STRING);
+    private static final String DYNAMIC_RELATIONSHIP_PREFIX = "rel.";
 
     private String scriptToRun = null;
     volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
+    private final Set<Relationship> relationships;
+    private ComponentLog log;
+
+    public ExecuteScript() {
+        super();
+        relationships = new ConcurrentSkipListSet<>();
+        relationships.add(ExecuteScript.REL_SUCCESS);
+        relationships.add(ExecuteScript.REL_FAILURE);
+    }
+
+    @Override
+    protected void init(ProcessorInitializationContext context) {
+        super.init(context);
+        log = getLogger();
+    }
 
     /**
      * Returns the valid relationships for this processor.
@@ -106,10 +135,15 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      */
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
         return Collections.unmodifiableSet(relationships);
+    }
+
+    private Map<String, Relationship> getRelationshipsAsMap() {
+        final Map<String, Relationship> relMap = new HashMap<>();
+        for (final Relationship rel : relationships) {
+            relMap.put(rel.getName(), rel);
+        }
+        return Collections.unmodifiableMap(relMap);
     }
 
     /**
@@ -139,13 +173,57 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        final boolean isRelationship = propertyDescriptorName != null && propertyDescriptorName.startsWith(DYNAMIC_RELATIONSHIP_PREFIX);
+        if (isRelationship) {
+            if (!DYNAMIC_RELATIONSHIP_PATTERN.matcher(propertyDescriptorName).matches()) {
+                log.warn("dyn. property for relationship is invalid: '{}'. accepted patterns: '{}'", new Object[]{propertyDescriptorName, DYNAMIC_RELATIONSHIP_PATTERN_AS_STRING});
+                return new PropertyDescriptor.Builder()
+                        .addValidator(new RelationshipInvalidator())
+                        .dynamic(true)
+                        .required(false)
+                        .name(propertyDescriptorName)
+                        .build();
+            }
+        }
+        final Validator validator = isRelationship
+                ? Validator.VALID
+                : StandardValidators.NON_EMPTY_VALIDATOR;
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(validator)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true)
-                .build();
+                .dynamic(true);
+        if (isRelationship) {
+            builder.description(String.format(
+                    "This property adds the relationship '%s'",
+                    propertyDescriptorName.substring(4)
+            ));
+        }
+        return builder.build();
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
+        final String descriptorName = descriptor.getName();
+        if (descriptorName.startsWith(DYNAMIC_RELATIONSHIP_PREFIX)) {
+            if (!DYNAMIC_RELATIONSHIP_PATTERN.matcher(descriptorName).matches()) {
+                return;
+            }
+            final String relationshipName = descriptorName.substring(4);
+            if (newValue == null) {
+                relationships.removeIf(r -> relationshipName.equals(r.getName()));
+                log.debug("removing relationship {}", new Object[]{relationshipName});
+                return;
+            }
+            final Relationship relationship = new Relationship.Builder()
+                    .name(relationshipName)
+                    .description(String.format("dynamic relationship %s", relationshipName))
+                    .build();
+            relationships.add(relationship);
+            log.debug("added dynamic relationship '{}'", new Object[]{relationshipName});
+        }
     }
 
     @Override
@@ -216,10 +294,11 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 bindings.put("log", log);
                 bindings.put("REL_SUCCESS", REL_SUCCESS);
                 bindings.put("REL_FAILURE", REL_FAILURE);
+                bindings.put("relationships", getRelationshipsAsMap());
 
-                // Find the user-added properties and set them on the script
+                // Find the user-added properties that don't reference dynamic relationships, and set them on the script
                 for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
-                    if (property.getKey().isDynamic()) {
+                    if (property.getKey().isDynamic() && !property.getKey().getName().startsWith(DYNAMIC_RELATIONSHIP_PREFIX)) {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
                             bindings.put(property.getKey().getName(), context.getProperty(property.getKey()));
@@ -303,4 +382,17 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
         return results;
     }
+
+    private static class RelationshipInvalidator implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext validationContext) {
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .explanation("invalid dyn. relationship specified")
+                    .valid(false)
+                    .build();
+        }
+    }
+
 }
