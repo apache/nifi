@@ -214,9 +214,9 @@ public class Wait extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    public static final PropertyDescriptor WAIT_PENALIZE_DURATION = new PropertyDescriptor.Builder()
-        .name("wait-penalize-duration")
-        .displayName("Wait Penalize Duration")
+    public static final PropertyDescriptor WAIT_PENALTY_DURATION = new PropertyDescriptor.Builder()
+        .name("wait-penalty-duration")
+        .displayName("Wait Penalty Duration")
         .description("If configured, after a signal identifier got processed but did not meet the release criteria," +
             " the signal identifier is penalized and FlowFiles having the signal identifier" +
             " will not be processed again for the specified period of time," +
@@ -224,7 +224,9 @@ public class Wait extends AbstractProcessor {
             " This can be useful for use cases where a Wait processor is expected to process multiple signal identifiers," +
             " and each signal identifier has multiple FlowFiles," +
             " and also the order of releasing FlowFiles is important within a signal identifier." +
-            " The FlowFile order can be configured with Prioritizers.")
+            " The FlowFile order can be configured with Prioritizers." +
+            " IMPORTANT: There is a limitation of number of queued signals can be processed," +
+            " and Wait processor may not be able to check all queued signal ids. See additional details for the best practice.")
         .required(false)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -275,7 +277,7 @@ public class Wait extends AbstractProcessor {
         descriptors.add(DISTRIBUTED_CACHE_SERVICE);
         descriptors.add(ATTRIBUTE_COPY_MODE);
         descriptors.add(WAIT_MODE);
-        descriptors.add(WAIT_PENALIZE_DURATION);
+        descriptors.add(WAIT_PENALTY_DURATION);
         return descriptors;
     }
 
@@ -508,9 +510,9 @@ public class Wait extends AbstractProcessor {
         processedFlowFiles.entrySet().forEach(transferFlowFiles);
 
         // Penalize signal id if no FlowFile transferred to success.
-        final PropertyValue waitPenalizeDuration = context.getProperty(WAIT_PENALIZE_DURATION);
-        if (waitPenalizeDuration.isSet() && getFlowFilesFor.apply(REL_SUCCESS).isEmpty()) {
-            signalIdPenalties.put(signalId, System.currentTimeMillis() + waitPenalizeDuration.asTimePeriod(TimeUnit.MILLISECONDS));
+        final PropertyValue waitPenaltyDuration = context.getProperty(WAIT_PENALTY_DURATION);
+        if (waitPenaltyDuration.isSet() && getFlowFilesFor.apply(REL_SUCCESS).isEmpty()) {
+            signalIdPenalties.put(signalId, System.currentTimeMillis() + waitPenaltyDuration.asTimePeriod(TimeUnit.MILLISECONDS));
         }
 
         // Update signal if needed.

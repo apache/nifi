@@ -208,7 +208,7 @@ public class TestWait {
     @Test
     public void testWaitPenaltyDuration() throws InitializationException {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
-        runner.setProperty(Wait.WAIT_PENALIZE_DURATION, "1 hour");
+        runner.setProperty(Wait.WAIT_PENALTY_DURATION, "1 hour");
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "1");
