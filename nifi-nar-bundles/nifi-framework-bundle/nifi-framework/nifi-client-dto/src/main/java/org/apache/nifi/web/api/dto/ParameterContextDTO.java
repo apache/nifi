@@ -20,6 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Date;
 import java.util.Set;
 
 @XmlType(name = "parameterContext")
@@ -29,6 +30,7 @@ public class ParameterContextDTO {
     private String description;
     private Set<ParameterDTO> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
+    private Date lastRefreshed;
 
     public void setId(String id) {
         this.identifier = id;
@@ -73,6 +75,15 @@ public class ParameterContextDTO {
     @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", readOnly = true)
     public Set<ProcessGroupEntity> getBoundProcessGroups() {
         return boundProcessGroups;
+    }
+
+    public void setLastRefreshed(Date lastRefreshed) {
+        this.lastRefreshed = lastRefreshed;
+    }
+
+    @ApiModelProperty(value = "The timestamp of when the Parameter Context's information was last refreshed", readOnly = true)
+    public Date getLastRefreshed() {
+        return lastRefreshed;
     }
 
     @Override

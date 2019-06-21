@@ -318,7 +318,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String comments = processGroupDTO.getComments();
 
         final String parameterContextId = processGroupDTO.getParameterContextId();
-        if (parameterContextId != null) {
+        if (parameterContextId == null) {
+            group.setParameterContext(null);
+        } else {
             final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
             if (parameterContext == null) {
                 throw new IllegalStateException("Cannot set Process Group's Parameter Context because no Parameter Context exists with ID " + parameterContextId);

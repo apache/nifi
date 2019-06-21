@@ -1382,6 +1382,7 @@ public final class DtoFactory {
         }
 
         dto.setParameters(parameterDtos);
+        dto.setLastRefreshed(new Date());
         return dto;
     }
 
