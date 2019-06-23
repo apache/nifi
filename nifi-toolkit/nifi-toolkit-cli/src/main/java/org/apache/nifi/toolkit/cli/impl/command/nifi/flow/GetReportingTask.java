@@ -25,7 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.ReportingTaskResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.ReportingTaskResult;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.io.IOException;

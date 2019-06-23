@@ -59,8 +59,8 @@ import java.util.stream.IntStream;
 import org.apache.nifi.util.NiFiProperties;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -360,7 +360,8 @@ public class TestStandardRemoteGroupPort {
                 final MockFlowFile flowFile = spy(processSession.createFlowFile(bytes));
                 when(flowFile.getSize()).then(invocation -> {
                     Thread.sleep(1); // For testSendBatchByDuration
-                    return bytes.length;
+                    // Array.length returns int, but flowFile.getSize() must return a long
+                    return Integer.valueOf(bytes.length).longValue();
                 });
                 sessionState.getFlowFileQueue().offer(flowFile);
                 flowFiles.add(flowFile);

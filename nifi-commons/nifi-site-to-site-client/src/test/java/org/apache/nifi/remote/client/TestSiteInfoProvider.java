@@ -36,8 +36,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -92,8 +92,8 @@ public class TestSiteInfoProvider {
 
         // SiteInfoProvider uses SiteToSIteRestApiClient to get ControllerDTO.
         doAnswer(invocation -> {
-            final SSLContext sslContext = invocation.getArgumentAt(0, SSLContext.class);
-            final HttpProxy httpProxy = invocation.getArgumentAt(1, HttpProxy.class);
+            final SSLContext sslContext = invocation.getArgument(0);
+            final HttpProxy httpProxy = invocation.getArgument(1);
 
             assertEquals(expectedSslConText, sslContext);
             assertEquals(expectedHttpProxy, httpProxy);

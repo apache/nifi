@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
 import org.apache.nifi.ssl.SSLContextService;
@@ -43,8 +44,6 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-
-import com.yammer.metrics.core.VirtualMachineMetrics;
 
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
@@ -76,7 +75,7 @@ public class PrometheusServer {
             TextFormat.write004(osw, nifiRegistry.metricFamilySamples());
 
             if (PrometheusServer.this.sendJvmMetrics == true) {
-                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(VirtualMachineMetrics.getInstance(), PrometheusServer.this.instanceId);
+                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), PrometheusServer.this.instanceId);
                 TextFormat.write004(osw, jvmRegistry.metricFamilySamples());
             }
 

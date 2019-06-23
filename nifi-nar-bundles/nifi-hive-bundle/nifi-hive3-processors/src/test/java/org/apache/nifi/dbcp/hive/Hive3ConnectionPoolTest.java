@@ -18,7 +18,7 @@
 package org.apache.nifi.dbcp.hive;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.isA;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.script;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -31,6 +30,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
@@ -75,7 +75,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     private volatile String scriptToRun = null;
-    private volatile VirtualMachineMetrics vmMetrics;
+    private volatile JmxJvmMetrics vmMetrics;
 
     /**
      * Returns a list of property descriptors supported by this processor. The list always includes properties such as
@@ -143,7 +143,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
             throw new ProcessException(ioe);
         }
 
-        vmMetrics = VirtualMachineMetrics.getInstance();
+        vmMetrics = JmxJvmMetrics.getInstance();
     }
 
     @Override

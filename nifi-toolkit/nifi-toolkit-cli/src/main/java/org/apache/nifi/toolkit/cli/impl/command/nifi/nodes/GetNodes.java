@@ -22,7 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.NodesResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.NodesResult;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 
 import java.io.IOException;

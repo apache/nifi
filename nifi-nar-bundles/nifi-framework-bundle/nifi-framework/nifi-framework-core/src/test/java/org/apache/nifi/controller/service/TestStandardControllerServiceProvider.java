@@ -131,7 +131,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.doAnswer(new Answer<ProcessorNode>() {
             @Override
             public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
-                final String id = invocation.getArgumentAt(0, String.class);
+                final String id = invocation.getArgument(0);
                 return processorMap.get(id);
             }
         }).when(flowManager).getProcessorNode(Mockito.anyString());
@@ -139,7 +139,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
+                final ProcessorNode procNode = invocation.getArgument(0);
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }

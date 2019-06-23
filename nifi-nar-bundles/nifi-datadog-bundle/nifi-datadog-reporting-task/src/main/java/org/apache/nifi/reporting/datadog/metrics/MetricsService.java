@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.reporting.datadog.metrics;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.processor.DataUnit;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,10 +127,10 @@ public class MetricsService {
     }
 
     //virtual machine metrics
-    public Map<String, Double> getJVMMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    public Map<String, Double> getJVMMetrics(JmxJvmMetrics virtualMachineMetrics) {
         final Map<String, Double> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_UPTIME, new Double(virtualMachineMetrics.uptime()));
-        metrics.put(MetricNames.JVM_HEAP_USED, new Double(virtualMachineMetrics.heapUsed()));
+        metrics.put(MetricNames.JVM_HEAP_USED, new Double(virtualMachineMetrics.heapUsed(DataUnit.B)));
         metrics.put(MetricNames.JVM_HEAP_USAGE, new Double(virtualMachineMetrics.heapUsage()));
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, new Double(virtualMachineMetrics.nonHeapUsage()));
         metrics.put(MetricNames.JVM_THREAD_COUNT, new Double(virtualMachineMetrics.threadCount()));
@@ -156,7 +157,7 @@ public class MetricsService {
             }
         }
 
-        for (Map.Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
+        for (Map.Entry<String, JmxJvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
             final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);

@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;

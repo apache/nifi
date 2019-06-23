@@ -47,7 +47,6 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -73,8 +72,8 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyList;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
@@ -120,7 +119,7 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<OutputStream>() {
             @Override
             public OutputStream answer(final InvocationOnMock invocation) throws Throwable {
-                final ContentClaim contentClaim = invocation.getArgumentAt(0, ContentClaim.class);
+                final ContentClaim contentClaim = invocation.getArgument(0);
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
                     @Override
@@ -146,7 +145,7 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<Void>() {
             @Override
             public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileQueuePutRecords.addAll(invocation.getArgumentAt(0, Collection.class));
+                flowFileQueuePutRecords.addAll(invocation.getArgument(0));
                 return null;
             }
         }).when(flowFileQueue).putAll(anyCollection());
@@ -154,7 +153,7 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<Void>() {
             @Override
             public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileQueueReceiveRecords.addAll(invocation.getArgumentAt(0, Collection.class));
+                flowFileQueueReceiveRecords.addAll(invocation.getArgument(0));
                 return null;
             }
         }).when(flowFileQueue).receiveFromPeer(anyCollection());
@@ -162,7 +161,7 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<Void>() {
             @Override
             public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileRepoUpdateRecords.addAll(invocation.getArgumentAt(0, Collection.class));
+                flowFileRepoUpdateRecords.addAll(invocation.getArgument(0));
                 return null;
             }
         }).when(flowFileRepo).updateRepository(anyCollection());
@@ -170,7 +169,7 @@ public class TestStandardLoadBalanceProtocol {
         Mockito.doAnswer(new Answer<Void>() {
             @Override
             public Void answer(final InvocationOnMock invocation) throws Throwable {
-                provRepoUpdateRecords.addAll(invocation.getArgumentAt(0, Collection.class));
+                provRepoUpdateRecords.addAll(invocation.getArgument(0));
                 return null;
             }
         }).when(provenanceRepo).registerEvents(anyCollection());

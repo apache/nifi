@@ -407,9 +407,9 @@ public class TestLuceneEventIndex {
         Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
             @Override
             public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) {
-                final Long eventId = invocation.getArgumentAt(0, Long.class);
+                final Long eventId = invocation.getArgument(0);
                 assertEquals(0, eventId.longValue());
-                assertEquals(1, invocation.getArgumentAt(1, Integer.class).intValue());
+                assertEquals(1, invocation.<Integer>getArgument(1).intValue());
                 return Collections.singletonList(events.get(0));
             }
         }).when(eventStore).getEvents(Mockito.anyLong(), Mockito.anyInt());

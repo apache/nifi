@@ -80,7 +80,7 @@ public class TestWriteAheadStorePartition {
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Map<ProvenanceEventRecord, StorageSummary> events = invocation.getArgumentAt(0, Map.class);
+                final Map<ProvenanceEventRecord, StorageSummary> events = invocation.getArgument(0);
                 reindexedEvents.putAll(events);
                 return null;
             }

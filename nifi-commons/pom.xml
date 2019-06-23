@@ -39,5 +39,6 @@
         <module>nifi-schema-utils</module>
     	<module>nifi-record</module>
         <module>nifi-record-path</module>
+        <module>nifi-metrics</module>
     </modules>
 </project>

@@ -27,8 +27,10 @@ public enum CommandOption {
     URL("u", "baseUrl", "The URL to execute the command against", true),
     INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true, true),
     OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true, true),
+    OUTPUT_DIR("od", "outputDirectory", "A directory to write output to", true, true),
     PROPERTIES("p", "properties", "A properties file to load arguments from, " +
             "command line values will override anything in the properties file, must contain full path to file", true, true),
+    FILE_EXTENSION("fe", "fileExtension", "A file extension such as '.nar'", true, false),
 
     NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true, true),
     NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true, true),
@@ -48,6 +50,19 @@ public enum CommandOption {
     SRC_PROPS("sp", "sourceProps", "A properties file to load for the source", true, true),
     SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
     SRC_FLOW_VERSION("sfv", "sourceFlowVersion", "A version of a flow from the source registry", true),
+
+    // Registry - Extensions
+    EXT_BUNDLE_GROUP("gr", "group", "The group id of a bundle", true),
+    EXT_BUNDLE_ARTIFACT("ar", "artifact", "The artifact id of a bundle", true),
+    EXT_BUNDLE_VERSION("ver", "version", "The version of the bundle", true),
+
+    EXT_TYPE("et", "extensionType", "The type of extension, one of 'PROCESSOR', 'CONTROLLER_SERVICE', or 'REPORTING_TASK'.", true),
+    EXT_BUNDLE_TYPE("ebt", "extensionBundleType", "The type of extension bundle, either nifi-nar or minifi-cpp", true),
+    EXT_BUNDLE_FILE("ebf", "extensionBundleFile", "An extension bundle file, such as a NAR or MiNiFi CPP binary", true, true),
+    EXT_BUNDLE_DIR("ebd", "extensionBundleDir", "A directory where extension bundles are located", true, true),
+    SKIP_SHA_256("skipSha256", "skipSha256", "Skips the client side calculation of the SHA-256 when uploading an extension bundle", false),
+
+    EXT_TAGS("tags", "tags", "A comma separated list of one or more extension tags", true),
 
     // NiFi - Nodes
     NIFI_NODE_ID("nnid", "nifiNodeId", "The ID of a node in the NiFi cluster", true),
@@ -102,6 +117,7 @@ public enum CommandOption {
     FORCE("force", "force", "Indicates to force a delete operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
+    RECURSIVE("r", "recursive", "Indicates the command should perform the action recursively", false),
     HELP("h", "help", "Help", false)
     ;
 
