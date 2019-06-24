@@ -27,6 +27,7 @@ import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -176,6 +177,7 @@ public class ConfigMainTest {
     public void testTransformRoundTrip15RPGHandling() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("1.5_RPG_Handling");
     }
+
     @Test
     public void testTransformRoundTripDecompression() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("DecompressionCircularFlow");
@@ -295,6 +297,12 @@ public class ConfigMainTest {
     @Test
     public void testTransformVersionedFlowSnapshotSimple() throws IOException, SchemaLoaderException {
         transformVsfRoundTrip("VersionedFlowSnapshot-Simple");
+    }
+
+    @Test
+    public void testSuccessTransformDualRPGs() throws IOException, JAXBException, SchemaLoaderException {
+        ConfigSchema configSchema = ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("MINIFI-496/dual_rpgs.xml"));
+        Assert.assertTrue(configSchema.isValid());
     }
 
     private void transformRoundTrip(String name) throws JAXBException, IOException, SchemaLoaderException {
