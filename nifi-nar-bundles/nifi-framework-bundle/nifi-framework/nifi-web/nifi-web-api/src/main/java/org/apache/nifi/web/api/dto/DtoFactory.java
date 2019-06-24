@@ -1382,7 +1382,6 @@ public final class DtoFactory {
         }
 
         dto.setParameters(parameterDtos);
-        dto.setLastRefreshed(new Date());
         return dto;
     }
 
@@ -2107,6 +2106,8 @@ public final class DtoFactory {
             dto.setParentGroupId(parent.getIdentifier());
         }
 
+        final ParameterContext parameterContext = group.getParameterContext();
+        dto.setParameterContextId(parameterContext == null ? null : parameterContext.getIdentifier());
         return dto;
     }
 
@@ -2127,7 +2128,7 @@ public final class DtoFactory {
             final PermissionsDTO accessPolicy = createPermissionsDto(connection);
             final ConnectionStatusDTO status = getComponentStatus(
                 () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connection.getIdentifier().equals(connectionStatus.getId())).findFirst().orElse(null),
-                connectionStatus -> createConnectionStatusDto(connectionStatus)
+                this::createConnectionStatusDto
             );
             flow.getConnections().add(entityFactory.createConnectionEntity(dto, revision, accessPolicy, status));
         }

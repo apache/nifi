@@ -546,7 +546,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             .map(this::createParameter)
             .collect(Collectors.toSet());
 
-        return flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
+        context.setDescription(dto.getDescription());
+        return context;
     }
 
     private Parameter createParameter(final ParameterDTO dto) {

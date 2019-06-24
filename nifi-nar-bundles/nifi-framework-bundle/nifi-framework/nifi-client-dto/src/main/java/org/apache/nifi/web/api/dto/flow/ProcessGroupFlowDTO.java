@@ -33,6 +33,7 @@ public class ProcessGroupFlowDTO {
     private String id;
     private String uri;
     private String parentGroupId;
+    private String parameterContextId;
     private FlowBreadcrumbEntity breadcrumb;
     private FlowDTO flow;
     private Date lastRefreshed;
@@ -124,5 +125,14 @@ public class ProcessGroupFlowDTO {
 
     public void setLastRefreshed(Date lastRefreshed) {
         this.lastRefreshed = lastRefreshed;
+    }
+
+    @ApiModelProperty("The ID of the Parameter Context, or null if no Parameter Context has been bound to the Process Group")
+    public String getParameterContextId() {
+        return parameterContextId;
+    }
+
+    public void setParameterContextId(String parameterContextId) {
+        this.parameterContextId = parameterContextId;
     }
 }

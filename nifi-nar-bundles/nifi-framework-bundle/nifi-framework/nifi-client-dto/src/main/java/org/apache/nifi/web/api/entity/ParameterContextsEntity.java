@@ -17,13 +17,17 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 import java.util.Set;
 
 @XmlRootElement(name = "parameterContexts")
 public class ParameterContextsEntity extends Entity {
     private Set<ParameterContextEntity> parameterContexts;
+    private Date currentTime;
 
     @ApiModelProperty("The Parameter Contexts")
     public Set<ParameterContextEntity> getParameterContexts() {
@@ -32,5 +36,19 @@ public class ParameterContextsEntity extends Entity {
 
     public void setParameterContexts(final Set<ParameterContextEntity> parameterContexts) {
         this.parameterContexts = parameterContexts;
+    }
+
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+        value = "The current time on the system.",
+        dataType = "string",
+        readOnly = true
+    )
+    public Date getCurrentTime() {
+        return currentTime;
+    }
+
+    public void setCurrentTime(Date currentTime) {
+        this.currentTime = currentTime;
     }
 }

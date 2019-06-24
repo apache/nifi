@@ -85,6 +85,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -139,6 +140,7 @@ public class ParameterContextResource extends ApplicationResource {
         final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
         final ParameterContextsEntity entity = new ParameterContextsEntity();
         entity.setParameterContexts(parameterContexts);
+        entity.setCurrentTime(new Date());
 
         // generate the response
         return generateOkResponse(entity).build();
