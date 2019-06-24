@@ -1214,7 +1214,7 @@ public class VersionsResource extends ApplicationResource {
                     } catch (final ResumeFlowException rfe) {
                         // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
                         // since in this case the flow was successfully updated - we just couldn't re-enable the components.
-                        logger.error(rfe.getMessage(), rfe);
+                        logger.warn(rfe.getMessage(), rfe);
                         vcur.fail(rfe.getMessage());
                     } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
@@ -1415,7 +1415,7 @@ public class VersionsResource extends ApplicationResource {
                     } catch (final ResumeFlowException rfe) {
                         // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
                         // since in this case the flow was successfully updated - we just couldn't re-enable the components.
-                        logger.error(rfe.getMessage(), rfe);
+                        logger.warn(rfe.getMessage(), rfe);
                         vcur.fail(rfe.getMessage());
                     } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
@@ -1586,7 +1586,7 @@ public class VersionsResource extends ApplicationResource {
                 } catch (final IllegalStateException ise) {
                     // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
                     // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
-                    throw new ResumeFlowException("Failed to re-enable Controller Services because " + ise.getMessage(), ise);
+                    throw new ResumeFlowException("Successfully updated flow but could not re-enable all Controller Services because " + ise.getMessage(), ise);
                 }
             }
 
@@ -1638,7 +1638,7 @@ public class VersionsResource extends ApplicationResource {
                 } catch (final IllegalStateException ise) {
                     // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
                     // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
-                    throw new ResumeFlowException("Failed to restart components because " + ise.getMessage(), ise);
+                    throw new ResumeFlowException("Successfully updated flow but could not restart all Processors because " + ise.getMessage(), ise);
                 }
             }
         }
