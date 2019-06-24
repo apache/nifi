@@ -4315,6 +4315,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setYieldPeriod(proposed.getYieldDuration());
             processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
 
+            if (proposed.getScheduledState() == org.apache.nifi.registry.flow.ScheduledState.DISABLED) {
+                disableProcessor(processor);
+            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
+                enableProcessor(processor);
+            }
+
             if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
                 final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
