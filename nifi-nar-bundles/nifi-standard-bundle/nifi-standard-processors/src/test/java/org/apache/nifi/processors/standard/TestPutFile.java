@@ -54,11 +54,9 @@ public class TestPutFile {
         
         putFileRunner = TestRunners.newTestRunner(PutFile.class);
         putFileRunner.setProperty(PutFile.CHANGE_OWNER, System.getProperty("user.name"));
-//        putFileRunner.setProperty(PutFile.CHANGE_GROUP, "group4");
         putFileRunner.setProperty(PutFile.CHANGE_PERMISSIONS, "rw-r-----");
         putFileRunner.setProperty(PutFile.CREATE_DIRS, "true");
         putFileRunner.setProperty(PutFile.DIRECTORY, "target/test/data/out/PutFile/1/2/3/4/5");
-//        putFileRunner.setProperty(PutFile.CHANGE_LAST_MODIFIED_TIME, "false");
 
         putFileRunner.setValidateExpressionUsage(false);
     }
@@ -115,68 +113,6 @@ public class TestPutFile {
         putFileRunner.clearTransferState();
     }
 
-//    @Test
-//    public void testPutFileConflictResolution() throws IOException {
-//        emptyTestDirectory();
-//
-//        //Try transferring file with the same name as a directory, should fail in all cases
-//        // except RESOLUTION of NONE
-//        Path dir = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test" );
-//        Path dir2 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "nifi_test/testfile" );
-//        Files.createDirectory(dir);
-//        Files.createDirectory(dir2);
-//
-//        Map<String,String> attributes = new HashMap<>();
-//        attributes.put("filename", "testfile");
-//
-//        putFileRunner.enqueue(Paths.get(testFile), attributes);
-//        putFileRunner.run();
-//
-//        putFileRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 0);
-//        putFileRunner.assertTransferCount(PutSFTP.REL_FAILURE, 1);
-//
-//        //Prepare by uploading test file
-//        attributes = new HashMap<>();
-//        attributes.put("filename", "testfile.txt");
-//
-//        putFileRunner.setProperty(SFTPTransfer.CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_REPLACE);
-//
-//        putFileRunner.enqueue(Paths.get(testFile), attributes);
-//        putFileRunner.run();
-//        putFileRunner.clearTransferState();
-//
-//        //set conflict resolution mode to REJECT
-//        putFileRunner.setProperty(SFTPTransfer.CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_REJECT);
-//
-//        putFileRunner.enqueue(Paths.get(testFile), attributes);
-//        putFileRunner.run();
-//
-//        putFileRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 0);
-//        putFileRunner.assertTransferCount(PutSFTP.REL_REJECT, 1);
-//        putFileRunner.clearTransferState();
-//
-//        //set conflict resolution mode to IGNORE
-//        putFileRunner.setProperty(SFTPTransfer.CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_IGNORE);
-//        putFileRunner.enqueue(Paths.get(testFile), attributes);
-//        putFileRunner.run();
-//
-//        putFileRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 1);
-//        putFileRunner.assertTransferCount(PutSFTP.REL_REJECT, 0);
-//
-//        putFileRunner.clearTransferState();
-//
-//        //set conflict resolution mode to FAIL
-//        putFileRunner.setProperty(SFTPTransfer.CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_FAIL);
-//        putFileRunner.enqueue(Paths.get(testFile), attributes);
-//        putFileRunner.run();
-//
-//        putFileRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 0);
-//        putFileRunner.assertTransferCount(PutSFTP.REL_REJECT, 0);
-//        putFileRunner.assertTransferCount(PutSFTP.REL_FAILURE, 1);
-//
-//        putFileRunner.clearTransferState();
-//    }
-//
     
     private void emptyTestDirectory() throws IOException {
     	Files.walkFileTree(Paths.get("target/test/data/out/PutFile"), new FileVisitor<Path>() {

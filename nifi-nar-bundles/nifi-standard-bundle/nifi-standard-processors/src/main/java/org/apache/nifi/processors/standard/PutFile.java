@@ -28,6 +28,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -85,7 +88,22 @@ public class PutFile extends AbstractProcessor {
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     
     public static final Pattern RWX_PATTERN = Pattern.compile("^([r-][w-])([x-])([r-][w-])([x-])([r-][w-])([x-])$");
-    public static final Pattern NUM_PATTERN = Pattern.compile("\\d+");
+    public static final Pattern NUM_PATTERN = Pattern.compile("^[0-7]{3}$");
+    
+    private static final Validator PERMISSIONS_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            ValidationResult.Builder vr = new ValidationResult.Builder();
+            if (RWX_PATTERN.matcher(input).matches() || NUM_PATTERN.matcher(input).matches()) {
+                return vr.valid(true).build();
+            }
+            return vr.valid(false)
+                    .subject(subject)
+                    .input(input)
+                    .explanation("This must be expressed in rwxr-x--- form or octal triplet form.")
+                    .build();
+        }
+    };
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
@@ -121,13 +139,13 @@ public class PutFile extends AbstractProcessor {
                     + "place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644).  You may also use expression language such as "
                     + "${file.permissions}.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(PERMISSIONS_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHANGE_OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
             .description("Sets the owner on the output file to the value of this attribute.  You may also use expression language such as "
-                    + "${file.owner}.")
+                    + "${file.owner}. Note on many operating systems Nifi must be running as a super-user to have the permissions to set the file owner.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -243,23 +261,23 @@ public class PutFile extends AbstractProcessor {
                     if (chOwner || chGroup) {
                         Path currentPath = rootDirPath;
                         while (!currentPath.equals(existing)) {
-                        	if (chOwner) {
-	                            try {
-	                                UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
-	                                Files.setOwner(currentPath, lookupService.lookupPrincipalByName(owner));
-	                            } catch (Exception e) {
-	                                logger.warn("Could not set directory owner to {} because {}", new Object[]{owner, e});
-	                            }
-                        	}
-                        	if (chGroup) {
-	                            try {
-	                                UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
-	                                PosixFileAttributeView view = Files.getFileAttributeView(currentPath, PosixFileAttributeView.class);
-	                                view.setGroup(lookupService.lookupPrincipalByGroupName(group));
-	                            } catch (Exception e) {
-	                                logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
-	                            }
-                        	}
+                            if (chOwner) {
+                                try {
+                                    UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
+                                    Files.setOwner(currentPath, lookupService.lookupPrincipalByName(owner));
+                                } catch (Exception e) {
+                                    logger.warn("Could not set directory owner to {} because {}", new Object[]{owner, e});
+                                }
+                            }
+                            if (chGroup) {
+                                try {
+                                    UserPrincipalLookupService lookupService = currentPath.getFileSystem().getUserPrincipalLookupService();
+                                    PosixFileAttributeView view = Files.getFileAttributeView(currentPath, PosixFileAttributeView.class);
+                                    view.setGroup(lookupService.lookupPrincipalByGroupName(group));
+                                } catch (Exception e) {
+                                    logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+                                }
+                            }
                             currentPath = currentPath.getParent();
                         }
                     }
