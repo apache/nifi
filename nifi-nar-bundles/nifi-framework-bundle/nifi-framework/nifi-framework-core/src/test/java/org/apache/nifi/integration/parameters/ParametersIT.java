@@ -179,7 +179,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
     }
 
     @Test
-    public void testParametersWhereELSupportedByNotPresent() throws ExecutionException, InterruptedException {
+    public void testParametersWhereELSupportedButNotPresent() throws ExecutionException, InterruptedException {
         final ProcessorNode generate = createProcessorNode(GenerateProcessor.class);
         final ProcessorNode updateAttribute = createProcessorNode(UpdateAttributeWithEL.class);
         final ProcessorNode terminate = getTerminateProcessor();
@@ -208,5 +208,43 @@ public class ParametersIT extends FrameworkIntegrationTest {
         assertEquals("unit", flowFileRecord.getAttribute("foo"));
         assertEquals("unitunit", flowFileRecord.getAttribute("bar"));
         assertEquals("foounitbar", flowFileRecord.getAttribute("baz"));
+    }
+
+    @Test
+    public void testCornerCases() throws ExecutionException, InterruptedException {
+        final ProcessorNode generate = createProcessorNode(GenerateProcessor.class);
+        final ProcessorNode updateAttribute = createProcessorNode(UpdateAttributeWithEL.class);
+        final ProcessorNode terminate = getTerminateProcessor();
+
+        final Connection generatedFlowFileConnection = connect(generate, updateAttribute, REL_SUCCESS);
+        final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> variables = new HashMap<>();
+        variables.put("#{test}", "variable #{test}");
+        getRootGroup().setVariables(variables);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("foo", "${#{test}}");
+        properties.put("bar", "${'#{test}'}");
+        properties.put("baz", "${ # this is a comment\n#{test}}");
+        properties.put("multi", "${ #### this is a comment\n#{test}}");
+        updateAttribute.setProperties(properties);
+
+        triggerOnce(generate);
+        triggerOnce(updateAttribute);
+
+        final FlowFileQueue flowFileQueue = updatedAttributeConnection.getFlowFileQueue();
+        final FlowFileRecord flowFileRecord = flowFileQueue.poll(Collections.emptySet());
+
+        assertEquals("unit", flowFileRecord.getAttribute("foo"));
+        assertEquals("variable #{test}", flowFileRecord.getAttribute("bar"));
+        assertEquals("unit", flowFileRecord.getAttribute("baz"));
+        assertEquals("unit", flowFileRecord.getAttribute("multi"));
     }
 }
