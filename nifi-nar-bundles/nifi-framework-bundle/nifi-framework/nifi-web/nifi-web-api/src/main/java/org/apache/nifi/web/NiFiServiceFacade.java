@@ -25,6 +25,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
@@ -1359,13 +1360,16 @@ public interface NiFiServiceFacade {
      * @param registryId the ID of the Flow Registry to persist the snapshot to
      * @param flow the flow where the snapshot should be persisted
      * @param snapshot the Snapshot to persist
+     * @param externalControllerServiceReferences a mapping of controller service id to ExternalControllerServiceReference for any Controller Service that is referenced in the flow but not included
+     * in the VersionedProcessGroup
      * @param comments about the snapshot
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
      *
      * @throws NiFiCoreException if unable to register the snapshot with the flow registry
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, String comments, int expectedVersion);
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot,
+                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, String comments, int expectedVersion);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID
@@ -2155,6 +2159,17 @@ public interface NiFiServiceFacade {
      * @param versionedGroup the versioned group
      */
     void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
+
+    /**
+     * For any Controller Service that is found in the given Versioned Process Group, if that Controller Service is not itself included in the Versioned Process Groups,
+     * attempts to find an existing Controller Service that matches the definition. If any is found, the component within the Versioned Process Group is updated to point
+     * to the existing service.
+     *
+     * @param versionedFlowSnapshot the flow snapshot
+     * @param parentGroupId the ID of the Process Group from which the Controller Services are inherited
+     * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Controller Services that the user has READ permissions to are included
+     */
+    void resolveInheritedControllerServices(VersionedFlowSnapshot versionedFlowSnapshot, String parentGroupId, NiFiUser user);
 
     /**
      * @param type the component type

@@ -1653,7 +1653,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiParam(
                     value = "The process group configuration details.",
                     required = true
-        ) final ProcessGroupEntity requestProcessGroupEntity) throws IOException {
+        ) final ProcessGroupEntity requestProcessGroupEntity) {
 
         if (requestProcessGroupEntity == null || requestProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
@@ -1697,20 +1697,13 @@ public class ProcessGroupResource extends ApplicationResource {
         if (versionControlInfo != null && requestProcessGroupEntity.getVersionedFlowSnapshot() == null) {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
             // Step 2: Retrieve flow from Flow Registry
-            final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
-            final Bucket bucket = flowSnapshot.getBucket();
-            final VersionedFlow flow = flowSnapshot.getFlow();
-
-            versionControlInfo.setBucketName(bucket.getName());
-            versionControlInfo.setFlowName(flow.getName());
-            versionControlInfo.setFlowDescription(flow.getDescription());
-
-            versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
-            final VersionedFlowState flowState = flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE : VersionedFlowState.STALE;
-            versionControlInfo.setState(flowState.name());
+            final VersionedFlowSnapshot flowSnapshot = getFlowFromRegistry(versionControlInfo);
 
             // Step 3: Resolve Bundle info
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+
+            // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
+            serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
             // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
@@ -1790,6 +1783,24 @@ public class ProcessGroupResource extends ApplicationResource {
                 }
         );
     }
+
+
+    private VersionedFlowSnapshot getFlowFromRegistry(final VersionControlInformationDTO versionControlInfo) {
+        final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
+        final Bucket bucket = flowSnapshot.getBucket();
+        final VersionedFlow flow = flowSnapshot.getFlow();
+
+        versionControlInfo.setBucketName(bucket.getName());
+        versionControlInfo.setFlowName(flow.getName());
+        versionControlInfo.setFlowDescription(flow.getDescription());
+
+        versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
+        final VersionedFlowState flowState = flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE : VersionedFlowState.STALE;
+        versionControlInfo.setState(flowState.name());
+
+        return flowSnapshot;
+    }
+
 
     /**
      * Retrieves all the processors in this NiFi.
