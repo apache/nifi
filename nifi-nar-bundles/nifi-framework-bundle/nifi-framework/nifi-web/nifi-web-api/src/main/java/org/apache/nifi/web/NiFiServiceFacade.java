@@ -2157,6 +2157,16 @@ public interface NiFiServiceFacade {
     void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
 
     /**
+     * For any Controller Service that is found in the given Versioned Process Group, if that Controller Service is not itself included in the Versioned Process Groups,
+     * attempts to find an existing Controller Service that matches the definition. If any is found, the component within the Versioned Process Group is updated to point
+     * to the existing service.
+     *
+     * @param versionedGroup the versioned group
+     * @param parentGroupId the ID of the Process Group from which the Controller Services are inherited
+     */
+    void resolveInheritedControllerServices(VersionedProcessGroup versionedGroup, String parentGroupId);
+
+    /**
      * @param type the component type
      * @param bundleDTO bundle to find the component
      * @return the bundle coordinate

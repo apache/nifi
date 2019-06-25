@@ -19,7 +19,9 @@ package org.apache.nifi.util;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.VersionedControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
@@ -152,24 +154,16 @@ public final class BundleUtils {
         if (versionedGroup.getProcessors() != null) {
             versionedGroup.getProcessors().forEach(processor -> {
                 final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, processor.getType(), createBundleDto(processor.getBundle()));
-
-                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                processor.setBundle(bundle);
+                processor.setBundle(createBundle(coordinate));
+                processor.getPropertyDescriptors().values().forEach(descriptor -> updatePropertyDescriptor(extensionManager, descriptor));
             });
         }
 
         if (versionedGroup.getControllerServices() != null) {
             versionedGroup.getControllerServices().forEach(controllerService -> {
                 final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle()));
-
-                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                controllerService.setBundle(bundle);
+                controllerService.setBundle(createBundle(coordinate));
+                controllerService.getPropertyDescriptors().values().forEach(descriptor -> updatePropertyDescriptor(extensionManager, descriptor));
             });
         }
 
@@ -178,6 +172,24 @@ public final class BundleUtils {
                 discoverCompatibleBundles(extensionManager, processGroup);
             });
         }
+    }
+
+    private static void updatePropertyDescriptor(final ExtensionManager extensionManager, final VersionedPropertyDescriptor propertyDescriptor) {
+        final VersionedControllerServiceReference serviceReference = propertyDescriptor.getControllerServiceReference();
+        if (serviceReference == null) {
+            return;
+        }
+
+        final BundleCoordinate compatible = BundleUtils.getCompatibleBundle(extensionManager, serviceReference.getType(), createBundleDto(serviceReference.getBundle()));
+        serviceReference.setBundle(createBundle(compatible));
+    }
+
+    private static org.apache.nifi.registry.flow.Bundle createBundle(final BundleCoordinate coordinate) {
+        final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
+        bundle.setArtifact(coordinate.getId());
+        bundle.setGroup(coordinate.getGroup());
+        bundle.setVersion(coordinate.getVersion());
+        return bundle;
     }
 
     public static BundleDTO createBundleDto(final org.apache.nifi.registry.flow.Bundle bundle) {

@@ -1148,6 +1148,9 @@ public class VersionsResource extends ApplicationResource {
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
+        // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot.getFlowContents(), groupId);
+
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);
 
@@ -1308,6 +1311,9 @@ public class VersionsResource extends ApplicationResource {
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+
+        // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot.getFlowContents(), groupId);
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);

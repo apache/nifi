@@ -49,6 +49,7 @@ import org.apache.nifi.registry.flow.Position;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.registry.flow.VersionedControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
@@ -325,7 +326,7 @@ public class NiFiRegistryFlowMapper {
 
         versionedService.setControllerServiceApis(mapControllerServiceApis(controllerService));
         versionedService.setProperties(mapProperties(controllerService, serviceProvider));
-        versionedService.setPropertyDescriptors(mapPropertyDescriptors(controllerService));
+        versionedService.setPropertyDescriptors(mapPropertyDescriptors(controllerService, serviceProvider));
         versionedService.setType(controllerService.getCanonicalClassName());
 
         return versionedService;
@@ -357,16 +358,42 @@ public class NiFiRegistryFlowMapper {
         return mapped;
     }
 
-    private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ComponentNode component) {
+    private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ComponentNode component, final ControllerServiceProvider serviceProvider) {
         final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
         for (final PropertyDescriptor descriptor : component.getProperties().keySet()) {
             final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
-            versionedDescriptor.setIdentifiesControllerService(descriptor.getControllerServiceDefinition() != null);
+
+            final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
+            versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
+
+            if (referencedServiceType != null) {
+                final String value = component.getProperty(descriptor);
+                if (value != null) {
+                    final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(value);
+                    final VersionedControllerServiceReference serviceReference = createControllerServiceReference(serviceNode);
+                    versionedDescriptor.setControllerServiceReference(serviceReference);
+                }
+            }
+
             descriptors.put(descriptor.getName(), versionedDescriptor);
         }
+
         return descriptors;
+    }
+
+    private VersionedControllerServiceReference createControllerServiceReference(final ControllerServiceNode serviceNode) {
+        if (serviceNode == null) {
+            return null;
+        }
+
+        final VersionedControllerServiceReference reference = new VersionedControllerServiceReference();
+        reference.setId(serviceNode.getIdentifier());
+        reference.setType(serviceNode.getComponentClass().getName());
+        reference.setBundle(mapBundle(serviceNode.getBundleCoordinate()));
+        reference.setName(serviceNode.getName());
+        return reference;
     }
 
     private Bundle mapBundle(final BundleCoordinate coordinate) {
@@ -468,7 +495,7 @@ public class NiFiRegistryFlowMapper {
         processor.setPenaltyDuration(procNode.getPenalizationPeriod());
         processor.setPosition(mapPosition(procNode.getPosition()));
         processor.setProperties(mapProperties(procNode, serviceProvider));
-        processor.setPropertyDescriptors(mapPropertyDescriptors(procNode));
+        processor.setPropertyDescriptors(mapPropertyDescriptors(procNode, serviceProvider));
         processor.setRunDurationMillis(procNode.getRunDuration(TimeUnit.MILLISECONDS));
         processor.setSchedulingPeriod(procNode.getSchedulingPeriod());
         processor.setSchedulingStrategy(procNode.getSchedulingStrategy().name());

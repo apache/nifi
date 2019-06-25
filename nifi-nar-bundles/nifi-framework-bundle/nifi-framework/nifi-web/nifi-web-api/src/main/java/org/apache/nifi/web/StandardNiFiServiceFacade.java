@@ -100,12 +100,16 @@ import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
+import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.registry.flow.VersionedControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -3069,6 +3073,103 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void discoverCompatibleBundles(VersionedProcessGroup versionedGroup) {
         BundleUtils.discoverCompatibleBundles(controllerFacade.getExtensionManager(), versionedGroup);
+    }
+
+    @Override
+    public void resolveInheritedControllerServices(final VersionedProcessGroup versionedGroup, final String processGroupId) {
+        final Set<String> availableControllerServiceIds = findAllControllerServiceIds(versionedGroup);
+        final ProcessGroup parentGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final Set<ControllerServiceNode> serviceNodes = parentGroup.getControllerServices(true);
+
+        for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
+            resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes);
+        }
+
+        for (final VersionedControllerService service : versionedGroup.getControllerServices()) {
+            resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes);
+        }
+
+        for (final VersionedProcessGroup child : versionedGroup.getProcessGroups()) {
+            resolveInheritedControllerServices(child, processGroupId);
+        }
+    }
+
+
+    private void resolveInheritedControllerServices(final VersionedProcessor processor, final Set<String> availableControllerServiceIds, final Set<ControllerServiceNode> availableControllerServices) {
+        final Map<String, VersionedPropertyDescriptor> descriptors = processor.getPropertyDescriptors();
+        final Map<String, String> properties = processor.getProperties();
+
+        resolveInheritedControllerServices(descriptors, properties, availableControllerServiceIds, availableControllerServices);
+    }
+
+
+    private void resolveInheritedControllerServices(final VersionedControllerService controllerService, final Set<String> availableControllerServiceIds,
+                                                    final Set<ControllerServiceNode> availableControllerServices) {
+        final Map<String, VersionedPropertyDescriptor> descriptors = controllerService.getPropertyDescriptors();
+        final Map<String, String> properties = controllerService.getProperties();
+
+        resolveInheritedControllerServices(descriptors, properties, availableControllerServiceIds, availableControllerServices);
+    }
+
+
+    private void resolveInheritedControllerServices(final Map<String, VersionedPropertyDescriptor> propertyDescriptors, final Map<String, String> componentProperties,
+                                                    final Set<String> availableControllerServiceIds, final Set<ControllerServiceNode> availableControllerServices) {
+
+        for (final String propertyName : componentProperties.keySet()) {
+            final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyName);
+            if (propertyDescriptor == null) {
+                continue;
+            }
+
+            final VersionedControllerServiceReference serviceReference = propertyDescriptor.getControllerServiceReference();
+            if (serviceReference == null) {
+                continue;
+            }
+
+            // If the referenced Controller Service is available in this flow, there is nothing to resolve.
+            if (availableControllerServiceIds.contains(serviceReference.getId())) {
+                continue;
+            }
+
+            final org.apache.nifi.registry.flow.Bundle referencedBundle = serviceReference.getBundle();
+
+            // There is a reference to a Controller Service, but the Controller Service is not available to us.
+            // Attempt to locate one at a higher level that has the same Controller Service Type, Bundle, and Name.
+            final List<ControllerServiceNode> matchingControllerServices = availableControllerServices.stream()
+                .filter(service -> service.getComponentClass().getName().equals(serviceReference.getType())
+                    && service.getName().equals(serviceReference.getName())
+                    && service.getBundleCoordinate().getGroup().equals(referencedBundle.getGroup())
+                    && service.getBundleCoordinate().getId().equals(referencedBundle.getArtifact())
+                    && service.getBundleCoordinate().getVersion().equals(referencedBundle.getVersion()))
+                .collect(Collectors.toList());
+
+            if (matchingControllerServices.size() != 1) {
+                continue;
+            }
+
+            final ControllerServiceNode matchingServiceNode = matchingControllerServices.get(0);
+            final Optional<String> versionedComponentId = matchingServiceNode.getVersionedComponentId();
+            final String resolvedId = versionedComponentId.orElseGet(matchingServiceNode::getIdentifier);
+
+            serviceReference.setId(resolvedId);
+            componentProperties.put(propertyName, resolvedId);
+        }
+    }
+
+    private Set<String> findAllControllerServiceIds(final VersionedProcessGroup group) {
+        final Set<String> ids = new HashSet<>();
+        findAllControllerServiceIds(group, ids);
+        return ids;
+    }
+
+    private void findAllControllerServiceIds(final VersionedProcessGroup group, final Set<String> ids) {
+        for (final VersionedControllerService service : group.getControllerServices()) {
+            ids.add(service.getIdentifier());
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            findAllControllerServiceIds(childGroup, ids);
+        }
     }
 
     @Override
