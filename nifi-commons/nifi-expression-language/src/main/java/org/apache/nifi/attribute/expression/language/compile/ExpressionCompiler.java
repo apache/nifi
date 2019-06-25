@@ -1108,7 +1108,8 @@ public class ExpressionCompiler {
 
         final List<Range> ranges = Query.extractExpressionRanges(literalValue);
         if (ranges.isEmpty()) {
-            return addToken(new StringLiteralEvaluator(literalValue), literalValue);
+            final List<Range> escapedRanges = Query.extractEscapedRanges(literalValue);
+            return newStringLiteralEvaluatorForEscapedRanges(literalValue, escapedRanges);
         }
 
         final List<Evaluator<?>> evaluators = new ArrayList<>();
@@ -1151,6 +1152,44 @@ public class ExpressionCompiler {
         return lastEvaluator;
     }
 
+    private Evaluator<String> newStringLiteralEvaluatorForEscapedRanges(final String literalValue, final List<Range> escapedRanges) {
+        if (escapedRanges.isEmpty()) {
+            return addToken(new StringLiteralEvaluator(literalValue), literalValue);
+        }
+
+        int lastIndex = 0;
+        final List<Evaluator<?>> evaluators = new ArrayList<>();
+        for (final Range range : escapedRanges) {
+            final String treeText = literalValue.substring(range.getStart(), range.getEnd() + 1);
+
+            if (range.getStart() > lastIndex) {
+                evaluators.add(new StringLiteralEvaluator(literalValue.substring(lastIndex, range.getStart())));
+            }
+
+            final Evaluator<?> evaluator = new StringLiteralEvaluator(Query.unescape(treeText));
+            evaluators.add(evaluator);
+            lastIndex = range.getEnd() + 1;
+        }
+
+
+        final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
+        if (lastRange.getEnd() + 1 < literalValue.length()) {
+            final String treeText = literalValue.substring(lastRange.getEnd() + 1);
+            evaluators.add(new StringLiteralEvaluator(treeText));
+        }
+
+        if (evaluators.size() == 1) {
+            return toStringEvaluator(evaluators.get(0));
+        }
+
+        Evaluator<String> lastEvaluator = toStringEvaluator(evaluators.get(0));
+        for (int i = 1; i < evaluators.size(); i++) {
+            lastEvaluator = new AppendEvaluator(lastEvaluator, toStringEvaluator(evaluators.get(i)));
+        }
+
+        this.evaluators.addAll(evaluators);
+        return lastEvaluator;
+    }
 
     private Evaluator<Boolean> buildBooleanEvaluator(final Tree tree) {
         switch (tree.getType()) {

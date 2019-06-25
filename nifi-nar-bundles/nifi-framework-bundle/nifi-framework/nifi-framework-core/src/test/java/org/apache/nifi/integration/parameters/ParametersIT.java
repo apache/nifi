@@ -227,13 +227,19 @@ public class ParametersIT extends FrameworkIntegrationTest {
 
         final Map<String, String> variables = new HashMap<>();
         variables.put("#{test}", "variable #{test}");
+        variables.put("${var}", "variable ${var}");
+        variables.put("var", "abc");
+        variables.put("abc", "123");
         getRootGroup().setVariables(variables);
 
         final Map<String, String> properties = new HashMap<>();
-        properties.put("foo", "${#{test}}");
-        properties.put("bar", "${'#{test}'}");
-        properties.put("baz", "${ # this is a comment\n#{test}}");
-        properties.put("multi", "${ #### this is a comment\n#{test}}");
+        properties.put("foo", "${#{test}}");  // References a Parameter named 'test'
+        properties.put("bar", "${'#{test}'}");  // Parameter reference is quoted, which means that it's treated as a String, not a reference. This references a variable/attribute named '#{test}'
+        properties.put("baz", "${ # this is a comment\n#{test}}"); // Test Parameter reference following a comment in EL
+        properties.put("multi", "${ #### this is a comment\n#{test}}");  // Test several #'s for a comment, followed by a parameter reference
+        properties.put("embedded", "${'$${var}'}");  // Here, we reference a variable/attribute named '${var}' - since EL Expressions can be embedded even within quotes, we must escape with extra $.
+        properties.put("indirect", "${'${var}'}"); // Reference a variable/attribute whose name is defined by variable/attribute 'var' - i.e., reference variable 'var', whose value is 'abc', then
+                                                   // use that to reference variable "abc" to get a value of 123
         updateAttribute.setProperties(properties);
 
         triggerOnce(generate);
@@ -246,5 +252,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         assertEquals("variable #{test}", flowFileRecord.getAttribute("bar"));
         assertEquals("unit", flowFileRecord.getAttribute("baz"));
         assertEquals("unit", flowFileRecord.getAttribute("multi"));
+        assertEquals("variable ${var}", flowFileRecord.getAttribute("embedded"));
+        assertEquals("123", flowFileRecord.getAttribute("indirect"));
     }
 }
