@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -139,8 +140,8 @@ public class FlowDifferenceFilters {
         return false;
     }
 
-    private static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final ProcessorNode processorNode) {
-        if (processorNode == null) {
+    private static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final ComponentNode componentNode) {
+        if (componentNode == null) {
             return false;
         }
 
@@ -150,30 +151,7 @@ public class FlowDifferenceFilters {
         }
 
         final String fieldName = optionalFieldName.get();
-        final PropertyDescriptor propertyDescriptor = processorNode.getPropertyDescriptor(fieldName);
-        if (propertyDescriptor == null) {
-            return false;
-        }
-
-        if (Objects.equals(fd.getValueB(), propertyDescriptor.getDefaultValue())) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final ControllerServiceNode controllerService) {
-        if (controllerService == null) {
-            return false;
-        }
-
-        final Optional<String> optionalFieldName = fd.getFieldName();
-        if (!optionalFieldName.isPresent()) {
-            return false;
-        }
-
-        final String fieldName = optionalFieldName.get();
-        final PropertyDescriptor propertyDescriptor = controllerService.getPropertyDescriptor(fieldName);
+        final PropertyDescriptor propertyDescriptor = componentNode.getPropertyDescriptor(fieldName);
         if (propertyDescriptor == null) {
             return false;
         }
