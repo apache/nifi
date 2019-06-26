@@ -170,6 +170,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
                 try {
                     // Safe to cast. Method #buildTargetResource(ProcessContext context) sets only CachingConnectionFactory
                     CachingConnectionFactory currentCF = (CachingConnectionFactory)worker.jmsTemplate.getConnectionFactory();
+                    worker.shutdown();
                     cfProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
                     worker = buildTargetResource(context);
                 }catch(Exception e) {

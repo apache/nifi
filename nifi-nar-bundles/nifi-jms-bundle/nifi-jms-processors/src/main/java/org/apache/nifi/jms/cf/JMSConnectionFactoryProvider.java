@@ -39,7 +39,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.slf4j.Logger;
@@ -143,7 +142,9 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     public void resetConnectionFactory(ConnectionFactory cachedFactory) {
         if (cachedFactory == connectionFactory) {
             getLogger().debug("Resetting connection factory");
-            connectionFactory = null;
+            ConfigurationContext context = getConfigurationContext();
+            this.createConnectionFactoryInstance(context);
+            this.setConnectionFactoryProperties(context);
         }
     }
 
@@ -160,7 +161,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     }
 
     @OnEnabled
-    public void enable(ConfigurationContext context) throws InitializationException {
+    public void enable(ConfigurationContext context) {
         try {
             if (!this.configured) {
                 if (logger.isInfoEnabled()) {
