@@ -19,6 +19,8 @@ package org.apache.nifi.reporting;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.json.Json;
+import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonString;
@@ -42,8 +45,11 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.RunStatus;
+import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
@@ -108,8 +114,13 @@ public class TestSiteToSiteStatusReportingTask {
         assertEquals(16, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
+        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        JsonString componentId = firstElement.getJsonString("componentId");
         assertEquals(pgStatus.getId(), componentId.getString());
+        JsonNumber terminatedThreads = firstElement.getJsonNumber("terminatedThreadCount");
+        assertEquals(1, terminatedThreads.longValue());
+        JsonString versionedFlowState = firstElement.getJsonString("versionedFlowState");
+        assertEquals("UP_TO_DATE", versionedFlowState.getString());
     }
 
     @Test
@@ -150,6 +161,10 @@ public class TestSiteToSiteStatusReportingTask {
         JsonString source = object.getJsonString("sourceName");
         assertEquals("true", backpressure.getString());
         assertEquals("source", source.getString());
+        JsonString dataSizeThreshold = object.getJsonString("backPressureDataSizeThreshold");
+        JsonNumber bytesThreshold = object.getJsonNumber("backPressureBytesThreshold");
+        assertEquals("1 KB", dataSizeThreshold.getString());
+        assertEquals(1024, bytesThreshold.intValue());
     }
 
     @Test
@@ -190,6 +205,80 @@ public class TestSiteToSiteStatusReportingTask {
         assertEquals("root.1.1.processor.1", componentId.getString());
     }
 
+    @Test
+    public void testPortStatus() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonString runStatus = object.getJsonString("runStatus");
+        assertEquals(RunStatus.Stopped.name(), runStatus.getString());
+        boolean isTransmitting = object.getBoolean("transmitting");
+        assertFalse(isTransmitting);
+        JsonNumber inputBytes = object.getJsonNumber("inputBytes");
+        assertEquals(5, inputBytes.intValue());
+    }
+
+    @Test
+    public void testRemoteProcessGroupStatus() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        assertEquals(3, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        JsonNumber activeThreadCount = firstElement.getJsonNumber("activeThreadCount");
+        assertEquals(1L, activeThreadCount.longValue());
+        JsonString transmissionStatus = firstElement.getJsonString("transmissionStatus");
+        assertEquals("Transmitting", transmissionStatus.getString());
+    }
+
+    @Test
+    public void testProcessorStatus() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonString runStatus = object.getJsonString("runStatus");
+        assertEquals(RunStatus.Running.name(), runStatus.getString());
+        JsonNumber inputBytes = object.getJsonNumber("inputBytes");
+        assertEquals(9, inputBytes.intValue());
+        JsonObject counterMap = object.getJsonObject("counters");
+        assertNotNull(counterMap);
+        assertEquals(10, counterMap.getInt("counter1"));
+        assertEquals(5, counterMap.getInt("counter2"));
+    }
+
+    /***********************************
+     * Test component generator methods
+     ***********************************/
+
     public static ProcessGroupStatus generateProcessGroupStatus(String id, String namePrefix,
             int maxRecursion, int currentDepth) {
         Collection<ConnectionStatus> cStatus = new ArrayList<>();
@@ -229,6 +318,7 @@ public class TestSiteToSiteStatusReportingTask {
         pgStatus.setProcessGroupStatus(childPgStatus);
         pgStatus.setRemoteProcessGroupStatus(rpgStatus);
         pgStatus.setProcessorStatus(pStatus);
+        pgStatus.setVersionedFlowState(VersionedFlowState.UP_TO_DATE);
 
         pgStatus.setActiveThreadCount(1);
         pgStatus.setBytesRead(2L);
@@ -246,6 +336,7 @@ public class TestSiteToSiteStatusReportingTask {
         pgStatus.setOutputCount(13);
         pgStatus.setQueuedContentSize(14l);
         pgStatus.setQueuedCount(15);
+        pgStatus.setTerminatedThreadCount(1);
 
         return pgStatus;
     }
@@ -263,6 +354,8 @@ public class TestSiteToSiteStatusReportingTask {
         pStatus.setInputCount(6);
         pStatus.setOutputBytes(7l);
         pStatus.setOutputCount(8);
+        pStatus.setRunStatus(RunStatus.Stopped);
+        pStatus.setTransmitting(false);
 
         return pStatus;
     }
@@ -287,6 +380,12 @@ public class TestSiteToSiteStatusReportingTask {
         pStatus.setOutputCount(13);
         pStatus.setProcessingNanos(14l);
         pStatus.setType("type");
+        pStatus.setTerminatedThreadCount(1);
+        pStatus.setRunStatus(RunStatus.Running);
+        pStatus.setCounters(new HashMap<String, Long>() {{
+            put("counter1", 10L);
+            put("counter2", 5L);
+        }});
 
         return pStatus;
     }
@@ -304,6 +403,7 @@ public class TestSiteToSiteStatusReportingTask {
         rpgStatus.setSentContentSize(6l);
         rpgStatus.setSentCount(7);
         rpgStatus.setTargetUri("uri");
+        rpgStatus.setTransmissionStatus(TransmissionStatus.Transmitting);
 
         return rpgStatus;
     }
@@ -312,7 +412,7 @@ public class TestSiteToSiteStatusReportingTask {
         ConnectionStatus cStatus = new ConnectionStatus();
         cStatus.setId(id);
         cStatus.setName(namePrefix + "-" + UUID.randomUUID().toString());
-        cStatus.setBackPressureBytesThreshold(0l);
+        cStatus.setBackPressureDataSizeThreshold("1 KB"); // sets backPressureBytesThreshold too
         cStatus.setBackPressureObjectThreshold(1l);
         cStatus.setInputBytes(2l);
         cStatus.setInputCount(3);
