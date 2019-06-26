@@ -394,7 +394,7 @@ public class NiFiRegistryFlowMapper {
                     if (serviceNode == null) {
                         continue;
                     }
-                    
+
                     final String serviceGroupId = serviceNode.getProcessGroupIdentifier();
                     if (!includedGroupIds.contains(serviceGroupId)) {
                         final String serviceId = getId(serviceNode.getVersionedComponentId(), serviceNode.getIdentifier());
