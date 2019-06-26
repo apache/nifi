@@ -115,20 +115,6 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiPropertiesLoader.@keyHex == KEY_HEX
     }
 
-    @Ignore // functionality / test should move to StandardSensitivePropertyProvider class
-    @Test
-    void testShouldGetDefaultProviderKey() throws Exception {
-        // Arrange
-        final String EXPECTED_PROVIDER_KEY = "aes/gcm/${Cipher.getMaxAllowedKeyLength("AES") > 128 ? 256 : 128}"
-        logger.info("Expected provider key: ${EXPECTED_PROVIDER_KEY}")
-
-        // Act
-        String defaultKey = NiFiPropertiesLoader.getDefaultProviderKey()
-        logger.info("Default key: ${defaultKey}")
-        // Assert
-        assert defaultKey == EXPECTED_PROVIDER_KEY
-    }
-
     @Test
     void testShouldLoadUnprotectedPropertiesFromFile() throws Exception {
         // Arrange

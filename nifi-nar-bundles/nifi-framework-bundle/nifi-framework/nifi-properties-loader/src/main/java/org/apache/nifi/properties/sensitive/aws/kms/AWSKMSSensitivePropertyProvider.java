@@ -23,8 +23,9 @@ import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.EncryptResult;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.sensitive.SensitivePropertyMetadata;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
@@ -40,18 +41,24 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
     private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProvider.class);
 
     private static final String IMPLEMENTATION_NAME = "AWS KMS Sensitive Property Provider";
-    protected static final String IMPLEMENTATION_KEY = "aws/kms/";
+    private static final String IMPLEMENTATION_KEY = "aws/kms/";
 
     private AWSKMS client;
-    private final String key;
+    private final String keyId;
 
     public AWSKMSSensitivePropertyProvider(String keyId) {
-        this.key = validateKey(keyId);
+        this.keyId = normalizeKey(keyId);
         this.client = AWSKMSClientBuilder.standard().build();
     }
 
-    private String validateKey(String keyId) {
-        if (keyId == null || StringUtils.isBlank(keyId)) {
+    /**
+     * Ensures the key is usable, and ensures the key id is just the key id, no prefix.
+     *
+     * @param keyId AWS KMS key identifier, possibly prefixed.
+     * @return AWS KMS key identifier, bare.
+     */
+    private String normalizeKey(String keyId) {
+        if (StringUtils.isBlank(keyId)) {
             throw new SensitivePropertyProtectionException("The key cannot be empty");
         }
         if (keyId.startsWith(IMPLEMENTATION_KEY)) {
@@ -78,7 +85,7 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + key; // getIdentifierKey() has to include the kms key id/alias/arn
+        return IMPLEMENTATION_KEY + keyId; // getIdentifierKey() has to include the kms key id/alias/arn
     }
 
 
@@ -91,29 +98,16 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     @Override
     public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
-        if (unprotectedValue == null || unprotectedValue.trim().length() == 0) {
+        if (unprotectedValue == null || StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
         EncryptRequest request = new EncryptRequest()
-            .withKeyId(key)
+            .withKeyId(keyId)
             .withPlaintext(ByteBuffer.wrap(unprotectedValue.getBytes()));
 
         EncryptResult response = client.encrypt(request);
-        return Base64.toBase64String(response.getCiphertextBlob().array());
-    }
-
-    /**
-     * Returns the "protected" form of this value. This is a form which can safely be persisted in the {@code nifi.properties} file without compromising the value.
-     * An encryption-based provider would return a cipher text, while a remote-lookup provider could return a unique ID to retrieve the secured value.
-     *
-     * @param unprotectedValue the sensitive value
-     * @param metadata         per-value metadata necessary to perform the protection
-     * @return the value to persist in the {@code nifi.properties} file
-     */
-    @Override
-    public String protect(String unprotectedValue, SensitivePropertyMetadata metadata) throws SensitivePropertyProtectionException {
-        return protect(unprotectedValue);
+        return Base64.toBase64String(response.getCiphertextBlob().array()); // BC calls String(bytes)
     }
 
     /**
@@ -129,32 +123,27 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
             .withCiphertextBlob(ByteBuffer.wrap(Base64.decode(protectedValue)));
 
         DecryptResult response = client.decrypt(request);
-        return new String(response.getPlaintext().array());
+        return new String(response.getPlaintext().array(), Charset.defaultCharset());
     }
-
-    /**
-     * Returns the "unprotected" form of this value. This is the raw sensitive value which is used by the application logic.
-     * An encryption-based provider would decrypt a cipher text and return the plaintext, while a remote-lookup provider could retrieve the secured value.
-     *
-     * @param protectedValue the protected value read from the {@code nifi.properties} file
-     * @param metadata       per-value metadata necessary to perform the unprotection
-     * @return the raw value to be used by the application
-     */
-    @Override
-    public String unprotect(String protectedValue, SensitivePropertyMetadata metadata) throws SensitivePropertyProtectionException {
-        return unprotect(protectedValue);
-    }
-
 
     /**
      * True when the client specifies a key like 'aws/kms/...'.
      *
-     * @param key AWS KMS key, prefixed by our IMPLEMENTATION_KEY
-     * @param options array of string options; currently unsupported
-     * @return
+     * @param scheme name of encryption or protection scheme
+     * @return true if this class can provide protected values
      */
-    public static boolean isProviderFor(String key, String... options) {
-        return key.startsWith(IMPLEMENTATION_KEY);
+    public static boolean isProviderFor(String scheme) {
+        return StringUtils.isNotBlank(scheme) && scheme.startsWith(IMPLEMENTATION_KEY);
     }
 
+
+    /**
+     * Returns a printable representation of a key.
+     *
+     * @param keyOrKeyId key material or key id
+     * @return printable string
+     */
+    public static String toPrintableString(String keyOrKeyId) {
+        return keyOrKeyId;
+    }
 }

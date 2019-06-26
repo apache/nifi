@@ -297,7 +297,7 @@ class NiFiRegistryMode implements ToolMode {
             if (!decryptionKey) {
                 logger.debug("No decryption key specified via options, so if any input files require decryption prior to re-encryption (i.e., migration), this tool will fail.")
             }
-            decryptionProvider = decryptionKey ? StandardSensitivePropertyProvider.fromKey(decryptionKey) : null
+            decryptionProvider = StandardSensitivePropertyProvider.fromKey(decryptionKey)
 
             writingKeyToBootstrap = (usingPassword || usingRawKeyHex || rawOptions.B)
             if (writingKeyToBootstrap) {
