@@ -22,9 +22,9 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -46,6 +46,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
@@ -150,11 +151,10 @@ public class FlowFromDOMFactory {
         dto.setName(getString(element, "name"));
         dto.setDescription(getString(element, "description"));
 
-        final Set<ParameterDTO> parameterDtos = new LinkedHashSet<>();
+        final Set<ParameterEntity> parameterDtos = new LinkedHashSet<>();
         final List<Element> parameterElements = FlowFromDOMFactory.getChildrenByTagName(element, "parameter");
         for (final Element parameterElement : parameterElements) {
             final ParameterDTO parameterDto = new ParameterDTO();
-            parameterDtos.add(parameterDto);
 
             parameterDto.setName(getString(parameterElement, "name"));
             parameterDto.setDescription(getString(parameterElement, "description"));
@@ -162,6 +162,10 @@ public class FlowFromDOMFactory {
 
             final String value = decrypt(getString(parameterElement, "value"), encryptor);
             parameterDto.setValue(value);
+
+            final ParameterEntity parameterEntity = new ParameterEntity();
+            parameterEntity.setParameter(parameterDto);
+            parameterDtos.add(parameterEntity);
         }
 
         dto.setParameters(parameterDtos);

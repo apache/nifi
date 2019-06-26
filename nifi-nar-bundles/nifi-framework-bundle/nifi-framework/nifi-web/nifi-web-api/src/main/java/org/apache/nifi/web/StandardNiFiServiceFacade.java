@@ -248,6 +248,7 @@ import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -1046,6 +1047,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ParameterContext updatedParameterContext = new StandardParameterContext(parameterContext.getIdentifier(), parameterContext.getName(), ParameterReferenceManager.EMPTY);
         final Set<Parameter> parameters = parameterContextDto.getParameters().stream()
+            .map(ParameterEntity::getParameter)
             .map(this::createParameter)
             .collect(Collectors.toSet());
         updatedParameterContext.setParameters(parameters);

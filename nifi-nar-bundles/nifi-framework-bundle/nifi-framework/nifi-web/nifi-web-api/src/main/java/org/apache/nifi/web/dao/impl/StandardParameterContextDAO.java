@@ -33,6 +33,7 @@ import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
 
 import java.util.Collections;
@@ -65,12 +66,13 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     }
 
     private Set<Parameter> getParameters(final ParameterContextDTO parameterContextDto) {
-        final Set<ParameterDTO> parameterDtos = parameterContextDto.getParameters();
+        final Set<ParameterEntity> parameterDtos = parameterContextDto.getParameters();
         if (parameterDtos == null) {
             return Collections.emptySet();
         }
 
         return parameterContextDto.getParameters().stream()
+            .map(ParameterEntity::getParameter)
             .map(this::createParameter)
             .collect(Collectors.toSet());
     }
@@ -128,7 +130,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
-        for (final ParameterDTO parameterDto : parameterContextDto.getParameters()) {
+        for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
+            final ParameterDTO parameterDto = parameterEntity.getParameter();
             final String parameterName = parameterDto.getName();
             final ParameterReferenceManager referenceManager = currentContext.getParameterReferenceManager();
 

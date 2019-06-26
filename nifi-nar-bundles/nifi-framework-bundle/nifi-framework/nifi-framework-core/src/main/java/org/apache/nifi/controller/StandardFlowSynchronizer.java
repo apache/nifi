@@ -95,6 +95,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -543,6 +544,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
     private ParameterContext createParameterContext(final ParameterContextDTO dto, final FlowManager flowManager) {
         final Set<Parameter> parameters = dto.getParameters().stream()
+            .map(ParameterEntity::getParameter)
             .map(this::createParameter)
             .collect(Collectors.toSet());
 

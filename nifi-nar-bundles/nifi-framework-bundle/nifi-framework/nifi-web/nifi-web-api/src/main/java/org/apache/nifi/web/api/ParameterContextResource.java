@@ -47,6 +47,7 @@ import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
@@ -56,6 +57,7 @@ import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextValidationRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -87,6 +89,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1085,10 +1088,24 @@ public class ParameterContextResource extends ApplicationResource {
         }
         updateRequestDto.setUpdateSteps(updateSteps);
 
+        // Populate the Affected Components
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
+        final Set<AffectedComponentEntity> affectedComponents = new HashSet<>();
+        for (final ParameterEntity parameterEntity : contextEntity.getComponent().getParameters()) {
+            final ParameterDTO parameterDto = parameterEntity.getParameter();
+            if (parameterDto == null) {
+                continue;
+            }
+
+            affectedComponents.addAll(parameterDto.getReferencingComponents());
+        }
+
+        updateRequestDto.setAffectedComponents(affectedComponents);
+
         final ParameterContextUpdateRequestEntity updateRequestEntity = new ParameterContextUpdateRequestEntity();
 
+        // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'
         if (updateRequestDto.isComplete()) {
-            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
             updateRequestDto.setParameterContext(contextEntity == null ? null : contextEntity.getComponent());
             updateRequestEntity.setParameterContextRevision(contextEntity == null ? null : contextEntity.getRevision());
         }

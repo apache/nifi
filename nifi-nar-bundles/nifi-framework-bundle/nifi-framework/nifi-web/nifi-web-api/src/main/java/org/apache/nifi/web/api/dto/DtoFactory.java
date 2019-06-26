@@ -132,6 +132,7 @@ import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
@@ -216,6 +217,7 @@ import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -1376,13 +1378,24 @@ public final class DtoFactory {
         }
         dto.setBoundProcessGroups(boundGroups);
 
-        final Set<ParameterDTO> parameterDtos = new LinkedHashSet<>();
+        final Set<ParameterEntity> parameterEntities = new LinkedHashSet<>();
         for (final Parameter parameter : parameterContext.getParameters().values()) {
-            parameterDtos.add(createParameterDto(parameterContext, parameter, revisionManager));
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager));
         }
 
-        dto.setParameters(parameterDtos);
+        dto.setParameters(parameterEntities);
         return dto;
+    }
+
+    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager);
+        final ParameterEntity entity = new ParameterEntity();
+        entity.setParameter(dto);
+
+        final boolean canWrite = isWritable(dto.getReferencingComponents());
+        entity.setCanWrite(canWrite);
+
+        return entity;
     }
 
     public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
@@ -2667,7 +2680,7 @@ public final class DtoFactory {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
-            .map(descriptor -> descriptor.getName())
+            .map(VariableDescriptor::getName)
             .collect(Collectors.toList());
 
         final Set<VariableEntity> variableEntities = new LinkedHashSet<>();
@@ -2680,17 +2693,9 @@ public final class DtoFactory {
 
             final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager);
 
-            boolean canWrite = true;
-            for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
-                final PermissionsDTO permissions = affectedComponent.getPermissions();
-                if (!permissions.getCanRead() || !permissions.getCanWrite()) {
-                    canWrite = false;
-                    break;
-                }
-            }
-
             variableDto.setAffectedComponents(affectedComponentEntities);
 
+            final boolean canWrite = isWritable(affectedComponentEntities);
             final VariableEntity variableEntity = new VariableEntity();
             variableEntity.setVariable(variableDto);
             variableEntity.setCanWrite(canWrite);
@@ -2703,6 +2708,17 @@ public final class DtoFactory {
         registryDto.setVariables(variableEntities);
 
         return registryDto;
+    }
+
+    private boolean isWritable(final Collection<AffectedComponentEntity> affectedComponentEntities) {
+        for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
+            final PermissionsDTO permissions = affectedComponent.getPermissions();
+            if (!permissions.getCanRead() || !permissions.getCanWrite()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public VariableRegistryUpdateRequestDTO createVariableRegistryUpdateRequestDto(final VariableRegistryUpdateRequest request) {

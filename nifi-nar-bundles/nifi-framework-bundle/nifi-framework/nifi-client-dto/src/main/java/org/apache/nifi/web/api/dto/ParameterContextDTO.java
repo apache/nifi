@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -27,7 +28,7 @@ public class ParameterContextDTO {
     private String identifier;
     private String name;
     private String description;
-    private Set<ParameterDTO> parameters;
+    private Set<ParameterEntity> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
 
     public void setId(String id) {
@@ -57,12 +58,12 @@ public class ParameterContextDTO {
         return description;
     }
 
-    public void setParameters(final Set<ParameterDTO> parameters) {
+    public void setParameters(final Set<ParameterEntity> parameters) {
         this.parameters = parameters;
     }
 
     @ApiModelProperty("The Parameters for the Parameter Context")
-    public Set<ParameterDTO> getParameters() {
+    public Set<ParameterEntity> getParameters() {
         return parameters;
     }
 

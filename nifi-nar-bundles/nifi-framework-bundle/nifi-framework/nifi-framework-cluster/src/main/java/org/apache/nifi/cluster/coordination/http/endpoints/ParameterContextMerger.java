@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.util.ArrayList;
@@ -58,8 +59,9 @@ public class ParameterContextMerger {
 
     public static void merge(final ParameterContextDTO target, final Map<NodeIdentifier, ParameterContextDTO> entityMap) {
         final Map<String, ProcessGroupEntity> mergedBoundGroups = new HashMap<>();
-        final Map<String, Map<String, AffectedComponentEntity>> affectedComponentsByParametrName = new HashMap<>();
+        final Map<String, Map<String, AffectedComponentEntity>> affectedComponentsByParameterName = new HashMap<>();
 
+        final Set<String> unwritableParameters = new HashSet<>();
         for (final Map.Entry<NodeIdentifier, ParameterContextDTO> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
             final ParameterContextDTO contextDto = entry.getValue();
@@ -81,8 +83,14 @@ public class ParameterContextMerger {
             }
 
             if (contextDto.getParameters() != null) {
-                for (final ParameterDTO parameterDto : contextDto.getParameters()) {
-                    final Map<String, AffectedComponentEntity> affectedComponentsById = affectedComponentsByParametrName.computeIfAbsent(parameterDto.getName(), key -> new HashMap<>());
+                for (final ParameterEntity parameterEntity : contextDto.getParameters()) {
+                    final ParameterDTO parameterDto = parameterEntity.getParameter();
+
+                    if (!parameterEntity.getCanWrite()) {
+                        unwritableParameters.add(parameterDto.getName());
+                    }
+
+                    final Map<String, AffectedComponentEntity> affectedComponentsById = affectedComponentsByParameterName.computeIfAbsent(parameterDto.getName(), key -> new HashMap<>());
 
                     for (final AffectedComponentEntity referencingComponent : parameterDto.getReferencingComponents()) {
                         AffectedComponentEntity mergedAffectedComponent = affectedComponentsById.get(referencingComponent.getId());
@@ -100,8 +108,14 @@ public class ParameterContextMerger {
         target.setBoundProcessGroups(new HashSet<>(mergedBoundGroups.values()));
 
         // Set the merged parameter dto's
-        for (final ParameterDTO parameterDto : target.getParameters()) {
-            final Map<String, AffectedComponentEntity> componentMap = affectedComponentsByParametrName.get(parameterDto.getName());
+        for (final ParameterEntity parameterEntity : target.getParameters()) {
+            final ParameterDTO parameterDto = parameterEntity.getParameter();
+            final boolean unwritable = unwritableParameters.contains(parameterDto.getName());
+            if (unwritable) {
+                parameterEntity.setCanWrite(false);
+            }
+
+            final Map<String, AffectedComponentEntity> componentMap = affectedComponentsByParameterName.get(parameterDto.getName());
             parameterDto.setReferencingComponents(new HashSet<>(componentMap.values()));
         }
     }
@@ -118,7 +132,7 @@ public class ParameterContextMerger {
             additionalNodeId.getApiAddress(), additionalNodeId.getApiPort());
     }
 
-    private static void merge(final AffectedComponentEntity merged, final AffectedComponentEntity additional) {
+    static void merge(final AffectedComponentEntity merged, final AffectedComponentEntity additional) {
         PermissionsDtoMerger.mergePermissions(merged.getPermissions(), additional.getPermissions());
 
         if (!Boolean.TRUE.equals(merged.getPermissions().getCanRead()) || additional.getComponent() == null) {

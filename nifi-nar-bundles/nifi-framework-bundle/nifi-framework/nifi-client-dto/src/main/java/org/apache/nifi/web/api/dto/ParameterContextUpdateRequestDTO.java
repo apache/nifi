@@ -17,12 +17,15 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 @XmlType(name = "parameterContextUpdateRequest")
 public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<ParameterContextUpdateStepDTO> {
     private ParameterContextDTO parameterContext;
+    private Set<AffectedComponentEntity> affectedComponents;
 
     @ApiModelProperty(value = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.", readOnly = true)
     public ParameterContextDTO getParameterContext() {
@@ -31,5 +34,14 @@ public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<Par
 
     public void setParameterContext(final ParameterContextDTO parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty(value = "The components that are affected by the update.", readOnly = true)
+    public Set<AffectedComponentEntity> getAffectedComponents() {
+        return affectedComponents;
+    }
+
+    public void setAffectedComponents(final Set<AffectedComponentEntity> affectedComponents) {
+        this.affectedComponents = affectedComponents;
     }
 }

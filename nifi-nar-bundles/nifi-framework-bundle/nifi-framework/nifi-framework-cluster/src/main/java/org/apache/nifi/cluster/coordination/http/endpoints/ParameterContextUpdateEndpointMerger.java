@@ -21,11 +21,13 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateRequestDTO;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 
 import java.net.URI;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -51,6 +53,7 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
 
         final ParameterContextUpdateRequestDTO clientUpdateRequestDto = clientEntity.getRequest();
 
+        final Map<String, AffectedComponentEntity> affectedComponentEntities = new HashMap<>();
         for (final ParameterContextUpdateRequestEntity requestEntity : entityMap.values()) {
             final ParameterContextUpdateRequestDTO updateRequestDto = requestEntity.getRequest();
             clientUpdateRequestDto.setComplete(clientUpdateRequestDto.isComplete() && updateRequestDto.isComplete());
@@ -61,12 +64,24 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
 
             clientUpdateRequestDto.setLastUpdated(new Date(Math.min(clientUpdateRequestDto.getLastUpdated().getTime(), updateRequestDto.getLastUpdated().getTime())));
             clientUpdateRequestDto.setPercentCompleted(Math.min(clientUpdateRequestDto.getPercentCompleted(), updateRequestDto.getPercentCompleted()));
+
+            // Merge the Affected Components.
+            for (final AffectedComponentEntity entity : requestEntity.getRequest().getAffectedComponents()) {
+                final AffectedComponentEntity mergedAffectedComponentEntity = affectedComponentEntities.get(entity.getId());
+                if (mergedAffectedComponentEntity == null) {
+                    affectedComponentEntities.put(entity.getId(), entity);
+                    return;
+                }
+
+                ParameterContextMerger.merge(mergedAffectedComponentEntity, entity);
+            }
         }
 
         final Map<NodeIdentifier, ParameterContextDTO> contextDtoMap = new HashMap<>();
         entityMap.forEach( (nodeId, entity) -> contextDtoMap.put(nodeId, entity.getRequest().getParameterContext()));
 
         ParameterContextMerger.merge(clientUpdateRequestDto.getParameterContext(), contextDtoMap);
+        clientUpdateRequestDto.setAffectedComponents(new HashSet<>(affectedComponentEntities.values()));
     }
 
 }
