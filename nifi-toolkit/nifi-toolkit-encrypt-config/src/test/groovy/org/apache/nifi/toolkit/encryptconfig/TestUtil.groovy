@@ -299,14 +299,14 @@ class TestUtil {
 
         assert populatedSensitiveProperties.size() == protectedSensitiveProperties.size()
 
-        SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(expectedKey)
+        def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(expectedKey)
 
         protectedSensitiveProperties.each {
             String value = it.text()
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue))
+            assert plaintextValues.contains(sensitivePropertyProvider.unprotect(propertyValue))
         }
 
         return true

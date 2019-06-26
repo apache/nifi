@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive.aes
 
-import org.apache.nifi.properties.sensitive.SensitivePropertyMetadata
+
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -469,30 +469,6 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
         // Assert
         assert values == encryptedValues.collect { spp.unprotect(it) }
-    }
-
-    /**
-     * This test is to ensure the pass-through methods do not change the encrypt/decrypt behavior.
-     */
-    @Test
-    void testShouldEncryptArbitraryValuesWithMetadata() {
-        // Arrange
-        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message", "nififtw!"]
-
-        String key = getKeyOfSize(128)
-
-        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)
-        SensitivePropertyMetadata spm = AESSensitivePropertyMetadata.fromIdentifier("aes/gcm/128")
-
-        // Act
-        def encryptedValues = values.collect { String v ->
-            def encryptedValue = spp.protect(v, spm)
-            logger.info("${v} -> ${encryptedValue}")
-            encryptedValue
-        }
-
-        // Assert
-        assert values == encryptedValues.collect { spp.unprotect(it, spm) }
     }
 
     /**

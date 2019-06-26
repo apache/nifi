@@ -75,7 +75,7 @@ public class NiFiPropertiesLoader {
      * @param keyHex the key in hexadecimal format
      */
     public void setKeyHex(String keyHex) {
-        if (this.keyHex == null || this.keyHex.trim().isEmpty()) {
+        if (StringUtils.isBlank(this.keyHex)) {
             this.keyHex = keyHex;
         } else {
             throw new RuntimeException("Cannot overwrite an existing key");
@@ -158,7 +158,7 @@ public class NiFiPropertiesLoader {
     private static String getDefaultFilePath() {
         String systemPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
 
-        if (systemPath == null || systemPath.trim().isEmpty()) {
+        if (StringUtils.isBlank(systemPath)) {
             logger.warn("The system variable {} is not set, so it is being set to '{}'", NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_PATH);
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_PATH);
             systemPath = RELATIVE_PATH;
@@ -195,7 +195,6 @@ public class NiFiPropertiesLoader {
             inStream = new BufferedInputStream(new FileInputStream(file));
             rawProperties.load(inStream);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
-
             return new ProtectedNiFiProperties(rawProperties, keyHex);
         } catch (final Exception ex) {
             logger.error("Cannot load properties file due to " + ex.getLocalizedMessage());

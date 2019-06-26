@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties.sensitive.aws.kms
 
-import com.amazonaws.auth.PropertiesCredentials
 import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.AWSKMSClientBuilder
 import com.amazonaws.services.kms.model.CreateAliasRequest
@@ -28,6 +27,7 @@ import com.amazonaws.services.kms.model.GenerateDataKeyRequest
 import com.amazonaws.services.kms.model.GenerateDataKeyResult
 import com.amazonaws.services.kms.model.ScheduleKeyDeletionRequest
 import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.properties.sensitive.TestsWithAWSCredentials
 import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
@@ -46,9 +46,8 @@ import java.security.SecureRandom
 
 
 @RunWith(JUnit4.class)
-class AWSKMSSensitivePropertyProviderIT extends GroovyTestCase {
+class AWSKMSSensitivePropertyProviderIT extends TestsWithAWSCredentials {
     private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProviderIT.class)
-    protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     private static String[] knownGoodKeys = []
     private static AWSKMSClient client
 
@@ -59,38 +58,28 @@ class AWSKMSSensitivePropertyProviderIT extends GroovyTestCase {
      */
     @BeforeClass
     static void setUpOnce() throws Exception {
-        final FileInputStream fis
-        try {
-            fis = new FileInputStream(CREDENTIALS_FILE)
-        } catch (FileNotFoundException e1) {
-            fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e1.getLocalizedMessage());
-            return
-        }
-        final PropertiesCredentials credentials = new PropertiesCredentials(fis)
-
-        // We're copying the properties directly so the standard builder works.
-        System.setProperty("aws.accessKeyId", credentials.AWSAccessKeyId)
-        System.setProperty("aws.secretKey", credentials.AWSSecretKey)
-        System.setProperty("aws.region", "us-east-2")
-
         client = AWSKMSClientBuilder.standard().build() as AWSKMSClient
 
         // generate a cmk
         CreateKeyRequest cmkRequest = new CreateKeyRequest().withDescription("CMK for unit tests")
         CreateKeyResult cmkResult = client.createKey(cmkRequest)
+        logger.info("Created customer master key: " + cmkResult.getKeyMetadata().keyId)
 
         // from the cmk, generate a dek
         GenerateDataKeyRequest dekRequest = new GenerateDataKeyRequest().withKeyId(cmkResult.keyMetadata.getKeyId()).withKeySpec("AES_128")
         GenerateDataKeyResult dekResult = client.generateDataKey(dekRequest)
+        logger.info("Created data encryption key: " + dekResult.getKeyId())
 
         // add an alias to the dek
         final String aliasName = "alias/aws-kms-spp-integration-test-" + UUID.randomUUID().toString()
         CreateAliasRequest aliasReq = new CreateAliasRequest().withAliasName(aliasName).withTargetKeyId(dekResult.getKeyId())
         client.createAlias(aliasReq)
+        logger.info("Created key alias: " + aliasName);
 
         // re-read the dek so we have the arn
         DescribeKeyRequest descRequest = new DescribeKeyRequest().withKeyId(dekResult.getKeyId())
         DescribeKeyResult descResult = client.describeKey(descRequest)
+        logger.info("Retrieved description for: " + descResult.keyMetadata.getArn())
 
         knownGoodKeys = [
                 dekResult.getKeyId(),
@@ -117,7 +106,6 @@ class AWSKMSSensitivePropertyProviderIT extends GroovyTestCase {
             client.scheduleKeyDeletion(req)
         }
     }
-
 
     /**
      * This test shows that bad keys lead to exceptions, not invalid instances.
@@ -171,7 +159,7 @@ class AWSKMSSensitivePropertyProviderIT extends GroovyTestCase {
     @Test
     void testShouldHandleProtectEmptyValue() throws Exception {
         SensitivePropertyProvider propProvider
-        final List<String> EMPTY_PLAINTEXTS = ["", "    ", null]
+        final List<String> EMPTY_PLAINTEXTS = ["", "    ", "\n", "\n\n", "\t", "\t\t", "\t\n", "\n\t", null]
 
         knownGoodKeys.each { k ->
             propProvider = new AWSKMSSensitivePropertyProvider(k)
@@ -210,6 +198,30 @@ class AWSKMSSensitivePropertyProviderIT extends GroovyTestCase {
             def msg = shouldFail(com.amazonaws.services.kms.model.AWSKMSException) {
                 propProvider.unprotect("")
             }
+            assert msg != null
+        }
+    }
+
+    /** These tests show that the provider cannot decrypt text encoded but not encrypted.
+     */
+    @Test
+    void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
+        SensitivePropertyProvider propProvider
+
+
+        knownGoodKeys.each { k ->
+            propProvider = new AWSKMSSensitivePropertyProvider(k)
+            assert propProvider != null
+
+            def random = new SecureRandom()
+            byte[] bytes = new byte[80]
+            random.nextBytes(bytes)
+            def encodedText = bytes.encodeBase64()
+
+            def msg = shouldFail(com.amazonaws.services.kms.model.AWSKMSException) {
+                propProvider.unprotect(encodedText as String)
+            }
+
             assert msg != null
         }
     }
