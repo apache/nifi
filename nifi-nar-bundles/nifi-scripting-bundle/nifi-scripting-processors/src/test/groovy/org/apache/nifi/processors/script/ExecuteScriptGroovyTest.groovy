@@ -103,7 +103,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     public void testShouldSeeDynamicRelationships() throws Exception {
         logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
-        runner.setProperty("rel.test", "")
+        runner.setProperty("REL_test", "a test relationship")
         runner.assertValid()
 
         // Act
@@ -120,23 +120,18 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldThrowOnInvalidDynamicRelationship() throws Exception {
-        def badRelationship = "rel.123test"
+    public void testPermissivenessOfRelationshipNaming() throws Exception {
         logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
-        runner.setProperty(badRelationship, "")
-        runner.assertNotValid()
-        assertFalse(
-                "relationship '${badRelationship.substring(4)}' should not exist",
-                runner.processor.relationships.any { it.name == badRelationship.substring(4) }
-        )
-        runner.removeProperty(badRelationship)
-        runner.setProperty("rel.test", "")
-        runner.assertValid()
-        assertTrue("relationship 'test' should exist", runner.processor.relationships.any { it.name == 'test' })
-        runner.removeProperty("rel.test")
-        runner.assertValid()
-        assertFalse("relationship 'test' should not exist", runner.processor.relationships.any { it.name == 'test' })
+        ["test", "123", "", "hello, world!", " non-äscii works äs wöll"].each { relName ->
+            def propName = "REL_${relName}"
+            runner.setProperty(propName, "")
+            runner.assertValid()
+            assertTrue("relationship '${relName}' should exist", runner.processor.relationships.any { it.name == relName })
+            runner.removeProperty(propName)
+            runner.assertValid()
+            assertFalse("relationship '${relName}' should not exist", runner.processor.relationships.any { it.name == relName })
+        }
     }
 
     @Test
