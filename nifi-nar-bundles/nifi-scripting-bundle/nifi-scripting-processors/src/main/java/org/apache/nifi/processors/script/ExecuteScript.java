@@ -176,7 +176,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         final boolean isRelationship = propertyDescriptorName != null && propertyDescriptorName.startsWith(DYNAMIC_RELATIONSHIP_PREFIX);
         if (isRelationship) {
             if (!DYNAMIC_RELATIONSHIP_PATTERN.matcher(propertyDescriptorName).matches()) {
-                log.warn("dyn. property for relationship is invalid: '{}'. accepted patterns: '{}'", new Object[]{propertyDescriptorName, DYNAMIC_RELATIONSHIP_PATTERN_AS_STRING});
+                log.warn("dynamic property for relationship is invalid: '{}'. accepted patterns: '{}'", new Object[]{propertyDescriptorName, DYNAMIC_RELATIONSHIP_PATTERN_AS_STRING});
                 return new PropertyDescriptor.Builder()
                         .addValidator(new RelationshipInvalidator())
                         .dynamic(true)
@@ -389,7 +389,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(input)
-                    .explanation("invalid dyn. relationship specified")
+                    .explanation("invalid dynamic relationship specified")
                     .valid(false)
                     .build();
         }
