@@ -64,6 +64,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
@@ -288,8 +289,16 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
             }
         }
 
-        if (StringUtils.containsIgnoreCase(script, term)) {
-            results.add(new SearchResult.Builder().label(String.format("Matched script: %s", script)).match(term).build());
+        Scanner scanner = new Scanner(script);
+        int index = 1;
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if (StringUtils.containsIgnoreCase(line, term)) {
+                String text = String.format("Matched script at line %d: %s", index, line);
+                results.add(new SearchResult.Builder().label(text).match(term).build());
+            }
+            index++;
         }
 
         return results;
