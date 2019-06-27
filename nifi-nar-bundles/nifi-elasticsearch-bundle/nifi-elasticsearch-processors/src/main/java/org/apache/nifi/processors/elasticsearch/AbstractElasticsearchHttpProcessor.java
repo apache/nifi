@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
 
-    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_includes";
     static final String QUERY_QUERY_PARAM = "q";
     static final String SORT_QUERY_PARAM = "sort";
     static final String SIZE_QUERY_PARAM = "size";
