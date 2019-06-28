@@ -202,6 +202,15 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         return builder.build();
     }
 
+    /**
+     * Update a modified property.
+     *
+     * If the property signifies a dynamic relationship, the relationship will be created accordingly (or deleted if
+     * {@code newValue == null}). For a dynamic relationship, the property value will become the documentation of the relationship.
+     * @param descriptor The descriptor holding the dynamic property.
+     * @param oldValue The previous value, or {@code null} if the property didn't exist before.
+     * @param newValue The new value, or {@code null} if the property is being deleted.
+     */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
