@@ -125,9 +125,12 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
         ["test", "123", "", "hello, world!", " non-äscii works äs wöll"].each { relName ->
             def propName = "REL_${relName}"
-            runner.setProperty(propName, "")
+            def description = "dynamic relationship '${relName}'"
+            runner.setProperty(propName, description)
             runner.assertValid()
             assertTrue("relationship '${relName}' should exist", runner.processor.relationships.any { it.name == relName })
+            assertTrue("relationship '${relName}' should have proper description",
+                    runner.processor.relationships.any { it.description == description })
             runner.removeProperty(propName)
             runner.assertValid()
             assertFalse("relationship '${relName}' should not exist", runner.processor.relationships.any { it.name == relName })
