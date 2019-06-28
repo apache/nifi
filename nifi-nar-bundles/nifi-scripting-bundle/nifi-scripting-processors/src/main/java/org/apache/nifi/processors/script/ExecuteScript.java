@@ -77,15 +77,17 @@ import java.util.concurrent.ConcurrentSkipListSet;
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "
         + "Impact of sustained usage not yet verified.")
 @DynamicProperty(
-        name = "A script engine property to update, or a dynamic relationship (if the property starts with \"REL_\")",
+        name = "A script engine property to update, or a dynamic relationship (if the property starts with \"REL_\"). For dynamic "
+                + "relationships, the prefix \"REL_\" will be removed from the property name",
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
 @DynamicRelationship(
         name = "A relationship to add",
-        description = "If a dynamic property starts with 'REL_', it is assumed to be the name of a dynamic "
-        + "relationship to add. All (dynamic relationships can be accessed in the script variable 'relationships', "
+        description = "If a dynamic property starts with \"REL_\", it is assumed to be the name of a dynamic "
+        + "relationship to add. In that case, the prefix \"REL_\" will be removed from the actual name of the "
+        + "relationship. All (dynamic) relationships can be accessed in the script variable 'relationships', "
         + "which is a Map<String, Relationship> [name of relationship] -> relationship"
 )
 @Restricted(
@@ -162,10 +164,10 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
     /**
      * Returns a PropertyDescriptor for the given name. This is for the user to be able to define their own properties
-     * which will be available as variables in the script
+     * which will be available as variables in the script, or to create dynamic relationships.
      *
      * @param propertyDescriptorName used to lookup if any property descriptors exist for that name
-     * @return a PropertyDescriptor object corresponding to the specified dynamic property name
+     * @return a PropertyDescriptor object corresponding to the specified dynamic property name, or the name of a dynamic relationship (without the REL_ prefix)
      */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
