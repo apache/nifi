@@ -369,8 +369,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
                 // Decide what to do with child: if requested FF per object or per dir - just emit new FF with info in 'o' object
                 if (vo != null && !statsOnly) {
                     parent.addChild(vo);
-                    if (p != null && req.isRecursive
-                            && vo.isFile() && !vo.isSymlink()) {
+                    if (vo.isFile() && !vo.isSymlink()) {
                         processHDFSObject(context, session, origFF, req, vo, false);
                     }
                 }
