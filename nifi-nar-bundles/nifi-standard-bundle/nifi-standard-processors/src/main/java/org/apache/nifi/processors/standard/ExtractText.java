@@ -38,10 +38,12 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -58,6 +60,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import static org.apache.nifi.processors.standard.ExtractText.CaptureGroupLengthExcessPolicy.FAIL;
+import static org.apache.nifi.processors.standard.ExtractText.CaptureGroupLengthExcessPolicy.TRUNCATE;
 
 @EventDriven
 @SideEffectFree
@@ -81,11 +86,17 @@ import org.apache.nifi.stream.io.StreamUtils;
                 + "enabling repeating capture group is set to true. "
                 + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
                 + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' "
-                + "and no attributes will be applied to the FlowFile.")
+                + "and no attributes will be applied to the FlowFile."
+                + "If however, the maximum length of a capture group is exceeded and the capture group length excess policy is set to FAIL, "
+                + "the FlowFile will be sent to the FAILURE relationship."
+                + "In that case, an error message will be added under the key ExtractText.error")
 @DynamicProperty(name = "A FlowFile attribute", value = "A Regular Expression with one or more capturing group",
         description = "The first capture group, if any found, will be placed into that attribute name."
                 + "But all capture groups, including the matching string sequence itself will also be "
                 + "provided at that attribute name with an index value provided.")
+@WritesAttribute(attribute = "ExtractText.error",
+        description = "An error message indicating the capture group exceeding the maximum capture group length. Only set on failure."
+)
 public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
@@ -107,10 +118,24 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_CAPTURE_GROUP_LENGTH = new PropertyDescriptor.Builder()
             .name("Maximum Capture Group Length")
-            .description("Specifies the maximum number of characters a given capture group value can have.  Any characters beyond the max will be truncated.")
+            .description("Specifies the maximum number of characters a given capture group value can have.  "
+                    + "If characters beyond that limit are present, they will be either be truncated or the processor will fail, "
+                    + "depending on the value of CAPTURE_GROUP_LENGTH_EXCESS_POLICY.")
             .required(false)
             .defaultValue("1024")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CAPTURE_GROUP_LENGTH_EXCESS_POLICY = new PropertyDescriptor.Builder()
+            .name("Capture Group Length Excess Policy")
+            .description("Specifies if exceeded maximum length of a capture group leads to truncation of " +
+                    "the capture group, or if the processor should rather fail.")
+            .required(false)
+            .defaultValue(CaptureGroupLengthExcessPolicy.getDefault().name())
+            .allowableValues(
+                    new AllowableValue(TRUNCATE.name(), TRUNCATE.name(), TRUNCATE.getDescription()),
+                    new AllowableValue(FAIL.name(), FAIL.name(), FAIL.getDescription())
+            )
             .build();
 
     public static final PropertyDescriptor CANON_EQ = new PropertyDescriptor.Builder()
@@ -218,6 +243,13 @@ public class ExtractText extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Regular Expression matches the content of the FlowFile")
             .build();
 
+    public static final Relationship FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles are routed to this relationship when the text extraction fails. This happens "
+                    + "when a the capture group maximum length is exceeded, and the CAPTURE_GROUP_LENGTH_EXCESS_POLICY is set to FAIL")
+            .build();
+
+    public static final String ERROR_MSG_KEY = "ExtractText.error";
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
@@ -228,12 +260,14 @@ public class ExtractText extends AbstractProcessor {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_MATCH);
         rels.add(REL_NO_MATCH);
+        rels.add(FAILURE);
         this.relationships = Collections.unmodifiableSet(rels);
 
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(CHARACTER_SET);
         props.add(MAX_BUFFER_SIZE);
         props.add(MAX_CAPTURE_GROUP_LENGTH);
+        props.add(CAPTURE_GROUP_LENGTH_EXCESS_POLICY);
         props.add(CANON_EQ);
         props.add(CASE_INSENSITIVE);
         props.add(COMMENTS);
@@ -330,6 +364,9 @@ public class ExtractText extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final int maxCaptureGroupLength = context.getProperty(MAX_CAPTURE_GROUP_LENGTH).asInteger();
+        final CaptureGroupLengthExcessPolicy excessPolicy = CaptureGroupLengthExcessPolicy.valueOf(
+                context.getProperty(CAPTURE_GROUP_LENGTH_EXCESS_POLICY).getValue()
+        );
 
         final String contentString;
         byte[] buffer = bufferQueue.poll();
@@ -359,6 +396,8 @@ public class ExtractText extends AbstractProcessor {
 
         final int startGroupIdx = context.getProperty(INCLUDE_CAPTURE_GROUP_ZERO).asBoolean() ? 0 : 1;
 
+        final String errorMessageOnCaptureGroupLengthExcess = "Capture group '%s' has exceeded the maximum length of %d for FlowFile %s";
+
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
 
             final Matcher matcher = entry.getValue().matcher(contentString);
@@ -372,7 +411,23 @@ public class ExtractText extends AbstractProcessor {
                     String value = matcher.group(i);
                     if (value != null && !value.isEmpty()) {
                         if (value.length() > maxCaptureGroupLength) {
-                            value = value.substring(0, maxCaptureGroupLength);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug(String.format(errorMessageOnCaptureGroupLengthExcess, value, maxCaptureGroupLength, flowFile));
+                            }
+                            switch (excessPolicy) {
+                                case TRUNCATE:
+                                    value = value.substring(0, maxCaptureGroupLength);
+                                    break;
+                                case FAIL:
+                                    final String errorMsg = String.format(errorMessageOnCaptureGroupLengthExcess,
+                                            value, maxCaptureGroupLength, flowFile);
+                                    flowFile = session.putAttribute(flowFile, ERROR_MSG_KEY, errorMsg);
+                                    session.getProvenanceReporter().modifyAttributes(flowFile);
+                                    session.transfer(flowFile, FAILURE);
+                                    logger.info("Transferred FlowFile {} to FAILURE relationship due to excess of capture group maximum length.",
+                                            new Object[]{flowFile});
+                                    return;
+                            }
                         }
                         regexResults.put(key, value);
                         if (i == 1 && j == 0) {
@@ -411,4 +466,24 @@ public class ExtractText extends AbstractProcessor {
                 | (context.getProperty(UNICODE_CHARACTER_CLASS).asBoolean() ? Pattern.UNICODE_CHARACTER_CLASS : 0);
         return flags;
     }
+
+    enum CaptureGroupLengthExcessPolicy {
+        TRUNCATE("Truncate the capture group if the maximum length is exceeded."),
+        FAIL("Have the processor fail if the maximum length of a capture group is exceeded.");
+
+        private final String description;
+
+        CaptureGroupLengthExcessPolicy(final String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return this.description;
+        }
+
+        public static CaptureGroupLengthExcessPolicy getDefault() {
+            return TRUNCATE;
+        }
+    }
+
 }

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.nifi.processor.Relationship;
@@ -27,6 +28,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+
+
+import static org.apache.nifi.processors.standard.ExtractText.CaptureGroupLengthExcessPolicy.FAIL;
 
 public class TestExtractText {
 
@@ -318,7 +322,8 @@ public class TestExtractText {
         Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(ExtractText.REL_MATCH));
         assertTrue(relationships.contains(ExtractText.REL_NO_MATCH));
-        assertEquals(2, relationships.size());
+        assertTrue(relationships.contains(ExtractText.FAILURE));
+        assertEquals(3, relationships.size());
     }
 
     @Test
@@ -448,4 +453,54 @@ public class TestExtractText {
         // Validation should fail because nothing will match
         testRunner.run();
     }
+
+    @Test
+    public void testFailExcessPolicyFails() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
+        testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
+        final String attributeKey = "regex.result";
+        final String sampleText = "1 23 345 4567 56789 67890a";
+        testRunner.setProperty(ExtractText.MAX_CAPTURE_GROUP_LENGTH, "3");
+        testRunner.setProperty(ExtractText.CAPTURE_GROUP_LENGTH_EXCESS_POLICY, FAIL.name());
+        testRunner.setProperty(attributeKey, "(?s)(\\w+)");
+
+        testRunner.enqueue(sampleText.getBytes(StandardCharsets.UTF_8));
+        testRunner.assertValid();
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractText.FAILURE, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.FAILURE).get(0);
+        // Ensure the zero capture group is in the resultant attributes
+        out.assertAttributeNotExists(attributeKey);
+        out.assertAttributeNotExists(attributeKey + ".0");
+        out.assertAttributeNotExists(attributeKey + ".1");
+        out.assertAttributeExists(ExtractText.ERROR_MSG_KEY);
+    }
+
+    @Test
+    public void testFailExcessPolicyMatches() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
+        testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
+        final String attributeKey = "regex.result";
+        final String sampleText = "1 23 345 4567 56789 67890a";
+        testRunner.setProperty(ExtractText.MAX_CAPTURE_GROUP_LENGTH, "100");
+        testRunner.setProperty(ExtractText.CAPTURE_GROUP_LENGTH_EXCESS_POLICY, FAIL.name());
+        testRunner.setProperty(attributeKey, "(?s)(\\w+)");
+
+        testRunner.enqueue(sampleText.getBytes(StandardCharsets.UTF_8));
+        testRunner.assertValid();
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+        // Ensure the zero capture group is in the resultant attributes
+        final String[] splits = sampleText.split(" ");
+        for (int i = 0; i < splits.length; ++i) {
+            out.assertAttributeEquals(String.format("%s.%d", attributeKey, i+1), splits[i]);
+        }
+        out.assertAttributeNotExists(ExtractText.ERROR_MSG_KEY);
+    }
+
 }
