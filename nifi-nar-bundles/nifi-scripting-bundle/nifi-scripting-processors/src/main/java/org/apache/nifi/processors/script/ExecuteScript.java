@@ -395,8 +395,8 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
 
     private static boolean propertySpecifiesRelationship(final String propertyDescriptorName) {
-        return propertyDescriptorName != null &&
-                propertyDescriptorName.startsWith(DYNAMIC_RELATIONSHIP_PREFIX);
+        return propertyDescriptorName != null
+                && propertyDescriptorName.startsWith(DYNAMIC_RELATIONSHIP_PREFIX);
     }
 
     private static String getRelationshipName(final String propertyDescriptorName) {
@@ -407,8 +407,8 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
     private static boolean isValidRelationshipName(final String relationshipName) {
         final String nameInLowerCase = relationshipName.toLowerCase();
-        return !(REL_SUCCESS.getName().equals(nameInLowerCase) ||
-                REL_FAILURE.getName().equals(nameInLowerCase));
+        return !(REL_SUCCESS.getName().equals(nameInLowerCase)
+                || REL_FAILURE.getName().equals(nameInLowerCase));
     }
 
     private static class RelationshipInvalidator implements Validator {
