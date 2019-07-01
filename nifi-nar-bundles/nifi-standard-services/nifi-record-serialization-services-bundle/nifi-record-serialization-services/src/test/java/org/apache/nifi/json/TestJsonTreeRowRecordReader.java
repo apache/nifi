@@ -407,6 +407,22 @@ public class TestJsonTreeRowRecordReader {
 
 
     @Test
+    public void testTimestampCoercedFromString() throws IOException, MalformedRecordException {
+        final List<RecordField> recordFields = Collections.singletonList(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(recordFields);
+
+        for (final boolean coerceTypes : new boolean[] {true, false}) {
+            try (final InputStream in = new FileInputStream(new File("src/test/resources/json/timestamp.json"));
+                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss")) {
+
+                final Record record = reader.nextRecord(coerceTypes, false);
+                final Object value = record.getValue("timestamp");
+                assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Timestamp", value instanceof java.sql.Timestamp);
+            }
+        }
+    }
+
+    @Test
     public void testSingleJsonElement() throws IOException, MalformedRecordException {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 

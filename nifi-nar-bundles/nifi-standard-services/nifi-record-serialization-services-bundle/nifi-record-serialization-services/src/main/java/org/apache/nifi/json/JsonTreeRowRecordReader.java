@@ -36,7 +36,6 @@ import org.codehaus.jackson.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,23 +46,11 @@ import java.util.function.Supplier;
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final RecordSchema schema;
 
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
-
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
         super(in, logger, dateFormat, timeFormat, timestampFormat);
         this.schema = schema;
-
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
     }
 
 
@@ -97,6 +84,22 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         return null;
     }
 
+    private boolean isDateTimeTimestampType(final RecordField field) {
+        if (field == null) {
+            return false;
+        }
+
+        final RecordFieldType fieldType = field.getDataType().getFieldType();
+        switch (fieldType) {
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
             final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
@@ -111,13 +114,13 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
                 final String fieldName = recordField.getFieldName();
 
-                final Object value;
+                Object value;
                 if (coerceTypes) {
                     final DataType desiredType = recordField.getDataType();
                     final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
                     value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
                 } else {
-                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType());
+                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType(), fieldName);
                 }
 
                 values.put(fieldName, value);
@@ -136,7 +139,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                     final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
                     value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
                 } else {
-                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType());
+                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType(), fieldName);
                 }
 
                 values.put(fieldName, value);
@@ -166,8 +169,8 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case DATE:
             case TIME:
             case TIMESTAMP: {
-                final Object rawValue = getRawNodeValue(fieldNode);
-                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                final Object rawValue = getRawNodeValue(fieldNode, fieldName);
+                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
                 return converted;
             }
             case MAP: {
@@ -222,7 +225,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 }
             }
             case CHOICE: {
-                return DataTypeUtils.convertType(getRawNodeValue(fieldNode, desiredType), desiredType, fieldName);
+                return DataTypeUtils.convertType(getRawNodeValue(fieldNode, desiredType, fieldName), desiredType, fieldName);
             }
         }
 
