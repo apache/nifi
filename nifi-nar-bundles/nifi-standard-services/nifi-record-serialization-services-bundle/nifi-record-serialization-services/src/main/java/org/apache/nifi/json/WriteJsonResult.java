@@ -276,22 +276,38 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
 
         if (value instanceof java.sql.Time) {
-            final String formatted = LAZY_TIME_FORMAT.get().format((java.sql.Time) value);
-            generator.writeString(formatted);
+            final Object formatted = format((java.sql.Time) value, LAZY_TIME_FORMAT);
+            generator.writeObject(formatted);
             return;
         }
         if (value instanceof java.sql.Date) {
-            final String formatted = LAZY_DATE_FORMAT.get().format((java.sql.Date) value);
-            generator.writeString(formatted);
+            final Object formatted = format((java.sql.Date) value, LAZY_DATE_FORMAT);
+            generator.writeObject(formatted);
             return;
         }
         if (value instanceof java.util.Date) {
-            final String formatted = LAZY_TIMESTAMP_FORMAT.get().format((java.util.Date) value);
-            generator.writeString(formatted);
+            final Object formatted = format((java.util.Date) value, LAZY_TIMESTAMP_FORMAT);
+            generator.writeObject(formatted);
             return;
         }
 
         generator.writeObject(value);
+    }
+
+    private Object format(final java.util.Date value, final Supplier<DateFormat> formatSupplier) {
+        if (value == null) {
+            return null;
+        }
+
+        if (formatSupplier == null) {
+            return value.getTime();
+        }
+        final DateFormat format = formatSupplier.get();
+        if (format == null) {
+            return value.getTime();
+        }
+
+        return format.format(value);
     }
 
     @SuppressWarnings("unchecked")
