@@ -1051,12 +1051,12 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            try {
-                final String string = ((String) value).trim();
-                if (string.isEmpty()) {
-                    return null;
-                }
+            final String string = ((String) value).trim();
+            if (string.isEmpty()) {
+                return null;
+            }
 
+            try {
                 if (format == null) {
                     return new Timestamp(Long.parseLong(string));
                 }
@@ -1065,11 +1065,23 @@ public class DataTypeUtils {
                 if (dateFormat == null) {
                     return new Timestamp(Long.parseLong(string));
                 }
+
                 final java.util.Date utilDate = dateFormat.parse(string);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
+                final DateFormat dateFormat = format.get();
+                final String formatDescription;
+                if (dateFormat == null) {
+                    formatDescription = "Numeric";
+                } else if (dateFormat instanceof SimpleDateFormat) {
+                    formatDescription = ((SimpleDateFormat) dateFormat).toPattern();
+                } else {
+                    formatDescription = dateFormat.toString();
+                }
+
                 throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: " + format);
+                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: "
+                    + formatDescription);
             }
         }
 

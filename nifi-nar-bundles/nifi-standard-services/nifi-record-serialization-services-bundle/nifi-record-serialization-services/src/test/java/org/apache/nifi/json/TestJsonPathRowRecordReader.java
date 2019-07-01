@@ -17,21 +17,7 @@
 
 package org.apache.nifi.json;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -45,7 +31,21 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.jayway.jsonpath.JsonPath;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestJsonPathRowRecordReader {
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -164,6 +164,25 @@ public class TestJsonPathRowRecordReader {
             Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
 
             assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testTimestampCoercedFromString() throws IOException, MalformedRecordException {
+        final List<RecordField> recordFields = Collections.singletonList(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(recordFields);
+
+        final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>();
+        jsonPaths.put("timestamp", JsonPath.compile("$.timestamp"));
+
+        for (final boolean coerceTypes : new boolean[] {true, false}) {
+            try (final InputStream in = new FileInputStream(new File("src/test/resources/json/timestamp.json"));
+                 final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, Mockito.mock(ComponentLog.class), dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss")) {
+
+                final Record record = reader.nextRecord(coerceTypes, false);
+                final Object value = record.getValue("timestamp");
+                assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Timestamp", value instanceof java.sql.Timestamp);
+            }
         }
     }
 

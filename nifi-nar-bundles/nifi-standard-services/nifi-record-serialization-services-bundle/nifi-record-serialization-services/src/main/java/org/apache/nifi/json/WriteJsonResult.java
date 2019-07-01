@@ -37,6 +37,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 import java.io.IOException;
@@ -59,6 +60,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
     private String mimeType = "application/json";
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
             final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
@@ -86,6 +89,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         final JsonFactory factory = new JsonFactory();
+        factory.setCodec(objectMapper);
+
         this.generator = factory.createJsonGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
@@ -267,6 +272,22 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 writeRawValue(generator, element, fieldName);
             }
             generator.writeEndArray();
+            return;
+        }
+
+        if (value instanceof java.sql.Time) {
+            final String formatted = LAZY_TIME_FORMAT.get().format((java.sql.Time) value);
+            generator.writeString(formatted);
+            return;
+        }
+        if (value instanceof java.sql.Date) {
+            final String formatted = LAZY_DATE_FORMAT.get().format((java.sql.Date) value);
+            generator.writeString(formatted);
+            return;
+        }
+        if (value instanceof java.util.Date) {
+            final String formatted = LAZY_TIMESTAMP_FORMAT.get().format((java.util.Date) value);
+            generator.writeString(formatted);
             return;
         }
 
