@@ -301,17 +301,27 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
             final long transactionId;
             synchronized (this) {
-                transactionId = currentTransactionId++;
-                transactionCount++;
+                checkState();
 
-                transactionPreamble.clear();
-                transactionPreamble.putLong(transactionId);
-                transactionPreamble.putInt(baos.size());
+                try {
+                    transactionId = currentTransactionId++;
+                    transactionCount++;
 
-                out.write(TRANSACTION_FOLLOWS);
-                out.write(transactionPreamble.array());
-                baos.writeTo(out);
-                out.flush();
+                    transactionPreamble.clear();
+                    transactionPreamble.putLong(transactionId);
+                    transactionPreamble.putInt(baos.size());
+
+                    out.write(TRANSACTION_FOLLOWS);
+                    out.write(transactionPreamble.array());
+                    baos.writeTo(out);
+                    out.flush();
+                } catch (final Throwable t) {
+                    // While the outter Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
+                    // before the synchronized block is excited. Otherwise, another thread could potentially corrupt the journal before
+                    // the poison method closes the file.
+                    poison(t);
+                    throw t;
+                }
             }
 
             logger.debug("Wrote Transaction {} to journal {} with length {} and {} records", transactionId, journalFile, baos.size(), records.size());
@@ -343,7 +353,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         }
     }
 
-    private void poison(final Throwable t) {
+    protected void poison(final Throwable t) {
         this.poisoned = true;
 
         try {
