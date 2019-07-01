@@ -240,7 +240,16 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     private boolean isSubscribed() {
-        return subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+        final boolean subscribed = subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+        final boolean subscriptionFailed = evtSubscribeCallback != null
+            && ((EventSubscribeXmlRenderingCallback) evtSubscribeCallback).isSubscriptionFailed();
+        final boolean subscribing = subscribed && !subscriptionFailed;
+        getLogger().debug("subscribing? {}, subscribed={}, subscriptionFailed={}", new Object[]{subscribing, subscribed, subscriptionFailed});
+        if (subscriptionFailed) {
+            getLogger().info("Canceling a failed subscription.");
+            unsubscribe();
+        }
+        return subscribing;
     }
 
     @OnScheduled
