@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import javax.net.ssl.SSLContext;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.commons.lang3.StringUtils;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -85,11 +87,21 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         .identifiesControllerService(RestrictedSSLContextService.class)
         .build();
 
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+        .name("Client Auth")
+        .displayName("Client Auth")
+        .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
+        .required(false)
+        .allowableValues(RestrictedSSLContextService.ClientAuth.values())
+        .defaultValue(RestrictedSSLContextService.ClientAuth.REQUIRED.name())
+        .build();
+
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
         return Arrays.asList(
             MAX_CONNECTIONS,
-            SSL_CONTEXT_SERVICE
+            SSL_CONTEXT_SERVICE,
+            CLIENT_AUTH
         );
     }
 
@@ -103,6 +115,14 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
             results.add(new ValidationResult.Builder()
                 .explanation("The context service must have a truststore  configured for the beats forwarder client to work correctly")
                 .valid(false).subject(SSL_CONTEXT_SERVICE.getName()).build());
+        }
+
+        // Validate CLIENT_AUTH
+        final String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
+        if (sslContextService != null && StringUtils.isBlank(clientAuth)) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("Client Auth must be provided when using TLS/SSL")
+                    .valid(false).subject("Client Auth").build());
         }
 
         return results;
@@ -133,14 +153,18 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
 
         // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
         SSLContext sslContext = null;
+        SslContextFactory.ClientAuth clientAuth = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
+            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
+            clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+
         }
 
         // if we decide to support SSL then get the context and pass it in here
         return new SocketChannelDispatcher<>(eventFactory, handlerFactory, bufferPool, events,
-            getLogger(), maxConnections, sslContext, charSet);
+            getLogger(), maxConnections, sslContext, clientAuth, charSet);
     }
 
 
