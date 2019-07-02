@@ -53,6 +53,7 @@ public class DatagramChannelSender extends ChannelSender {
         }
 
         if (!channel.isConnected()) {
+            channel.socket().bind(new InetSocketAddress(InetAddress.getByName(host), port));
             channel.connect(new InetSocketAddress(InetAddress.getByName(host), port));
         }
     }
