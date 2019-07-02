@@ -1144,24 +1144,36 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     }
 
+
+    public Set<AffectedComponentEntity> getActiveComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto) {
+        return getComponentsAffectedByParameterContextUpdate(parameterContextDto, false);
+    }
+
     @Override
     public Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto) {
+        return getComponentsAffectedByParameterContextUpdate(parameterContextDto, true);
+    }
+
+    private Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto, final boolean includeInactive) {
         final ProcessGroup rootGroup = processGroupDAO.getProcessGroup("root");
         final List<ProcessGroup> groupsReferencingParameterContext = rootGroup.findAllProcessGroups(
             group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(parameterContextDto.getId()));
-
 
         final Set<ComponentNode> affectedComponents = new HashSet<>();
         for (final ProcessGroup group : groupsReferencingParameterContext) {
             for (final ProcessorNode processor : group.getProcessors()) {
                 if (!processor.getReferencedParameterNames().isEmpty()) {
-                    affectedComponents.add(processor);
+                    if (includeInactive || processor.isRunning()) {
+                        affectedComponents.add(processor);
+                    }
                 }
             }
 
             for (final ControllerServiceNode service : group.getControllerServices(false)) {
                 if (!service.getReferencedParameterNames().isEmpty()) {
-                    affectedComponents.add(service);
+                    if (includeInactive || service.isActive()) {
+                        affectedComponents.add(service);
+                    }
                 }
             }
         }

@@ -625,10 +625,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         // grant the user read/write access to the /controller resource
         addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), READ_CODE);
         addUserToAccessPolicy(authorizations, ResourceType.Controller.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
-
-        // grant the user read/write access to the /parameter-contexts resource
-        addUserToAccessPolicy(authorizations, ResourceType.ParameterContext.getValue(), initialAdmin.getIdentifier(), READ_CODE);
-        addUserToAccessPolicy(authorizations, ResourceType.ParameterContext.getValue(), initialAdmin.getIdentifier(), WRITE_CODE);
     }
 
     /**

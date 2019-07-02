@@ -77,7 +77,7 @@ public class ParameterDescriptor {
 
     public static class Builder {
         private String name;
-        private String description = "";
+        private String description;
         private boolean sensitive;
 
         public Builder name(final String name) {
@@ -88,7 +88,7 @@ public class ParameterDescriptor {
         }
 
         public Builder description(final String description) {
-            this.description = description == null ? "" : description.trim();
+            this.description = description == null ? null : description.trim();
             return this;
         }
 

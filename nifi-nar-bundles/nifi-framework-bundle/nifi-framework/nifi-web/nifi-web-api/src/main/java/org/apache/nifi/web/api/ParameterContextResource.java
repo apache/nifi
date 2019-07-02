@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -136,6 +137,8 @@ public class ParameterContextResource extends ApplicationResource {
         }
     )
     public Response getParameterContexts() {
+        authorizeParameterContexts();
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
@@ -149,6 +152,23 @@ public class ParameterContextResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    private void authorizeParameterContexts() {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterContextsAuthorizable = lookup.getParameterContexts();
+            parameterContextsAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+    }
+
+    private void authorizeReadParameterContext(final String parameterContextId) {
+        if (parameterContextId == null) {
+            throw new IllegalArgumentException("Parameter Context ID must be specified");
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable parameterContext = lookup.getParameterContext(parameterContextId);
+            parameterContext.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+    }
 
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -169,15 +189,12 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response getParameterContext(@ApiParam("The ID of the Parameter Context") @PathParam("id") final String parameterContextId) {
+        // authorize access
+        authorizeReadParameterContext(parameterContextId);
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
-
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable parameterContext = lookup.getParameterContext(parameterContextId);
-            parameterContext.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
 
         // get the specified parameter context
         final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
@@ -324,7 +341,7 @@ public class ParameterContextResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("update-requests")
+    @Path("{contextId}/update-requests")
     @ApiOperation(
         value = "Initiate the Update Request of a Parameter Context",
         response = ParameterContextUpdateRequestEntity.class,
@@ -347,6 +364,7 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response submitParameterContextUpdate(
+        @PathParam("contextId") final String contextId,
         @ApiParam(value = "The updated version of the parameter context.", required = true) final ParameterContextEntity requestEntity) {
 
         // Verify the request
@@ -363,8 +381,8 @@ public class ParameterContextResource extends ApplicationResource {
         if (contextDto.getId() == null) {
             throw new IllegalArgumentException("Parameter Context's ID must be specified");
         }
-        if (requestEntity.getId() == null) {
-            throw new IllegalArgumentException("Entity's ID must be specified");
+        if (!contextDto.getId().equals(contextId)) {
+            throw new IllegalArgumentException("ID of Parameter Context in message body does not match Parameter Context ID supplied in URI");
         }
 
         // We will perform the updating of the Parameter Context in a background thread because it can be a long-running process.
@@ -386,6 +404,7 @@ public class ParameterContextResource extends ApplicationResource {
         // 9. Re-Enable all affected Controller Services
         // 10. Re-Start all Processors
 
+        final Set<AffectedComponentEntity> activeAffectedComponents = serviceFacade.getActiveComponentsAffectedByParameterContextUpdate(contextDto);
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(contextDto);
         logger.debug("Received Update Request for Parameter Context: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
 
@@ -399,23 +418,12 @@ public class ParameterContextResource extends ApplicationResource {
             requestRevision,
             lookup -> {
                 // Verify READ and WRITE permissions for user, for the Parameter Context itself
-                final Authorizable parameterContext = lookup.getParameterContext(requestEntity.getId());
+                final Authorizable parameterContext = lookup.getParameterContext(contextId);
                 parameterContext.authorize(authorizer, RequestAction.READ, user);
                 parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
                 // Verify READ and WRITE permissions for user, for every component that is affected
-                for (final AffectedComponentEntity entity : affectedComponents) {
-                    final AffectedComponentDTO dto = entity.getComponent();
-                    if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getReferenceType())) {
-                        final Authorizable processor = lookup.getProcessor(dto.getId()).getAuthorizable();
-                        processor.authorize(authorizer, RequestAction.READ, user);
-                        processor.authorize(authorizer, RequestAction.WRITE, user);
-                    } else if (AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getReferenceType())) {
-                        final Authorizable service = lookup.getControllerService(dto.getId()).getAuthorizable();
-                        service.authorize(authorizer, RequestAction.READ, user);
-                        service.authorize(authorizer, RequestAction.WRITE, user);
-                    }
-                }
+                activeAffectedComponents.forEach(component -> authorizeAffectedComponent(component, lookup, user, true, true));
             },
             () -> {
                 // Verify Request
@@ -425,11 +433,55 @@ public class ParameterContextResource extends ApplicationResource {
         );
     }
 
+    private void authorizeAffectedComponent(final AffectedComponentEntity entity, final AuthorizableLookup lookup, final NiFiUser user, final boolean requireRead, final boolean requireWrite) {
+        final AffectedComponentDTO dto = entity.getComponent();
+        if (dto == null) {
+            // If the DTO is null, it is an indication that the user does not have permissions.
+            // However, we don't want to just throw an AccessDeniedException because we would rather
+            // ensure that all of the appropriate actions are taken by the pluggable Authorizer. As a result,
+            // we attempt to find the component as a Processor and fall back to finding it as a Controller Service.
+            // We then go ahead and attempt the authorization, expecting it to fail.
+            Authorizable authorizable;
+            try {
+                authorizable = lookup.getProcessor(entity.getId()).getAuthorizable();
+            } catch (final ResourceNotFoundException rnfe) {
+                authorizable = lookup.getControllerService(entity.getId()).getAuthorizable();
+            }
+
+            if (requireRead) {
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+            }
+            if (requireWrite) {
+                authorizable.authorize(authorizer, RequestAction.WRITE, user);
+            }
+        }
+
+        if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getReferenceType())) {
+            final Authorizable processor = lookup.getProcessor(dto.getId()).getAuthorizable();
+
+            if (requireRead) {
+                processor.authorize(authorizer, RequestAction.READ, user);
+            }
+            if (requireWrite) {
+                processor.authorize(authorizer, RequestAction.WRITE, user);
+            }
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getReferenceType())) {
+            final Authorizable service = lookup.getControllerService(dto.getId()).getAuthorizable();
+
+            if (requireRead) {
+                service.authorize(authorizer, RequestAction.READ, user);
+            }
+            if (requireWrite) {
+                service.authorize(authorizer, RequestAction.WRITE, user);
+            }
+        }
+    }
+
 
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("update-requests/{id}")
+    @Path("{contextId}/update-requests/{requestId}")
     @ApiOperation(
         value = "Returns the Update Request with the given ID",
         response = ParameterContextUpdateRequestEntity.class,
@@ -446,7 +498,12 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getParameterContextUpdate(@ApiParam("The ID of the Update Request") @PathParam("id") final String updateRequestId) {
+    public Response getParameterContextUpdate(
+        @ApiParam("The ID of the Parameter Context") @PathParam("contextId") final String contextId,
+        @ApiParam("The ID of the Update Request") @PathParam("requestId") final String updateRequestId) {
+
+        authorizeReadParameterContext(contextId);
+
         return retrieveUpdateRequest("update-requests", updateRequestId);
     }
 
@@ -454,7 +511,7 @@ public class ParameterContextResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("update-requests/{id}")
+    @Path("{contextId}/update-requests/{requestId}")
     @ApiOperation(
         value = "Deletes the Update Request with the given ID",
         response = ParameterContextUpdateRequestEntity.class,
@@ -477,8 +534,10 @@ public class ParameterContextResource extends ApplicationResource {
             required = false
         )
         @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-        @ApiParam("The ID of the Update Request") @PathParam("id") final String updateRequestId) {
+        @ApiParam("The ID of the ParameterContext") @PathParam("contextId") final String contextId,
+        @ApiParam("The ID of the Update Request") @PathParam("requestId") final String updateRequestId) {
 
+        authorizeReadParameterContext(contextId);
         return deleteUpdateRequest("update-requests", updateRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
 
@@ -562,7 +621,7 @@ public class ParameterContextResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("validation-requests")
+    @Path("{contextId}/validation-requests")
     @ApiOperation(
         value = "Initiate a Validation Request to determine how the validity of components will change if a Parameter Context were to be updated",
         response = ParameterContextValidationRequestEntity.class,
@@ -582,7 +641,10 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response submitValidationRequest(@ApiParam(value = "The validation request", required=true) final ParameterContextValidationRequestEntity requestEntity) {
+    public Response submitValidationRequest(
+        @PathParam("contextId") final String contextId,
+        @ApiParam(value = "The validation request", required=true) final ParameterContextValidationRequestEntity requestEntity) {
+
         final ParameterContextValidationRequestDTO requestDto = requestEntity.getRequest();
         if (requestDto == null) {
             throw new IllegalArgumentException("Parameter Context must be specified");
@@ -605,18 +667,35 @@ public class ParameterContextResource extends ApplicationResource {
             serviceFacade,
             requestEntity,
             lookup -> {
-                final Authorizable parameterContext = lookup.getParameterContext(requestEntity.getRequest().getParameterContext().getId());
+                final Authorizable parameterContext = lookup.getParameterContext(contextId);
                 parameterContext.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+                authorizeReferencingComponents(requestEntity.getRequest().getParameterContext().getId(), lookup, NiFiUserUtils.getNiFiUser());
             },
             () -> {},
             entity -> performAsyncValidation(entity, NiFiUserUtils.getNiFiUser())
         );
     }
 
+    private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
+
+        for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
+            final ParameterDTO dto = parameterEntity.getParameter();
+            if (dto == null) {
+                continue;
+            }
+
+            for (final AffectedComponentEntity affectedComponent : dto.getReferencingComponents()) {
+                authorizeAffectedComponent(affectedComponent, lookup, user, true, false);
+            }
+        }
+    }
+
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("validation-requests/{id}")
+    @Path("{contextId}/validation-requests/{id}")
     @ApiOperation(
         value = "Returns the Validation Request with the given ID",
         response = ParameterContextValidationRequestEntity.class,
@@ -633,7 +712,12 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getValidationRequest(@ApiParam("The ID of the Validation Request") @PathParam("id") final String validationRequestId) {
+    public Response getValidationRequest(
+        @ApiParam("The ID of the Parameter Context") @PathParam("contextId") final String contextId,
+        @ApiParam("The ID of the Validation Request") @PathParam("id") final String validationRequestId) {
+
+        authorizeReadParameterContext(contextId);
+
         if (isReplicateRequest()) {
             return replicate("GET");
         }
@@ -644,7 +728,7 @@ public class ParameterContextResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("validation-requests/{id}")
+    @Path("{contextId}/validation-requests/{id}")
     @ApiOperation(
         value = "Deletes the Validation Request with the given ID",
         response = ParameterContextValidationRequestEntity.class,
@@ -667,7 +751,10 @@ public class ParameterContextResource extends ApplicationResource {
             required = false
         )
         @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+        @ApiParam("The ID of the Parameter Context") @PathParam("contextId") final String contextId,
         @ApiParam("The ID of the Update Request") @PathParam("id") final String validationRequestId) {
+
+        authorizeReadParameterContext(contextId);
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -732,7 +819,7 @@ public class ParameterContextResource extends ApplicationResource {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
-        final AsynchronousWebRequest<ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestWrapper.getParameterContextEntity().getId(),
+        final AsynchronousWebRequest<ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestWrapper.getParameterContextEntity().getComponent().getId(),
             requestWrapper.getUser(), getUpdateSteps());
 
         // Submit the request to be performed in the background

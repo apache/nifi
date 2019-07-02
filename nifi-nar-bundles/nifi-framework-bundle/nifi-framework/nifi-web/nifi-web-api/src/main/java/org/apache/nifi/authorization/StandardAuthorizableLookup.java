@@ -159,17 +159,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
-    private static final Authorizable PARAMETER_CONTEXTS_AUTHORIZABLE = new Authorizable() {
-        @Override
-        public Authorizable getParentAuthorizable() {
-            return null;
-        }
-
-        @Override
-        public Resource getResource() {
-            return ResourceFactory.getParameterContextsResource();
-        }
-    };
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -781,7 +770,17 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getParameterContexts() {
-        return PARAMETER_CONTEXTS_AUTHORIZABLE;
+        return new Authorizable() {
+            @Override
+            public Authorizable getParentAuthorizable() {
+                return getController();
+            }
+
+            @Override
+            public Resource getResource() {
+                return ResourceFactory.getParameterContextsResource();
+            }
+        };
     }
 
     /**

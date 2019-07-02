@@ -1558,6 +1558,14 @@ public interface NiFiServiceFacade {
      * @param parameterContextDto the Parameter Context DTO that represents all changes that are to occur to a Parameter Context
      * @return a Set representing all components that will be affected by the update
      */
+    Set<AffectedComponentEntity> getActiveComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
+
+    /**
+     * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
+     *
+     * @param parameterContextDto the Parameter Context DTO that represents all changes that are to occur to a Parameter Context
+     * @return a Set representing all components that will be affected by the update
+     */
     Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
 
     // ----------------------------------------

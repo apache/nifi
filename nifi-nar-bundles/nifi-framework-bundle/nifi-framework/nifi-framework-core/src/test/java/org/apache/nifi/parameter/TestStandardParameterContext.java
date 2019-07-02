@@ -34,6 +34,7 @@ import java.util.Set;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
 
 public class TestStandardParameterContext {
 
@@ -54,12 +55,12 @@ public class TestStandardParameterContext {
 
         final Parameter abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
-        assertEquals("", abcParam.getDescriptor().getDescription());
+        assertNull(abcParam.getDescriptor().getDescription());
         assertEquals("123", abcParam.getValue());
 
         final Parameter xyzParam = context.getParameter("xyz").get();
         assertEquals(xyzDescriptor, xyzParam.getDescriptor());
-        assertEquals("", xyzParam.getDescriptor().getDescription());
+        assertNull(xyzParam.getDescriptor().getDescription());
         assertEquals("242526", xyzParam.getValue());
 
         final Set<Parameter> secondParameters = new HashSet<>();
@@ -90,6 +91,42 @@ public class TestStandardParameterContext {
         context.setParameters(thirdParameters);
 
         assertEquals("other", context.getParameter("foo").get().getValue());
+    }
+
+    @Test
+    public void testUpdateDescription() {
+        final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
+
+        final Set<Parameter> parameters = new HashSet<>();
+        parameters.add(new Parameter(abcDescriptor, "123"));
+
+        context.setParameters(parameters);
+
+        Parameter abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertEquals("abc", abcParam.getDescriptor().getDescription());
+        assertEquals("123", abcParam.getValue());
+
+        ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("Updated").build();
+        final Parameter newDescriptionParam = new Parameter(updatedDescriptor, "321");
+        context.setParameters(Collections.singleton(newDescriptionParam));
+
+        abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertEquals("Updated", abcParam.getDescriptor().getDescription());
+        assertEquals("321", abcParam.getValue());
+
+        updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("Updated Again").build();
+        final Parameter paramWithoutValue = new Parameter(updatedDescriptor, null);
+        context.setParameters(Collections.singleton(paramWithoutValue));
+
+        abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertEquals("Updated Again", abcParam.getDescriptor().getDescription());
+        assertEquals("321", abcParam.getValue());
     }
 
     @Test

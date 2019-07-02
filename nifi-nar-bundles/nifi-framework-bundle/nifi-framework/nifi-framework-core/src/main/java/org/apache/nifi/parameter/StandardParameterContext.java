@@ -102,19 +102,35 @@ public class StandardParameterContext implements ParameterContext {
 
             verifyCanSetParameters(updatedParameters);
 
+            boolean changeAffectingComponents = false;
             for (final Parameter parameter : updatedParameters) {
-                if (parameter.getValue() == null) {
+                if (parameter.getValue() == null && parameter.getDescriptor().getDescription() == null) {
                     parameters.remove(parameter.getDescriptor());
+                    changeAffectingComponents = true;
+                } else if (parameter.getValue() == null) {
+                    // Value is null but description is not. Just update the description of the existing Parameter.
+                    final Parameter existingParameter = parameters.get(parameter.getDescriptor());
+                    final ParameterDescriptor existingDescriptor = existingParameter.getDescriptor();
+                    final ParameterDescriptor replacementDescriptor = new ParameterDescriptor.Builder()
+                        .from(existingDescriptor)
+                        .description(parameter.getDescriptor().getDescription())
+                        .build();
+
+                    final Parameter replacementParameter = new Parameter(replacementDescriptor, existingParameter.getValue());
+                    parameters.put(parameter.getDescriptor(), replacementParameter);
                 } else {
                     parameters.put(parameter.getDescriptor(), parameter);
+                    changeAffectingComponents = true;
                 }
             }
 
-            for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
-                try {
-                    processGroup.onParameterContextUpdated();
-                } catch (final Exception e) {
-                    logger.error("Failed to notify {} that Parameter Context was updated", processGroup, e);
+            if (changeAffectingComponents) {
+                for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
+                    try {
+                        processGroup.onParameterContextUpdated();
+                    } catch (final Exception e) {
+                        logger.error("Failed to notify {} that Parameter Context was updated", processGroup, e);
+                    }
                 }
             }
         } finally {
@@ -182,10 +198,19 @@ public class StandardParameterContext implements ParameterContext {
         for (final Parameter updatedParameter : updatedParameters) {
             validateSensitiveFlag(updatedParameter);
 
-            if (updatedParameter.getValue() == null) {
+            // Parameters' names and sensitivity flags are immutable. However, the description and value are mutable. If both value and description are
+            // set to `null`, this is the indication that the Parameter should be removed. If the value is `null` but the Description is supplied, the user
+            // is indicating that only the description is to be changed.
+            if (updatedParameter.getValue() == null && updatedParameter.getDescriptor().getDescription() == null) {
                 validateReferencingComponents(updatedParameter, "remove");
-            } else {
+            } else if (updatedParameter.getValue() != null) {
                 validateReferencingComponents(updatedParameter, "update");
+            } else {
+                // Only parameter is changing. No value is set. This means that the Parameter must already exist.
+                final Optional<Parameter> existing = getParameter(updatedParameter.getDescriptor());
+                if (!existing.isPresent()) {
+                    throw new IllegalStateException("Cannot add Parameter '" + updatedParameter.getDescriptor().getName() + "' without providing a value");
+                }
             }
         }
     }
