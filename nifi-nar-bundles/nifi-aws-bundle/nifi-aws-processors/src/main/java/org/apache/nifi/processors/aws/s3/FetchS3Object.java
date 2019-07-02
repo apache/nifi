@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -39,6 +40,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
@@ -129,6 +131,9 @@ public class FetchS3Object extends AbstractS3Processor {
         }
 
         try (final S3Object s3Object = client.getObject(request)) {
+            if (s3Object == null) {
+                throw new IOException("AWS refused to execute this request.");
+            }
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
             attributes.put("s3.bucket", s3Object.getBucketName());
 
@@ -174,6 +179,14 @@ public class FetchS3Object extends AbstractS3Processor {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
+        } catch (final FlowFileAccessException ffae) {
+            if (ExceptionUtils.indexOfType(ffae, AmazonClientException.class) != -1) {
+                getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[]{flowFile, ffae});
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+            throw ffae;
         }
 
         if (!attributes.isEmpty()) {
