@@ -97,6 +97,7 @@
     var parameterRegex = new RegExp('^$');
 
     var parameterDetails = {};
+    var parametersSupported = false;
 
     var subjectlessFunctions = [];
     var functions = [];
@@ -378,7 +379,7 @@
          *
          * @param parameterListing
          */
-        setParameters: function (parameterListing) {
+        enableParameters: function (parameterListing) {
             parameters = [];
             parameterDetails = {};
 
@@ -388,6 +389,19 @@
             });
 
             parameterRegex = new RegExp('^((' + parameters.join(')|(') + '))$');
+
+            parametersSupported = true;
+        },
+
+        /**
+         * Disables parameter referencing.
+         */
+        disableParameters: function () {
+            parameters = [];
+            parameterRegex = new RegExp('^$');
+            parameterDetails = {};
+
+            parametersSupported = false;
         },
 
         /**
@@ -539,7 +553,7 @@
                             }
 
                             return expressionDollarResult;
-                        } else if (current === '#') {
+                        } else if (current === '#' && parametersSupported) {
                             // --------------------------
                             // nested parameter reference
                             // --------------------------
@@ -814,7 +828,7 @@
                             }
 
                             return argumentDollarResult;
-                        } else if (current === '#') {
+                        } else if (current === '#' && parametersSupported) {
                             // --------------------------
                             // nested parameter reference
                             // --------------------------
@@ -910,7 +924,7 @@
                     }
 
                     // signifies the potential start of a parameter reference
-                    if (current === '#') {
+                    if (current === '#' && parametersSupported) {
                         return handleStart('#', PARAMETER, stream, states);
                     }
 
@@ -1060,7 +1074,7 @@
          * @returns {boolean}   Whether the editor supports parameter reference
          */
         supportsParameterReference: function () {
-            return true;
+            return parametersSupported;
         }
     };
 }));
