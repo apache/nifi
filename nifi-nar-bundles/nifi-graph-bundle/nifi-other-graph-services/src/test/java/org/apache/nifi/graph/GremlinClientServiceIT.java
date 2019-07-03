@@ -48,6 +48,8 @@ public class GremlinClientServiceIT {
 
         String setup = IOUtils.toString(getClass().getResourceAsStream("/setup.gremlin"), "UTF-8");
         clientService.getClient().submit(setup);
+
+        Assert.assertEquals("gremlin://localhost:8182/gremlin", clientService.getTransitUrl());
     }
 
     @After
