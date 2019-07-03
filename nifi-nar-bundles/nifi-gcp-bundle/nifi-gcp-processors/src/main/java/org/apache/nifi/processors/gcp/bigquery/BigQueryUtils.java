@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.processor.exception.ProcessException;
+
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.gson.Gson;
@@ -33,44 +36,79 @@ import com.google.gson.reflect.TypeToken;
  * Util class for schema manipulation
  */
 public class BigQueryUtils {
+    /**
+     * Exception thrown when a given type can't be transformed into a valid BigQuery type.
+     *
+     */
+    public static class BadTypeNameException extends ProcessException {
+        public BadTypeNameException(String message) {
+            super(message);
+        }
+    }
+
 
     private final static Type gsonSchemaType = new TypeToken<List<Map>>() { }.getType();
 
     public static Field mapToField(Map fMap) {
-        String typeStr = fMap.get("type").toString();
+        String typeStr = fMap.get("type").toString().toUpperCase();
         String nameStr = fMap.get("name").toString();
-        String modeStr = fMap.get("mode").toString();
+        String modeStr;
+        if(fMap.containsKey("mode")) {
+            modeStr = fMap.get("mode").toString();
+        } else {
+            modeStr = Mode.NULLABLE.name();
+        }
         LegacySQLTypeName type = null;
+        List<Field> subFields = new ArrayList<>();
 
-        if (typeStr.equals("BOOLEAN")) {
+        switch(typeStr) {
+        case "BOOLEAN":
             type = LegacySQLTypeName.BOOLEAN;
-        } else if (typeStr.equals("STRING")) {
+            break;
+        case "STRING":
             type = LegacySQLTypeName.STRING;
-        } else if (typeStr.equals("BYTES")) {
+            break;
+        case "BYTES":
             type = LegacySQLTypeName.BYTES;
-        } else if (typeStr.equals("INTEGER")) {
+            break;
+        case "INTEGER":
             type = LegacySQLTypeName.INTEGER;
-        } else if (typeStr.equals("FLOAT")) {
+            break;
+        case "FLOAT":
             type = LegacySQLTypeName.FLOAT;
-        } else if (typeStr.equals("TIMESTAMP") || typeStr.equals("DATE")
-                || typeStr.equals("TIME") || typeStr.equals("DATETIME")) {
-            type = LegacySQLTypeName.TIMESTAMP;
-        } else if (typeStr.equals("RECORD")) {
+            break;
+        case "RECORD":
             type = LegacySQLTypeName.RECORD;
+            List<Map> fields = (List<Map>) fMap.get("fields");
+            subFields.addAll(listToFields(fields));
+            break;
+        case "TIMESTAMP":
+        case "DATE":
+        case "TIME":
+        case "DATETIME":
+            type = LegacySQLTypeName.TIMESTAMP;
+            break;
+        default:
+            throw new BadTypeNameException(String.format("You used invalid BigQuery type \"%s\" in declaration of\n%s\n"
+                    + "Supported types are \"BOOLEAN, STRING, BYTES, INTEGER, FLOAT, RECORD, TIMESTAMP, DATE, TIME, DATETIME\"", 
+                    typeStr, fMap));
         }
 
-        return Field.newBuilder(nameStr, type).setMode(Field.Mode.valueOf(modeStr)).build();
+        return Field.newBuilder(nameStr, type, subFields.toArray(new Field[subFields.size()])).setMode(Field.Mode.valueOf(modeStr)).build();
     }
 
-    public static List<Field> listToFields(List<Map> m_fields) {
-        List<Field> fields = new ArrayList(m_fields.size());
-        for (Map m : m_fields) {
+    public static List<Field> listToFields(List<Map> fieldsDescriptors) {
+        List<Field> fields = new ArrayList(fieldsDescriptors.size());
+        for (Map m : fieldsDescriptors) {
             fields.add(mapToField(m));
         }
 
         return fields;
     }
 
+    /**
+     * Parse a schema defintion into a schema
+     */
     public static Schema schemaFromString(String schemaStr) {
         if (schemaStr == null) {
             return null;

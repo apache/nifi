@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Consent",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "boolean",
+        "mode": "NULLABLE",
+        "type": "BOOLEAN"
+      }
+    ]
+  }
+]
