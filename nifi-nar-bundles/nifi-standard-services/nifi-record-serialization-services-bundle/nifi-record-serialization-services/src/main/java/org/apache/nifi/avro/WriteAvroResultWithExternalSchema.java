@@ -103,6 +103,7 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     @Override
     public void close() throws IOException {
         if (encoder != null) {
+            flush();
             recycleQueue.offer(encoder);
         }
 
