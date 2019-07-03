@@ -19,8 +19,17 @@ public class BigQueryUtilsTest {
         final String jsonRead = new String(
                 Files.readAllBytes(Paths.get("src/test/resources/schemas/simple_boolean_schema.json"))
         );
-        Schema expected = Schema.of(Field.of("boolean", LegacySQLTypeName.BOOLEAN).toBuilder().setMode(Mode.NULLABLE).build());
+        Field booleanField = Field.newBuilder("boolean", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build();
+		Schema expected = Schema.of(booleanField);
 		Assert.assertEquals(BigQueryUtils.schemaFromString(jsonRead), expected);
+	}
+
+	@Test(expected = BadTypeNameException.class)
+	public void can_create_a_simple_record_schema_with_bad_type_case() throws IOException {
+        final String jsonRead = new String(
+                Files.readAllBytes(Paths.get("src/test/resources/schemas/simple_record_schema_with_bad_type_case.json"))
+        );
+        BigQueryUtils.schemaFromString(jsonRead);
 	}
 
 	@Test
@@ -28,7 +37,7 @@ public class BigQueryUtilsTest {
         final String jsonRead = new String(
                 Files.readAllBytes(Paths.get("src/test/resources/schemas/simple_record_schema.json"))
         );
-        Field booleanField = Field.of("boolean", LegacySQLTypeName.BOOLEAN).toBuilder().setMode(Mode.NULLABLE).build();
+        Field booleanField = Field.newBuilder("boolean", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build();
 		Schema expected = Schema.of(Field.of("Consent", LegacySQLTypeName.RECORD,
         		booleanField
         		).toBuilder().setMode(Mode.NULLABLE).build());
