@@ -24,6 +24,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestRetryFlowFile {
     TestRunner runner;
@@ -49,6 +51,7 @@ public class TestRetryFlowFile {
 
         runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
             mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeEquals("flowfile.retries", "1");
             return true;
         });
@@ -65,6 +68,29 @@ public class TestRetryFlowFile {
 
         runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
             mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeExists("flowfile.retries.uuid");
+            mff.assertAttributeEquals("flowfile.retries", "3");
+            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            return true;
+        });
+    }
+
+    @Test
+    public void testRetryClustered() {
+        runner.setClustered(true);
+        runner.setThreadCount(5);
+        for (int i = 0; i < 5; i++) {
+            runner.enqueue("", Collections.singletonMap("flowfile.retries", "2"));
+        }
+        runner.run(5);
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 5);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
+
+        runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeEquals("flowfile.retries", "3");
             Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
             return true;
@@ -82,6 +108,7 @@ public class TestRetryFlowFile {
         runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
 
         runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeEquals("flowfile.retries", "3");
             Assert.assertFalse("FlowFile was not penalized!", mff.isPenalized());
@@ -99,6 +126,7 @@ public class TestRetryFlowFile {
         runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
 
         runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries.uuid");
             mff.assertAttributeExists("flowfile.retries");
             mff.assertAttributeEquals("flowfile.retries", "1");
             Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
@@ -133,6 +161,60 @@ public class TestRetryFlowFile {
             mff.assertAttributeExists("reason");
             Assert.assertFalse("Expression language not evaluated!",
                     mff.getAttribute("reason").contains("${uuid}"));
+            return true;
+        });
+    }
+
+    @Test
+    public void testReuseFail() {
+        runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.FAIL_ON_REUSE.getValue());
+        Map<String, String> inputAttributes = new HashMap<>();
+        inputAttributes.put("flowfile.retries", "2");
+        inputAttributes.put("flowfile.retries.uuid", "1122334455");
+        runner.enqueue("", inputAttributes);
+        runner.run();
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 0);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 1);
+    }
+
+    @Test
+    public void testReuseWarn() {
+        runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.WARN_ON_REUSE.getValue());
+        Map<String, String> inputAttributes = new HashMap<>();
+        inputAttributes.put("flowfile.retries", "2");
+        inputAttributes.put("flowfile.retries.uuid", "1122334455");
+        runner.enqueue("", inputAttributes);
+        runner.run();
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 1);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
+
+        runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeEquals("flowfile.retries", "1");
+            return true;
+        });
+    }
+
+    @Test
+    public void testReuseReset() {
+        runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.RESET_ON_REUSE.getValue());
+        Map<String, String> inputAttributes = new HashMap<>();
+        inputAttributes.put("flowfile.retries", "2");
+        inputAttributes.put("flowfile.retries.uuid", "1122334455");
+        runner.enqueue("", inputAttributes);
+        runner.run();
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 1);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
+
+        runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeEquals("flowfile.retries", "1");
             return true;
         });
     }

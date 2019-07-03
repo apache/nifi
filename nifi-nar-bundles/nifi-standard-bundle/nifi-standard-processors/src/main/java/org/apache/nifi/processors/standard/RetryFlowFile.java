@@ -22,13 +22,15 @@ import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.configuration.DefaultSettings;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -57,11 +59,15 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @SupportsBatching
 @SideEffectFree
-@DefaultSettings(penaltyDuration = "2 min")
 @ReadsAttribute(attribute = "Retry Attribute",
         description = "Will read the attribute or attribute expression language result as defined in 'Retry Attribute'")
-@WritesAttribute(attribute = "Retry Attribute",
-        description = "User defined retry attribute is updated with the current retry count")
+@WritesAttributes({
+        @WritesAttribute(attribute = "Retry Attribute",
+                description = "User defined retry attribute is updated with the current retry count"),
+        @WritesAttribute(attribute = "Retry Attribute .uuid",
+                description = "User defined retry attribute with .uuid that determines what processor " +
+                        "retried the FlowFile last")
+})
 @DynamicProperty(name = "Exceeded FlowFile Attribute Key",
         value = "The value of the attribute added to the FlowFile",
         description = "One or more dynamic properties can be used to add attributes to FlowFiles passed to " +
@@ -74,9 +80,12 @@ public class RetryFlowFile extends AbstractProcessor {
     private Integer maximumRetries;
     private Boolean penalizeRetried;
     private Boolean failOnOverwrite;
+    private String reuseMode;
+    private String lastRetriedBy;
 
     public static final PropertyDescriptor RETRY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("Retry Attribute")
+            .name("retry-attribute")
+            .displayName("Retry Attribute")
             .description("The name of the attribute that contains the current retry count for the FlowFile. " +
                     "WARNING: If the name matches an attribute already on the FlowFile that does not contain a " +
                     "numerical value, the processor will either overwrite that attribute with '1' or fail " +
@@ -87,15 +96,18 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue("flowfile.retries")
             .build();
     public static final PropertyDescriptor MAXIMUM_RETRIES = new PropertyDescriptor.Builder()
-            .name("Maximum Retries")
+            .name("maximum-retries")
+            .displayName("Maximum Retries")
             .description("The maximum number of times a FlowFile can be retried before being " +
                     "passed to the 'retries_exceeded' relationship")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(1, Integer.MAX_VALUE, true))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("3")
             .build();
     public static final PropertyDescriptor PENALIZE_RETRIED = new PropertyDescriptor.Builder()
-            .name("Penalize Retries")
+            .name("penalize-retries")
+            .displayName("Penalize Retries")
             .description("If set to 'true', this Processor will penalize input FlowFiles before passing them " +
                     "to the 'retry' relationship. This does not apply to the 'retries_exceeded' relationship.")
             .required(true)
@@ -109,6 +121,35 @@ public class RetryFlowFile extends AbstractProcessor {
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
+            .build();
+
+    public static final AllowableValue FAIL_ON_REUSE = new AllowableValue(
+            "fail",
+            "Fail on Reuse",
+            "If a FlowFile's UUID does not match the supplied retry UUID, fail the FlowFile" +
+                    " regardless of current retry count"
+    );
+    public static final AllowableValue WARN_ON_REUSE = new AllowableValue(
+            "warn",
+            "Warn on Reuse",
+            "If a FlowFile's UUID does not match the supplied retry UUID, log a warning message before " +
+                    "resetting the retry attribute and UUID for this instance"
+    );
+    public static final AllowableValue RESET_ON_REUSE = new AllowableValue(
+            "reset",
+            "Reset Reuse",
+            "If a FlowFile's UUID does not match the supplied retry UUID, log a debug message before " +
+                    "resetting the retry attribute and UUID for this instance"
+    );
+    public static final PropertyDescriptor REUSE_MODE = new PropertyDescriptor.Builder()
+            .name("reuse-mode")
+            .displayName("Reuse Mode")
+            .description("Defines how the Processor behaves if the retry FlowFile has a different retry UUID than " +
+                    "the instance that received the FlowFile. This generally means that the attribute was not reset " +
+                    "after being successfully retried by a previous instance of this processor.")
+            .required(true)
+            .allowableValues(FAIL_ON_REUSE, WARN_ON_REUSE, RESET_ON_REUSE)
+            .defaultValue(FAIL_ON_REUSE.getValue())
             .build();
 
     public static final Relationship RETRY = new Relationship.Builder()
@@ -141,6 +182,7 @@ public class RetryFlowFile extends AbstractProcessor {
         props.add(MAXIMUM_RETRIES);
         props.add(PENALIZE_RETRIED);
         props.add(FAIL_ON_OVERWRITE);
+        props.add(REUSE_MODE);
         this.properties = Collections.unmodifiableList(props);
 
         Set<Relationship> rels = new HashSet<>();
@@ -171,16 +213,18 @@ public class RetryFlowFile extends AbstractProcessor {
     @OnScheduled
     @SuppressWarnings("unused")
     public void onScheduled(final ProcessContext context) {
-        maximumRetries = context.getProperty(MAXIMUM_RETRIES).asInteger();
-        penalizeRetried = context.getProperty(PENALIZE_RETRIED).asBoolean();
         retryAttribute = context.getProperty(RETRY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+        maximumRetries = context.getProperty(MAXIMUM_RETRIES).evaluateAttributeExpressions().asInteger();
+        penalizeRetried = context.getProperty(PENALIZE_RETRIED).asBoolean();
         failOnOverwrite = context.getProperty(FAIL_ON_OVERWRITE).asBoolean();
+        reuseMode = context.getProperty(REUSE_MODE).getValue();
+        lastRetriedBy = retryAttribute.concat(".uuid");
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowfile = session.get();
-        if (null == flowfile || flowfile.isPenalized())
+        if (null == flowfile)
             return;
 
         String retryAttributeValue = flowfile.getAttribute(retryAttribute);
@@ -199,6 +243,32 @@ public class RetryFlowFile extends AbstractProcessor {
             currentRetry = 1;
         }
 
+        String lastRetriedByUUID = flowfile.getAttribute(lastRetriedBy);
+        String currentInstanceUUID = getIdentifier();
+        if (!StringUtils.isBlank(lastRetriedByUUID) && !currentInstanceUUID.equals(lastRetriedByUUID)) {
+            LogLevel reuseLogLevel = LogLevel.DEBUG;
+            switch (reuseMode) {
+                case "fail":
+                    getLogger().error("FlowFile {} was previously retried with the same attribute by a " +
+                            "different processor. Route to 'failure'", new Object[]{flowfile});
+                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}",
+                            new Object[]{currentInstanceUUID, lastRetriedByUUID, currentRetry - 1});
+                    session.transfer(flowfile, FAILURE);
+                    return;
+                case "warn":
+                    reuseLogLevel = LogLevel.WARN;
+                case "reset":
+                    getLogger().log(reuseLogLevel, "FlowFile {} was previously retried with the same attribute " +
+                                    "by a different processor. Reset the current retry count to '1'. Consider " +
+                                    "changing the retry attribute for this processor.",
+                            new Object[]{flowfile});
+                    getLogger().debug("Current Processor: {}, Previous Processor: {}, Previous Retry: {}",
+                            new Object[]{currentInstanceUUID, lastRetriedByUUID, currentRetry});
+                    currentRetry = 1;
+                    break;
+            }
+        }
+
         if (currentRetry > maximumRetries) {
             // Add dynamic properties
             for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -208,10 +278,12 @@ public class RetryFlowFile extends AbstractProcessor {
                 String value = context.getProperty(descriptor)
                         .evaluateAttributeExpressions(flowfile)
                         .getValue();
-                if (null != value && !StringUtils.isBlank(value))
+                if (!StringUtils.isBlank(value))
                     flowfile = session.putAttribute(flowfile, descriptor.getName(), value);
             }
 
+            flowfile = session.removeAttribute(flowfile, retryAttribute);
+            flowfile = session.removeAttribute(flowfile, lastRetriedBy);
             session.transfer(flowfile, RETRIES_EXCEEDED);
         } else {
             if (penalizeRetried)
@@ -219,6 +291,7 @@ public class RetryFlowFile extends AbstractProcessor {
 
             // Update and transfer
             flowfile = session.putAttribute(flowfile, retryAttribute, String.valueOf(currentRetry));
+            flowfile = session.putAttribute(flowfile, lastRetriedBy, getIdentifier());
             session.transfer(flowfile, RETRY);
         }
     }
