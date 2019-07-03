@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.gson.Gson;
@@ -37,9 +38,14 @@ public class BigQueryUtils {
     private final static Type gsonSchemaType = new TypeToken<List<Map>>() { }.getType();
 
     public static Field mapToField(Map fMap) {
-        String typeStr = fMap.get("type").toString();
+        String typeStr = fMap.get("type").toString().toUpperCase();
         String nameStr = fMap.get("name").toString();
-        String modeStr = fMap.get("mode").toString();
+        String modeStr;
+        if(fMap.containsKey("mode")) {
+        	modeStr = fMap.get("mode").toString();
+        } else {
+        	modeStr = Mode.NULLABLE.name();
+        }
         LegacySQLTypeName type = null;
         List<Field> subFields = new ArrayList<>();
 
