@@ -437,7 +437,7 @@
     };
 
     // combo editor
-    var getComboEditor = function (loadParameters) {
+    var getComboEditor = function (parametersSupported, loadParameters) {
         return function (args) {
             var PARAMETER_REFERENCE_OPTION = {
                 text: 'Reference parameter...',
@@ -512,7 +512,7 @@
                 }
 
                 // if this does not represent an identify a controller service
-                if (!nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                if (parametersSupported && !nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                     allowableValueOptions.push(PARAMETER_REFERENCE_OPTION);
                 }
 
@@ -544,20 +544,28 @@
                     options: allowableValueOptions,
                     maxHeight: maxHeight,
                     select: function (option) {
-                        if (nfCommon.isDefinedAndNotNull(parameterCombo)) {
-                            if (option === PARAMETER_REFERENCE_OPTION) {
-                                parameterCombo.show();
-                            } else {
-                                parameterCombo.hide();
+                        var promptForControllerService = function () {
+                            // cancel the current edit
+                            scope.cancel();
 
-                                if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
-                                    // cancel the current edit
-                                    scope.cancel();
+                            // prompt for the new service type
+                            promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                        };
 
-                                    // prompt for the new service type
-                                    promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                        if (parametersSupported) {
+                            if (nfCommon.isDefinedAndNotNull(parameterCombo)) {
+                                if (option === PARAMETER_REFERENCE_OPTION) {
+                                    parameterCombo.show();
+                                } else {
+                                    parameterCombo.hide();
+
+                                    if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
+                                        promptForControllerService();
+                                    }
                                 }
                             }
+                        } else if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
+                            promptForControllerService()
                         }
                     }
                 }).css({
@@ -566,28 +574,30 @@
                     'width': comboWidth + 'px'
                 }).appendTo(wrapper);
 
-                // load the parameters
-                loadParameters(propertyDescriptor, function (parameterListing) {
-                    parameterListing.forEach(function (parameter) {
-                        parameterOptions.push({
-                            text: parameter.name,
-                            value: '#{' + parameter.name + '}',
-                            description: nfCommon.escapeHtml(parameter.description)
+                if (parametersSupported) {
+                    // load the parameters
+                    loadParameters(propertyDescriptor, function (parameterListing) {
+                        parameterListing.forEach(function (parameter) {
+                            parameterOptions.push({
+                                text: parameter.name,
+                                value: '#{' + parameter.name + '}',
+                                description: nfCommon.escapeHtml(parameter.description)
+                            });
                         });
-                    });
 
-                    // create the parameter combo
-                    parameterCombo = $('<div class="value-combo combo"></div>')
-                        .combo({
-                            options: parameterOptions,
-                            maxHeight: maxHeight
-                        })
-                        .css({
-                            'margin-bottom': '10px',
-                            'width': comboWidth + 'px'
-                        })
-                        .appendTo(wrapper);
-                });
+                        // create the parameter combo
+                        parameterCombo = $('<div class="value-combo combo"></div>')
+                            .combo({
+                                options: parameterOptions,
+                                maxHeight: maxHeight
+                            })
+                            .css({
+                                'margin-bottom': '10px',
+                                'width': comboWidth + 'px'
+                            })
+                            .appendTo(wrapper);
+                    });
+                }
 
                 // add buttons for handling user input
                 var cancel = $('<div class="secondary-button">Cancel</div>').css({
@@ -645,7 +655,9 @@
             };
 
             this.destroy = function () {
-                parameterCombo.combo('destroy');
+                if (parametersSupported) {
+                    parameterCombo.combo('destroy');
+                }
                 allowableValuesCombo.combo('destroy');
                 wrapper.remove();
                 allowableValueOptions.length = 0;
@@ -675,7 +687,7 @@
                     // if the initial value is an allowable value select it, otherwise see if it is a parameter reference
                     if (!nfCommon.isUndefined(selectedOption)) {
                         allowableValuesCombo.combo('setSelectedOption', selectedOption);
-                    } else if (referencesParameter(initialValue)) {
+                    } else if (parametersSupported && referencesParameter(initialValue)) {
                         // select the option for reference a parameter
                         allowableValuesCombo.combo('setSelectedOption', PARAMETER_REFERENCE_OPTION);
 
@@ -692,7 +704,7 @@
                 var selectedValue = selectedOption.value;
 
                 // if the value is undefined, it indicates that the value in the editor references a parameter
-                if (_.isUndefined(selectedValue)) {
+                if (parametersSupported && _.isUndefined(selectedValue)) {
                     selectedValue = parameterCombo.combo('getSelectedOption').value;
                 }
 
@@ -1342,36 +1354,13 @@
             var propertyDescriptor = descriptors[item.property];
 
             // sets the available parameters for the specified property descriptor
-            var loadParameters = function (propertyDescriptor, setParameters) {
-                var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
-                // set the available parameters TODO - base on sensitive property
-                setParameters([
-                    {
-                        name: 'param 1',
-                        sensitive: false,
-                        description: 'this is the description for param 1',
-                        value: 'value 1'
-                    },
-                    {
-                        name: 'param 2',
-                        sensitive: true,
-                        description: 'this is the description for param 2',
-                        value: 'value 2'
-                    },
-                    {
-                        name: 'param 3',
-                        sensitive: false,
-                        value: 'value 3'
-                    },
-                    {
-                        name: 'param 4',
-                        sensitive: false,
-                        description: 'this is the description for param 4',
-                        value: 'value 4'
-                    }
-                ]);
+            var loadParameters = function (propertyDescriptor, parameterDeferred, enableParameters) {
+                parameterDeferred(propertyDescriptor).done(function (parameterContext) {
+                    enableParameters(parameterContext.parameters);
+                });
             };
+
+            var parametersSupported = typeof options.parameterDeferred === 'function';
 
             // support el if specified or unsure yet (likely a dynamic property)
             if (nfCommon.isUndefinedOrNull(propertyDescriptor) || nfCommon.supportsEl(propertyDescriptor)) {
@@ -1379,8 +1368,12 @@
                     columns: {
                         value: {
                             editor: getNfEditor(function (propertyDescriptor) {
-                                // set the available parameters
-                                loadParameters(propertyDescriptor, nf.nfel.setParameters);
+                                if (parametersSupported) {
+                                    // set the available parameters
+                                    loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfel.enableParameters);
+                                } else {
+                                    nf.nfel.disableParameters();
+                                }
                                 return nf.nfel;
                             })
                         }
@@ -1393,9 +1386,11 @@
                     return {
                         columns: {
                             value: {
-                                editor: getComboEditor(function (propertyDescriptor, setParameters) {
-                                    // set the available parameters
-                                    loadParameters(propertyDescriptor, setParameters);
+                                editor: getComboEditor(parametersSupported, function (propertyDescriptor, enableParameters) {
+                                    if (parametersSupported) {
+                                        // set the available parameters
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, enableParameters);
+                                    }
                                 })
                             }
                         }
@@ -1405,8 +1400,12 @@
                         columns: {
                             value: {
                                 editor: getNfEditor(function (propertyDescriptor) {
-                                    // set the available parameters
-                                    loadParameters(propertyDescriptor, nf.nfpr.setParameters);
+                                    if (parametersSupported) {
+                                        // set the available parameters
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfpr.enableParameters);
+                                    } else {
+                                        nf.nfpr.disableParameters();
+                                    }
                                     return nf.nfpr;
                                 })
                             }

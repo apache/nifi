@@ -1806,6 +1806,40 @@
                     supportsGoTo: true,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    parameterDeferred: function (propertyDescriptor) {
+                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                        // set the available parameters TODO - base on sensitive property
+                        return $.Deferred(function (deferred) {
+                            deferred.resolve({
+                                'parameters': [
+                                    {
+                                        name: 'param 1',
+                                        sensitive: false,
+                                        description: 'this is the description for param 1',
+                                        value: 'value 1'
+                                    },
+                                    {
+                                        name: 'param 2',
+                                        sensitive: true,
+                                        description: 'this is the description for param 2',
+                                        value: 'value 2'
+                                    },
+                                    {
+                                        name: 'param 3',
+                                        sensitive: false,
+                                        value: 'value 3'
+                                    },
+                                    {
+                                        name: 'param 4',
+                                        sensitive: false,
+                                        description: 'this is the description for param 4',
+                                        value: 'value 4'
+                                    }
+                                ]
+                            });
+                        }).promise();
+                    },
                     controllerServiceCreatedDeferred: function (response) {
                         var controllerServicesUri;
 

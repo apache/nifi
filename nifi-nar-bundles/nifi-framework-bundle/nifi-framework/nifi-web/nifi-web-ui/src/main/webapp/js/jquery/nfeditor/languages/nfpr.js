@@ -63,6 +63,7 @@
     var parameterRegex = new RegExp('^$');
 
     var parameterDetails = {};
+    var parametersSupported = false;
 
     // valid context states
     var PARAMETER = 'parameter';
@@ -230,7 +231,7 @@
          *
          * @param parameterListing
          */
-        setParameters: function (parameterListing) {
+        enableParameters: function (parameterListing) {
             parameters = [];
             parameterDetails = {};
 
@@ -240,6 +241,19 @@
             });
 
             parameterRegex = new RegExp('^((' + parameters.join(')|(') + '))$');
+
+            parametersSupported = true;
+        },
+
+        /**
+         * Disables parameter referencing.
+         */
+        disableParameters: function () {
+            parameters = [];
+            parameterRegex = new RegExp('^$');
+            parameterDetails = {};
+
+            parametersSupported = false;
         },
 
         /**
@@ -374,7 +388,7 @@
                     }
 
                     // signifies the potential start of an expression
-                    if (current === '#') {
+                    if (current === '#' && parametersSupported) {
                         return handlePound(stream, states);
                     }
 
@@ -502,7 +516,7 @@
          * @returns {boolean}   Whether the editor supports parameter reference
          */
         supportsParameterReference: function () {
-            return true;
+            return parametersSupported;
         }
     };
 }));
