@@ -218,4 +218,40 @@ public class TestRetryFlowFile {
             return true;
         });
     }
+
+    @Test
+    public void testAlternativeAttributeMaxRetries() {
+        runner.setProperty(RetryFlowFile.MAXIMUM_RETRIES, "${retry.max}");
+        Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("retry.max", "3");
+        attributeMap.put("flowfile.retries", "2");
+        runner.enqueue("", attributeMap);
+        runner.run();
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 1);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 0);
+
+        runner.assertAllConditionsMet(RetryFlowFile.RETRY, mff -> {
+            mff.assertAttributeExists("flowfile.retries");
+            mff.assertAttributeExists("flowfile.retries.uuid");
+            mff.assertAttributeEquals("flowfile.retries", "3");
+            Assert.assertTrue("FlowFile was not penalized!", mff.isPenalized());
+            return true;
+        });
+    }
+
+    @Test
+    public void testInvalidAlternativeAttributeMaxRetries() {
+        runner.setProperty(RetryFlowFile.MAXIMUM_RETRIES, "${retry.max}");
+        Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("retry.max", "NiFi");
+        attributeMap.put("flowfile.retries", "2");
+        runner.enqueue("", attributeMap);
+        runner.run();
+
+        runner.assertTransferCount(RetryFlowFile.RETRY, 0);
+        runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
+        runner.assertTransferCount(RetryFlowFile.FAILURE, 1);
+    }
 }

@@ -77,7 +77,6 @@ public class RetryFlowFile extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
     private String retryAttribute;
-    private Integer maximumRetries;
     private Boolean penalizeRetried;
     private Boolean failOnOverwrite;
     private String reuseMode;
@@ -102,7 +101,7 @@ public class RetryFlowFile extends AbstractProcessor {
                     "passed to the 'retries_exceeded' relationship")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(1, Integer.MAX_VALUE, true))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("3")
             .build();
     public static final PropertyDescriptor PENALIZE_RETRIED = new PropertyDescriptor.Builder()
@@ -166,7 +165,8 @@ public class RetryFlowFile extends AbstractProcessor {
             .name("failure")
             .description("The processor is configured such that a non-numerical value on 'Retry Attribute' " +
                     "results in a failure instead of resetting that value to '1'. This will immediately " +
-                    "terminate the limited feedback loop.")
+                    "terminate the limited feedback loop. Might also include when 'Maximum Retries' contains " +
+                    "attribute expression language that does not resolve to an Integer.")
             .autoTerminateDefault(true)
             .build();
 
@@ -214,7 +214,6 @@ public class RetryFlowFile extends AbstractProcessor {
     @SuppressWarnings("unused")
     public void onScheduled(final ProcessContext context) {
         retryAttribute = context.getProperty(RETRY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
-        maximumRetries = context.getProperty(MAXIMUM_RETRIES).evaluateAttributeExpressions().asInteger();
         penalizeRetried = context.getProperty(PENALIZE_RETRIED).asBoolean();
         failOnOverwrite = context.getProperty(FAIL_ON_OVERWRITE).asBoolean();
         reuseMode = context.getProperty(REUSE_MODE).getValue();
@@ -267,6 +266,23 @@ public class RetryFlowFile extends AbstractProcessor {
                     currentRetry = 1;
                     break;
             }
+        }
+
+        Integer maximumRetries;
+        try {
+            maximumRetries = context.getProperty(MAXIMUM_RETRIES)
+                    .evaluateAttributeExpressions(flowfile)
+                    .asInteger();
+
+            if (null == maximumRetries) {
+                getLogger().warn("Could not obtain maximum retries off of FlowFile, route to 'failure'");
+                session.transfer(flowfile, FAILURE);
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            getLogger().warn("Maximum Retries was not a number for this FlowFile, route to 'failure'");
+            session.transfer(flowfile, FAILURE);
+            return;
         }
 
         if (currentRetry > maximumRetries) {
