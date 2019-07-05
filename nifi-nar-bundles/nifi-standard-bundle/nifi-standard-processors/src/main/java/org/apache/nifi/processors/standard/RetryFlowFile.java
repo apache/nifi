@@ -125,20 +125,20 @@ public class RetryFlowFile extends AbstractProcessor {
     public static final AllowableValue FAIL_ON_REUSE = new AllowableValue(
             "fail",
             "Fail on Reuse",
-            "If a FlowFile's UUID does not match the supplied retry UUID, fail the FlowFile" +
+            "If the RetryFlowFile's UUID does not match the FlowFile's retry UUID, fail the FlowFile" +
                     " regardless of current retry count"
     );
     public static final AllowableValue WARN_ON_REUSE = new AllowableValue(
             "warn",
             "Warn on Reuse",
-            "If a FlowFile's UUID does not match the supplied retry UUID, log a warning message before " +
-                    "resetting the retry attribute and UUID for this instance"
+            "If the RetryFlowFile's UUID does not match the FlowFile's retry UUID, log a warning " +
+                    "message before resetting the retry attribute and UUID for this instance"
     );
     public static final AllowableValue RESET_ON_REUSE = new AllowableValue(
             "reset",
             "Reset Reuse",
-            "If a FlowFile's UUID does not match the supplied retry UUID, log a debug message before " +
-                    "resetting the retry attribute and UUID for this instance"
+            "If the RetryFlowFile's UUID does not match the FlowFile's retry UUID, log a debug " +
+                    "message before resetting the retry attribute and UUID for this instance"
     );
     public static final PropertyDescriptor REUSE_MODE = new PropertyDescriptor.Builder()
             .name("reuse-mode")
