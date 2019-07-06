@@ -74,7 +74,7 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         final ProcessorNode procNode = createProcessorNode(WriteText.class);
         procNode.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
 
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null);
         getRootGroup().setParameterContext(parameterContext);
 
         final Set<Parameter> parameters = new HashSet<>();
@@ -104,7 +104,7 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         final ProcessorNode procNode = createProcessorNode(WriteText.class);
         procNode.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
 
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null);
         getRootGroup().setParameterContext(parameterContext);
 
         final Set<Parameter> parameters = new HashSet<>();

@@ -44,6 +44,7 @@ public class StandardParameterContext implements ParameterContext {
 
     private final String id;
     private final ParameterReferenceManager parameterReferenceManager;
+    private final Authorizable parentAuthorizable;
 
     private String name;
     private long version = 0L;
@@ -55,10 +56,11 @@ public class StandardParameterContext implements ParameterContext {
     private final Lock writeLock = rwLock.writeLock();
 
 
-    public StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager) {
+    public StandardParameterContext(final String id, final String name, final ParameterReferenceManager parameterReferenceManager, final Authorizable parentAuthorizable) {
         this.id = Objects.requireNonNull(id);
         this.name = Objects.requireNonNull(name);
         this.parameterReferenceManager = parameterReferenceManager;
+        this.parentAuthorizable = parentAuthorizable;
     }
 
     @Override
@@ -287,7 +289,7 @@ public class StandardParameterContext implements ParameterContext {
         return new Authorizable() {
             @Override
             public Authorizable getParentAuthorizable() {
-                return null;
+                return parentAuthorizable;
             }
 
             @Override

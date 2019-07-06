@@ -504,7 +504,7 @@ public class ParameterContextResource extends ApplicationResource {
 
         authorizeReadParameterContext(contextId);
 
-        return retrieveUpdateRequest("update-requests", updateRequestId);
+        return retrieveUpdateRequest("update-requests", contextId, updateRequestId);
     }
 
 
@@ -538,7 +538,7 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiParam("The ID of the Update Request") @PathParam("requestId") final String updateRequestId) {
 
         authorizeReadParameterContext(contextId);
-        return deleteUpdateRequest("update-requests", updateRequestId, disconnectedNodeAcknowledged.booleanValue());
+        return deleteUpdateRequest("update-requests", contextId, updateRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
 
 
@@ -722,7 +722,7 @@ public class ParameterContextResource extends ApplicationResource {
             return replicate("GET");
         }
 
-        return retrieveValidationRequest("validation-requests", validationRequestId);
+        return retrieveValidationRequest("validation-requests", contextId, validationRequestId);
     }
 
     @DELETE
@@ -762,7 +762,7 @@ public class ParameterContextResource extends ApplicationResource {
             verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
-        return deleteValidationRequest("validation-requests", validationRequestId, disconnectedNodeAcknowledged.booleanValue());
+        return deleteValidationRequest("validation-requests", contextId, validationRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
 
 
@@ -819,8 +819,8 @@ public class ParameterContextResource extends ApplicationResource {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
-        final AsynchronousWebRequest<ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestWrapper.getParameterContextEntity().getComponent().getId(),
-            requestWrapper.getUser(), getUpdateSteps());
+        final String contextId = requestWrapper.getParameterContextEntity().getComponent().getId();
+        final AsynchronousWebRequest<ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, contextId, requestWrapper.getUser(), getUpdateSteps());
 
         // Submit the request to be performed in the background
         final Consumer<AsynchronousWebRequest<ParameterContextEntity>> updateTask = asyncRequest -> {
@@ -843,7 +843,7 @@ public class ParameterContextResource extends ApplicationResource {
         updateRequestManager.submitRequest("update-requests", requestId, request, updateTask);
 
         // Generate the response.
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(request, "update-requests", requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(request, "update-requests", contextId, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
 
@@ -862,11 +862,13 @@ public class ParameterContextResource extends ApplicationResource {
         throws LifecycleManagementException, ResumeFlowException {
 
         final Set<AffectedComponentEntity> runningProcessors = affectedComponents.stream()
-            .filter(component -> AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(component.getComponent().getReferenceType()))
+            .filter(entity -> entity.getComponent() != null)
+            .filter(entity -> AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(entity.getComponent().getReferenceType()))
             .filter(component -> "Running".equalsIgnoreCase(component.getComponent().getState()))
             .collect(Collectors.toSet());
 
         final Set<AffectedComponentEntity> enabledControllerServices = affectedComponents.stream()
+            .filter(entity -> entity.getComponent() != null)
             .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
             .filter(dto -> "Enabled".equalsIgnoreCase(dto.getComponent().getState()))
             .collect(Collectors.toSet());
@@ -1062,7 +1064,7 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
 
-    private Response retrieveValidationRequest(final String requestType, final String requestId) {
+    private Response retrieveValidationRequest(final String requestType, final String contextId, final String requestId) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1070,11 +1072,11 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final AsynchronousWebRequest<ComponentValidationResultsEntity> asyncRequest = validationRequestManager.getRequest(requestType, requestId, user);
-        final ParameterContextValidationRequestEntity requestEntity = createValidationRequestEntity(asyncRequest, requestType, requestId);
+        final ParameterContextValidationRequestEntity requestEntity = createValidationRequestEntity(asyncRequest, contextId, requestType, requestId);
         return generateOkResponse(requestEntity).build();
     }
 
-    private Response deleteValidationRequest(final String requestType, final String requestId, final boolean disconnectedNodeAcknowledged) {
+    private Response deleteValidationRequest(final String requestType, final String contextId, final String requestId, final boolean disconnectedNodeAcknowledged) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1095,19 +1097,19 @@ public class ParameterContextResource extends ApplicationResource {
             asyncRequest.cancel();
         }
 
-        final ParameterContextValidationRequestEntity requestEntity = createValidationRequestEntity(asyncRequest, requestType, requestId);
+        final ParameterContextValidationRequestEntity requestEntity = createValidationRequestEntity(asyncRequest, contextId, requestType, requestId);
         return generateOkResponse(requestEntity).build();
     }
 
     private ParameterContextValidationRequestEntity createValidationRequestEntity(final AsynchronousWebRequest<ComponentValidationResultsEntity> asyncRequest, final String requestType,
-                                                                                  final String requestId) {
+                                                                                  final String contextId, final String requestId) {
         final ParameterContextValidationRequestDTO requestDto = new ParameterContextValidationRequestDTO();
 
         requestDto.setComplete(asyncRequest.isComplete());
         requestDto.setFailureReason(asyncRequest.getFailureReason());
         requestDto.setLastUpdated(asyncRequest.getLastUpdated());
         requestDto.setRequestId(requestId);
-        requestDto.setUri(generateResourceUri("parameter-contexts", requestType, requestId));
+        requestDto.setUri(generateResourceUri("parameter-contexts", contextId, requestType, requestId));
         requestDto.setState(asyncRequest.getState());
         requestDto.setPercentCompleted(asyncRequest.getPercentComplete());
         requestDto.setComponentValidationResults(asyncRequest.getResults());
@@ -1117,7 +1119,7 @@ public class ParameterContextResource extends ApplicationResource {
         return entity;
     }
 
-    private Response retrieveUpdateRequest(final String requestType, final String requestId) {
+    private Response retrieveUpdateRequest(final String requestType, final String contextId, final String requestId) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1126,11 +1128,11 @@ public class ParameterContextResource extends ApplicationResource {
 
         // request manager will ensure that the current is the user that submitted this request
         final AsynchronousWebRequest<ParameterContextEntity> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
 
-    private Response deleteUpdateRequest(final String requestType, final String requestId, final boolean disconnectedNodeAcknowledged) {
+    private Response deleteUpdateRequest(final String requestType, final String contextId, final String requestId, final boolean disconnectedNodeAcknowledged) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
         }
@@ -1151,17 +1153,18 @@ public class ParameterContextResource extends ApplicationResource {
             asyncRequest.cancel();
         }
 
-        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, requestId);
+        final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
 
-    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<ParameterContextEntity> asyncRequest, final String requestType, final String requestId) {
+    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<ParameterContextEntity> asyncRequest, final String requestType,
+                                                                          final String contextId, final String requestId) {
         final ParameterContextUpdateRequestDTO updateRequestDto = new ParameterContextUpdateRequestDTO();
         updateRequestDto.setComplete(asyncRequest.isComplete());
         updateRequestDto.setFailureReason(asyncRequest.getFailureReason());
         updateRequestDto.setLastUpdated(asyncRequest.getLastUpdated());
         updateRequestDto.setRequestId(requestId);
-        updateRequestDto.setUri(generateResourceUri("parameter-contexts", requestType, requestId));
+        updateRequestDto.setUri(generateResourceUri("parameter-contexts", contextId, requestType, requestId));
         updateRequestDto.setState(asyncRequest.getState());
         updateRequestDto.setPercentCompleted(asyncRequest.getPercentComplete());
 

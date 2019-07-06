@@ -591,10 +591,6 @@ public class StandardFlowManager implements FlowManager {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
-        // TODO: Probably should create a method on ComponentNode: `List<ControllerServiceNode> getReferencedControllerServices()` This same code block (or something similar)
-        //  is scattered all throughout the codebase. If we look at references to ComponentNode.getEffectivePropertyValues(), it will show the same thing over & over.
-        //  ALSO - double-check what happens if we have a component reference Controller Service A two times - here we would remove the reference twice, but do we add the reference
-        //  twice? If not, we need to address that!
         for (final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null) {
@@ -651,7 +647,6 @@ public class StandardFlowManager implements FlowManager {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
 
-        // TODO: Again - add getReferencedControllerServices() method. It would be more efficient than this, calculating the effective property values every time.
         for (final Map.Entry<PropertyDescriptor, String> entry : service.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null) {
@@ -750,7 +745,7 @@ public class StandardFlowManager implements FlowManager {
         }
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
-        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(id, name, referenceManager, flowController);
         parameterContext.setParameters(parameters);
         parameterContextManager.addParameterContext(parameterContext);
         return parameterContext;

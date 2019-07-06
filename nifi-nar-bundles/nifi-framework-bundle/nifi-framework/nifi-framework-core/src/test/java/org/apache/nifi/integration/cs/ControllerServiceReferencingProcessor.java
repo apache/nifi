@@ -24,15 +24,28 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 public class ControllerServiceReferencingProcessor extends AbstractProcessor {
-    private final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
         .name("Counter Service")
         .identifiesControllerService(Counter.class)
         .required(true)
+        .build();
+
+    protected static final PropertyDescriptor OPTIONAL_SERVICE = new PropertyDescriptor.Builder()
+        .name("Optional Service")
+        .identifiesControllerService(Counter.class)
+        .required(false)
+        .build();
+
+    protected static final PropertyDescriptor IGNORED_OPTIONAL_SERVICE = new PropertyDescriptor.Builder()
+        .name("Ignored Optional Service")
+        .identifiesControllerService(Counter.class)
+        .required(false)
         .build();
 
     @Override
@@ -42,11 +55,16 @@ public class ControllerServiceReferencingProcessor extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(SERVICE);
+        return Arrays.asList(SERVICE, OPTIONAL_SERVICE, IGNORED_OPTIONAL_SERVICE);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         context.getProperty(SERVICE).asControllerService(Counter.class).increment(1L);
+
+        final Counter optionalCounter = context.getProperty(OPTIONAL_SERVICE).asControllerService(Counter.class);
+        if (optionalCounter != null) {
+            optionalCounter.increment(1L);
+        }
     }
 }

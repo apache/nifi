@@ -41,7 +41,7 @@ public class TestStandardParameterContext {
     @Test
     public void testUpdatesApply() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
@@ -96,7 +96,7 @@ public class TestStandardParameterContext {
     @Test
     public void testUpdateDescription() {
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
 
@@ -133,7 +133,7 @@ public class TestStandardParameterContext {
     public void testChangingSensitivity() {
         // Ensure no changes applied
         final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
@@ -171,7 +171,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForRunningProcessor() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
 
         final ProcessorNode procNode = Mockito.mock(ProcessorNode.class);
         Mockito.when(procNode.isRunning()).thenReturn(false);
@@ -218,7 +218,7 @@ public class TestStandardParameterContext {
     @Test
     public void testChangingParameterForEnabledControllerService() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
-        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager);
+        final StandardParameterContext context = new StandardParameterContext("unit-test-context", "unit-test-context", referenceManager, null);
 
         final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
         Mockito.when(serviceNode.getState()).thenReturn(ControllerServiceState.ENABLED);

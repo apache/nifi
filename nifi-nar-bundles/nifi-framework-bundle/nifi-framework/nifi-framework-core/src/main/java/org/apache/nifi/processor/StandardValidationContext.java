@@ -194,7 +194,6 @@ public class StandardValidationContext implements ValidationContext {
         return groupId;
     }
 
-    // TODO: Keep this up-to-date in AbstractComponentNode and inject it in?
     @Override
     public Collection<String> getReferencedParameters(final String propertyName) {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(propertyName).build();

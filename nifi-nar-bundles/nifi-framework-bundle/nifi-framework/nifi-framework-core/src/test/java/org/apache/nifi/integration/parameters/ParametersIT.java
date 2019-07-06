@@ -53,7 +53,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -78,7 +78,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -103,7 +103,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -128,7 +128,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -160,7 +160,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -188,7 +188,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);
@@ -220,7 +220,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Connection updatedAttributeConnection = connect(updateAttribute, terminate, REL_SUCCESS);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
-        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager);
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
         parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
 
         getRootGroup().setParameterContext(parameterContext);

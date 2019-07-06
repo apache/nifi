@@ -200,7 +200,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 existingFlowEmpty = root.isEmpty()
                     && flowManager.getAllReportingTasks().isEmpty()
                     && flowManager.getAllControllerServices().isEmpty()
-                    && controller.getFlowRegistryClient().getRegistryIdentifiers().isEmpty();
+                    && controller.getFlowRegistryClient().getRegistryIdentifiers().isEmpty()
+                    && controller.getFlowManager().getParameterContextManager().getParameterContexts().isEmpty();
             } else {
                 existingFlow = readFlowFromDisk();
                 if (existingFlow == null || existingFlow.length == 0) {

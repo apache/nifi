@@ -390,7 +390,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(name);
-        String value = null;
 
         final boolean allowRemoval = allowRemovalOfRequiredProperties || !descriptor.isRequired();
         if (!allowRemoval) {
@@ -402,6 +401,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             return false;
         }
 
+        final String value = propertyConfiguration.getEffectiveValue(getParameterContext());
         if (descriptor.getControllerServiceDefinition() != null) {
             if (value != null) {
                 final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(value);
