@@ -64,7 +64,8 @@ import com.amazonaws.services.s3.model.S3Object;
     @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
-    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),})
+    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"),})
 public class FetchS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
@@ -89,8 +90,8 @@ public class FetchS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
-                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD,
-                REQUESTER_PAYS));
+                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
+                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -120,6 +121,13 @@ public class FetchS3Object extends AbstractS3Processor {
         request.setRequesterPays(requesterPays);
 
         final Map<String, String> attributes = new HashMap<>();
+
+        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        if (encryptionService != null) {
+            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
+            attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
+        }
+
         try (final S3Object s3Object = client.getObject(request)) {
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
             attributes.put("s3.bucket", s3Object.getBucketName());

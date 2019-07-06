@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,20 +34,28 @@ import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.Tag;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -58,11 +67,17 @@ import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.StorageClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutS3Object} and requires additional configuration and resources to work.
  */
 public class ITPutS3Object extends AbstractS3IT {
+    private static final Logger logger = LoggerFactory.getLogger(ITPutS3Object.class);
 
     final static String TEST_ENDPOINT = "https://endpoint.com";
     //    final static String TEST_TRANSIT_URI = "https://" + BUCKET_NAME + ".endpoint.com";
@@ -73,6 +88,28 @@ public class ITPutS3Object extends AbstractS3IT {
     final static Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
 
     final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32,32}(-[0-9]+)?");
+
+
+    private static String kmsKeyId = "";
+    private static String randomKeyMaterial = "";
+
+
+    @BeforeClass
+    public static void setupClass() {
+        byte[] keyRawBytes = new byte[32];
+        SecureRandom secureRandom = new SecureRandom();
+        secureRandom.nextBytes(keyRawBytes);
+
+        randomKeyMaterial = Base64.encodeBase64String(keyRawBytes);
+        kmsKeyId = getKMSKey();
+    }
+
+    @AfterClass
+    public static void teardownClass() {
+        if (StringUtils.isNotEmpty(kmsKeyId)) {
+            deleteKMSKey(kmsKeyId);
+        }
+    }
 
     @Test
     public void testSimplePut() throws IOException {
@@ -184,7 +221,6 @@ public class ITPutS3Object extends AbstractS3IT {
         }
 
     }
-
 
     @Test
     public void testPutThenFetchWithoutSSE() throws IOException {
@@ -827,7 +863,6 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertTrue(ff1.getSize() > S3_MAXIMUM_OBJECT_SIZE);
     }
 
-    @Ignore
     @Test
     public void testS3MultipartAgeoff() throws InterruptedException, IOException {
         final PutS3Object processor = new PutS3Object();
@@ -908,6 +943,165 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertTrue(objectTags.size() == 1);
         Assert.assertEquals("PII", objectTags.get(0).getKey());
         Assert.assertEquals("true", objectTags.get(0).getValue());
+    }
+
+    @Test
+    public void testEncryptionServiceWithServerSideS3ManagedEncryptionStrategy() throws IOException, InitializationException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_SSE_S3, "");
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "test.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
+        MockFlowFile putSuccess = flowFiles.get(0);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_SSE_S3);
+
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_SSE_S3, "");
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_SSE_S3);
+    }
+
+    @Test
+    public void testEncryptionServiceWithServerSideKMSEncryptionStrategy() throws IOException, InitializationException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_SSE_KMS, kmsKeyId);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "test.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
+        MockFlowFile putSuccess = flowFiles.get(0);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_SSE_KMS, kmsKeyId);
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, "aws:kms");
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+    }
+
+    @Test
+    public void testEncryptionServiceWithServerSideCPEKEncryptionStrategy() throws IOException, InitializationException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_SSE_C, randomKeyMaterial);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "test.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
+        MockFlowFile putSuccess = flowFiles.get(0);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_SSE_C);
+
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_SSE_C, randomKeyMaterial);
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        // successful fetch does not indicate type of original encryption:
+        flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, null);
+        // but it does indicate it via our specific attribute:
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_SSE_C);
+    }
+
+    @Test
+    public void testEncryptionServiceWithClientSideKMSEncryptionStrategy() throws InitializationException, IOException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_CSE_KMS, kmsKeyId);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "test.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
+        MockFlowFile putSuccess = flowFiles.get(0);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_CSE_KMS);
+
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_CSE_KMS, kmsKeyId);
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        flowFile.assertAttributeEquals("x-amz-wrap-alg", "kms");
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_CSE_KMS);
+    }
+
+    @Test
+    public void testEncryptionServiceWithClientSideCMKEncryptionStrategy() throws InitializationException, IOException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK, randomKeyMaterial);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "test.txt");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        runner.assertValid();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        Assert.assertEquals(1, flowFiles.size());
+        Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
+        MockFlowFile putSuccess = flowFiles.get(0);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK);
+
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK, randomKeyMaterial);
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK);
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+
+        flowFile.assertAttributeExists("x-amz-key");
+        flowFile.assertAttributeNotEquals("x-amz-key", "");
+
+        flowFile.assertAttributeExists("x-amz-iv");
+        flowFile.assertAttributeNotEquals("x-amz-iv", "");
+    }
+
+    private static TestRunner createPutEncryptionTestRunner(String strategyName, String keyIdOrMaterial) throws InitializationException {
+        return createEncryptionTestRunner(new PutS3Object(), strategyName, keyIdOrMaterial);
+    }
+
+    private static MockFlowFile fetchEncryptedFlowFile(Map<String, String> attributes, String strategyName, String keyIdOrMaterial) throws InitializationException {
+        final TestRunner runner = createEncryptionTestRunner(new FetchS3Object(), strategyName, keyIdOrMaterial);
+        runner.enqueue(new byte[0], attributes);
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        return flowFiles.get(0);
+    }
+
+    private static TestRunner createEncryptionTestRunner(Processor processor, String strategyName, String keyIdOrMaterial) throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        final StandardS3EncryptionService service = new StandardS3EncryptionService();
+        final ConfigurationContext context = mock(ConfigurationContext.class);
+
+        runner.addControllerService(PutS3Object.ENCRYPTION_SERVICE.getName(), service);
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.ENCRYPTION_SERVICE, service.getIdentifier());
+        runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_STRATEGY, strategyName);
+        runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_VALUE, keyIdOrMaterial);
+        runner.setProperty(service, StandardS3EncryptionService.REGION, REGION);
+
+        when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_STRATEGY)).thenReturn(new MockPropertyValue(strategyName));
+        when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_VALUE)).thenReturn(new MockPropertyValue(keyIdOrMaterial));
+        when(context.getProperty(StandardS3EncryptionService.REGION)).thenReturn(new MockPropertyValue(REGION));
+
+        service.onConfigured(context);
+        runner.enableControllerService(service);
+
+        return runner;
     }
 
     private class MockAmazonS3Client extends AmazonS3Client {
