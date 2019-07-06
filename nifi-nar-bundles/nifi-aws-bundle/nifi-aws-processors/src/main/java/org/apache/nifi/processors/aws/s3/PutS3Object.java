@@ -234,7 +234,8 @@ public class PutS3Object extends AbstractS3Processor {
         Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
             STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
             CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
-            MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+            MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
+            PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -275,6 +276,7 @@ public class PutS3Object extends AbstractS3Processor {
     protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {
         ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
         MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
+
         for (MultipartUpload upload : listing.getMultipartUploads()) {
             if (upload.getUploadId().equals(localState.getUploadId())) {
                 return true;
@@ -472,9 +474,13 @@ public class PutS3Object extends AbstractS3Processor {
                         }
 
                         final String serverSideEncryption = context.getProperty(SERVER_SIDE_ENCRYPTION).getValue();
+                        AbstractS3EncryptionService encryptionService = null;
+
                         if (!serverSideEncryption.equals(NO_SERVER_SIDE_ENCRYPTION)) {
                             objectMetadata.setSSEAlgorithm(serverSideEncryption);
                             attributes.put(S3_SSE_ALGORITHM, serverSideEncryption);
+                        } else {
+                            encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AbstractS3EncryptionService.class);
                         }
 
                         if (!userMetadata.isEmpty()) {
@@ -486,12 +492,16 @@ public class PutS3Object extends AbstractS3Processor {
                             // single part upload
                             //----------------------------------------
                             final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
-                            request.setStorageClass(
-                                    StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
+                            if (encryptionService != null) {
+                                encryptionService.configurePutObjectRequest(request, objectMetadata);
+                            }
+
+                            request.setStorageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                             final AccessControlList acl = createACL(context, ff);
                             if (acl != null) {
                                 request.setAccessControlList(acl);
                             }
+
                             final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
                             if (cannedAcl != null) {
                                 request.withCannedAcl(cannedAcl);
@@ -581,9 +591,12 @@ public class PutS3Object extends AbstractS3Processor {
                             // initiate multipart upload or find position in file
                             //------------------------------------------------------------
                             if (currentState.getUploadId().isEmpty()) {
-                                final InitiateMultipartUploadRequest initiateRequest =
-                                        new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
+                                final InitiateMultipartUploadRequest initiateRequest = new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
+                                if (encryptionService != null) {
+                                    encryptionService.configureInitiateMultipartUploadRequest(initiateRequest, objectMetadata);
+                                }
                                 initiateRequest.setStorageClass(currentState.getStorageClass());
+
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
                                     initiateRequest.setAccessControlList(acl);
@@ -660,6 +673,9 @@ public class PutS3Object extends AbstractS3Processor {
                                         .withInputStream(in)
                                         .withPartNumber(part)
                                         .withPartSize(thisPartSize);
+                                if (encryptionService != null) {
+                                    encryptionService.configureUploadPartRequest(uploadRequest, objectMetadata);
+                                }
                                 try {
                                     UploadPartResult uploadPartResult = s3.uploadPart(uploadRequest);
                                     currentState.addPartETag(uploadPartResult.getPartETag());
@@ -684,6 +700,8 @@ public class PutS3Object extends AbstractS3Processor {
                             //------------------------------------------------------------
                             CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
                                     bucket, key, currentState.getUploadId(), currentState.getPartETags());
+
+                            // No call to an encryption service is needed for a CompleteMultipartUploadRequest.
                             try {
                                 CompleteMultipartUploadResult completeResult =
                                         s3.completeMultipartUpload(completeRequest);
@@ -810,6 +828,7 @@ public class PutS3Object extends AbstractS3Processor {
         final String uploadId = upload.getUploadId();
         final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(
                 bucket, uploadKey, uploadId);
+        // No call to an encryption service is necessary for an AbortMultipartUploadRequest.
         try {
             s3.abortMultipartUpload(abortRequest);
             getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",

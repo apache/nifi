@@ -76,7 +76,8 @@ public class FetchS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
-                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
+                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -101,6 +102,11 @@ public class FetchS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key);
         } else {
             request = new GetObjectRequest(bucket, key, versionId);
+        }
+
+        AbstractS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AbstractS3EncryptionService.class);
+        if (encryptionService != null) {
+            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
         }
 
         final Map<String, String> attributes = new HashMap<>();
