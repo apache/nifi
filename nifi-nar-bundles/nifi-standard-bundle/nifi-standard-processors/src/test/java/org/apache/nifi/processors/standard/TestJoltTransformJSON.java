@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,6 +35,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.bazaarvoice.jolt.Diffy;
@@ -447,4 +449,22 @@ public class TestJoltTransformJSON {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testDifferentOutput() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setProperty(JoltTransformJSON.INPUT_CHARSET, StandardCharsets.UTF_8.name());
+        runner.setProperty(JoltTransformJSON.OUTPUT_CHARSET, StandardCharsets.UTF_16.name());
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.enqueue(JSON_INPUT);
+        runner.assertValid();
+        runner.run();
+
+        runner.assertTransferCount(JoltTransformJSON.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformJSON.REL_FAILURE, 0);
+
+        byte[] inputBytes = Files.readAllBytes(JSON_INPUT);
+        MockFlowFile outputFF = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        Assert.assertFalse("Encoding does not appear to have been changed", outputFF.isContentEqual(inputBytes));
+    }
 }

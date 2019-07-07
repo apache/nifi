@@ -61,6 +61,8 @@ import org.apache.nifi.util.StringUtils;
 import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -173,6 +175,17 @@ public class JoltTransformRecord extends AbstractProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor INPUT_CHARSET = new PropertyDescriptor.Builder()
+            .name("input-charset")
+            .displayName("Input Character Set")
+            .description("The encoding character set for the input JSON for transformation")
+            .required(true)
+            .allowableValues(StandardCharsets.UTF_8.name(), StandardCharsets.UTF_16.name(),
+                    StandardCharsets.US_ASCII.name(), StandardCharsets.ISO_8859_1.name(),
+                    StandardCharsets.UTF_16BE.name(), StandardCharsets.UTF_16LE.name())
+            .defaultValue(StandardCharsets.UTF_8.name())
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The FlowFile with transformed content will be routed to this relationship")
@@ -190,7 +203,8 @@ public class JoltTransformRecord extends AbstractProcessor {
 
     private final static List<PropertyDescriptor> properties;
     private final static Set<Relationship> relationships;
-    private final static String DEFAULT_CHARSET = "UTF-8";
+    //private final static String DEFAULT_CHARSET = "UTF-8";
+    private Charset inputCharset;
 
     /**
      * It is a cache for transform objects. It keep values indexed by jolt specification string.
@@ -208,6 +222,7 @@ public class JoltTransformRecord extends AbstractProcessor {
         _properties.add(MODULES);
         _properties.add(JOLT_SPEC);
         _properties.add(TRANSFORM_CACHE_SIZE);
+        _properties.add(INPUT_CHARSET);
         properties = Collections.unmodifiableList(_properties);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -232,6 +247,7 @@ public class JoltTransformRecord extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
+        final String inputCharsetName = validationContext.getProperty(INPUT_CHARSET).getValue();
 
         if (!validationContext.getProperty(JOLT_SPEC).isSet() || StringUtils.isEmpty(validationContext.getProperty(JOLT_SPEC).getValue())) {
             if (!SORTR.getValue().equals(transform)) {
@@ -254,7 +270,10 @@ public class JoltTransformRecord extends AbstractProcessor {
                     }
                 } else {
                     //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
-                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{", "\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+                    Object specJson = SORTR.getValue().equals(transform)
+                            ? null
+                            : JsonUtils.jsonToObject(specValue.replaceAll(
+                            "\\$\\{", "\\\\\\\\\\$\\{"), inputCharsetName);
 
                     if (CUSTOMR.getValue().equals(transform)) {
                         if (StringUtils.isEmpty(customTransform)) {
@@ -403,17 +422,19 @@ public class JoltTransformRecord extends AbstractProcessor {
     }
 
     @OnScheduled
+    @SuppressWarnings("unused")
     public void setup(final ProcessContext context) {
         int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
         transformCache = Caffeine.newBuilder()
                 .maximumSize(maxTransformsToCache)
                 .build(specString -> createTransform(context, specString.orElse(null)));
+        inputCharset = Charset.forName(context.getProperty(INPUT_CHARSET).getValue());
     }
 
     private JoltTransform createTransform(final ProcessContext context, final String specString) throws Exception {
         final Object specJson;
         if (context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
+            specJson = JsonUtils.jsonToObject(specString, inputCharset.name());
         } else {
             specJson = null;
         }
