@@ -47,6 +47,25 @@ The following binary components are provided under the Apache Software License v
          Licensed under the Creative Commons Attribution Licence v2.5
          http://creativecommons.org/licenses/by/2.5/
 
+  (ASLv2) Apache Ant
+      The following NOTICE information applies:
+          Copyright 1999-2018 The Apache Software Foundation
+  
+          This product includes software developed at
+          The Apache Software Foundation (http://www.apache.org/).
+  
+          The <sync> task is based on code Copyright (c) 2002, Landmark
+          Graphics Corp that has been kindly donated to the Apache Software
+          Foundation.
+  
+  (ASLv2) Apache Commons CLI
+      The following NOTICE information applies:
+          Apache Commons CLI
+          Copyright 2001-2017 The Apache Software Foundation
+  
+          This product includes software developed at
+          The Apache Software Foundation (http://www.apache.org/).
+
   (ASLv2) Apache Commons IO
       The following NOTICE information applies:
         Apache Commons IO
