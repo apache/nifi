@@ -444,6 +444,12 @@
                 value: undefined,
                 optionClass: 'unset'
             };
+            var LOADING_PARAMETERS_OPTION = {
+                text: 'Loading parameters...',
+                value: null,
+                optionClass: 'unset',
+                disabled: true
+            };
             var CREATE_CONTROLLER_SERVICE_OPTION = {
                 text: 'Create new service...',
                 value: undefined,
@@ -458,6 +464,8 @@
             var allowableValuesCombo;
             var parameterCombo;
             var propertyDescriptor;
+            var parametersLoading = true;
+            var parametersLoaded;
 
             this.init = function () {
                 var container = $('body');
@@ -575,28 +583,39 @@
                 }).appendTo(wrapper);
 
                 if (parametersSupported) {
-                    // load the parameters
-                    loadParameters(propertyDescriptor, function (parameterListing) {
-                        parameterListing.forEach(function (parameter) {
-                            parameterOptions.push({
-                                text: parameter.name,
-                                value: '#{' + parameter.name + '}',
-                                description: nfCommon.escapeHtml(parameter.description)
-                            });
-                        });
+                    // create the parameter combo
+                    parameterCombo = $('<div class="value-combo combo"></div>')
+                        .combo({
+                            options: [LOADING_PARAMETERS_OPTION],
+                            maxHeight: maxHeight
+                        })
+                        .css({
+                            'margin-bottom': '10px',
+                            'width': comboWidth + 'px'
+                        })
+                        .appendTo(wrapper);
 
-                        // create the parameter combo
-                        parameterCombo = $('<div class="value-combo combo"></div>')
-                            .combo({
+                    // load the parameters
+                    parametersLoaded = new $.Deferred(function (deferred) {
+                        loadParameters(propertyDescriptor, function (parameterListing) {
+                            parameterListing.forEach(function (parameter) {
+                                parameterOptions.push({
+                                    text: parameter.name,
+                                    value: '#{' + parameter.name + '}',
+                                    description: nfCommon.escapeHtml(parameter.description)
+                                });
+                            });
+
+                            // create the parameter combo
+                            parameterCombo.combo('destroy').combo({
                                 options: parameterOptions,
                                 maxHeight: maxHeight
-                            })
-                            .css({
-                                'margin-bottom': '10px',
-                                'width': comboWidth + 'px'
-                            })
-                            .appendTo(wrapper);
-                    });
+                            });
+
+                            deferred.resolve();
+                            parametersLoading = false;
+                        });
+                    }).promise();
                 }
 
                 // add buttons for handling user input
@@ -691,10 +710,19 @@
                         // select the option for reference a parameter
                         allowableValuesCombo.combo('setSelectedOption', PARAMETER_REFERENCE_OPTION);
 
-                        // populate the parameter combo with the parameter reference
-                        parameterCombo.combo('setSelectedOption', {
+                        // construct the initial option
+                        var initialOption = {
                             value: initialValue
-                        });
+                        };
+
+                        // populate the parameter combo with the parameter reference
+                        if (parametersLoading) {
+                            parametersLoaded.then(function () {
+                                parameterCombo.combo('setSelectedOption', initialOption);
+                            });
+                        } else {
+                            parameterCombo.combo('setSelectedOption', initialOption);
+                        }
                     }
                 }
             };
@@ -705,7 +733,14 @@
 
                 // if the value is undefined, it indicates that the value in the editor references a parameter
                 if (parametersSupported && _.isUndefined(selectedValue)) {
-                    selectedValue = parameterCombo.combo('getSelectedOption').value;
+                    selectedOption = parameterCombo.combo('getSelectedOption');
+
+                    // if the parameters are still loading, revert to the initial value, otherwise use the selected parameter
+                    if (selectedOption === LOADING_PARAMETERS_OPTION) {
+                        selectedValue = initialValue;
+                    } else {
+                        selectedValue = selectedOption.value;
+                    }
                 }
 
                 return selectedValue;
@@ -1354,9 +1389,9 @@
             var propertyDescriptor = descriptors[item.property];
 
             // sets the available parameters for the specified property descriptor
-            var loadParameters = function (propertyDescriptor, parameterDeferred, enableParameters) {
-                parameterDeferred(propertyDescriptor).done(function (parameterContext) {
-                    enableParameters(parameterContext.parameters);
+            var loadParameters = function (propertyDescriptor, parameterDeferred, setParameters) {
+                parameterDeferred(propertyDescriptor, groupId).done(function (parameters) {
+                    setParameters(parameters);
                 });
             };
 
@@ -1370,7 +1405,8 @@
                             editor: getNfEditor(function (propertyDescriptor) {
                                 if (parametersSupported) {
                                     // set the available parameters
-                                    loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfel.enableParameters);
+                                    nf.nfel.enableParameters();
+                                    loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfel.setParameters);
                                 } else {
                                     nf.nfel.disableParameters();
                                 }
@@ -1386,10 +1422,10 @@
                     return {
                         columns: {
                             value: {
-                                editor: getComboEditor(parametersSupported, function (propertyDescriptor, enableParameters) {
+                                editor: getComboEditor(parametersSupported, function (propertyDescriptor, setParameters) {
                                     if (parametersSupported) {
                                         // set the available parameters
-                                        loadParameters(propertyDescriptor, options.parameterDeferred, enableParameters);
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, setParameters);
                                     }
                                 })
                             }
@@ -1402,7 +1438,8 @@
                                 editor: getNfEditor(function (propertyDescriptor) {
                                     if (parametersSupported) {
                                         // set the available parameters
-                                        loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfpr.enableParameters);
+                                        nf.nfpr.enableParameters()
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfpr.setParameters);
                                     } else {
                                         nf.nfpr.disableParameters();
                                     }
