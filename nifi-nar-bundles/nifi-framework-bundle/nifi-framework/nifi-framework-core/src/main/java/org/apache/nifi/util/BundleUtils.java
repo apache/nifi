@@ -168,6 +168,9 @@ public final class BundleUtils {
         }
     }
 
+    public static BundleCoordinate discoverCompatibleBundle(final ExtensionManager extensionManager, final String type, final org.apache.nifi.registry.flow.Bundle bundle) {
+        return getCompatibleBundle(extensionManager, type, createBundleDto(bundle));
+    }
 
     private static org.apache.nifi.registry.flow.Bundle createBundle(final BundleCoordinate coordinate) {
         final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();

@@ -68,6 +68,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -91,6 +92,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -3088,12 +3090,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup parentGroup = processGroupDAO.getProcessGroup(processGroupId);
         final Set<ControllerServiceNode> serviceNodes = parentGroup.getControllerServices(true);
 
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
         for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
-            resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences);
+            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, processor.getType(), processor.getBundle());
+            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getType(), compatibleBundle);
+
+            resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
         }
 
         for (final VersionedControllerService service : versionedGroup.getControllerServices()) {
-            resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences);
+            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, service.getType(), service.getBundle());
+            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(service.getType(), compatibleBundle);
+
+            resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
         }
 
         for (final VersionedProcessGroup child : versionedGroup.getProcessGroups()) {
@@ -3104,17 +3113,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private void resolveInheritedControllerServices(final VersionedConfigurableComponent component, final Set<String> availableControllerServiceIds,
                                                     final Set<ControllerServiceNode> availableControllerServices,
-                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final Function<String, PropertyDescriptor> descriptorLookup) {
         final Map<String, VersionedPropertyDescriptor> descriptors = component.getPropertyDescriptors();
         final Map<String, String> properties = component.getProperties();
 
-        resolveInheritedControllerServices(descriptors, properties, availableControllerServiceIds, availableControllerServices, externalControllerServiceReferences);
+        resolveInheritedControllerServices(descriptors, properties, availableControllerServiceIds, availableControllerServices, externalControllerServiceReferences, descriptorLookup);
     }
 
 
     private void resolveInheritedControllerServices(final Map<String, VersionedPropertyDescriptor> propertyDescriptors, final Map<String, String> componentProperties,
                                                     final Set<String> availableControllerServiceIds, final Set<ControllerServiceNode> availableControllerServices,
-                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final Function<String, PropertyDescriptor> descriptorLookup) {
 
         for (final Map.Entry<String, String> entry : new HashMap<>(componentProperties).entrySet()) {
             final String propertyName = entry.getKey();
@@ -3135,10 +3146,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             final ExternalControllerServiceReference externalServiceReference = externalControllerServiceReferences == null ? null : externalControllerServiceReferences.get(propertyValue);
-            final String externalControllerServiceName = externalServiceReference == null ? null : externalServiceReference.getName();
+            if (externalServiceReference == null) {
+                continue;
+            }
 
+            final PropertyDescriptor descriptor = descriptorLookup.apply(propertyName);
+            if (descriptor == null) {
+                continue;
+            }
+
+            final Class<? extends ControllerService> referencedServiceClass = descriptor.getControllerServiceDefinition();
+            if (referencedServiceClass == null) {
+                continue;
+            }
+
+            final String externalControllerServiceName = externalServiceReference.getName();
             final List<ControllerServiceNode> matchingControllerServices = availableControllerServices.stream()
                 .filter(service -> service.getName().equals(externalControllerServiceName))
+                .filter(service -> referencedServiceClass.isAssignableFrom(service.getProxiedControllerService().getClass()))
                 .collect(Collectors.toList());
 
             if (matchingControllerServices.size() != 1) {
