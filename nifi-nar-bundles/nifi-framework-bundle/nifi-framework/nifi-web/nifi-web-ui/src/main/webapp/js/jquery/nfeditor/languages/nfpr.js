@@ -227,22 +227,28 @@
     return {
 
         /**
+         * Enables parameter referencing.
+         */
+        enableParameters: function () {
+            parameters = [];
+            parameterRegex = new RegExp('^$');
+            parameterDetails = {};
+
+            parametersSupported = true;
+        },
+
+        /**
          * Sets the available parameters.
          *
          * @param parameterListing
          */
-        enableParameters: function (parameterListing) {
-            parameters = [];
-            parameterDetails = {};
-
+        setParameters: function (parameterListing) {
             parameterListing.forEach(function (parameter) {
                 parameters.push(parameter.name);
                 parameterDetails[parameter.name] = parameter;
             });
 
             parameterRegex = new RegExp('^((' + parameters.join(')|(') + '))$');
-
-            parametersSupported = true;
         },
 
         /**

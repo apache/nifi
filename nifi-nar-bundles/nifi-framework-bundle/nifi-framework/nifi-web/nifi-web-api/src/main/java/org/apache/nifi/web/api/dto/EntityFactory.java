@@ -269,6 +269,11 @@ public final class EntityFactory {
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
 
+            final ParameterContextReferenceDTO parameterContextReference = dto.getParameterContext();
+            if (parameterContextReference != null) {
+                entity.setParameterContextId(parameterContextReference.getId());
+            }
+
             if (dto.getVersionControlInformation() != null) {
                 entity.setVersionedFlowState(dto.getVersionControlInformation().getState());
             }
