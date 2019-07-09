@@ -62,6 +62,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
     public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
+    public static final String INPUT_FLOWFILE_UUID = "input.flowfile.uuid";
 
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
@@ -246,6 +247,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
 
             boolean hasUpdateCount = st.getUpdateCount() != -1;
+            Map<String, String> inputFileAttrMap = fileToProcess.getAttributes();
+            String inputFileUuid = inputFileAttrMap.get("uuid");
 
             while (hasResults || hasUpdateCount) {
                 //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
@@ -257,13 +260,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         do {
                             final StopWatch fetchTime = new StopWatch(true);
 
-                            FlowFile resultSetFF;
-                            if (fileToProcess == null) {
-                                resultSetFF = session.create();
-                            } else {
-                                resultSetFF = session.create(fileToProcess);
-                                resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
-                            }
+                            FlowFile resultSetFF = session.create();
+                            resultSetFF = session.putAllAttributes(resultSetFF, inputFileAttrMap);
 
                             try {
                                 resultSetFF = session.write(resultSetFF, out -> {
@@ -283,6 +281,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 attributesToAdd.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
                                 attributesToAdd.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
                                 attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
+                                attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUuid);
                                 attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
                                 resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
                                 sqlWriter.updateCounters(session);
@@ -312,6 +311,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 // If we've reached the batch size, send out the flow files
                                 if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                                     session.transfer(resultSetFlowFiles, REL_SUCCESS);
+                                    // Need to remove the original input file if it exists
+                                    if (fileToProcess != null) {
+                                        session.remove(fileToProcess);
+                                        fileToProcess = null;
+                                    }
+                                    session.commit();
                                     resultSetFlowFiles.clear();
                                 }
 
