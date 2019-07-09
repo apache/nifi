@@ -96,6 +96,10 @@ public class StatusMerger {
 
     public static void merge(final ProcessGroupStatusDTO target, final boolean targetReadablePermission, final ProcessGroupStatusDTO toMerge, final boolean toMergeReadablePermission,
                              final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (toMerge == null) {
+            return;
+        }
+
         if (targetReadablePermission && !toMergeReadablePermission) {
             target.setId(toMerge.getId());
             target.setName(toMerge.getName());

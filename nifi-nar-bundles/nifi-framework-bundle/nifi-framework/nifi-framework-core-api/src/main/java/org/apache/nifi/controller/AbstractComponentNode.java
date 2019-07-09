@@ -194,8 +194,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
             // update our counts easily.
-            final ParameterParser elAwareParser = new ExpressionLanguageAwareParameterParser();
-            final ParameterParser elAgnosticParser = new ExpressionLanguageAgnosticParameterParser();
+            final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
@@ -219,9 +218,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
 
                         final boolean supportsEl = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-                        final ParameterParser parser = supportsEl ? elAwareParser : elAgnosticParser;
 
-                        final ParameterTokenList updatedValueReferences = parser.parseTokens(updatedValue);
+                        final ParameterTokenList updatedValueReferences = parameterParser.parseTokens(updatedValue);
                         for (final ParameterToken token : updatedValueReferences) {
                             if (token.isParameterReference()) {
                                 final ParameterReference reference = (ParameterReference) token;
