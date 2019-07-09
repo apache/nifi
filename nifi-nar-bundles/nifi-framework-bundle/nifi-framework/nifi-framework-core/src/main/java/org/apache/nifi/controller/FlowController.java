@@ -117,6 +117,7 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticEngine;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
@@ -600,6 +601,19 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 }
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
+
+        StatusAnalyticEngine analyticsEngine = new StatusAnalyticEngine(this, componentStatusRepository);
+
+        timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    analyticsEngine.getMinTimeToBackpressure();
+                } catch (final Exception e) {
+                    LOG.error("Failed to capture component stats for Stats History", e);
+                }
+            }
+        }, 1000, 1000, TimeUnit.MILLISECONDS); //FIXME use a real/configured interval
 
         this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
