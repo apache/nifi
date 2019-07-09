@@ -57,7 +57,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -306,7 +305,7 @@ public class TestExecuteSQL {
         }
 
 
-        Map<String, String> attrMap = new HashMap();
+        Map<String, String> attrMap = new HashMap<>();
         String testAttrName = "attr1";
         String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);

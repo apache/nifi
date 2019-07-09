@@ -338,7 +338,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     throw new ProcessException(e);
                                 }
                             }
-                        } while (maxRowsPerFlowFile > 0 && nrOfRows.get() == maxRowsPerFlowFile);
+                        }
+                        while (maxRowsPerFlowFile > 0 && nrOfRows.get() == maxRowsPerFlowFile);
 
                         // If we are splitting results but not outputting batches, set count on all FlowFiles
                         if (outputBatchSize == 0 && maxRowsPerFlowFile > 0) {

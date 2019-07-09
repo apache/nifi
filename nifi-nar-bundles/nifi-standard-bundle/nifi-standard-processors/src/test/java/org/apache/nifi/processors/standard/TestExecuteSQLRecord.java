@@ -240,7 +240,7 @@ public class TestExecuteSQLRecord {
             stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
         }
 
-        Map<String, String> attrMap = new HashMap();
+        Map<String, String> attrMap = new HashMap<>();
         String testAttrName = "attr1";
         String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);
