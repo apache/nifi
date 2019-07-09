@@ -25,27 +25,36 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class OrderedProperties extends Properties {
     private final Map<String, String> textBeforeMap = new HashMap<>();
-    private final LinkedHashSet<Object> linkedHashSet = new LinkedHashSet<>();
+    private final LinkedHashSet<Object> orderedKeys = new LinkedHashSet<>();
 
     @Override
     public synchronized Object put(Object key, Object value) {
-        linkedHashSet.add(key);
+        orderedKeys.add(key);
         return super.put(key, value);
     }
 
     @Override
     public synchronized Enumeration<Object> keys() {
-        return Collections.enumeration(linkedHashSet.stream().filter(this::containsKey).collect(Collectors.toList()));
+        return Collections.enumeration(orderedKeys.stream().filter(this::containsKey).collect(Collectors.toList()));
+    }
+
+    @Override
+    public synchronized Set<Map.Entry<Object, Object>> entrySet() {
+        return orderedKeys.stream()
+                .map(k -> new AbstractMap.SimpleImmutableEntry<>(k, this.get(k)))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public synchronized Object setProperty(String key, String value, String textBefore) {

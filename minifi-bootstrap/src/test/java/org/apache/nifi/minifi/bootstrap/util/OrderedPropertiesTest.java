@@ -36,20 +36,25 @@ public class OrderedPropertiesTest {
         orderedProperties.setProperty("prop1", "origVal1");
         orderedProperties.setProperty("prop2", "val2", "#this is property 2");
         orderedProperties.setProperty("prop3", "val3");
+        orderedProperties.setProperty("prop4", "val4");
+        orderedProperties.setProperty("prop5", "val5", "#this is property 5");
+        orderedProperties.setProperty("prop3", "newVal3");
         orderedProperties.setProperty("prop1", "newVal1");
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         orderedProperties.store(byteArrayOutputStream, PROPERTIES_FILE_APACHE_2_0_LICENSE);
 
-        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray())));
+        try (BufferedReader actualReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray())));
              BufferedReader expectedReader = new BufferedReader(new InputStreamReader(OrderedPropertiesTest.class.getClassLoader().getResourceAsStream("orderedPropertiesExpected.properties")))) {
             String expectedLine;
             while((expectedLine = expectedReader.readLine()) != null) {
-                String actualLine = bufferedReader.readLine();
+                String actualLine = actualReader.readLine();
                 if (!"#Tue Feb 21 11:03:08 EST 2017".equals(expectedLine)) {
                     assertEquals(expectedLine, actualLine);
+                } else {
+                    System.out.println("Skipping timestamp comment line");
                 }
             }
-            assertNull(bufferedReader.readLine());
+            assertNull(actualReader.readLine());
         }
     }
 }
