@@ -249,7 +249,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             boolean hasUpdateCount = st.getUpdateCount() != -1;
 
             Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
-            String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute("uuid");
+            String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
             while (hasResults || hasUpdateCount) {
                 //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
                 if (hasResults) {
