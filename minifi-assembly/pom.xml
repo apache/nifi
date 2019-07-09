@@ -54,16 +54,17 @@ limitations under the License.
                                     </then>
                                     <else>
                                         <echo message="Downloading Commons Daemon Windows binaries." />
-                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" skipexisting="true" />
+                                        <property name="commons.daemon.file" value="commons-daemon-1.2.0-bin-windows.zip" />
+                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true" />
                                         <local name="checksum.matches" />
-                                        <property name="sha256sum" value="b5a211f826dc4c0d90508eb1222fe00d70c04a960a6c06540b13ccc5ca71d377" />
-                                        <checksum file="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
+                                        <property name="sha256sum" value="9e632e6b7d8cb3d575639a299150037fdca88f9567f91586e55f234dd627e7c3" />
+                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
                                         <echo message="Checksum match = ${checksum.matches}" />
                                         <condition property="checksum.matches.fail">
                                             <equals arg1="${checksum.matches}" arg2="false" />
                                         </condition>
                                         <fail if="checksum.matches.fail">Checksum error</fail>
-                                        <unzip src="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}" />
+                                        <unzip src="${java.io.tmpdir}/${commons.daemon.file}" dest="${java.io.tmpdir}" />
                                         <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
                                         <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
                                     </else>
