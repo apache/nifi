@@ -232,7 +232,7 @@ public class TestSiteToSiteMessageSequence extends AbstractS2SMessageSequenceTes
         when(port.isValid()).thenReturn(true);
         when(port.isRunning()).thenReturn(true);
         when(processGroup.isRootGroup()).thenReturn(true);
-        when(processGroup.getInputPort(eq("input-1-id"))).thenReturn(port);
+        when(processGroup.findInputPort(eq("input-1-id"))).thenReturn(port);
 
         final PortSimulatorCreator simulatorCreator = flowFileRequests -> new ServerStarted("InputPortSimulator", serverAddress -> {
             // TODO: Refactor this.
@@ -435,7 +435,7 @@ public class TestSiteToSiteMessageSequence extends AbstractS2SMessageSequenceTes
         when(port.isValid()).thenReturn(true);
         when(port.isRunning()).thenReturn(true);
         when(processGroup.isRootGroup()).thenReturn(true);
-        when(processGroup.getOutputPort(eq("output-1-id"))).thenReturn(port);
+        when(processGroup.findOutputPort(eq("output-1-id"))).thenReturn(port);
 
         final PortSimulatorCreator simulatorCreator = flowFileRequests -> new ServerStarted("OutputPortSimulator", serverAddress -> {
 

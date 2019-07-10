@@ -92,7 +92,7 @@ public class Handshake implements ChainedAction {
         });
 
         getClientDn = new GetClientDn(dn -> {
-            clientDn = dn;
+            clientDn = dn != null ? dn : "none";
             nextAction = readCommunicationId;
         });
 
