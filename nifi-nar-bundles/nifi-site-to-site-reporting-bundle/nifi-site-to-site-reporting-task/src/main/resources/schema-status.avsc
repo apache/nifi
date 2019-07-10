@@ -83,6 +83,7 @@
 	{ "name" : "flowFilesRemoved", "type" : ["long", "null"]},
 	{ "name" : "invocations", "type" : ["long", "null"]},
 	{ "name" : "processingNanos", "type" : ["long", "null"]},
+	{ "name" : "executionNode", "type" : ["string", "null"]},
 	{ "name" : "counters", "type": { "type": "map", "values": "string" }}
   ]
 }
