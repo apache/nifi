@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An implementation that is suitable for testing that does not serialize the data to an Output Stream but insted just buffers the data into an
- * ArrayList and then provides that List of written records to the user
+ * An implementation that is suitable for testing that does not serialize the data to an Output Stream but instead just buffers the data into an
+ * ArrayList and then provides that List of written records to the user.
  */
 public class ArrayListRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
     private final List<Record> records = new ArrayList<>();
@@ -48,7 +48,7 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
         return new ArrayListRecordSetWriter(records);
     }
 

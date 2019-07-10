@@ -282,11 +282,11 @@ public class TestPublisherLease {
         final RecordSetWriterFactory writerFactory = Mockito.mock(RecordSetWriterFactory.class);
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
 
-        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any())).thenReturn(writer);
+        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
         lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic);
 
-        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any());
+        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));
         verify(producer, times(2)).send(any(), any());
     }

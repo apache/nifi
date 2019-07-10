@@ -243,7 +243,7 @@ public class ForkRecord extends AbstractProcessor {
                         final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
                         final OutputStream out = session.write(outFlowFile);
 
-                        try (final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                        try (final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, out, outFlowFile)) {
 
                             recordSetWriter.beginRecordSet();
 

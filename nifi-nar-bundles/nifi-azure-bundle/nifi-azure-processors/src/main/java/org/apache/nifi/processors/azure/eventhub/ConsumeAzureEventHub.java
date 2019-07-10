@@ -465,7 +465,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                                 // Initialize the writer when the first record is read.
                                 final RecordSchema readerSchema = record.getSchema();
                                 final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
-                                writer = writerFactory.createWriter(logger, writeSchema, out);
+                                writer = writerFactory.createWriter(logger, writeSchema, out, flowFile);
                                 writer.beginRecordSet();
                             }
 
