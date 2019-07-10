@@ -96,7 +96,7 @@ public class CSVValidators {
                     .input(unescaped)
                     .explanation("Only non-null single characters are supported")
                     .valid((unescaped.length() == 1 && unescaped.charAt(0) != 0)
-                            || context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input))
+                            || (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)))
                     .build();
         }
     };
