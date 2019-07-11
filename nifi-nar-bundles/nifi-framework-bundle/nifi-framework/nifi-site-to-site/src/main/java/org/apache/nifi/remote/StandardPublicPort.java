@@ -124,8 +124,9 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
-                final String groupId = processGroup.getIdentifier();
-                final String groupName = processGroup.getName();
+                final ProcessGroup pg = StandardPublicPort.this.getProcessGroup();
+                final String groupId = pg.getIdentifier();
+                final String groupName = pg.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
                 bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, id, componentType, name, category, severity.name(), message));
             }
