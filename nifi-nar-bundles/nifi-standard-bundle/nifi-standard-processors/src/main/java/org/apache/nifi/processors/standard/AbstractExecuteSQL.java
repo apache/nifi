@@ -62,6 +62,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
     public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
+    public static final String INPUT_FLOWFILE_UUID = "input.flowfile.uuid";
 
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
@@ -247,6 +248,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
             boolean hasUpdateCount = st.getUpdateCount() != -1;
 
+            Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
+            String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
             while (hasResults || hasUpdateCount) {
                 //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
                 if (hasResults) {
@@ -262,8 +265,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 resultSetFF = session.create();
                             } else {
                                 resultSetFF = session.create(fileToProcess);
-                                resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
                             }
+
+                            if (inputFileAttrMap != null) {
+                                resultSetFF = session.putAllAttributes(resultSetFF, inputFileAttrMap);
+                            }
+
 
                             try {
                                 resultSetFF = session.write(resultSetFF, out -> {
@@ -283,6 +290,9 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 attributesToAdd.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
                                 attributesToAdd.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
                                 attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
+                                if (inputFileUUID != null) {
+                                    attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUUID);
+                                }
                                 attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
                                 resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
                                 sqlWriter.updateCounters(session);

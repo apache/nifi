@@ -206,6 +206,35 @@ public class TestWait {
     }
 
     @Test
+    public void testWaitPenaltyDuration() throws InitializationException {
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.WAIT_PENALTY_DURATION, "1 hour");
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("releaseSignalAttribute", "1");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        runner.clearTransferState();
+
+        // The signal id should be penalized
+        final Wait processor = (Wait) runner.getProcessor();
+        final Map<String, Long> signalIdPenalties = processor.getSignalIdPenalties();
+        assertEquals(1, signalIdPenalties.size());
+        assertTrue(signalIdPenalties.containsKey("1"));
+
+        // FlowFile with the penalized id shouldn't be processed
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 0);
+        runner.clearTransferState();
+    }
+
+    @Test
     public void testReplaceAttributes() throws InitializationException, IOException {
         Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");

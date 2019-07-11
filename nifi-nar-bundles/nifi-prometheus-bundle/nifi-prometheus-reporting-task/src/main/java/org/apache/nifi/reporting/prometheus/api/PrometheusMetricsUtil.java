@@ -99,6 +99,12 @@ public class PrometheusMetricsUtil {
             .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
             .register(NIFI_REGISTRY);
 
+    private static final Gauge AMOUNT_THREADS_TOTAL_TERMINATED = Gauge.build()
+            .name("nifi_amount_threads_terminated")
+            .help("Total number of threads terminated for the component")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+            .register(NIFI_REGISTRY);
+
     private static final Gauge SIZE_CONTENT_OUTPUT_TOTAL = Gauge.build()
             .name("nifi_size_content_output_total")
             .help("Total size of content output by the component")
@@ -272,7 +278,10 @@ public class PrometheusMetricsUtil {
         AMOUNT_ITEMS_QUEUED.labels(instanceId, componentType, componentName, componentId, parentPGId,"", "", "", "")
                 .set(status.getQueuedCount());
 
-        AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getActiveThreadCount());
+        AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, componentType, componentName, componentId, parentPGId)
+                .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
+        AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, componentType, componentName, componentId, parentPGId)
+                .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
 
         // Report metrics for child process groups if specified
         if (METRICS_STRATEGY_PG.getValue().equals(metricsStrategy) || METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
@@ -288,6 +297,16 @@ public class PrometheusMetricsUtil {
                     counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
                             .labels(processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId).set(entry.getValue()));
                 }
+
+                final String procComponentType = "Processor";
+                final String procComponentId = processorStatus.getId();
+                final String procComponentName = processorStatus.getName();
+                final String parentId = processorStatus.getGroupId();
+                AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
+                        .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
+                AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
+                        .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
+
             }
             for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = connectionStatus.getId();

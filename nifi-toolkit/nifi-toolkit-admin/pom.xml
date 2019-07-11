@@ -29,7 +29,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>18.0</version>
+            <version>28.0-jre</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

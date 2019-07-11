@@ -254,7 +254,9 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "outputCount", status.getOutputCount());
             addField(builder, "queuedContentSize", status.getQueuedContentSize());
             addField(builder, "activeThreadCount", status.getActiveThreadCount());
+            addField(builder, "terminatedThreadCount", status.getTerminatedThreadCount());
             addField(builder, "queuedCount", status.getQueuedCount());
+            addField(builder, "versionedFlowState", status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name());
 
             arrayBuilder.add(builder.build());
         }
@@ -305,6 +307,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "sentContentSize", status.getSentContentSize());
             addField(builder, "sentCount", status.getSentCount());
             addField(builder, "averageLineageDuration", status.getAverageLineageDuration());
+            addField(builder, "transmissionStatus", status.getTransmissionStatus() == null ? null : status.getTransmissionStatus().name());
+            addField(builder, "targetURI", status.getTargetUri());
 
             arrayBuilder.add(builder.build());
         }
@@ -329,6 +333,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "inputCount", status.getInputCount());
             addField(builder, "outputBytes", status.getOutputBytes());
             addField(builder, "outputCount", status.getOutputCount());
+            addField(builder, "runStatus", status.getRunStatus() == null ? null : status.getRunStatus().name());
+            addField(builder, "transmitting", status.isTransmitting());
 
             arrayBuilder.add(builder.build());
         }
@@ -359,6 +365,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "outputCount", status.getOutputCount());
             addField(builder, "backPressureBytesThreshold", status.getBackPressureBytesThreshold());
             addField(builder, "backPressureObjectThreshold", status.getBackPressureObjectThreshold());
+            addField(builder, "backPressureDataSizeThreshold", status.getBackPressureDataSizeThreshold());
             addField(builder, "isBackPressureEnabled", Boolean.toString((status.getBackPressureObjectThreshold() > 0 && status.getBackPressureObjectThreshold() <= status.getQueuedCount())
                     || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getMaxQueuedBytes())));
 
@@ -390,8 +397,12 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
             addField(builder, "outputCount", status.getOutputCount());
             addField(builder, "outputBytes", status.getOutputBytes());
             addField(builder, "activeThreadCount", status.getActiveThreadCount());
+            addField(builder, "terminatedThreadCount", status.getTerminatedThreadCount());
             addField(builder, "invocations", status.getInvocations());
             addField(builder, "processingNanos", status.getProcessingNanos());
+            addField(builder, "runStatus", status.getRunStatus() == null ? null : status.getRunStatus().name());
+            addField(builder, "executionNode", status.getExecutionNode() == null ? null : status.getExecutionNode().name());
+            addField(builder, factory, "counters", status.getCounters());
 
             arrayBuilder.add(builder.build());
         }
@@ -411,4 +422,28 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         addField(builder, "application", applicationName);
     }
 
+    private void addField(final JsonObjectBuilder builder, final String key, final Boolean value) {
+        if (value == null) {
+            return;
+        }
+
+        builder.add(key, value);
+    }
+
+    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, Long> values) {
+        if (values == null) {
+            return;
+        }
+
+        final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
+        for (final Map.Entry<String, Long> entry : values.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+
+            mapBuilder.add(entry.getKey(), entry.getValue());
+        }
+
+        builder.add(key, mapBuilder);
+    }
 }
