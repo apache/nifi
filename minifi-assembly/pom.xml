@@ -68,7 +68,7 @@ limitations under the License.
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
                                 <if>
                                     <available file="${basedir}/target/minifiw.exe" />
@@ -92,7 +92,7 @@ limitations under the License.
                                         <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
                                     </else>
                                 </if>
-                            </tasks>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
