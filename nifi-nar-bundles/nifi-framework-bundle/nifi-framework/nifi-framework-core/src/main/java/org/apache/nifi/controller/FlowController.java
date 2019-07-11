@@ -608,7 +608,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             @Override
             public void run() {
                 try {
-                    analyticsEngine.getMinTimeToBackpressure();
+                    analyticsEngine.getMinTimeToBackpressureMillis();
                 } catch (final Exception e) {
                     LOG.error("Failed to capture component stats for Stats History", e);
                 }
