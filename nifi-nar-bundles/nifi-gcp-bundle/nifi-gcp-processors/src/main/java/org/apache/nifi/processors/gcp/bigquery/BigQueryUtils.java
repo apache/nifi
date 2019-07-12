@@ -34,6 +34,16 @@ import com.google.gson.reflect.TypeToken;
  * Util class for schema manipulation
  */
 public class BigQueryUtils {
+	/**
+	 * Exception thrown when a given type can't be transformed into a valid BigQuery type.
+	 *
+	 */
+	public static class BadTypeNameException extends RuntimeException {
+	    public BadTypeNameException(String message) {
+	        super(message);
+	    }
+	}
+
 
     private final static Type gsonSchemaType = new TypeToken<List<Map>>() { }.getType();
 
