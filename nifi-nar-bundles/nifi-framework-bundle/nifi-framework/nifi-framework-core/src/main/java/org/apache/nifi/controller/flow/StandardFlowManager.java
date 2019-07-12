@@ -139,7 +139,7 @@ public class StandardFlowManager implements FlowManager {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new StandardPublicPort(id, name, null,
+        return new StandardPublicPort(id, name,
             TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
             processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
             IdentityMappingUtil.getIdentityMappings(nifiProperties));
@@ -149,7 +149,7 @@ public class StandardFlowManager implements FlowManager {
         id = requireNonNull(id).intern();
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
-        return new StandardPublicPort(id, name, null,
+        return new StandardPublicPort(id, name,
             TransferDirection.SEND, ConnectableType.OUTPUT_PORT, authorizer, bulletinRepository,
             processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
             IdentityMappingUtil.getIdentityMappings(nifiProperties));

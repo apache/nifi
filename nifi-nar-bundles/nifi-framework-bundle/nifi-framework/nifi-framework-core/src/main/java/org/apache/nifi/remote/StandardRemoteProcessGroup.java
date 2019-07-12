@@ -660,8 +660,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 throw new IllegalStateException("Output Port with ID " + descriptor.getId() + " already exists");
             }
 
-            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), getProcessGroup(),
+            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(),
                     this, TransferDirection.RECEIVE, ConnectableType.REMOTE_OUTPUT_PORT, sslContext, scheduler, nifiProperties);
+            port.setProcessGroup(getProcessGroup());
             outputPorts.put(descriptor.getId(), port);
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
@@ -741,8 +742,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // all nodes in a cluster to use the same UUID. However, we want the ID to be
             // unique for each Remote Group Port, so that if we have multiple RPG's pointing
             // to the same target, we have unique ID's for each of those ports.
-            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), getProcessGroup(), this,
+            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), this,
                     TransferDirection.SEND, ConnectableType.REMOTE_INPUT_PORT, sslContext, scheduler, nifiProperties);
+            port.setProcessGroup(getProcessGroup());
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
                 port.setMaxConcurrentTasks(descriptor.getConcurrentlySchedulableTaskCount());
