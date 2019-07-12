@@ -95,15 +95,18 @@ public class BigQueryUtils {
         return Field.newBuilder(nameStr, type, subFields.toArray(new Field[subFields.size()])).setMode(Field.Mode.valueOf(modeStr)).build();
     }
 
-    public static List<Field> listToFields(List<Map> m_fields) {
-        List<Field> fields = new ArrayList(m_fields.size());
-        for (Map m : m_fields) {
+    public static List<Field> listToFields(List<Map> fieldsDescriptors) {
+        List<Field> fields = new ArrayList(fieldsDescriptors.size());
+        for (Map m : fieldsDescriptors) {
             fields.add(mapToField(m));
         }
 
         return fields;
     }
 
+    /**
+     * Parse a schema defintion into a schema
+     */
     public static Schema schemaFromString(String schemaStr) {
         if (schemaStr == null) {
             return null;
