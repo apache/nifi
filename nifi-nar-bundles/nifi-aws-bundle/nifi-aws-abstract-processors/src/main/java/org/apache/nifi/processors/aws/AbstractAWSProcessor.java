@@ -151,6 +151,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
+    private static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
@@ -265,8 +267,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
-        this.client = awsClient;
+        this.client = createClient(context, getCredentials(context), createConfiguration(context));
         initializeRegionAndEndpoint(context);
     }
 
@@ -276,7 +277,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final String region = context.getProperty(REGION).getValue();
             if (region != null) {
                 this.region = Region.getRegion(Regions.fromName(region));
-                client.setRegion(this.region);
+                if (client != null) {
+                    client.setRegion(this.region);
+                }
             } else {
                 this.region = null;
             }
@@ -284,7 +287,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+        if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
             if (!urlstr.isEmpty()) {
@@ -312,7 +315,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     private String parseRegionForVPCE(String url) {
         int index = url.length() - ".vpce.amazonaws.com".length();
 
-        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
         if (matcher.matches()) {
@@ -362,7 +364,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return new AnonymousAWSCredentials();
-
     }
 
     @OnShutdown
