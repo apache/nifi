@@ -31,7 +31,7 @@ import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StatusAnalyticEngine {
+public class StatusAnalyticEngine implements StatusAnalytics {
     private ComponentStatusRepository statusRepository;
     private FlowController controller;
 
@@ -42,6 +42,7 @@ public class StatusAnalyticEngine {
         this.statusRepository = statusRepository;
     }
 
+    @Override
     public long getMinTimeToBackpressureMillis() {
         ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         List<Connection> allConnections = rootGroup.findAllConnections();
