@@ -105,6 +105,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
@@ -198,6 +199,8 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageR
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageResultsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceLinkDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceNodeDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
@@ -1184,6 +1187,31 @@ public final class DtoFactory {
         StatusMerger.updatePrettyPrintedFields(snapshot);
 
         return connectionStatusDto;
+    }
+
+    public ConnectionStatisticsDTO createConnectionStatisticsDto(final StatusAnalytics connectionStatistics) {
+        final ConnectionStatisticsDTO connectionStatisticsDTO = new ConnectionStatisticsDTO();
+        connectionStatisticsDTO.setGroupId(connectionStatistics.getGroupId());
+        connectionStatisticsDTO.setId(connectionStatistics.getId());
+        connectionStatisticsDTO.setName(connectionStatistics.getName());
+        connectionStatisticsDTO.setSourceId(connectionStatistics.getSourceId());
+        connectionStatisticsDTO.setSourceName(connectionStatistics.getSourceName());
+        connectionStatisticsDTO.setDestinationId(connectionStatistics.getDestinationId());
+        connectionStatisticsDTO.setDestinationName(connectionStatistics.getDestinationName());
+        connectionStatisticsDTO.setStatsLastRefreshed(new Date());
+
+        final ConnectionStatisticsSnapshotDTO snapshot = new ConnectionStatisticsSnapshotDTO();
+        connectionStatisticsDTO.setAggregateSnapshot(snapshot);
+
+        snapshot.setId(connectionStatistics.getId());
+        snapshot.setGroupId(connectionStatistics.getGroupId());
+        snapshot.setName(connectionStatistics.getName());
+        snapshot.setSourceName(connectionStatistics.getSourceName());
+        snapshot.setDestinationName(connectionStatistics.getDestinationName());
+
+        snapshot.setPredictedMillisUntilBackpressure(connectionStatistics.getMinTimeToBackpressureMillis());
+
+        return connectionStatisticsDTO;
     }
 
     public ProcessorStatusDTO createProcessorStatusDto(final ProcessorStatus procStatus) {
