@@ -37,6 +37,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -195,7 +196,11 @@ public class FlowFromDOMFactory {
 
         final Element versionControlInfoElement = DomUtils.getChild(element, "versionControlInformation");
         dto.setVersionControlInformation(getVersionControlInformation(versionControlInfoElement));
-        dto.setParameterContextId(getString(element, "parameterContextId"));
+
+        final String parameterContextId = getString(element, "parameterContextId");
+        final ParameterContextReferenceDTO parameterContextReference = new ParameterContextReferenceDTO();
+        parameterContextReference.setId(parameterContextId);
+        dto.setParameterContext(parameterContextReference);
 
         final Set<ProcessorDTO> processors = new HashSet<>();
         final Set<ConnectionDTO> connections = new HashSet<>();

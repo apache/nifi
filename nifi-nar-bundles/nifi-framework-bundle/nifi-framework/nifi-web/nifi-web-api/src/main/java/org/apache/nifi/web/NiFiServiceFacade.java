@@ -1552,13 +1552,6 @@ public interface NiFiServiceFacade {
     ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
                                                   String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
-    /**
-     * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
-     *
-     * @param parameterContextDto the Parameter Context DTO that represents all changes that are to occur to a Parameter Context
-     * @return a Set representing all components that will be affected by the update
-     */
-    Set<AffectedComponentEntity> getActiveComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
 
     /**
      * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
@@ -1567,6 +1560,22 @@ public interface NiFiServiceFacade {
      * @return a Set representing all components that will be affected by the update
      */
     Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
+
+    /**
+     * Returns a Set representing all Processors that reference any Parameters and that belong to the group with the given ID
+     *
+     * @param groupId the id of the process group
+     * @return a Set representing all Processors that reference Parameters
+     */
+    Set<AffectedComponentEntity> getProcessorsReferencingParameter(String groupId);
+
+    /**
+     * Returns a Set representing all Controller Services that reference any Parameters and that belong to the group with the given ID
+     *
+     * @param groupId the id of the process group
+     * @return a Set representing all Controller Services that reference Parameters
+     */
+    Set<AffectedComponentEntity> getControllerServicesReferencingParameter(String groupId);
 
     // ----------------------------------------
     // Component state methods

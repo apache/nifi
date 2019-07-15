@@ -35,9 +35,9 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -84,6 +84,8 @@ import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -2259,6 +2261,44 @@ public class FlowResource extends ApplicationResource {
         final StatusHistoryEntity entity = serviceFacade.getConnectionStatusHistory(id);
         return generateOkResponse(entity).build();
     }
+
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-contexts")
+    @ApiOperation(
+        value = "Gets all Parameter Contexts",
+        response = ParameterContextsEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /parameter-contexts/{id} for each Parameter Context")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getParameterContexts() {
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
+        final ParameterContextsEntity entity = new ParameterContextsEntity();
+        entity.setParameterContexts(parameterContexts);
+        entity.setCurrentTime(new Date());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+
 
     // -------
     // history

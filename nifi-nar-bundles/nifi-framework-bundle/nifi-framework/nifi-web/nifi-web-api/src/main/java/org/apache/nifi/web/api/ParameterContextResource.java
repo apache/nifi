@@ -57,7 +57,6 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextValidationRequestEntity;
-import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -88,7 +87,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -117,47 +115,6 @@ public class ParameterContextResource extends ApplicationResource {
         "Parameter Context Validation Thread");
 
 
-
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-        value = "Gets all Parameter Contexts",
-        response = ParameterContextsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /parameter-contexts/{id} for each Parameter Context")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response getParameterContexts() {
-        authorizeParameterContexts();
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
-        final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
-        final ParameterContextsEntity entity = new ParameterContextsEntity();
-        entity.setParameterContexts(parameterContexts);
-        entity.setCurrentTime(new Date());
-
-        // generate the response
-        return generateOkResponse(entity).build();
-    }
-
-    private void authorizeParameterContexts() {
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable parameterContextsAuthorizable = lookup.getParameterContexts();
-            parameterContextsAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        });
-    }
 
     private void authorizeReadParameterContext(final String parameterContextId) {
         if (parameterContextId == null) {
@@ -404,7 +361,6 @@ public class ParameterContextResource extends ApplicationResource {
         // 9. Re-Enable all affected Controller Services
         // 10. Re-Start all Processors
 
-        final Set<AffectedComponentEntity> activeAffectedComponents = serviceFacade.getActiveComponentsAffectedByParameterContextUpdate(contextDto);
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(contextDto);
         logger.debug("Received Update Request for Parameter Context: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
 
@@ -423,7 +379,7 @@ public class ParameterContextResource extends ApplicationResource {
                 parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
                 // Verify READ and WRITE permissions for user, for every component that is affected
-                activeAffectedComponents.forEach(component -> authorizeAffectedComponent(component, lookup, user, true, true));
+                affectedComponents.forEach(component -> authorizeAffectedComponent(component, lookup, user, true, true));
             },
             () -> {
                 // Verify Request

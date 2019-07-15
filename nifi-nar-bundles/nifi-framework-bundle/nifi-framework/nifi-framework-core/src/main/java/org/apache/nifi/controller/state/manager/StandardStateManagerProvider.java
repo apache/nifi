@@ -200,7 +200,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
             propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references);
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
 
             propertyStringMap.put(descriptor, configuration);
         }
@@ -209,7 +209,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references);
+            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
 
             propertyStringMap.put(descriptor, configuration);
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));

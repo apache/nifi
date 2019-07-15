@@ -27,17 +27,17 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class PropertyConfiguration {
-    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()));
+    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList());
 
     private final String rawValue;
     private final ParameterTokenList parameterTokenList;
     private final List<ParameterReference> parameterReferences;
     private final AtomicReference<ComputedEffectiveValue> effectiveValue = new AtomicReference<>();
 
-    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList) {
+    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList, final List<ParameterReference> parameterReferences) {
         this.rawValue = rawValue;
         this.parameterTokenList = tokenList;
-        this.parameterReferences = tokenList.toReferenceList();
+        this.parameterReferences = parameterReferences;
     }
 
     public String getRawValue() {

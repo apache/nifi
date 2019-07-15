@@ -158,7 +158,7 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEl) {
         final ParameterParser parameterParser = supportsEl ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
         final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
-        return new PropertyConfiguration(value, parameterTokenList);
+        return new PropertyConfiguration(value, parameterTokenList, parameterTokenList.toReferenceList());
     }
 
 

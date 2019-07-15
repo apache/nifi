@@ -33,13 +33,12 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
-import org.apache.nifi.parameter.ParameterToken;
 import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -194,7 +193,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
             // update our counts easily.
-            final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+            // TODO: This is not right. Was using an EL Aware and an EL Agnostic Parser, and then using hte appropriate one based on whether or not the Property Descriptor
+            //    Indicates that EL is to be used... The problem was that if you then used ${#{boom}} the #{boom} reference was not validated (permissions checked? Not sure...)
+            //    But the problem with this approach is that now using ${#{boom}} will return empty string, even if boom is defined.
+            final ParameterParser elAgnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
+            final ParameterParser elAwareParameterParser = new ExpressionLanguageAwareParameterParser();
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
@@ -217,19 +220,25 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     } else if (entry.getKey() != null) {
                         final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
 
-                        final boolean supportsEl = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-
-                        final ParameterTokenList updatedValueReferences = parameterParser.parseTokens(updatedValue);
-                        for (final ParameterToken token : updatedValueReferences) {
-                            if (token.isParameterReference()) {
-                                final ParameterReference reference = (ParameterReference) token;
-
-                                // increment count in map for this parameter
-                                parameterReferenceCounts.merge(reference.getParameterName(), 1, (a, b) -> a == -1 ? null : a + b);
-                            }
+                        // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to to keep track of which parameters
+                        // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
+                        // that we can provide to the PropertyConfiguration, so that when compiling the Expression Language Expressions, we are able to keep the Parameter Reference within
+                        // the Expression's text.
+                        final ParameterTokenList updatedValueReferences = elAgnosticParameterParser.parseTokens(updatedValue);
+                        final List<ParameterReference> parameterReferences = updatedValueReferences.toReferenceList();
+                        for (final ParameterReference reference : parameterReferences) {
+                            // increment count in map for this parameter
+                            parameterReferenceCounts.merge(reference.getParameterName(), 1, (a, b) -> a == -1 ? null : a + b);
                         }
 
-                        final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(updatedValue, updatedValueReferences);
+                        final PropertyConfiguration propertyConfiguration;
+                        final boolean supportsEL = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
+                        if (supportsEL) {
+                            propertyConfiguration = new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences);
+                        } else {
+                            propertyConfiguration = new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences);
+                        }
+
                         setProperty(entry.getKey(), propertyConfiguration, this.properties::get);
                     }
                 }
@@ -261,17 +270,13 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public void verifyCanUpdateProperties(final Map<String, String> properties) {
         verifyModifiable();
 
-        final ParameterParser elAwareParser = new ExpressionLanguageAwareParameterParser();
-        final ParameterParser elAgnosticParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
 
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String propertyName = entry.getKey();
             final String value = entry.getValue();
 
-            final boolean supportsEl = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-            final ParameterParser parser = supportsEl ? elAwareParser : elAgnosticParser;
-
-            final ParameterTokenList tokenList = parser.parseTokens(value);
+            final ParameterTokenList tokenList = parameterParser.parseTokens(value);
             final List<ParameterReference> referenceList = tokenList.toReferenceList();
 
             final PropertyDescriptor descriptor = getPropertyDescriptor(propertyName);
@@ -310,9 +315,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             if (descriptor.getControllerServiceDefinition() != null) {
-                final ParameterTokenList allTokensList = elAgnosticParser.parseTokens(value);
-                final List<ParameterReference> allParameterReferences = allTokensList.toReferenceList();
-                if (!allParameterReferences.isEmpty()) {
+                if (!referenceList.isEmpty()) {
                     throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference a Parameter because the property is a Controller Service reference. " +
                         "Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. As a result, this is not allowed.");
                 }
@@ -496,7 +499,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEL) {
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final ParameterTokenList references = parser.parseTokens(value);
-        return new PropertyConfiguration(value, references);
+        return new PropertyConfiguration(value, references, references.toReferenceList());
     }
 
     /**

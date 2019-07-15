@@ -32,7 +32,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String comments;
     private Map<String, String> variables;
     private VersionControlInformationDTO versionControlInformation;
-    private String parameterContextId;
+    private ParameterContextReferenceDTO parameterContext;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -343,12 +343,12 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.versionControlInformation = versionControlInformation;
     }
 
-    @ApiModelProperty("The ID of the Parameter Context that is assigned to this Process Group.")
-    public String getParameterContextId() {
-        return parameterContextId;
+    @ApiModelProperty("The Parameter Context that this Process Group is bound to.")
+    public ParameterContextReferenceDTO getParameterContext() {
+        return parameterContext;
     }
 
-    public void setParameterContextId(final String parameterContextId) {
-        this.parameterContextId = parameterContextId;
+    public void setParameterContext(final ParameterContextReferenceDTO parameterContext) {
+        this.parameterContext = parameterContext;
     }
 }

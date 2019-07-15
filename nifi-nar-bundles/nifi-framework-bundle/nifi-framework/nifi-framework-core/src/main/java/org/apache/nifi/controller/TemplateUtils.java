@@ -200,7 +200,7 @@ public class TemplateUtils {
             processGroupDTO.setLocallyModifiedAndStaleCount(null);
             processGroupDTO.setSyncFailureCount(null);
             processGroupDTO.setVersionControlInformation(null);
-            processGroupDTO.setParameterContextId(null);
+            processGroupDTO.setParameterContext(null);
 
             scrubSnippet(processGroupDTO.getContents());
         }

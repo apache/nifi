@@ -220,13 +220,13 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         // If any component is referencing a Parameter and is running/enabled then fail
         for (final ProcessGroup group : groupsReferencingParameterContext) {
             for (final ProcessorNode processor : group.getProcessors()) {
-                if (!processor.getReferencedParameterNames().isEmpty() && processor.isRunning()) {
+                if (processor.isReferencingParameter() && processor.isRunning()) {
                     throw new IllegalStateException("Cannot delete Parameter Context with ID " + parameterContextId + " because it is in use by at least one Processor that is running");
                 }
             }
 
             for (final ControllerServiceNode service : group.getControllerServices(false)) {
-                if (!service.getReferencedParameterNames().isEmpty() && service.getState() != ControllerServiceState.DISABLED) {
+                if (service.isReferencingParameter() && service.getState() != ControllerServiceState.DISABLED) {
                     throw new IllegalStateException("Cannot delete Parameter Context with ID " + parameterContextId + " because it is in use by at least one Controller Service that is enabled");
                 }
             }

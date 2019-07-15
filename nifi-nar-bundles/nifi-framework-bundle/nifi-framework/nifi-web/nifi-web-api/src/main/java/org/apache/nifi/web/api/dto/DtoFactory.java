@@ -2386,7 +2386,10 @@ public final class DtoFactory {
         dto.setName(group.getName());
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
-        dto.setParameterContextId(group.getParameterContext() == null ? null : group.getParameterContext().getIdentifier());
+
+        final ParameterContextReferenceDTO parameterContextReference = new ParameterContextReferenceDTO();
+        parameterContextReference.setId(group.getParameterContext() == null ? null : group.getParameterContext().getIdentifier());
+        dto.setParameterContext(parameterContextReference);
 
         final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getName(), Entry::getValue));
@@ -4129,9 +4132,9 @@ public final class DtoFactory {
         copy.setInvalidCount(original.getInvalidCount());
         copy.setName(original.getName());
         copy.setVersionControlInformation(copy(original.getVersionControlInformation()));
+        copy.setParameterContext(copy(original.getParameterContext()));
         copy.setLocalOutputPortCount(original.getLocalOutputPortCount());
         copy.setPublicOutputPortCount(original.getPublicOutputPortCount());
-        copy.setParameterContextId(original.getParameterContextId());
         copy.setOutputPortCount(original.getOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setVersionedComponentId(original.getVersionedComponentId());
@@ -4152,6 +4155,16 @@ public final class DtoFactory {
             copy.setVariables(new HashMap<>(original.getVariables()));
         }
 
+        return copy;
+    }
+
+    public ParameterContextReferenceDTO copy(final ParameterContextReferenceDTO original) {
+        if (original == null) {
+            return null;
+        }
+
+        final ParameterContextReferenceDTO copy = new ParameterContextReferenceDTO();
+        copy.setId(original.getId());
         return copy;
     }
 

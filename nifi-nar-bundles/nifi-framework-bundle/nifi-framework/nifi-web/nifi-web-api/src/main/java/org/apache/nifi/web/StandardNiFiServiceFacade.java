@@ -1145,8 +1145,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
 
-    public Set<AffectedComponentEntity> getActiveComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto) {
-        return getComponentsAffectedByParameterContextUpdate(parameterContextDto, false);
+    @Override
+    public Set<AffectedComponentEntity> getProcessorsReferencingParameter(final String groupId) {
+        return getComponentsReferencingParameter(groupId, ProcessGroup::getProcessors);
+    }
+
+    @Override
+    public Set<AffectedComponentEntity> getControllerServicesReferencingParameter(String groupId) {
+        return getComponentsReferencingParameter(groupId, group -> group.getControllerServices(false));
+    }
+
+    private Set<AffectedComponentEntity> getComponentsReferencingParameter(final String groupId, final Function<ProcessGroup, Collection<? extends ComponentNode>> componentFunction) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+        final Set<ComponentNode> affectedComponents = new HashSet<>();
+
+        componentFunction.apply(group).stream()
+            .filter(ComponentNode::isReferencingParameter)
+            .forEach(affectedComponents::add);
+
+        return dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
     }
 
     @Override
@@ -1159,19 +1176,27 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<ProcessGroup> groupsReferencingParameterContext = rootGroup.findAllProcessGroups(
             group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(parameterContextDto.getId()));
 
+        final Set<String> updatedParameterNames = getUpdatedParameterNames(parameterContextDto);
+
         final Set<ComponentNode> affectedComponents = new HashSet<>();
         for (final ProcessGroup group : groupsReferencingParameterContext) {
             for (final ProcessorNode processor : group.getProcessors()) {
-                if (!processor.getReferencedParameterNames().isEmpty()) {
-                    if (includeInactive || processor.isRunning()) {
+                if (includeInactive || processor.isRunning()) {
+                    final Set<String> referencedParams = processor.getReferencedParameterNames();
+                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(updatedParameterNames::contains);
+
+                    if (referencesUpdatedParam) {
                         affectedComponents.add(processor);
                     }
                 }
             }
 
             for (final ControllerServiceNode service : group.getControllerServices(false)) {
-                if (!service.getReferencedParameterNames().isEmpty()) {
-                    if (includeInactive || service.isActive()) {
+                if (includeInactive || service.isActive()) {
+                    final Set<String> referencedParams = service.getReferencedParameterNames();
+                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(updatedParameterNames::contains);
+
+                    if (referencesUpdatedParam) {
                         affectedComponents.add(service);
                     }
                 }
@@ -1179,6 +1204,31 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
+    }
+
+    private Set<String> getUpdatedParameterNames(final ParameterContextDTO parameterContextDto) {
+        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDto.getId());
+
+        final Set<String> updatedParameters = new HashSet<>();
+        for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
+            final ParameterDTO parameterDto = parameterEntity.getParameter();
+            final String updatedValue = parameterDto.getValue();
+            final String parameterName = parameterDto.getName();
+
+            final Optional<Parameter> parameterOption = parameterContext.getParameter(parameterName);
+            if (!parameterOption.isPresent()) {
+                updatedParameters.add(parameterName);
+                continue;
+            }
+
+            final Parameter parameter = parameterOption.get();
+            final boolean updated = !Objects.equals(updatedValue, parameter.getValue());
+            if (updated) {
+                updatedParameters.add(parameterName);
+            }
+        }
+
+        return updatedParameters;
     }
 
 

@@ -60,6 +60,7 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.FlowRegistry;
@@ -85,6 +86,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -126,6 +128,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -630,6 +633,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             return true;
         }
 
+        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+
         return CollectionUtils.isEmpty(contents.getProcessors())
                 && CollectionUtils.isEmpty(contents.getConnections())
                 && CollectionUtils.isEmpty(contents.getFunnels())
@@ -637,7 +642,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 && CollectionUtils.isEmpty(contents.getOutputPorts())
                 && CollectionUtils.isEmpty(contents.getProcessGroups())
                 && CollectionUtils.isEmpty(contents.getProcessors())
-                && CollectionUtils.isEmpty(contents.getRemoteProcessGroups());
+                && CollectionUtils.isEmpty(contents.getRemoteProcessGroups())
+                && parameterContextId == null;
     }
 
     private static boolean isEmpty(final ReportingTaskDTO reportingTaskDTO){
@@ -840,14 +846,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             throw new IllegalStateException("No Group with ID " + processGroupDto.getId() + " exists");
         }
 
-        updateProcessGroup(processGroup, processGroupDto);
-
-        final String parameterContextId = getString(processGroupElement, "parameterContextId");
-        if (parameterContextId != null) {
-            final ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext(parameterContextId);
-            processGroup.setParameterContext(parameterContext);
-        }
-
+        updateProcessGroup(processGroup, processGroupDto, controller.getFlowManager().getParameterContextManager());
 
         // determine the scheduled state of all of the Controller Service
         final List<Element> controllerServiceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
@@ -1146,7 +1145,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
      *
      * @throws NullPointerException if the DTO or its ID is null
      */
-    private void updateProcessGroup(final ProcessGroup group, final ProcessGroupDTO dto) {
+    private void updateProcessGroup(final ProcessGroup group, final ProcessGroupDTO dto, final ParameterContextManager parameterContextManager) {
         final String name = dto.getName();
         final PositionDTO position = dto.getPosition();
         final String comments = dto.getComments();
@@ -1160,6 +1159,16 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         if (comments != null) {
             group.setComments(comments);
         }
+
+        final ParameterContextReferenceDTO parameterContextReference = dto.getParameterContext();
+        if (parameterContextReference != null && parameterContextReference.getId() != null) {
+            final String parameterContextId = parameterContextReference.getId();
+            final ParameterContext parameterContext = parameterContextManager.getParameterContext(parameterContextId);
+            if (!Objects.equals(parameterContext, group.getParameterContext())) {
+                group.setParameterContext(parameterContext);
+            }
+        }
+
     }
 
     private <T extends Connectable & Triggerable> ScheduledState getScheduledState(final T component, final FlowController flowController) {

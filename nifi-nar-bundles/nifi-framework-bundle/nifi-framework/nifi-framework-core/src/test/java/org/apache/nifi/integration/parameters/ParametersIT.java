@@ -28,6 +28,7 @@ import org.apache.nifi.integration.processors.UpdateAttributeWithEL;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
@@ -35,6 +36,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -254,5 +256,36 @@ public class ParametersIT extends FrameworkIntegrationTest {
         assertEquals("unit", flowFileRecord.getAttribute("multi"));
         assertEquals("variable ${var}", flowFileRecord.getAttribute("embedded"));
         assertEquals("123", flowFileRecord.getAttribute("indirect"));
+    }
+
+    @Test
+    public void testReferencesStoredProperly() {
+        final ProcessorNode updateAttributeWithEL = createProcessorNode(UpdateAttributeWithEL.class);
+        final ProcessorNode updateAttributeNoEL = createProcessorNode(UpdateAttributeNoEL.class);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("foo", "#{test}");
+        properties.put("bar", "${#{test}:toUpper()}");
+
+        updateAttributeWithEL.setProperties(properties);
+        updateAttributeNoEL.setProperties(properties);
+
+        List<ParameterReference> references = updateAttributeWithEL.getProperty(updateAttributeWithEL.getPropertyDescriptor("foo")).getParameterReferences();
+        assertEquals(1, references.size());
+
+        references = updateAttributeWithEL.getProperty(updateAttributeWithEL.getPropertyDescriptor("bar")).getParameterReferences();
+        assertEquals(1, references.size());
+
+        references = updateAttributeNoEL.getProperty(updateAttributeNoEL.getPropertyDescriptor("foo")).getParameterReferences();
+        assertEquals(1, references.size());
+
+        references = updateAttributeNoEL.getProperty(updateAttributeNoEL.getPropertyDescriptor("bar")).getParameterReferences();
+        assertEquals(1, references.size());
     }
 }
