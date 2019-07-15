@@ -217,6 +217,7 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
@@ -236,6 +237,7 @@ import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -3190,6 +3192,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connection);
         final StatusHistoryDTO dto = controllerFacade.getConnectionStatusHistory(connectionId);
         return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
+    @Override
+    public ConnectionStatisticsEntity getConnectionStatistics(final String connectionId) {
+        final Connection connection = connectionDAO.getConnection(connectionId);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connection);
+        final ConnectionStatisticsDTO dto = dtoFactory.createConnectionStatisticsDto(controllerFacade.getConnectionStatistics(connectionId));
+        return entityFactory.createConnectionStatisticsEntity(dto, permissions);
     }
 
     private ProcessorEntity createProcessorEntity(final ProcessorNode processor, final NiFiUser user) {
