@@ -56,6 +56,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
@@ -687,7 +688,7 @@ public class ControllerFacade implements Authorizable {
      * @param connectionId connection id
      * @return the statistics for the specified connection
      */
-    public StatusAnalytics getConnectionStatistics(final String connectionId) {
+    public ConnectionStatusAnalytics getConnectionStatistics(final String connectionId) {
         final ProcessGroup root = getRootGroup();
         final Connection connection = root.findConnection(connectionId);
 
@@ -703,13 +704,13 @@ public class ControllerFacade implements Authorizable {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
 
-        // TODO get from flow controller
-        final StatusAnalytics status;
+        // get from flow controller
+        final StatusAnalytics status = flowController.getStatusAnalytics();
         if (status == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
         }
 
-        return status;
+        return status.getConnectionStatusAnalytics(connectionId);
     }
 
     /**

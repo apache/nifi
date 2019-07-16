@@ -43,22 +43,28 @@ public class StatusAnalyticEngine implements StatusAnalytics {
     }
 
     @Override
-    public long getMinTimeToBackpressureMillis() {
+    public ConnectionStatusAnalytics getConnectionStatusAnalytics(String connectionId) {
         ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
-        List<Connection> allConnections = rootGroup.findAllConnections();
-        long minTimeToBackpressure = Long.MAX_VALUE;
+        return getConnectionStatusAnalytics(rootGroup.findConnection(connectionId));
+    }
 
-        for (Connection conn : allConnections) {
-            LOG.info("Getting connection history for: " + conn.getIdentifier());
-            Date minDate = new Date(System.currentTimeMillis() - (5 * 60 * 1000));
-            StatusHistoryDTO connHistory = StatusHistoryUtil.createStatusHistoryDTO(statusRepository
-                    .getConnectionStatusHistory(conn.getIdentifier(), minDate, null, Integer.MAX_VALUE));
-            List<StatusSnapshotDTO> aggregateSnapshots = connHistory.getAggregateSnapshots();
+    /**
+     * Finds the number of millis until the given connection will experience backpressure.
+     * @param conn the connection to run the analytic on
+     * @return
+     */
+    public ConnectionStatusAnalytics getConnectionStatusAnalytics(Connection conn) {
+        LOG.info("Getting connection history for: " + conn.getIdentifier());
+        long connTimeToBackpressure;
+        Date minDate = new Date(System.currentTimeMillis() - (5 * 60 * 1000));
+        StatusHistoryDTO connHistory = StatusHistoryUtil.createStatusHistoryDTO(
+                statusRepository.getConnectionStatusHistory(conn.getIdentifier(), minDate, null, Integer.MAX_VALUE));
+        List<StatusSnapshotDTO> aggregateSnapshots = connHistory.getAggregateSnapshots();
 
-            if (aggregateSnapshots.size() < 2) {
-                LOG.info("Not enough data to model time to backpressure.");
-                continue;
-            }
+        if (aggregateSnapshots.size() < 2) {
+            LOG.info("Not enough data to model time to backpressure.");
+            connTimeToBackpressure = Long.MAX_VALUE;
+        } else {
 
             long backPressureObjectThreshold = conn.getFlowFileQueue().getBackPressureObjectThreshold();
             LOG.info("Connection " + conn.getIdentifier() + " backpressure object threshold is "
@@ -77,16 +83,72 @@ public class StatusAnalyticEngine implements StatusAnalytics {
             // Skip this connection if its queue is declining.
             if (regression.getSlope() <= 0) {
                 LOG.info("Connection " + conn.getIdentifier() + " is not experiencing backpressure.");
-                continue;
+                connTimeToBackpressure = Long.MAX_VALUE;
+            } else {
+
+                // Compute time-to backpressure for this connection; Reduce total result iff
+                // this connection is lower.
+                connTimeToBackpressure = Math
+                        .round((backPressureObjectThreshold - regression.getIntercept()) / regression.getSlope())
+                        - System.currentTimeMillis();
+                LOG.info("Connection " + conn.getIdentifier() + " time to backpressure is " + connTimeToBackpressure);
+            }
+        }
+
+        return new ConnectionStatusAnalytics() {
+
+            @Override
+            public String getSourceName() {
+                return conn.getSource().getName();
             }
 
-            // Compute time-to backpressure for this connection; Reduce total result iff
-            // this connection is lower.
-            long connTimeToBackpressure = Math
-                    .round((backPressureObjectThreshold - regression.getIntercept()) / regression.getSlope())
-                    - System.currentTimeMillis();
-            LOG.info("Connection " + conn.getIdentifier() + " time to backpressure is " + connTimeToBackpressure);
-            minTimeToBackpressure = Math.min(minTimeToBackpressure, connTimeToBackpressure);
+            @Override
+            public String getSourceId() {
+                return conn.getSource().getIdentifier();
+            }
+
+            @Override
+            public String getName() {
+                return conn.getName();
+            }
+
+            @Override
+            public long getMinTimeToBackpressureMillis() {
+                return connTimeToBackpressure;
+            }
+
+            @Override
+            public String getId() {
+                return conn.getIdentifier();
+            }
+
+            @Override
+            public String getGroupId() {
+                return conn.getProcessGroup().getIdentifier();
+            }
+
+            @Override
+            public String getDestinationName() {
+                return conn.getDestination().getName();
+            }
+
+            @Override
+            public String getDestinationId() {
+                return conn.getDestination().getIdentifier();
+            }
+        };
+    }
+
+    @Override
+    public long getMinTimeToBackpressureMillis() {
+        ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
+        List<Connection> allConnections = rootGroup.findAllConnections();
+        rootGroup.findConnection("asdf");
+        long minTimeToBackpressure = Long.MAX_VALUE;
+
+        for (Connection conn : allConnections) {
+            ConnectionStatusAnalytics connAnalytics = getConnectionStatusAnalytics(conn);
+            minTimeToBackpressure = Math.min(minTimeToBackpressure, connAnalytics.getMinTimeToBackpressureMillis());
         }
 
         LOG.info("Min time to backpressure is: " + Long.toString(minTimeToBackpressure));
