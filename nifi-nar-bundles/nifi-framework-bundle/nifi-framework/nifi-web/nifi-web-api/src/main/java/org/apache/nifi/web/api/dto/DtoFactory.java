@@ -106,7 +106,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
-import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
@@ -1191,7 +1191,7 @@ public final class DtoFactory {
         return connectionStatusDto;
     }
 
-    public ConnectionStatisticsDTO createConnectionStatisticsDto(final StatusAnalytics connectionStatistics) {
+    public ConnectionStatisticsDTO createConnectionStatisticsDto(final ConnectionStatusAnalytics connectionStatistics) {
         final ConnectionStatisticsDTO connectionStatisticsDTO = new ConnectionStatisticsDTO();
         connectionStatisticsDTO.setGroupId(connectionStatistics.getGroupId());
         connectionStatisticsDTO.setId(connectionStatistics.getId());

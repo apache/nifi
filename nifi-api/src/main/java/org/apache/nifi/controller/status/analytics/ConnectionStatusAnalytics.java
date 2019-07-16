@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-/**
- * StatusAnalytics
- */
-public interface StatusAnalytics {
-
-    ConnectionStatusAnalytics getConnectionStatusAnalytics(String connectionId);
-
-    public long getMinTimeToBackpressureMillis();
+public interface ConnectionStatusAnalytics {
+    long getMinTimeToBackpressureMillis();
+    String getGroupId();
+    String getId();
+    String getName();
+    String getSourceId();
+    String getSourceName();
+    String getDestinationId();
+    String getDestinationName();
 }
