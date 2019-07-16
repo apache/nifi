@@ -350,6 +350,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     // guarded by rwLock
     private NodeConnectionStatus connectionStatus;
 
+    private StatusAnalyticEngine analyticsEngine;
+
     // guarded by rwLock
     private String instanceId;
 
@@ -603,7 +605,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
-        StatusAnalytics analyticsEngine = new StatusAnalyticEngine(this, componentStatusRepository);
+        analyticsEngine = new StatusAnalyticEngine(this, componentStatusRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -614,7 +616,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     LOG.error("Failed to capture component stats for Stats History", e);
                 }
             }
-        }, 1000, 1000, TimeUnit.MILLISECONDS); //FIXME use a real/configured interval
+        }, 1000, 1000, TimeUnit.MILLISECONDS); //FIXME use a real/configured interval (or maybe just compute on the fly when requested)
 
         this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
@@ -1385,6 +1387,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public UserAwareEventAccess getEventAccess() {
         return eventAccess;
+    }
+
+    public StatusAnalytics getStatusAnalytics() {
+        return analyticsEngine;
     }
 
     /**
