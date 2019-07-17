@@ -892,13 +892,13 @@ public class DataTypeUtils {
             return null;
         }
 
+        if (value instanceof Date) {
+            return (Date) value;
+        }
+
         if (value instanceof java.util.Date) {
             java.util.Date _temp = (java.util.Date)value;
             return new Date(_temp.getTime());
-        }
-
-        if (value instanceof Date) {
-            return (Date) value;
         }
 
         if (value instanceof Number) {
@@ -1038,12 +1038,12 @@ public class DataTypeUtils {
             return null;
         }
 
-        if (value instanceof java.util.Date) {
-            return new Timestamp(((java.util.Date)value).getTime());
-        }
-
         if (value instanceof Timestamp) {
             return (Timestamp) value;
+        }
+
+        if (value instanceof java.util.Date) {
+            return new Timestamp(((java.util.Date)value).getTime());
         }
 
         if (value instanceof Number) {
