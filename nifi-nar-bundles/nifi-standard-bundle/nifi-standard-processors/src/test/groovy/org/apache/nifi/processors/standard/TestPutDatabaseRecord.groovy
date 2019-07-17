@@ -49,6 +49,7 @@ import java.util.function.Supplier
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
 import static org.mockito.ArgumentMatchers.anyMap
@@ -239,6 +240,7 @@ class TestPutDatabaseRecord {
         parser.addRecord(2, 'rec2', 102)
         parser.addRecord(3, 'rec3', 103)
         parser.addRecord(4, 'rec4', 104)
+        parser.addRecord(5, null, 105)
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
@@ -267,6 +269,10 @@ class TestPutDatabaseRecord {
         assertEquals(4, rs.getInt(1))
         assertEquals('rec4', rs.getString(2))
         assertEquals(104, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(105, rs.getInt(3))
         assertFalse(rs.next())
 
         stmt.close()

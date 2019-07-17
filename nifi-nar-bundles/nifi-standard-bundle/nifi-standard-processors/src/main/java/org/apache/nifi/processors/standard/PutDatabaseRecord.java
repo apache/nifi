@@ -50,9 +50,11 @@ import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -687,26 +689,35 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             while ((currentRecord = recordParser.nextRecord()) != null) {
                 Object[] values = currentRecord.getValues();
+                List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                 if (values != null) {
                     if (fieldIndexes != null) {
                         for (int i = 0; i < fieldIndexes.size(); i++) {
+                            final int currentFieldIndex = fieldIndexes.get(i);
+                            final Object currentValue = values[currentFieldIndex];
+                            final DataType dataType = dataTypes.get(currentFieldIndex);
+                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, values[fieldIndexes.get(i)]);
-                                ps.setObject(i * 2 + 2, values[fieldIndexes.get(i)]);
+                                ps.setObject(i * 2 + 1, currentValue, sqlType);
+                                ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
-                                ps.setObject(i + 1, values[fieldIndexes.get(i)]);
+                                ps.setObject(i + 1, currentValue, sqlType);
                             }
                         }
                     } else {
                         // If there's no index map, assume all values are included and set them in order
                         for (int i = 0; i < values.length; i++) {
+                            final Object currentValue = values[i];
+                            final DataType dataType = dataTypes.get(i);
+                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, values[i]);
-                                ps.setObject(i * 2 + 2, values[i]);
+                                ps.setObject(i * 2 + 1, currentValue, sqlType);
+                                ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
-                                ps.setObject(i + 1, values[i]);
+                                ps.setObject(i + 1, currentValue, sqlType);
                             }
                         }
                     }

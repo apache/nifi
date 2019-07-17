@@ -41,6 +41,7 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -1604,6 +1605,55 @@ public class DataTypeUtils {
                 return 0;
             default:
                 return -1;
+        }
+    }
+
+    /**
+     * Converts the specified field data type into a java.sql.Types constant (INTEGER = 4, e.g.)
+     *
+     * @param dataType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static int getSQLTypeValue(final DataType dataType) {
+        if (dataType == null) {
+            return Types.NULL;
+        }
+        RecordFieldType fieldType = dataType.getFieldType();
+        switch (fieldType) {
+            case BIGINT:
+            case LONG:
+                return Types.BIGINT;
+            case BOOLEAN:
+                return Types.BOOLEAN;
+            case BYTE:
+                return Types.TINYINT;
+            case CHAR:
+                return Types.CHAR;
+            case DATE:
+                return Types.DATE;
+            case DOUBLE:
+                return Types.DOUBLE;
+            case FLOAT:
+                return Types.FLOAT;
+            case INT:
+                return Types.INTEGER;
+            case SHORT:
+                return Types.SMALLINT;
+            case STRING:
+                return Types.VARCHAR;
+            case TIME:
+                return Types.TIME;
+            case TIMESTAMP:
+                return Types.TIMESTAMP;
+            case ARRAY:
+                return Types.ARRAY;
+            case MAP:
+            case RECORD:
+                return Types.STRUCT;
+            case CHOICE:
+                throw new IllegalTypeConversionException("Cannot convert CHOICE, type must be explicit");
+            default:
+                throw new IllegalTypeConversionException("Cannot convert unknown type " + fieldType.name());
         }
     }
 
