@@ -28,8 +28,46 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CSVUtilsTest {
+
+    @Test
+    public void testIsDynamicCSVFormatWithStaticProperties() {
+        PropertyContext context = createContext("|", "'", "^");
+
+        boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
+
+        assertFalse(isDynamicCSVFormat);
+    }
+
+    @Test
+    public void testIsDynamicCSVFormatWithDynamicValueSeparator() {
+        PropertyContext context = createContext("${csv.delimiter}", "'", "^");
+
+        boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
+
+        assertTrue(isDynamicCSVFormat);
+    }
+
+    @Test
+    public void testIsDynamicCSVFormatWithDynamicQuoteCharacter() {
+        PropertyContext context = createContext("|", "${csv.quote}", "^");
+
+        boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
+
+        assertTrue(isDynamicCSVFormat);
+    }
+
+    @Test
+    public void testIsDynamicCSVFormatWithDynamicEscapeCharacter() {
+        PropertyContext context = createContext("|", "'", "${csv.escape}");
+
+        boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
+
+        assertTrue(isDynamicCSVFormat);
+    }
 
     @Test
     public void testCustomFormat() {

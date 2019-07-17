@@ -177,6 +177,14 @@ public class CSVUtils {
         .required(true)
         .build();
 
+    public static boolean isDynamicCSVFormat(final PropertyContext context) {
+        final String formatName = context.getProperty(CSV_FORMAT).getValue();
+        return formatName.equalsIgnoreCase(CUSTOM.getValue())
+                && (context.getProperty(VALUE_SEPARATOR).isExpressionLanguagePresent()
+                || context.getProperty(QUOTE_CHAR).isExpressionLanguagePresent()
+                || context.getProperty(ESCAPE_CHAR).isExpressionLanguagePresent());
+    }
+
     public static CSVFormat createCSVFormat(final PropertyContext context, final Map<String, String> variables) {
         final String formatName = context.getProperty(CSV_FORMAT).getValue();
         if (formatName.equalsIgnoreCase(CUSTOM.getValue())) {

@@ -44,8 +44,12 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
     private volatile ConfigurationContext context;
+
     private volatile boolean includeHeader;
     private volatile String charSet;
+
+    // it will be initialized only if there are no dynamic csv formatting properties
+    private volatile CSVFormat csvFormat;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -71,11 +75,23 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
         this.includeHeader = context.getProperty(CSVUtils.INCLUDE_HEADER_LINE).asBoolean();
         this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
+
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            this.csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
+        } else {
+            this.csvFormat = null;
+        }
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
-        CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables);
+        CSVFormat csvFormat;
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            csvFormat = this.csvFormat;
+        } else {
+            csvFormat = CSVUtils.createCSVFormat(context, variables);
+        }
+
         return new WriteCSVResult(csvFormat, schema, getSchemaAccessWriter(schema), out,
             getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), includeHeader, charSet);
     }

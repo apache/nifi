@@ -46,6 +46,7 @@ import org.apache.nifi.stream.io.NonCloseableInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +56,7 @@ import java.util.Map;
     + "the values. See Controller Service's Usage for further documentation.")
 public class CSVReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    private final AllowableValue headerDerivedAllowableValue = new AllowableValue("csv-header-derived", "Use String Fields From Header",
+    private static final AllowableValue HEADER_DERIVED = new AllowableValue("csv-header-derived", "Use String Fields From Header",
         "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the "
             + "column names in the header and assuming that all columns are of type String.");
 
@@ -79,11 +80,17 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .build();
 
     private volatile ConfigurationContext context;
+
     private volatile String csvParser;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
+    private volatile boolean firstLineIsHeader;
+    private volatile boolean ignoreHeader;
     private volatile String charSet;
+
+    // it will be initialized only if there are no dynamic csv formatting properties
+    private volatile CSVFormat csvFormat;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -113,7 +120,22 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        this.firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).asBoolean();
+        this.ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).asBoolean();
         this.charSet = context.getProperty(CSVUtils.CHARSET).getValue();
+
+        // Ensure that if we are deriving schema from header that we always treat the first line as a header,
+        // regardless of the 'First Line is Header' property
+        final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
+        if (HEADER_DERIVED.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
+            this.firstLineIsHeader = true;
+        }
+
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            this.csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
+        } else {
+            this.csvFormat = null;
+        }
     }
 
     @Override
@@ -123,17 +145,11 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
 
-        boolean firstLineIsHeader = context.getProperty(CSVUtils.FIRST_LINE_IS_HEADER).evaluateAttributeExpressions(variables).asBoolean();
-        boolean ignoreHeader = context.getProperty(CSVUtils.IGNORE_CSV_HEADER).evaluateAttributeExpressions(variables).asBoolean();
-
-        CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables);
-
-        // Ensure that if we are deriving schema from header that we always treat the first line as a header,
-        // regardless of the 'First Line is Header' property
-        final String accessStrategy = context.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
-        if (headerDerivedAllowableValue.getValue().equals(accessStrategy) || SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(accessStrategy)) {
-            firstLineIsHeader = true;
-            csvFormat = csvFormat.withFirstRecordAsHeader();
+        CSVFormat csvFormat;
+        if (!CSVUtils.isDynamicCSVFormat(context)) {
+            csvFormat = this.csvFormat;
+        } else {
+            csvFormat = CSVUtils.createCSVFormat(context, variables);
         }
 
         if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
@@ -147,7 +163,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (allowableValue.equalsIgnoreCase(headerDerivedAllowableValue.getValue())) {
+        if (allowableValue.equalsIgnoreCase(HEADER_DERIVED.getValue())) {
             return new CSVHeaderSchemaStrategy(context);
         } else if (allowableValue.equalsIgnoreCase(SchemaInferenceUtil.INFER_SCHEMA.getValue())) {
             final RecordSourceFactory<CSVRecordAndFieldNames> sourceFactory = (variables, in) -> new CSVRecordSource(in, context, variables);
@@ -161,7 +177,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(headerDerivedAllowableValue);
+        allowableValues.add(HEADER_DERIVED);
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
