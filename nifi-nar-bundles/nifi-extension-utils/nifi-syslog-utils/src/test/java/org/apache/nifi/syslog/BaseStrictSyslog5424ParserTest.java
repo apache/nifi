@@ -218,7 +218,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String message = "<14>1 2014-06-20T09:14:07+00:00 loggregator"
                 + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
                 + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
-                + " [exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance";
+                + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance";
 
         final byte[] bytes = message.getBytes(CHARSET);
         final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
