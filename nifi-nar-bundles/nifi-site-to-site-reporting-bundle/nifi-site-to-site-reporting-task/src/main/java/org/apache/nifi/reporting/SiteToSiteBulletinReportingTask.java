@@ -17,6 +17,27 @@
 
 package org.apache.nifi.reporting;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalLong;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -32,27 +53,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalLong;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Tags({"bulletin", "site", "site to site"})
 @CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
@@ -126,6 +126,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         }
 
         final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
@@ -140,7 +141,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
         for (final Bulletin bulletin : bulletins) {
             if(bulletin.getId() > lastSentBulletinId) {
-                arrayBuilder.add(serialize(factory, builder, bulletin, df, platform, nodeId));
+                arrayBuilder.add(serialize(factory, builder, bulletin, df, platform, nodeId, allowNullValues));
             }
         }
         final JsonArray jsonArray = arrayBuilder.build();
@@ -176,22 +177,22 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     }
 
     private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
-        final String platform, final String nodeIdentifier) {
+            final String platform, final String nodeIdentifier, Boolean allowNullValues) {
 
-        addField(builder, "objectId", UUID.randomUUID().toString());
-        addField(builder, "platform", platform);
-        addField(builder, "bulletinId", bulletin.getId());
-        addField(builder, "bulletinCategory", bulletin.getCategory());
-        addField(builder, "bulletinGroupId", bulletin.getGroupId());
-        addField(builder, "bulletinGroupName", bulletin.getGroupName());
-        addField(builder, "bulletinLevel", bulletin.getLevel());
-        addField(builder, "bulletinMessage", bulletin.getMessage());
-        addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress());
-        addField(builder, "bulletinNodeId", nodeIdentifier);
-        addField(builder, "bulletinSourceId", bulletin.getSourceId());
-        addField(builder, "bulletinSourceName", bulletin.getSourceName());
-        addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name());
-        addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()));
+        addField(builder, "objectId", UUID.randomUUID().toString(), allowNullValues);
+        addField(builder, "platform", platform, allowNullValues);
+        addField(builder, "bulletinId", bulletin.getId(), allowNullValues);
+        addField(builder, "bulletinCategory", bulletin.getCategory(), allowNullValues);
+        addField(builder, "bulletinGroupId", bulletin.getGroupId(), allowNullValues);
+        addField(builder, "bulletinGroupName", bulletin.getGroupName(), allowNullValues);
+        addField(builder, "bulletinLevel", bulletin.getLevel(), allowNullValues);
+        addField(builder, "bulletinMessage", bulletin.getMessage(), allowNullValues);
+        addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress(), allowNullValues);
+        addField(builder, "bulletinNodeId", nodeIdentifier, allowNullValues);
+        addField(builder, "bulletinSourceId", bulletin.getSourceId(), allowNullValues);
+        addField(builder, "bulletinSourceName", bulletin.getSourceName(), allowNullValues);
+        addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(), allowNullValues);
+        addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()), allowNullValues);
 
         return builder.build();
     }

@@ -21,6 +21,7 @@ package org.apache.nifi.reporting;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonString;
+import javax.json.JsonValue;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -165,7 +167,29 @@ public class TestSiteToSiteStatusReportingTask {
         JsonNumber bytesThreshold = object.getJsonNumber("backPressureBytesThreshold");
         assertEquals("1 KB", dataSizeThreshold.getString());
         assertEquals(1024, bytesThreshold.intValue());
+        assertNull(object.get("destinationName"));
     }
+
+    @Test
+    public void testConnectionStatusWithNullValues() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue destination = object.get("destinationName");
+        assertEquals(destination, JsonValue.NULL);
+
+   }
 
     @Test
     public void testComponentNameFilter() throws IOException, InitializationException {
@@ -207,12 +231,13 @@ public class TestSiteToSiteStatusReportingTask {
 
     @Test
     public void testPortStatus() throws IOException, InitializationException {
-        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+        ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"false");
 
         MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
@@ -226,6 +251,26 @@ public class TestSiteToSiteStatusReportingTask {
         assertFalse(isTransmitting);
         JsonNumber inputBytes = object.getJsonNumber("inputBytes");
         assertEquals(5, inputBytes.intValue());
+        assertNull(object.get("activeThreadCount"));
+    }
+
+    @Test
+    public void testPortStatusWithNullValues() throws IOException, InitializationException {
+        ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue activeThreadCount = object.get("activeThreadCount");
+        assertEquals(activeThreadCount, JsonValue.NULL);
     }
 
     @Test
@@ -251,6 +296,27 @@ public class TestSiteToSiteStatusReportingTask {
     }
 
     @Test
+    public void testRemoteProcessGroupStatusWithNullValues() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        assertEquals(3, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        JsonValue targetURI = firstElement.get("targetURI");
+        assertEquals(targetURI, JsonValue.NULL);
+    }
+
+    @Test
     public void testProcessorStatus() throws IOException, InitializationException {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
@@ -273,6 +339,27 @@ public class TestSiteToSiteStatusReportingTask {
         assertNotNull(counterMap);
         assertEquals(10, counterMap.getInt("counter1"));
         assertEquals(5, counterMap.getInt("counter2"));
+        assertNull(object.get("processorType"));
+    }
+
+    @Test
+    public void testProcessorStatusWithNullValues() throws IOException, InitializationException {
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
+        properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+
+        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue type = object.get("processorType");
+        assertEquals(type, JsonValue.NULL);
     }
 
     /***********************************
@@ -319,7 +406,6 @@ public class TestSiteToSiteStatusReportingTask {
         pgStatus.setRemoteProcessGroupStatus(rpgStatus);
         pgStatus.setProcessorStatus(pStatus);
         pgStatus.setVersionedFlowState(VersionedFlowState.UP_TO_DATE);
-
         pgStatus.setActiveThreadCount(1);
         pgStatus.setBytesRead(2L);
         pgStatus.setBytesReceived(3l);
@@ -345,7 +431,7 @@ public class TestSiteToSiteStatusReportingTask {
         PortStatus pStatus = new PortStatus();
         pStatus.setId(id);
         pStatus.setName(namePrefix + "-" + UUID.randomUUID().toString());
-        pStatus.setActiveThreadCount(0);
+        pStatus.setActiveThreadCount(null);
         pStatus.setBytesReceived(1l);
         pStatus.setBytesSent(2l);
         pStatus.setFlowFilesReceived(3);
@@ -379,7 +465,7 @@ public class TestSiteToSiteStatusReportingTask {
         pStatus.setOutputBytes(12l);
         pStatus.setOutputCount(13);
         pStatus.setProcessingNanos(14l);
-        pStatus.setType("type");
+        pStatus.setType(null);
         pStatus.setTerminatedThreadCount(1);
         pStatus.setRunStatus(RunStatus.Running);
         pStatus.setCounters(new HashMap<String, Long>() {{
@@ -402,7 +488,7 @@ public class TestSiteToSiteStatusReportingTask {
         rpgStatus.setReceivedCount(5);
         rpgStatus.setSentContentSize(6l);
         rpgStatus.setSentCount(7);
-        rpgStatus.setTargetUri("uri");
+        rpgStatus.setTargetUri(null);
         rpgStatus.setTransmissionStatus(TransmissionStatus.Transmitting);
 
         return rpgStatus;
@@ -425,7 +511,7 @@ public class TestSiteToSiteStatusReportingTask {
         cStatus.setSourceId(id);
         cStatus.setSourceName("source");
         cStatus.setDestinationId(id);
-        cStatus.setDestinationName("destination");
+        cStatus.setDestinationName(null);
 
         return cStatus;
     }
