@@ -28,6 +28,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -38,6 +39,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
 
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides a DBCPService that can be used to dynamically select another DBCPService. This service " +
@@ -137,4 +142,16 @@ public class DBCPConnectionPoolLookup extends AbstractControllerService implemen
         return dbcpService.getConnection(attributes);
     }
 
+    @Override
+    public FlowFileFilter getFlowFileFilter() {
+        final AtomicReference<String> ref = new AtomicReference<>();
+        return flowFile -> {
+            final String flowFileDBName = flowFile.getAttribute(DATABASE_NAME_ATTRIBUTE);
+            if (StringUtils.isEmpty(flowFileDBName)) {
+                throw new ProcessException("FlowFile attributes must contain an attribute name '" + DATABASE_NAME_ATTRIBUTE + "'");
+            }
+            final String databaseName = ref.compareAndSet(null, flowFileDBName) ? flowFileDBName : ref.get();
+            return flowFileDBName.equals(databaseName) ? ACCEPT_AND_CONTINUE : REJECT_AND_CONTINUE;
+        };
+    }
 }

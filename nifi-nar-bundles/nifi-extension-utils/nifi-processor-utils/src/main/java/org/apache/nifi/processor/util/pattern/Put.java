@@ -93,8 +93,8 @@ public class Put<FC, C extends AutoCloseable> {
             return;
         }
 
-        // Only pass in a flow file if there is a single one present
-        try (C connection = initConnection.apply(context, session, functionContext, flowFiles.size() == 1 ? flowFiles.get(0) : null)) {
+        // Pass the FlowFiles to initialize a connection
+        try (C connection = initConnection.apply(context, session, functionContext, flowFiles)) {
 
             try {
                 // Execute the core function.
