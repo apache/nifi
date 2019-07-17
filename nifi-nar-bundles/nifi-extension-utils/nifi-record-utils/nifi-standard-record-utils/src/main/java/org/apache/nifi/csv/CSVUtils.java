@@ -100,7 +100,7 @@ public class CSVUtils {
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
@@ -182,7 +182,8 @@ public class CSVUtils {
         return formatName.equalsIgnoreCase(CUSTOM.getValue())
                 && (context.getProperty(VALUE_SEPARATOR).isExpressionLanguagePresent()
                 || context.getProperty(QUOTE_CHAR).isExpressionLanguagePresent()
-                || context.getProperty(ESCAPE_CHAR).isExpressionLanguagePresent());
+                || context.getProperty(ESCAPE_CHAR).isExpressionLanguagePresent()
+                || context.getProperty(COMMENT_MARKER).isExpressionLanguagePresent());
     }
 
     public static CSVFormat createCSVFormat(final PropertyContext context, final Map<String, String> variables) {
@@ -255,7 +256,10 @@ public class CSVUtils {
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
-            format = format.withCommentMarker(getCharUnescaped(context, COMMENT_MARKER, variables));
+            final Character commentMarker = getCharUnescaped(context, COMMENT_MARKER, variables);
+            if (commentMarker != null) {
+                format = format.withCommentMarker(commentMarker);
+            }
         }
         if (context.getProperty(NULL_STRING).isSet()) {
             format = format.withNullString(unescape(context.getProperty(NULL_STRING).getValue()));

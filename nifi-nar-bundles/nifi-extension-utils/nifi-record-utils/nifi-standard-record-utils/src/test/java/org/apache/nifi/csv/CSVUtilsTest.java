@@ -29,13 +29,14 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class CSVUtilsTest {
 
     @Test
     public void testIsDynamicCSVFormatWithStaticProperties() {
-        PropertyContext context = createContext("|", "'", "^");
+        PropertyContext context = createContext("|", "'", "^", "~");
 
         boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
 
@@ -44,7 +45,7 @@ public class CSVUtilsTest {
 
     @Test
     public void testIsDynamicCSVFormatWithDynamicValueSeparator() {
-        PropertyContext context = createContext("${csv.delimiter}", "'", "^");
+        PropertyContext context = createContext("${csv.delimiter}", "'", "^", "~");
 
         boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
 
@@ -53,7 +54,7 @@ public class CSVUtilsTest {
 
     @Test
     public void testIsDynamicCSVFormatWithDynamicQuoteCharacter() {
-        PropertyContext context = createContext("|", "${csv.quote}", "^");
+        PropertyContext context = createContext("|", "${csv.quote}", "^", "~");
 
         boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
 
@@ -62,7 +63,16 @@ public class CSVUtilsTest {
 
     @Test
     public void testIsDynamicCSVFormatWithDynamicEscapeCharacter() {
-        PropertyContext context = createContext("|", "'", "${csv.escape}");
+        PropertyContext context = createContext("|", "'", "${csv.escape}", "~");
+
+        boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
+
+        assertTrue(isDynamicCSVFormat);
+    }
+
+    @Test
+    public void testIsDynamicCSVFormatWithDynamicCommentMarker() {
+        PropertyContext context = createContext("|", "'", "^", "${csv.comment}");
 
         boolean isDynamicCSVFormat = CSVUtils.isDynamicCSVFormat(context);
 
@@ -71,64 +81,71 @@ public class CSVUtilsTest {
 
     @Test
     public void testCustomFormat() {
-        PropertyContext context = createContext("|", "'", "^");
+        PropertyContext context = createContext("|", "'", "^", "~");
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
 
         assertEquals('|', csvFormat.getDelimiter());
         assertEquals('\'', (char) csvFormat.getQuoteCharacter());
         assertEquals('^', (char) csvFormat.getEscapeCharacter());
+        assertEquals('~', (char) csvFormat.getCommentMarker());
     }
 
     @Test
     public void testCustomFormatWithEL() {
-        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}");
+        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}", "${csv.comment}");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("csv.delimiter", "|");
         attributes.put("csv.quote", "'");
         attributes.put("csv.escape", "^");
+        attributes.put("csv.comment", "~");
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, attributes);
 
         assertEquals('|', csvFormat.getDelimiter());
         assertEquals('\'', (char) csvFormat.getQuoteCharacter());
         assertEquals('^', (char) csvFormat.getEscapeCharacter());
+        assertEquals('~', (char) csvFormat.getCommentMarker());
     }
 
     @Test
     public void testCustomFormatWithELEmptyValues() {
-        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}");
+        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}", "${csv.comment}");
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
 
         assertEquals(',', csvFormat.getDelimiter());
         assertEquals('"', (char) csvFormat.getQuoteCharacter());
         assertEquals('\\', (char) csvFormat.getEscapeCharacter());
+        assertNull(csvFormat.getCommentMarker());
     }
 
     @Test
     public void testCustomFormatWithELInvalidValues() {
-        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}");
+        PropertyContext context = createContext("${csv.delimiter}", "${csv.quote}", "${csv.escape}", "${csv.comment}");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("csv.delimiter", "invalid");
         attributes.put("csv.quote", "invalid");
         attributes.put("csv.escape", "invalid");
+        attributes.put("csv.comment", "invalid");
 
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, attributes);
 
         assertEquals(',', csvFormat.getDelimiter());
         assertEquals('"', (char) csvFormat.getQuoteCharacter());
         assertEquals('\\', (char) csvFormat.getEscapeCharacter());
+        assertNull(csvFormat.getCommentMarker());
     }
 
-    private PropertyContext createContext(String valueSeparator, String quoteChar, String escapeChar) {
+    private PropertyContext createContext(String valueSeparator, String quoteChar, String escapeChar, String commentMarker) {
         Map<PropertyDescriptor, String> properties = new HashMap<>();
 
         properties.put(CSVUtils.VALUE_SEPARATOR, valueSeparator);
         properties.put(CSVUtils.QUOTE_CHAR, quoteChar);
         properties.put(CSVUtils.ESCAPE_CHAR, escapeChar);
+        properties.put(CSVUtils.COMMENT_MARKER, commentMarker);
 
         return new MockConfigurationContext(properties, null);
     }

@@ -233,6 +233,7 @@ public class TestConvertRecord {
         runner.setProperty(csvReader, CSVUtils.VALUE_SEPARATOR, "${csv.in.delimiter}");
         runner.setProperty(csvReader, CSVUtils.QUOTE_CHAR, "${csv.in.quote}");
         runner.setProperty(csvReader, CSVUtils.ESCAPE_CHAR, "${csv.in.escape}");
+        runner.setProperty(csvReader, CSVUtils.COMMENT_MARKER, "${csv.in.comment}");
         runner.enableControllerService(csvReader);
 
         CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
@@ -245,13 +246,15 @@ public class TestConvertRecord {
         runner.setProperty(ConvertRecord.RECORD_READER, "csv-reader");
         runner.setProperty(ConvertRecord.RECORD_WRITER, "csv-writer");
 
-        String ffContent = "id|username|password\n" +
+        String ffContent = "~ comment\n" +
+                "id|username|password\n" +
                 "123|'John'|^|^'^^\n";
 
         Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("csv.in.delimiter", "|");
         ffAttributes.put("csv.in.quote", "'");
         ffAttributes.put("csv.in.escape", "^");
+        ffAttributes.put("csv.in.comment", "~");
         ffAttributes.put("csv.out.delimiter", "\t");
         ffAttributes.put("csv.out.quote", "`");
 
