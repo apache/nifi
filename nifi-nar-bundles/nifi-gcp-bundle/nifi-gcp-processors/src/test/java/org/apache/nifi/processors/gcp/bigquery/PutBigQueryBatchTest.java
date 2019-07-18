@@ -125,7 +125,6 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_SUCCESS);
     }
 
-
     @Test
     public void testFailedLoad() throws Exception {
         when(table.exists()).thenReturn(Boolean.TRUE);
@@ -149,5 +148,15 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_FAILURE);
+    }
+
+    @Test
+    public void testMandatoryProjectId() throws Exception {
+        final TestRunner runner = buildNewRunner(getProcessor());
+        addRequiredPropertiesToRunner(runner);
+        runner.assertValid();
+
+        runner.removeProperty(PutBigQueryBatch.PROJECT_ID);
+        runner.assertNotValid();
     }
 }
