@@ -86,6 +86,7 @@ To build:
         [INFO] Finished at: 2015-04-30T00:30:36-05:00
         [INFO] Final Memory: 173M/1359M
         [INFO] ------------------------------------------------------------------------
+- Execute `mvn clean install -DskipTests` to compile tests, but skip running them.
 
 To deploy:
 - Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
@@ -127,7 +128,7 @@ To run NiFi:
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
 ([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
 For more interactive conversations and chat, we're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML). 
+[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML).
 
 ## Documentation
 
