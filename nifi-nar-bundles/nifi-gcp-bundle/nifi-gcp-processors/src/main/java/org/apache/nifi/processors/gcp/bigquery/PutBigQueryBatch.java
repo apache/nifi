@@ -214,6 +214,15 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor AVRO_USE_LOGICAL_TYPES = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.AVRO_USE_LOGICAL_TYPES_ATTR)
+            .displayName("Avro Input - Use Logical Types")
+            .description(BigQueryAttributes.AVRO_USE_LOGICAL_TYPES_DESC)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
@@ -229,6 +238,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                 .add(CSV_FIELD_DELIMITER)
                 .add(CSV_QUOTE)
                 .add(CSV_SKIP_LEADING_ROWS)
+                .add(AVRO_USE_LOGICAL_TYPES)
                 .build();
     }
 
@@ -280,6 +290,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                     .setCreateDisposition(JobInfo.CreateDisposition.valueOf(context.getProperty(CREATE_DISPOSITION).getValue()))
                     .setWriteDisposition(JobInfo.WriteDisposition.valueOf(context.getProperty(WRITE_DISPOSITION).getValue()))
                     .setIgnoreUnknownValues(context.getProperty(IGNORE_UNKNOWN).asBoolean())
+                    .setUseAvroLogicalTypes(context.getProperty(AVRO_USE_LOGICAL_TYPES).asBoolean())
                     .setMaxBadRecords(context.getProperty(MAXBAD_RECORDS).asInteger())
                     .setSchema(schema)
                     .setFormatOptions(formatOption)
