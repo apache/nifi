@@ -80,8 +80,8 @@ limitations under the License.
                                         <property name="commons.daemon.file" value="commons-daemon-1.2.0-bin-windows.zip" />
                                         <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true" />
                                         <local name="checksum.matches" />
-                                        <property name="sha256sum" value="9e632e6b7d8cb3d575639a299150037fdca88f9567f91586e55f234dd627e7c3" />
-                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
+                                        <property name="sha512sum" value="8b6e0bb4172861338e0cb3238f6da715c3cef04a88e8bfab0cbb487ef638aa69fd34de9407b0b2ed54451fbbcbff8a999324289052a581a5d07d6f6ff84a83b6" />
+                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${sha512sum}" verifyProperty="checksum.matches" />
                                         <echo message="Checksum match = ${checksum.matches}" />
                                         <condition property="checksum.matches.fail">
                                             <equals arg1="${checksum.matches}" arg2="false" />
