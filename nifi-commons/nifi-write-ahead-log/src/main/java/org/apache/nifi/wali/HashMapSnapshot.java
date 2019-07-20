@@ -23,6 +23,7 @@ import org.wali.SerDe;
 import org.wali.SerDeFactory;
 import org.wali.UpdateType;
 
+import javax.crypto.SecretKey;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -51,10 +52,12 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
     private final SerDeFactory<T> serdeFactory;
     private final Set<String> swapLocations = Collections.synchronizedSet(new HashSet<>());
     private final File storageDirectory;
+    private SecretKey cipherKey;
 
-    public HashMapSnapshot(final File storageDirectory, final SerDeFactory<T> serdeFactory) {
+    public HashMapSnapshot(final File storageDirectory, final SerDeFactory<T> serdeFactory, SecretKey cipherKey) {
         this.serdeFactory = serdeFactory;
         this.storageDirectory = storageDirectory;
+        this.cipherKey = cipherKey;
     }
 
     private SnapshotHeader validateHeader(final DataInputStream dataIn) throws IOException {
@@ -121,7 +124,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
 
         // At this point, we know the snapshotPath exists because if it didn't, then we either returned null
         // or we renamed partialPath to snapshotPath. So just Recover from snapshotPath.
-        try (final DataInputStream dataIn = new DataInputStream(new BufferedInputStream(new FileInputStream(snapshotFile)))) {
+        try (final DataInputStream dataIn = new DataInputStream(new BufferedInputStream(SimpleCipherInputStream.wrapWithKey(new FileInputStream(snapshotFile), cipherKey)))) {
             // Ensure that the header contains the information that we expect and retrieve the relevant information from the header.
             final SnapshotHeader header = validateHeader(dataIn);
 
@@ -264,10 +267,11 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         }
 
         // Write to the partial file.
-        try (final FileOutputStream fileOut = new FileOutputStream(getPartialFile());
-            final OutputStream bufferedOut = new BufferedOutputStream(fileOut);
-            final DataOutputStream dataOut = new DataOutputStream(bufferedOut)) {
+        final FileOutputStream fileOut = new FileOutputStream(getPartialFile());
+        final OutputStream bufferedOut = new BufferedOutputStream(fileOut);
+        final OutputStream cipherOut = SimpleCipherOutputStream.wrapWithKey(bufferedOut, cipherKey);
 
+        try (final DataOutputStream dataOut = new DataOutputStream(cipherOut)) {
             // Write out the header
             dataOut.writeUTF(HashMapSnapshot.class.getName());
             dataOut.writeInt(getVersion());

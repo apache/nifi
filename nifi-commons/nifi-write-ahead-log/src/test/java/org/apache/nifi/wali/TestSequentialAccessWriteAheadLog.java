@@ -50,7 +50,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class TestSequentialAccessWriteAheadLog {
+public class TestSequentialAccessWriteAheadLog extends TestAbstractSimpleCipher {
     @Rule
     public TestName testName = new TestName();
 
@@ -72,11 +72,18 @@ public class TestSequentialAccessWriteAheadLog {
         assertEquals(1, serde.getExternalFileReferences().size());
 
         final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo();
-        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
 
-        // ensure that we get the same records back, but the order may be different, so wrap both collections
-        // in a HashSet so that we can compare unordered collections of the same type.
-        assertEquals(new HashSet<>(records), new HashSet<>(recovered));
+        try {
+            final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+
+            // ensure that we get the same records back, but the order may be different, so wrap both collections
+            // in a HashSet so that we can compare unordered collections of the same type.
+            assertEquals(new HashSet<>(records), new HashSet<>(recovered));
+        } catch (final IOException e) {
+            if (cipherKey == null) {
+                throw e;
+            }
+        }
     }
 
     @Test
@@ -99,13 +106,19 @@ public class TestSequentialAccessWriteAheadLog {
         assertEquals(1, serde.getExternalFileReferences().size());
 
         final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo();
-        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+        try {
+            final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
 
-        // ensure that we get the same records back, but the order may be different, so wrap both collections
-        // in a HashSet so that we can compare unordered collections of the same type.
-        final Set<DummyRecord> expectedRecords = new HashSet<>(records);
-        expectedRecords.add(subsequentRecord);
-        assertEquals(expectedRecords, new HashSet<>(recovered));
+            // ensure that we get the same records back, but the order may be different, so wrap both collections
+            // in a HashSet so that we can compare unordered collections of the same type.
+            final Set<DummyRecord> expectedRecords = new HashSet<>(records);
+            expectedRecords.add(subsequentRecord);
+            assertEquals(expectedRecords, new HashSet<>(recovered));
+        } catch (final IOException e) {
+            if (cipherKey == null) {
+                throw e;
+            }
+        }
     }
 
     @Test
@@ -193,7 +206,7 @@ public class TestSequentialAccessWriteAheadLog {
 
         final DummyRecordSerde serde = new DummyRecordSerde();
         final SerDeFactory<DummyRecord> serdeFactory = new SingletonSerDeFactory<>(serde);
-        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory);
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory, null, cipherKey);
 
         return repo;
     }
@@ -209,7 +222,7 @@ public class TestSequentialAccessWriteAheadLog {
         assertTrue(storageDir.mkdirs());
 
         final SerDeFactory<DummyRecord> serdeFactory = new SingletonSerDeFactory<>(serde);
-        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory);
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory, null, cipherKey);
 
         final Collection<DummyRecord> recovered = repo.recoverRecords();
         assertNotNull(recovered);
@@ -318,7 +331,7 @@ public class TestSequentialAccessWriteAheadLog {
         final DummyRecordSerde serde = new DummyRecordSerde();
         final SerDeFactory<DummyRecord> serdeFactory = new SingletonSerDeFactory<>(serde);
 
-        final WriteAheadRepository<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(path.toFile(), serdeFactory);
+        final WriteAheadRepository<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(path.toFile(), serdeFactory, null, cipherKey);
         final Collection<DummyRecord> initialRecs = repo.recoverRecords();
         assertTrue(initialRecs.isEmpty());
 

@@ -128,7 +128,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         }
 
         versionGenerator = new AtomicLong(-1L);
-        writeAheadLog = new MinimalLockingWriteAheadLog<>(basePath.toPath(), numPartitions, serde, null);
+        writeAheadLog = new MinimalLockingWriteAheadLog<>(basePath.toPath(), numPartitions, serde, null, null);
 
         final Collection<StateMapUpdate> updates = writeAheadLog.recoverRecords();
         long maxRecordVersion = -1L;

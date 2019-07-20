@@ -2611,6 +2611,7 @@ The default value is 1.
 |The period at which to dump rocksdb.stats to the log.  See RocksDB `DBOptions.setStatsDumpPeriodSec()` / `stats_dump_period_sec` for more information.
 The default value is 600 sec.
 |====
+=======
 
 === Swap Management
 

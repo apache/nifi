@@ -19,12 +19,14 @@ package org.apache.nifi.wali;
 
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.bouncycastle.crypto.io.InvalidCipherTextIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 import org.wali.SerDeFactory;
 import org.wali.UpdateType;
 
+import javax.crypto.SecretKey;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +35,6 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,8 +68,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private final int maxInHeapSerializationBytes;
 
     private SerDe<T> serde;
-    private FileOutputStream fileOut;
+    private OutputStream fileOut;
     private BufferedOutputStream bufferedOut;
+    private final SecretKey cipherKey;
 
     private long currentTransactionId;
     private int transactionCount;
@@ -78,12 +80,13 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private volatile boolean closed = false;
     private final ByteBuffer transactionPreamble = ByteBuffer.allocate(12); // guarded by synchronized block
 
-    public LengthDelimitedJournal(final File journalFile, final SerDeFactory<T> serdeFactory, final ObjectPool<ByteArrayDataOutputStream> streamPool, final long initialTransactionId) {
-        this(journalFile, serdeFactory, streamPool, initialTransactionId, DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES);
+    public LengthDelimitedJournal(final File journalFile, final SerDeFactory<T> serdeFactory, final ObjectPool<ByteArrayDataOutputStream> streamPool, final long initialTransactionId,
+                                  SecretKey cipherKey) {
+        this(journalFile, serdeFactory, streamPool, initialTransactionId, DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES, cipherKey);
     }
 
     public LengthDelimitedJournal(final File journalFile, final SerDeFactory<T> serdeFactory, final ObjectPool<ByteArrayDataOutputStream> streamPool, final long initialTransactionId,
-                                  final int maxInHeapSerializationBytes) {
+                                  final int maxInHeapSerializationBytes, SecretKey cipherKey) {
         this.journalFile = journalFile;
         this.overflowDirectory = new File(journalFile.getParentFile(), "overflow-" + getBaseFilename(journalFile));
         this.serdeFactory = serdeFactory;
@@ -93,6 +96,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         this.initialTransactionId = initialTransactionId;
         this.currentTransactionId = initialTransactionId;
         this.maxInHeapSerializationBytes = maxInHeapSerializationBytes;
+        this.cipherKey = cipherKey;
     }
 
     public void dispose() {
@@ -131,9 +135,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         return name.substring(0, index);
     }
 
-    private synchronized OutputStream getOutputStream() throws FileNotFoundException {
+    private synchronized OutputStream getOutputStream() throws IOException {
         if (fileOut == null) {
-            fileOut = new FileOutputStream(journalFile);
+            fileOut = SimpleCipherOutputStream.wrapWithKey(new FileOutputStream(journalFile), cipherKey);
             bufferedOut = new BufferedOutputStream(fileOut);
         }
 
@@ -241,6 +245,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             FileOutputStream overflowFileOut = null;
+            OutputStream overflowOut = null;
 
             try {
                 DataOutputStream dataOut = bados.getDataOutputStream();
@@ -262,11 +267,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                         logger.debug("Length of update with {} records exceeds in-memory max of {} bytes. Overflowing to {}", records.size(), maxInHeapSerializationBytes, overflowFile);
 
                         overflowFileOut = new FileOutputStream(overflowFile);
-                        bados.getByteArrayOutputStream().writeTo(overflowFileOut);
+                        overflowOut = SimpleCipherOutputStream.wrapWithKey(overflowFileOut, cipherKey);
+                        bados.getByteArrayOutputStream().writeTo(overflowOut);
                         bados.getByteArrayOutputStream().reset();
 
                         // change dataOut to point to the File's Output Stream so that all subsequent records are written to the file.
-                        dataOut = new DataOutputStream(new BufferedOutputStream(overflowFileOut));
+                        dataOut = new DataOutputStream(new BufferedOutputStream(overflowOut));
 
                         // We now need to write to the ByteArrayOutputStream a pointer to the overflow file
                         // so that what is written to the actual journal is that pointer.
@@ -283,7 +289,6 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     if (logger.isDebugEnabled()) { // avoid calling File.length() if not necessary
                         logger.debug("Length of update to overflow file is {} bytes", overflowFile.length());
                     }
-
                     overflowFileOut.getFD().sync();
                 }
             } finally {
@@ -373,7 +378,8 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             if (fileOut != null) {
-                fileOut.getChannel().force(false);
+                // Before transparent crypto, this was: fileOut.getChannel().force(false);
+                fileOut.flush();
             }
         } catch (final IOException ioe) {
             poison(ioe);
@@ -411,9 +417,10 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         final double journalLength = journalFile.length();
 
         try (final InputStream fis = new FileInputStream(journalFile);
-            final InputStream bufferedIn = new BufferedInputStream(fis);
-            final ByteCountingInputStream byteCountingIn = new ByteCountingInputStream(bufferedIn);
-            final DataInputStream in = new DataInputStream(byteCountingIn)) {
+             final InputStream bufferedIn = new BufferedInputStream(fis);
+             final InputStream plainIn = SimpleCipherInputStream.wrapWithKey(bufferedIn, cipherKey);
+             final ByteCountingInputStream byteCountingIn = new ByteCountingInputStream(plainIn);
+             final DataInputStream in = new DataInputStream(byteCountingIn)) {
 
             try {
                 // Validate that the header is what we expect and obtain the appropriate SerDe and Version information
@@ -537,6 +544,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
             } catch (final EOFException eof) {
                 eofException = true;
                 logger.warn("Encountered unexpected End-of-File when reading journal file {}; assuming that NiFi was shutdown unexpectedly and continuing recovery", journalFile);
+            } catch (final InvalidCipherTextIOException e) {
+                eofException = true;
+                logger.warn("Encountered cipher decoding failure when reading journal file {}; this may be from an unexpected shutdown or tampering ", journalFile);
             } catch (final Exception e) {
                 // If the stream consists solely of NUL bytes, then we want to treat it
                 // the same as an EOF because we see this happen when we suddenly lose power

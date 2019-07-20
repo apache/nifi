@@ -42,7 +42,7 @@ public class PersistentSetCache implements SetCache {
     private final AtomicLong modifications = new AtomicLong(0L);
 
     public PersistentSetCache(final String serviceIdentifier, final File persistencePath, final SetCache cacheToWrap) throws IOException {
-        wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+        wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null, null);
         wrapped = cacheToWrap;
     }
 

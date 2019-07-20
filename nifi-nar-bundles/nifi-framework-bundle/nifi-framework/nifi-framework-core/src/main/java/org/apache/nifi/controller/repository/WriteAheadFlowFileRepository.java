@@ -30,6 +30,8 @@ import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.SyncListener;
 import org.wali.WriteAheadRepository;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -88,6 +90,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private static final String MINIMAL_LOCKING_WALI = "org.wali.MinimalLockingWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
 
+    // This needs to change to handle a key provider and/or multiple keys.  And consider key rotation whilst doing that.
+    private static final String FLOWFILE_ENCRYPTION_KEY = "nifi.flowfile.repository.encryption.key.1";
+
     private final String walImplementation;
     private final NiFiProperties nifiProperties;
 
@@ -109,6 +114,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private WriteAheadRepository<RepositoryRecord> wal;
     private RepositoryRecordSerdeFactory serdeFactory;
     private ResourceClaimManager claimManager;
+    private SecretKey cipherKey;
 
     // WALI Provides the ability to register callbacks for when a Partition or the entire Repository is sync'ed with the underlying disk.
     // We keep track of this because we need to ensure that the ContentClaims are destroyed only after the FlowFile Repository has been
@@ -143,6 +149,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointExecutor = null;
         walImplementation = null;
         nifiProperties = null;
+        cipherKey = null;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
@@ -163,6 +170,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             if (propertyName.startsWith(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX)) {
                 final String dirName = nifiProperties.getProperty(propertyName);
                 recoveryFiles.add(new File(dirName));
+            }
+            if (propertyName.startsWith(FLOWFILE_ENCRYPTION_KEY)) {
+                String keyMaterial = nifiProperties.getProperty(propertyName);
+                cipherKey = new SecretKeySpec(keyMaterial.getBytes(), "AES");
             }
         }
 
@@ -199,13 +210,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         this.serdeFactory = serdeFactory;
 
         if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL)) {
-            wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
+            wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this, cipherKey);
         } else if (walImplementation.equals(MINIMAL_LOCKING_WALI)) {
             final SortedSet<Path> paths = flowFileRepositoryPaths.stream()
                 .map(File::toPath)
                 .collect(Collectors.toCollection(TreeSet::new));
 
-            wal = new MinimalLockingWriteAheadLog<>(paths, numPartitions, serdeFactory, this);
+            wal = new MinimalLockingWriteAheadLog<>(paths, numPartitions, serdeFactory, this, cipherKey);
         } else {
             throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + WRITE_AHEAD_LOG_IMPL + "' has an invalid value of '" + walImplementation
                 + "'. Please update nifi.properties to indicate a valid value for this property.");
@@ -545,7 +556,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             return Optional.empty();
         }
 
-        final WriteAheadRepository<RepositoryRecord> recoveryWal = new SequentialAccessWriteAheadLog<>(recoveryDir, serdeFactory, this);
+        final WriteAheadRepository<RepositoryRecord> recoveryWal = new SequentialAccessWriteAheadLog<>(recoveryDir, serdeFactory, this, cipherKey);
         logger.info("Encountered FlowFile Repository that was written using the Sequential Access Write Ahead Log. Will recover from this version.");
 
         final Collection<RepositoryRecord> recordList;
@@ -597,7 +608,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             .collect(Collectors.toCollection(TreeSet::new));
 
         final Collection<RepositoryRecord> recordList;
-        final MinimalLockingWriteAheadLog<RepositoryRecord> minimalLockingWal = new MinimalLockingWriteAheadLog<>(paths, partitionDirs.size(), serdeFactory, null);
+        final MinimalLockingWriteAheadLog<RepositoryRecord> minimalLockingWal = new MinimalLockingWriteAheadLog<>(paths, partitionDirs.size(), serdeFactory, null, cipherKey);
         try {
             recordList = minimalLockingWal.recoverRecords();
         } finally {

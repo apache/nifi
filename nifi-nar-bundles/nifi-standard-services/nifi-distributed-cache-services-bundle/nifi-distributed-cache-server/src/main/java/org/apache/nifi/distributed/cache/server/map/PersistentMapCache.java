@@ -48,7 +48,7 @@ public class PersistentMapCache implements MapCache {
 
     public PersistentMapCache(final String serviceIdentifier, final File persistencePath, final MapCache cacheToWrap) throws IOException {
         try {
-            wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+            wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null, null);
         } catch (OverlappingFileLockException ex) {
             logger.error("OverlappingFileLockException thrown: Check lock location - possible duplicate persistencePath conflict in PersistentMapCache.");
             // Propagate the exception
