@@ -86,7 +86,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
         CSVFormat csvFormat;
-        if (!CSVUtils.isDynamicCSVFormat(context)) {
+        if (this.csvFormat != null) {
             csvFormat = this.csvFormat;
         } else {
             csvFormat = CSVUtils.createCSVFormat(context, variables);

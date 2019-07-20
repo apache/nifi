@@ -146,7 +146,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         in.reset();
 
         CSVFormat csvFormat;
-        if (!CSVUtils.isDynamicCSVFormat(context)) {
+        if (this.csvFormat != null) {
             csvFormat = this.csvFormat;
         } else {
             csvFormat = CSVUtils.createCSVFormat(context, variables);

@@ -218,8 +218,13 @@ public class CSVUtils {
             }
         }
 
-        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be skipped.", property.getName(), value);
-        return null;
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+
+        if (property.getDefaultValue() != null) {
+            return property.getDefaultValue().charAt(0);
+        } else {
+            return null;
+        }
     }
 
     private static Character getCharUnescaped(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
@@ -232,13 +237,18 @@ public class CSVUtils {
             }
         }
 
-        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be skipped.", property.getName(), value);
-        return null;
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+
+        if (property.getDefaultValue() != null) {
+            return property.getDefaultValue().charAt(0);
+        } else {
+            return null;
+        }
     }
 
     private static CSVFormat buildCustomFormat(final PropertyContext context, final Map<String, String> variables) {
         final Character valueSeparator = getCharUnescapedJava(context, VALUE_SEPARATOR, variables);
-        CSVFormat format = CSVFormat.newFormat(valueSeparator != null ? valueSeparator : VALUE_SEPARATOR.getDefaultValue().charAt(0))
+        CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
 
@@ -248,10 +258,10 @@ public class CSVUtils {
         }
 
         final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
-        format = format.withQuote(quoteChar != null ? quoteChar : QUOTE_CHAR.getDefaultValue().charAt(0));
+        format = format.withQuote(quoteChar);
 
         final Character escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
-        format = format.withEscape(escapeChar != null ? escapeChar : ESCAPE_CHAR.getDefaultValue().charAt(0));
+        format = format.withEscape(escapeChar);
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
