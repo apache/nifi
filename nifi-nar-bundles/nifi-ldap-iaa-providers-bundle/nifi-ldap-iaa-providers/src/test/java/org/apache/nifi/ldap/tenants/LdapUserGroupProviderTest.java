@@ -263,7 +263,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         ldapUserGroupProvider.onConfigured(configurationContext);
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
         assertEquals(1, groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName())).count());
     }
 
@@ -274,7 +274,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         when(configurationContext.getProperty(PROP_PAGE_SIZE)).thenReturn(new StandardPropertyValue("1", null));
         ldapUserGroupProvider.onConfigured(configurationContext);
 
-        assertEquals(4, ldapUserGroupProvider.getGroups().size());
+        assertEquals(5, ldapUserGroupProvider.getGroups().size());
     }
 
     @Test
@@ -295,7 +295,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         when(configurationContext.getProperty(PROP_GROUP_SEARCH_SCOPE)).thenReturn(new StandardPropertyValue(SearchScope.SUBTREE.name(), null));
         ldapUserGroupProvider.onConfigured(configurationContext);
 
-        assertEquals(4, ldapUserGroupProvider.getGroups().size());
+        assertEquals(5, ldapUserGroupProvider.getGroups().size());
     }
 
     @Test
@@ -306,7 +306,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         ldapUserGroupProvider.onConfigured(configurationContext);
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
@@ -324,7 +324,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         ldapUserGroupProvider.onConfigured(configurationContext);
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group admins = groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
@@ -343,7 +343,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         ldapUserGroupProvider.onConfigured(configurationContext);
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
@@ -373,7 +373,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         assertEquals(8, ldapUserGroupProvider.getUsers().size());
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
         groups.forEach(group -> assertTrue(group.getUsers().isEmpty()));
     }
 
@@ -388,7 +388,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         assertEquals(8, ldapUserGroupProvider.getUsers().size());
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team1);
@@ -416,7 +416,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         assertEquals(8, ldapUserGroupProvider.getUsers().size());
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
@@ -448,6 +448,38 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
     }
 
     @Test
+    public void testSearchUsersAndGroupsMembershipThroughGroupsWithTransforms() throws Exception {
+        final Properties props = new Properties();
+        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^cn=(.*?),ou=(.*?),o=(.*?)$");
+        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
+        props.setProperty("nifi.security.identity.mapping.transform.dn1", "UPPER");
+        props.setProperty("nifi.security.group.mapping.pattern.dn1", "^cn=(.*?),ou=(.*?),o=(.*?)$");
+        props.setProperty("nifi.security.group.mapping.value.dn1", "$1");
+        props.setProperty("nifi.security.group.mapping.transform.dn1", "UPPER");
+
+        final NiFiProperties properties = getNiFiProperties(props);
+        ldapUserGroupProvider.setNiFiProperties(properties);
+
+        final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
+        when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null));
+        when(configurationContext.getProperty(PROP_GROUP_MEMBER_ATTRIBUTE)).thenReturn(new StandardPropertyValue("member", null));
+        when(configurationContext.getProperty(PROP_GROUP_NAME_ATTRIBUTE)).thenReturn(new StandardPropertyValue("cn", null));
+        ldapUserGroupProvider.onConfigured(configurationContext);
+
+        assertEquals(8, ldapUserGroupProvider.getUsers().size());
+
+        final Set<Group> groups = ldapUserGroupProvider.getGroups();
+        assertEquals(5, groups.size());
+
+        final Group admins = groups.stream().filter(group -> "teamCaseInsensitive".equals(group.getName())).findFirst().orElse(null);
+        assertNotNull(admins);
+        assertEquals(2, admins.getUsers().size());
+        assertEquals(2, admins.getUsers().stream().map(
+                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
+                user -> "user1".equals(user.getIdentity()) || "user2".equals(user.getIdentity())).count());
+    }
+
+    @Test
     public void testSearchUsersAndGroupsMembershipThroughUsersAndGroups() throws Exception {
         final AuthorizerConfigurationContext configurationContext = getBaseConfiguration(USER_SEARCH_BASE, GROUP_SEARCH_BASE);
         when(configurationContext.getProperty(PROP_USER_IDENTITY_ATTRIBUTE)).thenReturn(new StandardPropertyValue("uid", null));
@@ -459,7 +491,7 @@ public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
         assertEquals(8, ldapUserGroupProvider.getUsers().size());
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
-        assertEquals(4, groups.size());
+        assertEquals(5, groups.size());
 
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);

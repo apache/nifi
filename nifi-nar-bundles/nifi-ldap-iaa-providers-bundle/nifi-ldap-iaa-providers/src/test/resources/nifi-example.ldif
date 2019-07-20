@@ -157,6 +157,13 @@ objectClass: top
 cn: team2
 member: cn=User 1,ou=users,o=nifi
 
+dn: cn=teamCaseInsensitive,ou=groups,o=nifi
+objectClass: groupOfNames
+objectClass: top
+cn: teamCaseInsensitive
+member: cn=user 1,ou=Users,o=NiFi
+member: cn=USER 2,ou=USERS,o=NIFI
+
 ## since the embedded ldap requires member to be fqdn, we are simulating using room and description
 
 dn: cn=team3,ou=groups-2,o=nifi

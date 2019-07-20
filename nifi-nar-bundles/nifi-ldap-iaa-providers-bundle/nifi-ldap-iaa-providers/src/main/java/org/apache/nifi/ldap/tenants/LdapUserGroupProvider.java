@@ -500,7 +500,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             final User user = new User.Builder().identifierGenerateFromSeed(identity).identity(identity).build();
 
                             // store the user for group member later
-                            userLookup.put(getReferencedUserValue(ctx), user);
+                            userLookup.put(IdentityMappingUtil.mapIdentity(getReferencedUserValue(ctx), identityMappings), user);
 
                             if (StringUtils.isNotBlank(userGroupNameAttribute)) {
                                 final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
@@ -569,7 +569,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                     try {
                                         final NamingEnumeration<String> userValues = (NamingEnumeration<String>) attributeUsers.getAll();
                                         while (userValues.hasMoreElements()) {
-                                            final String userValue = userValues.next();
+                                            final String userValue = IdentityMappingUtil.mapIdentity(userValues.next(), identityMappings);
 
                                             if (performUserSearch) {
                                                 // find the user by it's referenced attribute and add the identifier to this group
