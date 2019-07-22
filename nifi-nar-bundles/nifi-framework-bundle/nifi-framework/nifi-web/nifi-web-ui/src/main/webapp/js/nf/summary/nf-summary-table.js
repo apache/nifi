@@ -25,9 +25,10 @@
                 'nf.StatusHistory',
                 'nf.ProcessorDetails',
                 'nf.ConnectionDetails',
-                'nf.ng.Bridge'],
-            function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge) {
-                return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge));
+                'nf.ng.Bridge',
+                'lodash-core'],
+            function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
+                return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.SummaryTable =
@@ -38,7 +39,8 @@
                 require('nf.StatusHistory'),
                 require('nf.ProcessorDetails'),
                 require('nf.ConnectionDetails'),
-                require('nf.ng.Bridge')));
+                require('nf.ng.Bridge'),
+                require('lodash-core')));
     } else {
         nf.SummaryTable = factory(root.$,
             root.Slick,
@@ -47,9 +49,10 @@
             root.nf.StatusHistory,
             root.nf.ProcessorDetails,
             root.nf.ConnectionDetails,
-            root.nf.ng.Bridge);
+            root.nf.ng.Bridge,
+            root._);
     }
-}(this, function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge) {
+}(this, function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
     'use strict';
 
     /**
@@ -63,6 +66,8 @@
             flowConfig: '../nifi-api/flow/config'
         }
     };
+
+    var DATA_SEPARATOR = '&nbsp;&nbsp;|&nbsp;&nbsp;';
 
     /**
      * Goes to the specified component if possible.
@@ -291,12 +296,12 @@
 
         // formatter for io
         var ioFormatter = function (row, cell, value, columnDef, dataContext) {
-            return nfCommon.escapeHtml(dataContext.read) + ' / ' + nfCommon.escapeHtml(dataContext.written);
+            return nfCommon.escapeHtml(dataContext.read) + DATA_SEPARATOR + nfCommon.escapeHtml(dataContext.written);
         };
 
         // formatter for tasks
         var taskTimeFormatter = function (row, cell, value, columnDef, dataContext) {
-            return nfCommon.formatInteger(dataContext.tasks) + ' / ' + nfCommon.escapeHtml(dataContext.tasksDuration);
+            return nfCommon.formatInteger(dataContext.tasks) + DATA_SEPARATOR + nfCommon.escapeHtml(dataContext.tasksDuration);
         };
 
         // function for formatting the last accessed time
@@ -309,7 +314,7 @@
             var threadCounts = '';
             var threadTip = '';
             if (dataContext.terminatedThreadCount > 0) {
-                threadCounts = '(' + dataContext.activeThreadCount + ' / ' + dataContext.terminatedThreadCount + ')';
+                threadCounts = '(' + dataContext.activeThreadCount + DATA_SEPARATOR + dataContext.terminatedThreadCount + ')';
                 threadTip = 'Threads: (Active / Terminated)';
             } else if (dataContext.activeThreadCount > 0) {
                 threadCounts = '(' + dataContext.activeThreadCount + ')';
@@ -372,7 +377,7 @@
         var inputColumn = {
             id: 'input',
             field: 'input',
-            name: '<span class="input-title">In</span>&nbsp;/&nbsp;<span class="input-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="input-title">In</span>&nbsp;(<span class="input-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
@@ -382,7 +387,7 @@
         var ioColumn = {
             id: 'io',
             field: 'io',
-            name: '<span class="read-title">Read</span>&nbsp;/&nbsp;<span class="written-title">Write</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="read-title">Read</span>' + DATA_SEPARATOR + '<span class="written-title">Write</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Data size in the last 5 min',
             formatter: ioFormatter,
             sortable: true,
@@ -392,7 +397,7 @@
         var outputColumn = {
             id: 'output',
             field: 'output',
-            name: '<span class="output-title">Out</span>&nbsp;/&nbsp;<span class="output-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="output-title">Out</span>&nbsp;(<span class="output-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
@@ -402,7 +407,7 @@
         var tasksTimeColumn = {
             id: 'tasks',
             field: 'tasks',
-            name: '<span class="tasks-title">Tasks</span>&nbsp;/&nbsp;<span class="time-title">Time</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="tasks-title">Tasks</span>' + DATA_SEPARATOR + '<span class="time-title">Time</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / duration in the last 5 min',
             formatter: taskTimeFormatter,
             sortable: true,
@@ -708,23 +713,58 @@
             return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details"></div>';
         };
 
+        var formatPercent = function (value) {
+            return _.isNumber(value) && value >= 0 ? _.clamp(value, 0, 100) + '%' : 'NA';
+        };
+
         var backpressureFormatter = function (row, cell, value, columnDef, dataContext) {
             var percentUseCount = 'NA';
             if (nfCommon.isDefinedAndNotNull(dataContext.percentUseCount)) {
-                percentUseCount = dataContext.percentUseCount + '%';
+                percentUseCount = formatPercent(dataContext.percentUseCount);
             }
             var percentUseBytes = 'NA';
             if (nfCommon.isDefinedAndNotNull(dataContext.percentUseBytes)) {
-                percentUseBytes = dataContext.percentUseBytes + '%';
+                percentUseBytes = formatPercent(dataContext.percentUseBytes);
             }
-            return nfCommon.escapeHtml(percentUseCount) + ' / ' + nfCommon.escapeHtml(percentUseBytes);
+            return nfCommon.escapeHtml(percentUseCount) + DATA_SEPARATOR + nfCommon.escapeHtml(percentUseBytes);
+        };
+
+        var backpressurePredictionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictedMillisUntilBytesBackpressure', -1);
+            var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictedMillisUntilCountBackpressure', -1);
+
+            var percentUseCount = _.get(dataContext, 'percentUseCount', 0);
+            var percentUseBytes = _.get(dataContext, 'percentUseBytes', 0);
+
+            var predictions = [
+                { label: 'object', timeToBackPressure: predictedMillisUntilCountBackpressure },
+                { label: 'size', timeToBackPressure: predictedMillisUntilBytesBackpressure },
+            ];
+            var actualQueuePercents = [
+                { label: 'object', percent: percentUseCount },
+                { label: 'size', percent: percentUseBytes }
+            ];
+
+            var minPrediction = _.minBy(predictions, 'timeToBackPressure');
+            var maxActual = _.maxBy(actualQueuePercents, 'percent');
+
+            if (maxActual.percent >= 100) {
+                // currently experiencing back pressure
+                return 'now (' + maxActual.label + ')';
+            } else if (minPrediction.timeToBackPressure < 0) {
+                // there is not a valid time-to-back-pressure prediction available
+                return 'NA';
+            }
+
+            var formatted = nfCommon.formatPredictedDuration(minPrediction.timeToBackPressure);
+            return nfCommon.escapeHtml(formatted) + ' (' + minPrediction.label + ')';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
         var queueColumn = {
             id: 'queued',
             field: 'queued',
-            name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
+            name: '<span class="queued-title">Queue</span>&nbsp;(<span class="queued-size-title">Size</span>)',
             sortable: true,
             defaultSortAsc: false,
             resize: true,
@@ -735,11 +775,23 @@
         var backpressureColumn = {
             id: 'backpressure',
             field: 'backpressure',
-            name: '<span class="backpressure-object-title">Queue</span>&nbsp;/&nbsp;<span class="backpressure-data-size-title">Size</span> Threshold',
+            name: 'Threshold %: <span class="backpressure-object-title">Queue</span>&nbsp;&nbsp;|&nbsp;&nbsp;<span class="backpressure-data-size-title">Size</span>',
             sortable: true,
             defaultSortAsc: false,
             formatter: backpressureFormatter,
             resize: true
+        };
+
+        // define the column used to display backpressure predicted values (reused in both tables)
+        var backpressurePredictionColumn = {
+            id: 'backpressurePrediction',
+            field: 'backpressurePrediction',
+            name: 'Estimated Time to Back Pressure',
+            sortable: true,
+            defaultSortAsc: false,
+            formatter: backpressurePredictionFormatter,
+            resize: true,
+            toolTip: 'Estimated Time to Back Pressure'
         };
 
         // define the column model for the summary table
@@ -754,14 +806,6 @@
                 maxWidth: 50
             },
             {
-                id: 'sourceName',
-                field: 'sourceName',
-                name: 'Source Name',
-                sortable: true,
-                resizable: true,
-                formatter: nfCommon.genericValueFormatter
-            },
-            {
                 id: 'name',
                 field: 'name',
                 name: 'Name',
@@ -769,18 +813,27 @@
                 resizable: true,
                 formatter: valueFormatter
             },
+            queueColumn,
+            backpressureColumn,
+            backpressurePredictionColumn,
+            inputColumn,
             {
-                id: 'destinationName',
-                field: 'destinationName',
-                name: 'Destination Name',
+                id: 'sourceName',
+                field: 'sourceName',
+                name: 'From Source',
                 sortable: true,
                 resizable: true,
                 formatter: nfCommon.genericValueFormatter
             },
-            inputColumn,
-            queueColumn,
-            backpressureColumn,
-            outputColumn
+            outputColumn,
+            {
+                id: 'destinationName',
+                field: 'destinationName',
+                name: 'To Destination',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            }
         ];
 
         // add an action column if appropriate
@@ -952,9 +1005,10 @@
                 resizable: true,
                 formatter: nfCommon.genericValueFormatter
             },
-            inputColumn,
             queueColumn,
             backpressureColumn,
+            backpressurePredictionColumn,
+            inputColumn,
             outputColumn
         ];
 
@@ -1032,7 +1086,7 @@
         var transferredColumn = {
             id: 'transferred',
             field: 'transferred',
-            name: '<span class="transferred-title">Transferred</span>&nbsp;/&nbsp;<span class="transferred-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="transferred-title">Transferred</span>&nbsp;(<span class="transferred-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size transferred to and from connections in the last 5 min',
             resizable: true,
             defaultSortAsc: false,
@@ -1042,7 +1096,7 @@
         var sentColumn = {
             id: 'sent',
             field: 'sent',
-            name: '<span class="sent-title">Sent</span>&nbsp;/&nbsp;<span class="sent-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="sent-title">Sent</span>&nbsp;(<span class="sent-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
@@ -1052,7 +1106,7 @@
         var receivedColumn = {
             id: 'received',
             field: 'received',
-            name: '<span class="received-title">Received</span>&nbsp;/&nbsp;<span class="received-size-title">Size</span>&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            name: '<span class="received-title">Received</span>&nbsp;(<span class="received-size-title">Size</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
             toolTip: 'Count / data size in the last 5 min',
             sortable: true,
             defaultSortAsc: false,
@@ -2296,6 +2350,10 @@
                     var bPercentUseDataSize = nfCommon.isDefinedAndNotNull(b['percentUseBytes']) ? b['percentUseBytes'] : -1;
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
+            } else if (sortDetails.columnId === 'backpressurePrediction') {
+                var aMinTime = Math.min(_.get(a, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+                var bMinTime = Math.min(_.get(b, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+                return aMinTime - bMinTime;
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
@@ -2349,6 +2407,9 @@
         $('#' + tableId + ' span.queued-size-title').removeClass('sorted');
         $('#' + tableId + ' span.backpressure-object-title').removeClass('sorted');
         $('#' + tableId + ' span.backpressure-data-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-object-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-data-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-prediction-time-title').removeClass('sorted');
         $('#' + tableId + ' span.input-title').removeClass('sorted');
         $('#' + tableId + ' span.input-size-title').removeClass('sorted');
         $('#' + tableId + ' span.output-title').removeClass('sorted');
@@ -2776,6 +2837,13 @@
                         queuedSize: snapshot.queuedSize,
                         percentUseCount: snapshot.percentUseCount,
                         percentUseBytes: snapshot.percentUseBytes,
+                        predictedPercentBytes: snapshot.predictedPercentBytes,
+                        predictedPercentCount: snapshot.predictedPercentCount,
+                        predictedBytesAtNextInterval: snapshot.predictedBytesAtNextInterval,
+                        predictedCountAtNextInterval: snapshot.predictedCountAtNextInterval,
+                        predictedMillisUntilBytesBackpressure: snapshot.predictedMillisUntilBytesBackpressure,
+                        predictedMillisUntilCountBackpressure: snapshot.predictedMillisUntilCountBackpressure,
+                        predictionIntervalSeconds: snapshot.predictionIntervalSeconds,
                         output: snapshot.output
                     });
                 });
