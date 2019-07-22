@@ -344,7 +344,24 @@ text.connection-from-run-status.is-missing-port, text.connection-to-run-status.i
 }
 
 g.connection rect.backpressure-tick {
-    fill: #3e3e3e;
+    fill: transparent;
+}
+
+g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
+g.connection rect.backpressure-tick.object-prediction.prediction-down {
+    fill: white;
+}
+
+g.connection rect.backpressure-tick.data-size-prediction,
+g.connection rect.backpressure-tick.object-prediction {
+    fill: black;
+}
+
+g.connection rect.backpressure-tick.data-size-prediction.not-configured,
+g.connection rect.backpressure-tick.object-prediction.not-configured,
+g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
+g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
+    fill: transparent;
 }
 
 g.connection rect.backpressure-tick.not-configured {
@@ -354,6 +371,12 @@ g.connection rect.backpressure-tick.not-configured {
 g.connection rect.backpressure-object, g.connection rect.backpressure-data-size {
     fill: #d8d8d8;
 }
+
+/**/
+g.connection rect.backpressure-object>title>tspan, g.connection rect.backpressure-data-size>title>tspan {
+    display: block;
+}
+/**/
 
 g.connection rect.backpressure-object.not-configured, g.connection rect.backpressure-data-size.not-configured {
     fill: transparent;
