@@ -1181,9 +1181,13 @@ public final class DtoFactory {
 
         if (connectionStatus.getBackPressureObjectThreshold() > 0) {
             snapshot.setPercentUseCount(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold())));
+            snapshot.setPredictedMillisUntilCountBackpressure(connectionStatus.getPredictedTimeToCountBackpressureMillis());
+            snapshot.setPredictedCountAtNextInterval(connectionStatus.getNextPredictedQueuedCount());
         }
         if (connectionStatus.getBackPressureBytesThreshold() > 0) {
             snapshot.setPercentUseBytes(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold())));
+            snapshot.setPredictedMillisUntilBytesBackpressure(connectionStatus.getPredictedTimeToBytesBackpressureMillis());
+            snapshot.setPredictedBytesAtNextInterval(connectionStatus.getNextPredictedQueuedBytes());
         }
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
@@ -1211,7 +1215,10 @@ public final class DtoFactory {
         snapshot.setSourceName(connectionStatistics.getSourceName());
         snapshot.setDestinationName(connectionStatistics.getDestinationName());
 
-        snapshot.setPredictedMillisUntilBackpressure(connectionStatistics.getMinTimeToBackpressureMillis());
+        snapshot.setPredictedMillisUntilBytesBackpressure(connectionStatistics.getTimeToBytesBackpressureMillis());
+        snapshot.setPredictedMillisUntilCountBackpressure(connectionStatistics.getTimeToCountBackpressureMillis());
+        snapshot.setPredictedBytesAtNextInterval(connectionStatistics.getNextIntervalBytes());
+        snapshot.setPredictedCountAtNextInterval(connectionStatistics.getNextIntervalCount());
 
         return connectionStatisticsDTO;
     }

@@ -51,6 +51,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
@@ -336,6 +337,14 @@ public class StandardEventAccess implements UserAwareEventAccess {
 
                 flowFilesTransferred += connectionStatusReport.getFlowFilesIn() + connectionStatusReport.getFlowFilesOut();
                 bytesTransferred += connectionStatusReport.getContentSizeIn() + connectionStatusReport.getContentSizeOut();
+            }
+
+            final StatusAnalytics statusAnalytics = flowController.getStatusAnalytics();
+            if (statusAnalytics != null) {
+                connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis());
+                connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis());
+                connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes());
+                connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount());
             }
 
             if (isConnectionAuthorized) {

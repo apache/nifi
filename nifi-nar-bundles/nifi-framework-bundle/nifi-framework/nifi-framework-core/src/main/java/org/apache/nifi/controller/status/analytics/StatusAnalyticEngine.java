@@ -113,8 +113,24 @@ public class StatusAnalyticEngine implements StatusAnalytics {
             }
 
             @Override
-            public long getMinTimeToBackpressureMillis() {
+            public long getTimeToCountBackpressureMillis() {
                 return connTimeToBackpressure;
+            }
+
+            // TODO - populate the other prediction fields
+            @Override
+            public long getTimeToBytesBackpressureMillis() {
+                return 0;
+            }
+
+            @Override
+            public long getNextIntervalBytes() {
+                return 0;
+            }
+
+            @Override
+            public int getNextIntervalCount() {
+                return 0;
             }
 
             @Override
@@ -139,7 +155,6 @@ public class StatusAnalyticEngine implements StatusAnalytics {
         };
     }
 
-    @Override
     public long getMinTimeToBackpressureMillis() {
         ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         List<Connection> allConnections = rootGroup.findAllConnections();
@@ -148,10 +163,31 @@ public class StatusAnalyticEngine implements StatusAnalytics {
 
         for (Connection conn : allConnections) {
             ConnectionStatusAnalytics connAnalytics = getConnectionStatusAnalytics(conn);
-            minTimeToBackpressure = Math.min(minTimeToBackpressure, connAnalytics.getMinTimeToBackpressureMillis());
+            minTimeToBackpressure = Math.min(minTimeToBackpressure, connAnalytics.getTimeToCountBackpressureMillis());
         }
 
         LOG.info("Min time to backpressure is: " + Long.toString(minTimeToBackpressure));
         return minTimeToBackpressure;
+    }
+
+    // TODO - populate the prediction fields. Do we need to pass in connection ID?
+    @Override
+    public long getTimeToCountBackpressureMillis() {
+        return 0;
+    }
+
+    @Override
+    public long getTimeToBytesBackpressureMillis() {
+        return 0;
+    }
+
+    @Override
+    public long getNextIntervalBytes() {
+        return 0;
+    }
+
+    @Override
+    public int getNextIntervalCount() {
+        return 0;
     }
 }
