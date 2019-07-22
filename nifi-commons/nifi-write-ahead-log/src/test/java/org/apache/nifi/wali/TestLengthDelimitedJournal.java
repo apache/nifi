@@ -607,7 +607,6 @@ public class TestLengthDelimitedJournal extends TestAbstractSimpleCipher {
                 for (Thread thread : threads) {
                     thread.join();
                 }
-                journal.close();
             } finally {
                 journal.close();
             }

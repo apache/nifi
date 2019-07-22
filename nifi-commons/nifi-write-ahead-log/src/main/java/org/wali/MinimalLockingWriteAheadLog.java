@@ -30,7 +30,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UTFDataFormatException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,7 +67,6 @@ import org.apache.nifi.wali.SimpleCipherOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.CipherOutputStream;
 import javax.crypto.SecretKey;
 
 /**
@@ -140,11 +138,12 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
      * expected to update the repository simultaneously
      * @param serdeFactory the factory for the serializer/deserializer for records
      * @param syncListener the listener
-     * @param cipherKey
+     * @param cipherKey secret key for transparent encryption/decryption
      * @throws IOException if unable to initialize due to IO issue
      */
     @SuppressWarnings("unchecked")
-    public MinimalLockingWriteAheadLog(final SortedSet<Path> paths, final int partitionCount, final SerDeFactory<T> serdeFactory, final SyncListener syncListener, SecretKey cipherKey) throws IOException {
+    public MinimalLockingWriteAheadLog(final SortedSet<Path> paths, final int partitionCount, final SerDeFactory<T> serdeFactory, final SyncListener syncListener,
+                                       SecretKey cipherKey) throws IOException {
         this.syncListener = syncListener;
 
         requireNonNull(paths);

@@ -109,7 +109,7 @@ public class TestSimpleCipherUtil extends TestAbstractSimpleCipher {
             Assert.assertNotEquals(some, more);
 
             // This shows the two arrays have (mostly) different content
-            if (length > 8) {
+            if (length > 13) {
                 int same = 0;
                 for (int i = 0; i < some.length; i++) {
                     same += (some[i] == more[i]) ? 1 : 0;
