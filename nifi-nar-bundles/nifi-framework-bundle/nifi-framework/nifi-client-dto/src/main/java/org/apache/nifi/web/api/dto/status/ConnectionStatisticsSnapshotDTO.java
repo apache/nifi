@@ -35,7 +35,10 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
     private String destinationId;
     private String destinationName;
 
-    private Long predictedMillisUntilBackpressure = 0L;
+    private Long predictedMillisUntilCountBackpressure = 0L;
+    private Long predictedMillisUntilBytesBackpressure = 0L;
+    private Integer predictedCountAtNextInterval = 0;
+    private Long predictedBytesAtNextInterval = 0L;
 
     /* getters / setters */
     /**
@@ -122,13 +125,40 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.destinationName = destinationName;
     }
 
-    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied.")
-    public Long getPredictedMillisUntilBackpressure() {
-        return predictedMillisUntilBackpressure;
+    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
+    public Long getPredictedMillisUntilCountBackpressure() {
+        return predictedMillisUntilCountBackpressure;
     }
 
-    public void setPredictedMillisUntilBackpressure(Long predictedMillisUntilBackpressure) {
-        this.predictedMillisUntilBackpressure = predictedMillisUntilBackpressure;
+    public void setPredictedMillisUntilCountBackpressure(Long predictedMillisUntilCountBackpressure) {
+        this.predictedMillisUntilCountBackpressure = predictedMillisUntilCountBackpressure;
+    }
+
+    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the total number of bytes in the queue.")
+    public Long getPredictedMillisUntilBytesBackpressure() {
+        return predictedMillisUntilBytesBackpressure;
+    }
+
+    public void setPredictedMillisUntilBytesBackpressure(Long predictedMillisUntilBytesBackpressure) {
+        this.predictedMillisUntilBytesBackpressure = predictedMillisUntilBytesBackpressure;
+    }
+
+    @ApiModelProperty("The predicted number of queued objects at the next configured interval.")
+    public Integer getPredictedCountAtNextInterval() {
+        return predictedCountAtNextInterval;
+    }
+
+    public void setPredictedCountAtNextInterval(Integer predictedCountAtNextInterval) {
+        this.predictedCountAtNextInterval = predictedCountAtNextInterval;
+    }
+
+    @ApiModelProperty("The predicted total number of bytes in the queue at the next configured interval.")
+    public Long getPredictedBytesAtNextInterval() {
+        return predictedBytesAtNextInterval;
+    }
+
+    public void setPredictedBytesAtNextInterval(Long predictedBytesAtNextInterval) {
+        this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
     }
 
     @Override
@@ -142,7 +172,10 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         other.setSourceId(getSourceId());
         other.setSourceName(getSourceName());
 
-        other.setPredictedMillisUntilBackpressure(getPredictedMillisUntilBackpressure());
+        other.setPredictedMillisUntilCountBackpressure(getPredictedMillisUntilCountBackpressure());
+        other.setPredictedMillisUntilBytesBackpressure(getPredictedMillisUntilBytesBackpressure());
+        other.setPredictedCountAtNextInterval(getPredictedCountAtNextInterval());
+        other.setPredictedBytesAtNextInterval(getPredictedBytesAtNextInterval());
 
         return other;
     }
