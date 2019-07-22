@@ -74,7 +74,9 @@ import java.util.regex.Pattern;
         + "cases where files with the same timestamp are written immediately before and after a single execution of the processor. For each file that is "
         + "listed in HDFS, this processor creates a FlowFile that represents the HDFS file to be fetched in conjunction with FetchHDFS. This Processor is "
         +  "designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left "
-        +  "off without duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.")
+        +  "off without duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS."
+        +  "If the execution is triggered by an input FlowFile, its attributes will be transferred to the generated flowfiles, and it will be routed to "
+        +  "the original relationship after the listing.")
 @WritesAttributes({
     @WritesAttribute(attribute="filename", description="The name of the file that was read from HDFS."),
     @WritesAttribute(attribute="path", description="The path is set to the absolute path of the file's directory on HDFS. For example, if the Directory property is set to /tmp, "
@@ -172,6 +174,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .description("All FlowFiles are transferred to this relationship")
         .build();
 
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+        .name("original")
+        .description("Input FlowFiles are transferred to this relationship")
+        .build();
+
     private volatile long latestTimestampListed = -1L;
     private volatile long latestTimestampEmitted = -1L;
     private volatile long lastRunTimestamp = -1L;
@@ -207,6 +214,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
+        relationships.add(REL_ORIGINAL);
         return relationships;
     }
 
@@ -317,6 +325,9 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile originalFlowFile = session.get();
+        boolean isTriggered = (originalFlowFile != null);
+
         // We have to ensure that we don't continually perform listings, because if we perform two listings within
         // the same millisecond, our algorithm for comparing timestamps will not work. So we ensure here that we do
         // not let that happen.
@@ -328,7 +339,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(originalFlowFile).getValue();
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
@@ -392,7 +403,12 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         for (final FileStatus status : listable) {
             final Map<String, String> attributes = createAttributes(status);
-            FlowFile flowFile = session.create();
+            FlowFile flowFile;
+            if (isTriggered) {
+                flowFile = session.create(originalFlowFile);
+            } else {
+                flowFile = session.create();
+            }
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
@@ -400,6 +416,9 @@ public class ListHDFS extends AbstractHadoopProcessor {
             if (fileModTime > latestTimestampEmitted) {
                 latestTimestampEmitted = fileModTime;
             }
+        }
+        if (isTriggered) {
+            session.transfer(originalFlowFile, REL_ORIGINAL);
         }
 
         final int listCount = listable.size();

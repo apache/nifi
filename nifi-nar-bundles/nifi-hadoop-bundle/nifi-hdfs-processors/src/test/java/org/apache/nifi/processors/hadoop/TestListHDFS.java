@@ -20,6 +20,8 @@ import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_DIRECTORIES_AND_
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FILES_ONLY_VALUE;
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FULL_PATH_VALUE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -532,6 +534,77 @@ public class TestListHDFS {
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
     }
 
+    @Test
+    public void testTriggeredListDoesTransferAttributes() {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 100L,0L, create777(), "owner", "group", new Path("/test/testFile-1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 150L,0L, create777(), "owner", "group", new Path("/test/testFile-2.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 200L,0L, create777(), "owner", "group", new Path("/test/testFile-3.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
+
+        // Put some attributes in the trigger FlowFile
+        runner.enqueue(new byte[0], new HashMap<String, String>() {
+            {
+                put("1", "one");
+                put("2", "two");
+            }
+        });
+        runner.run(); // Latest file from /test will be ignored
+
+        // Assert the trigger FlowFile has been transferred to ListHDFS.REL_ORIGINAL
+        final List<MockFlowFile> originals = runner.getFlowFilesForRelationship(ListHDFS.REL_ORIGINAL);
+        assertEquals(originals.size(), 1);
+        // Assert output FlowFiles has been transferred to ListHDFS.REL_SUCCESS with the correct attributes
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
+        assertEquals(output.size(), 2);
+        final Map<String, MockFlowFile> outputMap = new HashMap<String, MockFlowFile>(){
+            {
+                put(output.get(0).getAttribute("filename"), output.get(0));
+                put(output.get(1).getAttribute("filename"), output.get(1));
+            }
+        };
+        final MockFlowFile mff1 = outputMap.get("testFile-1.txt");
+        assertNotNull(mff1);
+        mff1.assertAttributeEquals("path", "/test");
+        mff1.assertAttributeEquals("filename", "testFile-1.txt");
+        // check input attributes has been transferred
+        mff1.assertAttributeEquals("1", "one");
+        mff1.assertAttributeEquals("2", "two");
+
+        final MockFlowFile mff2 = outputMap.get("testFile-2.txt");
+        assertNotNull(mff2);
+        mff2.assertAttributeEquals("path", "/test");
+        mff2.assertAttributeEquals("filename", "testFile-2.txt");
+        // check input attributes has been transferred
+        mff2.assertAttributeEquals("1", "one");
+        mff2.assertAttributeEquals("2", "two");
+
+        final MockFlowFile mff3 = outputMap.get("testFile-3.txt");
+        assertNull(mff3);
+    }
+
+
+    @Test
+    public void testTriggeredListEvaluateDirectoryPathFromTriggerFLowFile() {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 100L,0L, create777(), "owner", "group", new Path("/test/testFile-1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 150L,0L, create777(), "owner", "group", new Path("/test/testFile-2.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 200L,0L, create777(), "owner", "group", new Path("/test/testFile-3.txt")));
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(ListHDFS.DIRECTORY, "${inputPath}");
+        // Put some attributes in the trigger FlowFile
+        runner.enqueue(new byte[0], new HashMap<String, String>() {
+            {
+                put("inputPath", "/test");
+            }
+        });
+        runner.run(); // Latest file from /test will be ignored
+        // Assert the trigger FlowFile has been transferred to ListHDFS.REL_ORIGINAL
+        final List<MockFlowFile> originals = runner.getFlowFilesForRelationship(ListHDFS.REL_ORIGINAL);
+        assertEquals(originals.size(), 1);
+        // Assert output FlowFiles has been transferred to ListHDFS.REL_SUCCESS
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
+        assertEquals(output.size(), 2);
+    }
 
     private FsPermission create777() {
         return new FsPermission((short) 0777);
