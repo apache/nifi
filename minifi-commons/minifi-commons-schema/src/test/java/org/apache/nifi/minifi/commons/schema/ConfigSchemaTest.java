@@ -36,7 +36,6 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ConfigSchemaTest {
