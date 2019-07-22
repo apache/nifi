@@ -40,6 +40,10 @@ public class ConnectionStatus implements Cloneable {
     private long outputBytes;
     private int maxQueuedCount;
     private long maxQueuedBytes;
+    private int nextPredictedQueuedCount;
+    private long nextPredictedQueuedBytes;
+    private long predictedTimeToCountBackpressureMillis;
+    private long predictedTimeToBytesBackpressureMillis;
 
     public String getId() {
         return id;
@@ -186,6 +190,38 @@ public class ConnectionStatus implements Cloneable {
         this.backPressureBytesThreshold = backPressureBytesThreshold;
     }
 
+    public int getNextPredictedQueuedCount() {
+        return nextPredictedQueuedCount;
+    }
+
+    public void setNextPredictedQueuedCount(int nextPredictedQueuedCount) {
+        this.nextPredictedQueuedCount = nextPredictedQueuedCount;
+    }
+
+    public long getNextPredictedQueuedBytes() {
+        return nextPredictedQueuedBytes;
+    }
+
+    public void setNextPredictedQueuedBytes(long nextPredictedQueuedBytes) {
+        this.nextPredictedQueuedBytes = nextPredictedQueuedBytes;
+    }
+
+    public long getPredictedTimeToCountBackpressureMillis() {
+        return predictedTimeToCountBackpressureMillis;
+    }
+
+    public void setPredictedTimeToCountBackpressureMillis(long predictedTimeToCountBackpressureMillis) {
+        this.predictedTimeToCountBackpressureMillis = predictedTimeToCountBackpressureMillis;
+    }
+
+    public long getPredictedTimeToBytesBackpressureMillis() {
+        return predictedTimeToBytesBackpressureMillis;
+    }
+
+    public void setPredictedTimeToBytesBackpressureMillis(long predictedTimeToBytesBackpressureMillis) {
+        this.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
+    }
+
     @Override
     public ConnectionStatus clone() {
         final ConnectionStatus clonedObj = new ConnectionStatus();
@@ -206,6 +242,10 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         clonedObj.maxQueuedBytes = maxQueuedBytes;
         clonedObj.maxQueuedCount = maxQueuedCount;
+        clonedObj.nextPredictedQueuedBytes = nextPredictedQueuedBytes;
+        clonedObj.nextPredictedQueuedCount = nextPredictedQueuedCount;
+        clonedObj.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
+        clonedObj.predictedTimeToCountBackpressureMillis = predictedTimeToCountBackpressureMillis;
         return clonedObj;
     }
 
@@ -246,6 +286,14 @@ public class ConnectionStatus implements Cloneable {
         builder.append(maxQueuedCount);
         builder.append(", maxQueueBytes=");
         builder.append(maxQueuedBytes);
+        builder.append(", nextPredictedQueuedBytes=");
+        builder.append(nextPredictedQueuedBytes);
+        builder.append(", nextPredictedQueuedCount=");
+        builder.append(nextPredictedQueuedCount);
+        builder.append(", predictedTimeToBytesBackpressureMillis=");
+        builder.append(predictedTimeToBytesBackpressureMillis);
+        builder.append(", predictedTimeToCountBackpressureMillis=");
+        builder.append(predictedTimeToCountBackpressureMillis);
         builder.append("]");
         return builder.toString();
     }
