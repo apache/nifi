@@ -40,6 +40,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -69,8 +70,9 @@ import java.util.regex.Pattern;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
-@CapabilityDescription("Retrieves a listing of files from HDFS. Each time a listing is performed, the files with the latest timestamp will be excluded "
-        + "and picked up during the next execution of the processor. This is done to ensure that we do not miss any files, or produce duplicates, in the "
+@CapabilityDescription("Retrieves a listing of files from HDFS. Each time a listing is performed, if \"Skip Last\" is enabled, "
+        + "the files with the latest timestamp will be excluded and picked up during the next execution of the processor. "
+        + "This is done to ensure that we do not miss any files, or produce duplicates, in the "
         + "cases where files with the same timestamp are written immediately before and after a single execution of the processor. For each file that is "
         + "listed in HDFS, this processor creates a FlowFile that represents the HDFS file to be fetched in conjunction with FetchHDFS. This Processor is "
         +  "designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left "
@@ -167,6 +169,20 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
         .build();
 
+    public static final PropertyDescriptor SKIP_LAST = new PropertyDescriptor.Builder()
+        .name("Skip Last")
+        .description("If enabled, the files with the latest timestamp will be excluded and picked up during the next "
+                + "execution of the processor. This is done to ensure that we do not miss any files, or produce duplicates, "
+                + "in the cases where files with the same timestamp are written immediately before and after a single execution of the processor."
+                + "\nNOTE: this flag should be turned off only in case the listing directory content is not being modified, for example after "
+                + "the completion of a job which populated that directory, otherwise, consistency cannot be guaranteed.")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("All FlowFiles are transferred to this relationship")
@@ -200,6 +216,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         props.add(FILE_FILTER_MODE);
         props.add(MIN_AGE);
         props.add(MAX_AGE);
+        props.add(SKIP_LAST);
         return props;
     }
 
@@ -246,7 +263,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
      * @param context processor context with properties values
      * @return a Set containing only those FileStatus objects that we want to list
      */
-    Set<FileStatus> determineListable(final Set<FileStatus> statuses, ProcessContext context) {
+    Set<FileStatus> determineListable(final Set<FileStatus> statuses, ProcessContext context, boolean skipLast) {
         final long minTimestamp = this.latestTimestampListed;
         final TreeMap<Long, List<FileStatus>> orderedEntries = new TreeMap<>();
 
@@ -292,26 +309,30 @@ public class ListHDFS extends AbstractHadoopProcessor {
         if (orderedEntries.size() > 0) {
             long latestListingTimestamp = orderedEntries.lastKey();
 
-            // If the last listing time is equal to the newest entries previously seen,
-            // another iteration has occurred without new files and special handling is needed to avoid starvation
-            if (latestListingTimestamp == minTimestamp) {
-                // We are done if the latest listing timestamp is equal to the last processed time,
-                // meaning we handled those items originally passed over
-                if (latestListingTimestamp == latestTimestampEmitted) {
-                    return Collections.emptySet();
+            if (skipLast) {
+                // If the last listing time is equal to the newest entries previously seen,
+                // another iteration has occurred without new files and special handling is needed to avoid starvation
+                if (latestListingTimestamp == minTimestamp) {
+                    // We are done if the latest listing timestamp is equal to the last processed time,
+                    // meaning we handled those items originally passed over
+                    if (latestListingTimestamp == latestTimestampEmitted) {
+                        return Collections.emptySet();
+                    }
+                } else {
+                    // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
+                    orderedEntries.remove(latestListingTimestamp);
                 }
-            } else {
-                // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
-                orderedEntries.remove(latestListingTimestamp);
-            }
 
-            for (List<FileStatus> timestampEntities : orderedEntries.values()) {
-                for (FileStatus status : timestampEntities) {
-                    toList.add(status);
+            } else {
+                if (latestListingTimestamp == minTimestamp && latestListingTimestamp == latestTimestampEmitted) {
+                    return Collections.emptySet();
                 }
             }
         }
 
+        for (List<FileStatus> timestampEntities : orderedEntries.values()) {
+            toList.addAll(timestampEntities);
+        }
         return toList;
     }
 
@@ -329,6 +350,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         lastRunTimestamp = now;
 
         final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+        final Boolean skipLast = context.getProperty(SKIP_LAST).evaluateAttributeExpressions().asBoolean();
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
@@ -387,7 +409,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final Set<FileStatus> listable = determineListable(statuses, context);
+        final Set<FileStatus> listable = determineListable(statuses, context, skipLast);
         getLogger().debug("Of the {} files found in HDFS, {} are listable", new Object[] {statuses.size(), listable.size()});
 
         for (final FileStatus status : listable) {

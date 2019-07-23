@@ -533,6 +533,23 @@ public class TestListHDFS {
     }
 
 
+    @Test
+    public void testListFilesDoesntSkipLastTimestampFilesWhenSkipLastIsFalse() {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 100L,0L, create777(), "owner", "group", new Path("/test/testFile-1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 150L,0L, create777(), "owner", "group", new Path("/test/testFile-2.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 200L,0L, create777(), "owner", "group", new Path("/test/testFile-3.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "/test");
+        runner.setProperty(ListHDFS.SKIP_LAST, "false");
+
+        runner.run(); // Latest file from /test should not be ignored
+
+        // Assert output FlowFiles has been transferred to ListHDFS.REL_SUCCESS
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
+        assertEquals(output.size(), 3);
+    }
+
+
     private FsPermission create777() {
         return new FsPermission((short) 0777);
     }
