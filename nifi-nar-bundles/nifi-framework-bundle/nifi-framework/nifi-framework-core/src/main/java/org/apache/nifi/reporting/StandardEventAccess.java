@@ -65,10 +65,12 @@ import org.apache.nifi.remote.RemoteGroupPort;
 public class StandardEventAccess implements UserAwareEventAccess {
     private final FlowFileEventRepository flowFileEventRepository;
     private final FlowController flowController;
+    private final StatusAnalytics statusAnalytics;
 
     public StandardEventAccess(final FlowController flowController, final FlowFileEventRepository flowFileEventRepository) {
         this.flowController = flowController;
         this.flowFileEventRepository = flowFileEventRepository;
+        this.statusAnalytics = flowController.getStatusAnalytics();
     }
 
     /**
@@ -339,12 +341,11 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 bytesTransferred += connectionStatusReport.getContentSizeIn() + connectionStatusReport.getContentSizeOut();
             }
 
-            final StatusAnalytics statusAnalytics = flowController.getStatusAnalytics();
             if (statusAnalytics != null) {
-                connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis());
-                connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis());
-                connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes());
-                connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount());
+                connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis(conn.getIdentifier()));
+                connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis(conn.getIdentifier()));
+                connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes(conn.getIdentifier()));
+                connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount(conn.getIdentifier()));
             }
 
             if (isConnectionAuthorized) {
