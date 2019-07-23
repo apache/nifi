@@ -32,24 +32,28 @@ public interface StatusAnalytics {
     /**
      * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the total number of bytes in the queue.
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
+     * @param connectionId
      */
-    long getTimeToBytesBackpressureMillis();
+    long getTimeToBytesBackpressureMillis(String connectionId);
 
     /**
      * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the number of objects in the queue.
      * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
+     * @param connectionId
      */
-    long getTimeToCountBackpressureMillis();
+    long getTimeToCountBackpressureMillis(String connectionId);
 
     /**
      * Returns the predicted total number of bytes in the queue to occur at the next configured interval (5 mins in the future, e.g.).
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
+     * @param connectionId
      */
-    long getNextIntervalBytes();
+    long getNextIntervalBytes(String connectionId);
 
     /**
      * Returns the predicted number of objects in the queue to occur at the next configured interval (5 mins in the future, e.g.).
      * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
+     * @param connectionId
      */
-    int getNextIntervalCount();
+    int getNextIntervalCount(String connectionId);
 }
