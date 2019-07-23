@@ -57,7 +57,7 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
-import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -705,7 +705,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         // get from flow controller
-        final StatusAnalytics status = flowController.getStatusAnalytics();
+        final StatusAnalyticsEngine status = flowController.getStatusAnalyticsEngine();
         if (status == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
         }

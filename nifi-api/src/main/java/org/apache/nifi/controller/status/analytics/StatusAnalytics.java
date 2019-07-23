@@ -17,43 +17,31 @@
 package org.apache.nifi.controller.status.analytics;
 
 /**
- * StatusAnalytics
+ * The StatusAnalytics interface offers methods for accessing predicted and other values for a single component (Connection instance, e.g.)
  */
 public interface StatusAnalytics {
 
     /**
-     * Returns a ConnectionStatusAnalytics object containing all relevant metrics and analytical & statistical objects, as well as identity information for the connection.
-     *
-     * @param connectionId The unique ID of the connection
-     * @return A ConnectionStatusAnalytics object
-     */
-    ConnectionStatusAnalytics getConnectionStatusAnalytics(String connectionId);
-
-    /**
      * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the total number of bytes in the queue.
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
-     * @param connectionId
      */
-    long getTimeToBytesBackpressureMillis(String connectionId);
+    long getTimeToBytesBackpressureMillis();
 
     /**
      * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the number of objects in the queue.
      * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
-     * @param connectionId
      */
-    long getTimeToCountBackpressureMillis(String connectionId);
+    long getTimeToCountBackpressureMillis();
 
     /**
      * Returns the predicted total number of bytes in the queue to occur at the next configured interval (5 mins in the future, e.g.).
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
-     * @param connectionId
      */
-    long getNextIntervalBytes(String connectionId);
+    long getNextIntervalBytes();
 
     /**
      * Returns the predicted number of objects in the queue to occur at the next configured interval (5 mins in the future, e.g.).
      * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
-     * @param connectionId
      */
-    int getNextIntervalCount(String connectionId);
+    int getNextIntervalCount();
 }
