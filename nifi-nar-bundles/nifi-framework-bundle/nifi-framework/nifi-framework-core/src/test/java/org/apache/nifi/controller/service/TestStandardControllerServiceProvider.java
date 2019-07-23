@@ -459,7 +459,7 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
-        serviceNode.addReference(procNode);
+        serviceNode.addReference(procNode, "testEnableReferencingComponentsPropertyName");
 
         // procNode.setScheduledState(ScheduledState.STOPPED);
         provider.unscheduleReferencingComponents(serviceNode);

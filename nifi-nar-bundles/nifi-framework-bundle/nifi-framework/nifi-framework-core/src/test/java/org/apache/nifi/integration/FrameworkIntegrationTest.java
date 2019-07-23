@@ -71,6 +71,8 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.integration.cs.LongValidatingControllerService;
+import org.apache.nifi.integration.cs.MultipleControllerServiceReferencingProcessor;
 import org.apache.nifi.integration.processor.BiConsumerProcessor;
 import org.apache.nifi.integration.processors.GenerateProcessor;
 import org.apache.nifi.integration.processors.NopProcessor;
@@ -100,6 +102,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.mockito.Mockito;
@@ -585,5 +588,39 @@ public class FrameworkIntegrationTest {
 
     protected ExtensionManager getExtensionManager() {
         return extensionManager;
+    }
+
+    @Test
+    public void testReferenceCounts() {
+        final String FIRST_PROPERTY = "Counter Service";
+        final String SECOND_PROPERTY = "Another Counter Service";
+
+        final ControllerServiceNode serviceNode = createControllerServiceNode(LongValidatingControllerService.class.getName());
+        serviceNode.setProperties(Collections.singletonMap(LongValidatingControllerService.DELAY.getName(), "250 millis"));
+
+        final ProcessorNode counter = createProcessorNode(MultipleControllerServiceReferencingProcessor.class);
+        final Map<String, String> properties = new HashMap<>();
+
+        // Add a reference of the service node in the first property of the processor
+        properties.put(FIRST_PROPERTY, serviceNode.getIdentifier());
+        counter.setProperties(properties);
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Add another reference of the same service node in the second property of the processor
+        properties.put(SECOND_PROPERTY, serviceNode.getIdentifier());
+        counter.setProperties(properties);
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Remove the reference of the service node from the first property of the processor
+        properties.put(FIRST_PROPERTY, null);
+        counter.setProperties(properties);
+        // The counter should still be one because the service node is still referenced by the processor in its second property
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Remove also the reference of the service node from the second property of the processor
+        properties.put(SECOND_PROPERTY, null);
+        counter.setProperties(properties);
+        // The counter should become 0 because now the service node is not reference anymore in any processor property
+        assertEquals(0, serviceNode.getReferences().getReferencingComponents().size());
     }
 }

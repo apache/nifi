@@ -53,13 +53,15 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.HashMap;
 import java.util.Collections;
+import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.ArrayList;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +84,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Set<ComponentNode> referencingComponents = new HashSet<>();
+    private final Map<String, ComponentNode> referencingComponents = new HashMap<>();
     private volatile String comment;
     private volatile ProcessGroup processGroup;
 
@@ -222,17 +224,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public ControllerServiceReference getReferences() {
         readLock.lock();
         try {
-            return new StandardControllerServiceReference(this, referencingComponents);
+            // In case a controller service is referenced multiple times by a component node, the latter is decoupled here
+            return new StandardControllerServiceReference(this, new HashSet<>(referencingComponents.values()));
         } finally {
             readLock.unlock();
         }
     }
 
     @Override
-    public void addReference(final ComponentNode referencingComponent) {
+    public void addReference(final ComponentNode referencingComponent, final String propertyName) {
         writeLock.lock();
         try {
-            referencingComponents.add(referencingComponent);
+            String key = new StringBuilder().append(referencingComponent.hashCode()).append(":").append(propertyName).toString();
+            referencingComponents.put(key, referencingComponent);
         } finally {
             writeLock.unlock();
         }
@@ -253,10 +257,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     @Override
-    public void removeReference(final ComponentNode referencingComponent) {
+    public void removeReference(final ComponentNode referencingComponent, final String propertyName) {
         writeLock.lock();
         try {
-            referencingComponents.remove(referencingComponent);
+            String key = new StringBuilder().append(referencingComponent.hashCode()).append(":").append(propertyName).toString();
+            referencingComponents.remove(key);
         } finally {
             writeLock.unlock();
         }

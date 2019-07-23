@@ -119,14 +119,16 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     /**
      * Indicates that the given component is now referencing this Controller Service
      * @param referringComponent the component referencing this service
+     * @param propertyName is the name of the property for which the component is referencing this controller service
      */
-    void addReference(ComponentNode referringComponent);
+    void addReference(ComponentNode referringComponent, String propertyName);
 
     /**
      * Indicates that the given component is no longer referencing this Controller Service
      * @param referringComponent the component that is no longer referencing this service
+     * @param propertyName is the name of the property for which the component is referencing this controller service
      */
-    void removeReference(ComponentNode referringComponent);
+    void removeReference(ComponentNode referringComponent, String propertyName);
 
     void setComments(String comment);
 
