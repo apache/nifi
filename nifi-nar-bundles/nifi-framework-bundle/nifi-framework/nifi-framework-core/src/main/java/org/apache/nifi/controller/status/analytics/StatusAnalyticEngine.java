@@ -172,22 +172,22 @@ public class StatusAnalyticEngine implements StatusAnalytics {
 
     // TODO - populate the prediction fields. Do we need to pass in connection ID?
     @Override
-    public long getTimeToCountBackpressureMillis() {
+    public long getTimeToCountBackpressureMillis(String connectionId) {
         return 0;
     }
 
     @Override
-    public long getTimeToBytesBackpressureMillis() {
+    public long getTimeToBytesBackpressureMillis(String connectionId) {
         return 0;
     }
 
     @Override
-    public long getNextIntervalBytes() {
+    public long getNextIntervalBytes(String connectionId) {
         return 0;
     }
 
     @Override
-    public int getNextIntervalCount() {
+    public int getNextIntervalCount(String connectionId) {
         return 0;
     }
 }

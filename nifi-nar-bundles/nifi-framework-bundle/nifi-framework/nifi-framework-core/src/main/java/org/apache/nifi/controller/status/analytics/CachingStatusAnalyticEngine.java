@@ -2,6 +2,7 @@ package org.apache.nifi.controller.status.analytics;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.nifi.connectable.Connection;
@@ -28,6 +29,7 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
         this.controller = controller;
         this.statusRepository = statusRepository;
         this.cache = Caffeine.newBuilder()
+                .expireAfterWrite(1,TimeUnit.MINUTES)
                 .build();
     }
 
@@ -38,13 +40,35 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
         Connection connection = rootGroup.findConnection(connectionId);
         SimpleRegression cachedRegression = cache.getIfPresent(connection.getIdentifier());
 
-        if(cachedRegression != null) {
-            cache.put(connection.getIdentifier(), cachedRegression);
+        if(cachedRegression == null) {
+            cachedRegression = getBackPressureRegressionModel(connection);
+            if(cachedRegression != null)
+                cache.put(connection.getIdentifier(), cachedRegression);
         }
 
         ConnectionStatusAnalytics cachedResult = calculate(cachedRegression,connection);
-        LOG.info("Connection: " + connectionId + " Cached backpressure Time: " + cachedResult.getMinTimeToBackpressureMillis() );
+        LOG.info("Connection: " + connectionId + " Cached backpressure Time: " + cachedResult.getTimeToCountBackpressureMillis());
         return cachedResult;
+    }
+
+    @Override
+    public long getTimeToBytesBackpressureMillis(String connectionId) {
+        return 0;
+    }
+
+    @Override
+    public long getTimeToCountBackpressureMillis(String connectionId) {
+        return getConnectionStatusAnalytics(connectionId).getTimeToCountBackpressureMillis();
+    }
+
+    @Override
+    public long getNextIntervalBytes(String connectionId) {
+        return 0;
+    }
+
+    @Override
+    public int getNextIntervalCount(String connectionId) {
+        return 0;
     }
 
     protected ConnectionStatusAnalytics calculate(SimpleRegression regression, Connection conn){
@@ -77,14 +101,30 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
                 return conn.getName();
             }
 
-            @Override
-            public long getMinTimeToBackpressureMillis() {
-                return connTimeToBackpressure;
-            }
 
             @Override
             public String getId() {
                 return conn.getIdentifier();
+            }
+
+            @Override
+            public long getTimeToBytesBackpressureMillis() {
+                return 0;
+            }
+
+            @Override
+            public long getTimeToCountBackpressureMillis() {
+                return connTimeToBackpressure;
+            }
+
+            @Override
+            public long getNextIntervalBytes() {
+                return 0;
+            }
+
+            @Override
+            public int getNextIntervalCount() {
+                return 0;
             }
 
             @Override
@@ -111,7 +151,7 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
      * @return
      */
     protected SimpleRegression getBackPressureRegressionModel(Connection conn) {
-        Date minDate = new Date(System.currentTimeMillis() - (5 * 60 * 1000));
+        Date minDate = new Date(System.currentTimeMillis() - (60 * 1000));
         StatusHistoryDTO connHistory = StatusHistoryUtil.createStatusHistoryDTO(
                 statusRepository.getConnectionStatusHistory(conn.getIdentifier(), minDate, null, Integer.MAX_VALUE));
         List<StatusSnapshotDTO> aggregateSnapshots = connHistory.getAggregateSnapshots();
@@ -128,7 +168,6 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
                 Long snapQueuedCount = snap.getStatusMetrics().get(ConnectionStatusDescriptor.QUEUED_COUNT.getField());
                 long snapTime = snap.getTimestamp().getTime();
                 regression.addData(snapTime, snapQueuedCount);
-                LOG.info("Connection " + conn.getIdentifier() + " statistics: ("+snapTime+","+snapQueuedCount+")");
             }
 
             if (regression.getSlope() <= 0 && !conn.getFlowFileQueue().isFull()) {
@@ -141,20 +180,5 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
 
     }
 
-    public void refreshModel() {
-        ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
-        List<Connection> allConnections = rootGroup.findAllConnections();
-        cache.invalidateAll();
-        for (Connection conn : allConnections) {
-            SimpleRegression regression = getBackPressureRegressionModel(conn);
-            if(regression != null) {
-                cache.put(conn.getIdentifier(), regression);
-            }
-        }
-    }
 
-    @Override
-    public long getMinTimeToBackpressureMillis() {
-        return 0;
-    }
 }
