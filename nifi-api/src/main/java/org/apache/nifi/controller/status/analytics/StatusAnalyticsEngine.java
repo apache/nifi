@@ -16,17 +16,7 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+public interface StatusAnalyticsEngine {
 
-/**
- * The ConnectionStatusAnalytics interface offers additional methods to the StatusAnalytics interface related to the supporting connection information (group ID, e.g.)
- */
-public interface ConnectionStatusAnalytics extends StatusAnalytics{
-
-    String getGroupId();
-    String getId();
-    String getName();
-    String getSourceId();
-    String getSourceName();
-    String getDestinationId();
-    String getDestinationName();
+    ConnectionStatusAnalytics getConnectionStatusAnalytics(String connectionId);
 }

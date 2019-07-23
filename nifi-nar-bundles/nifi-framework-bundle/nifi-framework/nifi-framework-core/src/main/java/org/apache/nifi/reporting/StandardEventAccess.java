@@ -52,6 +52,7 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
@@ -65,12 +66,12 @@ import org.apache.nifi.remote.RemoteGroupPort;
 public class StandardEventAccess implements UserAwareEventAccess {
     private final FlowFileEventRepository flowFileEventRepository;
     private final FlowController flowController;
-    private final StatusAnalytics statusAnalytics;
+    private final StatusAnalyticsEngine statusAnalyticsEngine;
 
     public StandardEventAccess(final FlowController flowController, final FlowFileEventRepository flowFileEventRepository) {
         this.flowController = flowController;
         this.flowFileEventRepository = flowFileEventRepository;
-        this.statusAnalytics = flowController.getStatusAnalytics();
+        this.statusAnalyticsEngine = flowController.getStatusAnalyticsEngine();
     }
 
     /**
@@ -341,11 +342,14 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 bytesTransferred += connectionStatusReport.getContentSizeIn() + connectionStatusReport.getContentSizeOut();
             }
 
-            if (statusAnalytics != null) {
-                connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis(conn.getIdentifier()));
-                connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis(conn.getIdentifier()));
-                connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes(conn.getIdentifier()));
-                connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount(conn.getIdentifier()));
+            if (statusAnalyticsEngine != null) {
+                StatusAnalytics statusAnalytics = statusAnalyticsEngine.getConnectionStatusAnalytics(conn.getIdentifier());
+                if (statusAnalytics != null) {
+                    connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis());
+                    connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis());
+                    connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes());
+                    connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount());
+                }
             }
 
             if (isConnectionAuthorized) {

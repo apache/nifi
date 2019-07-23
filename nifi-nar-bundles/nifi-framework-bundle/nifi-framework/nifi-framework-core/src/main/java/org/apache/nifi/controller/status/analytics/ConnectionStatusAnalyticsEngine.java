@@ -31,13 +31,13 @@ import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StatusAnalyticEngine implements StatusAnalytics {
+public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private ComponentStatusRepository statusRepository;
     private FlowController controller;
 
-    private static final Logger LOG = LoggerFactory.getLogger(StatusAnalyticEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
 
-    public StatusAnalyticEngine(FlowController controller, ComponentStatusRepository statusRepository) {
+    public ConnectionStatusAnalyticsEngine(FlowController controller, ComponentStatusRepository statusRepository) {
         this.controller = controller;
         this.statusRepository = statusRepository;
     }
@@ -54,7 +54,7 @@ public class StatusAnalyticEngine implements StatusAnalytics {
      * @return
      */
     public ConnectionStatusAnalytics getConnectionStatusAnalytics(Connection conn) {
-        LOG.info("Getting connection history for: " + conn.getIdentifier());
+        LOG.debug("Getting connection history for: " + conn.getIdentifier());
         long connTimeToBackpressure;
         Date minDate = new Date(System.currentTimeMillis() - (5 * 60 * 1000));
         StatusHistoryDTO connHistory = StatusHistoryUtil.createStatusHistoryDTO(
@@ -67,8 +67,7 @@ public class StatusAnalyticEngine implements StatusAnalytics {
         } else {
 
             long backPressureObjectThreshold = conn.getFlowFileQueue().getBackPressureObjectThreshold();
-            LOG.info("Connection " + conn.getIdentifier() + " backpressure object threshold is "
-                    + Long.toString(backPressureObjectThreshold));
+            LOG.info("Connection " + conn.getIdentifier() + " backpressure object threshold is " + backPressureObjectThreshold);
 
             ConnectionStatusDescriptor.QUEUED_COUNT.getField();
 
@@ -153,41 +152,5 @@ public class StatusAnalyticEngine implements StatusAnalytics {
                 return conn.getDestination().getIdentifier();
             }
         };
-    }
-
-    public long getMinTimeToBackpressureMillis() {
-        ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
-        List<Connection> allConnections = rootGroup.findAllConnections();
-        rootGroup.findConnection("asdf");
-        long minTimeToBackpressure = Long.MAX_VALUE;
-
-        for (Connection conn : allConnections) {
-            ConnectionStatusAnalytics connAnalytics = getConnectionStatusAnalytics(conn);
-            minTimeToBackpressure = Math.min(minTimeToBackpressure, connAnalytics.getTimeToCountBackpressureMillis());
-        }
-
-        LOG.info("Min time to backpressure is: " + Long.toString(minTimeToBackpressure));
-        return minTimeToBackpressure;
-    }
-
-    // TODO - populate the prediction fields. Do we need to pass in connection ID?
-    @Override
-    public long getTimeToCountBackpressureMillis(String connectionId) {
-        return 0;
-    }
-
-    @Override
-    public long getTimeToBytesBackpressureMillis(String connectionId) {
-        return 0;
-    }
-
-    @Override
-    public long getNextIntervalBytes(String connectionId) {
-        return 0;
-    }
-
-    @Override
-    public int getNextIntervalCount(String connectionId) {
-        return 0;
     }
 }
