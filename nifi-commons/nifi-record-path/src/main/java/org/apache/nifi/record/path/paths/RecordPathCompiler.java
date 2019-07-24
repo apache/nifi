@@ -69,6 +69,7 @@ import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.Hash;
 import org.apache.nifi.record.path.functions.PadLeft;
 import org.apache.nifi.record.path.functions.PadRight;
 import org.apache.nifi.record.path.functions.Replace;
@@ -304,6 +305,10 @@ public class RecordPathCompiler {
                     case "base64Decode": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new Base64Decode(args[0], absolute);
+                    }
+                    case "hash":{
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Hash(args[0], args[1], absolute);
                     }
                     case "padLeft": {
                         final int numArgs = argumentListTree.getChildCount();

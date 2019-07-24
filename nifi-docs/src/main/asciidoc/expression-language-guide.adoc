@@ -1431,6 +1431,11 @@ Each of the following functions will encode a string according the rules of the 
 
 *Description*: [.description]#Returns a type 3 (MD5 hashed) namespace name-based UUID.#
 
+[.function]
+=== hash
+
+*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
+
 *Subject Type*: [.subject]#String#
 
 *Arguments*:
@@ -1460,6 +1465,15 @@ Each of the following functions will encode a string according the rules of the 
 
 *Examples*: ${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')} returns a value similar to 6448f0c0-fd2b-30ad-b05a-deb456f8b060
 
+	- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
+      Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]#
+
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can hash an attribute named "payload" by using the Expression
+	   `${payload:hash('MD5')}` If the attribute payload had a value of "string value"
+	    then the Expression  `${payload:hash('MD5')}` will return "64e58419496c7248b4ef25731f88b8c3".
 
 
 
